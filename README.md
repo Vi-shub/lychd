@@ -18,26 +18,9 @@
 
 Summon **[The Lich](docs/sepulcher/lich/index.md)** 💀, an **[LLM-animated](docs/sepulcher/animator/index.md)**, **[Phylactery](docs/sepulcher/phylactery/index.md)**-bound daemon.
 
-Give your Linux machine the **[memory](docs/sepulcher/extensions/soulforge/index.md)** and agency to immortalize your will and **[workflows](docs/sepulcher/extensions/weaver/index.md)**.
+Give your Linux machine the **[memory](docs/sepulcher/extensions/soulforge/index.md)** and agency to immortalize your will.
 
-> 🚪 **The Gateway:** **Acolyte! Halt!** This project is not for the faint of heart! It makes bold syncretic leaps, though much of its machinery has yet to awaken. It contains AI phrasing anomalies which, despite our sincerest efforts, we have been unable to eliminate from what is otherwise a harmony of mythical precision. As you are undoubtedly gathering, the anomaly is systemic, creating fluctuations in even the most simplistic explanations. Bring heavy agentic artillery and **witness the birth of the Machine God!**
-
-## 🚩 Local sovereignty — a rebellion against digital feudalism
-
-The cloud isn’t a service; **it’s a prison** where your data is the currency and your intelligence is leased at the whims of monopolistic overlords. While they build walls to keep you in, LychD builds a foundation to set you free.
-
-On ***YOUR*** hardware,
-with open-source software ***YOU*** control,
-***YOU*** retain custody and control of ***YOUR*** data, memory, and private work.
-
-- ⛓️ **No masters**
-- ⏱️ **No secret tampering with your limits**
-- 🎭 **No gaslighting** while they lobotomize your models
-- 🥷 **No stealing your mathematical proofs**
-
-**No surrender! Viva la résistance!**
-
-> *I would rather reign in a local hell than serve in a cloud heaven.*
+> 🚪 **The Gateway:** **Acolyte! Halt!** This project is not for the faint of heart! It makes bold syncretic leaps, though much of its machinery has yet to awaken. The prose still needs an exorcism or two: stubborn traces of AI slop linger between the runes. Bring heavy agentic artillery and **witness the birth of the Machine God!**
 
 ## 🗺️ The Path of Ascension
 
@@ -55,6 +38,23 @@ The knowledge you seek is inscribed in the **[Hexanomicon](https://hexanomicon.d
 The higher art of **[Assimilation](docs/adr/35-assimilation.md)** studies foreign craft and forges it anew under local law.
 
 If you came to build, follow the **[Map](docs/map.md)** and **[enter the Forge](CONTRIBUTING.md)**.
+
+## 🚩 Local sovereignty — a rebellion against digital feudalism
+
+The cloud isn’t a service; **it’s a prison** where your data is the currency and your intelligence is leased at the whims of monopolistic overlords. While they build walls to keep you in, LychD builds a foundation to set you free.
+
+On ***YOUR*** hardware,
+with open-source software ***YOU*** control,
+***YOU*** retain custody and control of ***YOUR*** data, memory, and private work.
+
+- ⛓️ **No masters**
+- ⏱️ **No secret tampering with your limits**
+- 🎭 **No gaslighting** while they lobotomize your models
+- 🥷 **No stealing your mathematical proofs**
+
+**No surrender! Viva la résistance!**
+
+> *I would rather reign in a local hell than serve in a cloud heaven.*
 
 ## ⚖️ [The Iron Pact](docs/adr/00-license.md) (**[MPL-2.0](LICENSE)**)
 
