@@ -1,0 +1,176 @@
+---
+title: Companion Android Development
+icon: material/android
+---
+
+# :material-android: Companion Android Development
+
+The first implementation lives in [the Android client](https://github.com/hexanomicon/lychd/tree/main/clients/android).
+It provides a native Kotlin/Compose development screen, a schema-derived Bridge fixture, and
+bounded foreground microphone capture with local replay. [State of Work](../../state-of-the-work.md#companion-android-client)
+owns its delivery boundary. [Android Foundation](android-foundation.md) retains the researched
+live-client direction and its host prerequisites. [Access and Views](access-and-views.md) applies
+the accepted account and working-interface rules to this client.
+
+## Running the slice
+
+Follow the client [build and installation instructions](https://github.com/hexanomicon/lychd/blob/main/clients/android/README.md).
+The debug application has a separate `.dev` identity. Open Companion, type words, mark them
+reviewed, and send. The reply explicitly identifies itself as a development fixture. Refresh reads
+the fixture conversation; New conversation starts a separate local fixture session. These actions
+exercise the current Bridge JSON dialect without performing a native Companion handoff or
+admitting host work.
+
+Start recording requests Android microphone permission. Stop recording finishes a mono PCM16
+WAV at 16 kHz. Capture stops automatically at 15 seconds, with a second byte cap of 512 KiB
+including the WAV header. Replay plays that local recording through Media3; Discard removes it.
+The words editor is manual: recording does not fill it, and replay is not synthesized speech.
+
+On `onStop`—including the normal background/lock route—the client stops capture and replay,
+attempts to discard its current recording, and fences late callbacks. Activity destruction closes audio
+resources. Rotation may retain the ViewModel's draft while discarding audio. This boundary is
+`onStop`; the implementation does not claim capture ends merely on `onPause` or against every
+Samsung-specific lifecycle condition before a handset probe.
+
+## Code and contract ownership
+
+| Path | Responsibility |
+| --- | --- |
+| `clients/android/app` | Compose views, lifecycle and permission handling, testable handset interaction, AudioRecord capture and Media3 replay adapters. |
+| `clients/android/core` | Local Bridge state, bounded Ktor transport, explicitly in-process HTTP fixture, local presentation offers and recovery tests. |
+| `clients/android/tools/generate_wire.py` | Deterministic Kotlin wire models and JSON token-shape checks from the current Altar OpenAPI export. |
+| `clients/web/openapi.json` | Existing host-owned transport schema; Android does not own a second copy. |
+| `clients/android/gradle/libs.versions.toml` | Pinned direct build and library versions. |
+
+One pure JVM `core` module permits protocol tests without an Android SDK; it does not introduce
+a shared Android/iOS UI or a new domain authority. The generated fields preserve required
+nullable fields and supplied defaults. Optional fields with no schema default use nullable local
+representation; generated token-shape checks run before decoding so quoted numbers and explicit
+null cannot stand in for their schema-owned types. Object/array error extras stay opaque.
+Generated shape evidence does not establish authentication, authorization, valid state transitions,
+or recovery.
+
+The HTTP fixture uses Ktor MockEngine at a reserved `.invalid` origin. No live-engine factory,
+URL editor, cookie store, credential, Internet permission, analytics SDK, retry plugin, or audio
+upload exists. CIO is a candidate for a later tested TLS/Keystore transport. The host's current
+loopback possession credential must not be copied into the client or exposed over LAN/VPN.
+
+## Local state and custody
+
+Bridge state and fixture records are memory-only. A successful submission has a fresh request
+UUID, then the client reads the session snapshot. Missing or malformed acknowledgement marks
+the outcome unknown and blocks further sends in that session. Refresh cannot prove the missing
+outcome by matching text. An explicit new session clears that local latch; the fixture does not
+provide a durable request lookup. Cancellation, background invalidation, new session and close
+fence stale responses. Explicit presentation-context replacement also clears the local projection,
+including history, draft and review state. Disposal does not settle the original external outcome.
+There are no automatic retries.
+
+Drafts are limited to 100,000 characters and 256 KiB of UTF-8, responses to 512 KiB, session
+history to 128 turns and each HTTP action to 15 seconds. The fixture caps its memory holdings and
+HTTP history; reaching its development limit requires restarting the app. It checks serialized
+acknowledgement and full snapshot bounds before admitting a new fixture message, including JSON
+escaping and accumulated history. Request UUID spelling does not create a second admission.
+These are local bounds, not host admission policy.
+
+## Access-aware presentation
+
+The accepted IAM design already permits different working views for different accounts and
+contexts. The client now has a closed local policy for Conversation, Words and Local recording,
+with separate open, refresh, edit, review, send, record and replay offers. Compose and interaction
+handlers consult the same policy. Missing policy offers no work. A read-only offer cannot create
+a conversation through startup or the Refresh fallback; an offered screen alone grants no action.
+Queued actions and callbacks must still belong to the current presentation generation.
+
+The debug build uses explicitly labelled development offers; release starts unavailable. There
+is no account picker, Role parser or live Ward projection adapter. Replacing the policy disposes
+of the old local context and stops audio. Stop, discard and cleanup retry remain callable after
+work offers disappear. This is a client integration seam and does not deliver remote identity,
+object authorization or profile management.
+
+## Audio custody
+
+Audio files live only in the app's `noBackupFilesDir/companion-recordings` directory. The manifest
+disables backup and supplies explicit cloud/device-transfer exclusions. Cancel closes capture
+and attempts to remove partial or unclaimed completed recordings; a bounded retry guard blocks
+new capture when disposal fails. A successful stop transfers file cleanup to the interaction
+controller.
+Background/discard attempts deletion of its transferred recording. A failed deletion is visible,
+retained for bounded retry and prevents another recording until cleanup succeeds. Overflow asks
+for a process restart so startup cleanup can recover the abandoned directory.
+At process startup, the recorder's IO initialization removes abandoned `capture-*.wav` files
+from an earlier process; the first recording waits for cleanup. This is ordinary file deletion,
+not a secure-erasure or flash-forensics guarantee. Partial/unclaimed and transferred-file cleanup
+share the visible capture guard. Cleanup failure survives adapter destruction and late start
+cancellation or storage failure; releasing the recorder does not discharge its byte custody.
+No recording supplies training permission.
+
+The controller observes capture completion and early failure directly rather than waiting for the
+display timer or a user stop. Playback callbacks distinguish a replay request from Media3's
+playing state and clear it on end/error. These are local adapter facts, not physical delivery or
+remote voice settlement.
+
+Process death may clear the draft/conversation and leave audio until the next successful startup
+cleanup. The app has no retained conversation database or reboot recovery. Its local microphone
+and replay facts are not Echo transcription, synthesis or delivery receipts.
+
+## Verification and remaining probes
+
+Core tests exercise the fixture's actual JSON routes, duplicate/conflicting request behavior,
+invalid input, bounded bodies, malformed/null/enum replies, framework errors, lost acknowledgement,
+local state races and stale responses. The WAV tests exercise sample/header correctness, byte and
+duration bounds, empty capture, cancellation, completion races and custody transfer. Generator
+tests exercise required/null/default fidelity, reference closure and unsupported schema refusal.
+Presentation and controller tests exercise unavailable/read-only offers, direct-call denial,
+queued actions, context loss, early audio failures, late callbacks and cleanup across adapter
+destruction. Cleanup retry cannot erase a current recording-failure message or resurrect a closed
+owner's recorder.
+Android lint and an APK build verify platform compilation; they do not operate a microphone.
+The reviewed aggregate passed **31 Bridge tests, 12 presentation tests, 24 controller tests,
+17 audio tests, five deletion-recovery tests and nine generator tests**—98 client tests in total—
+Android lint with no issues, and the debug APK build. Lockfiles retain the
+resolved dependency graph. These checks do not prove supply-chain provenance or reproducible
+APK bytes across machines.
+
+The wrapper verifies its distribution SHA-256 and Gradle verification metadata retains artifact
+hashes observed during this first build. This establishes a baseline for detecting artifact changes,
+not independent provenance. Keep library license resources in the APK. The merged manifest
+includes Media3's network-state/wake-lock permissions and AndroidX's initialization/profile
+components alongside microphone permission; it has no Internet permission. The app owns its
+source and local behavior while Samsung's system software and hardware remain separate layers.
+
+Before treating the client as handset-validated, record the S20 FE's exact model and Android/API
+version and test permission refusal/revocation, repeated recording, the automatic cap, lock,
+background, rotation, process kill/relaunch cleanup, audio focus, wired/Bluetooth route changes,
+and stop/discard while finishing or replaying. A local completed WAV is not evidence of a remote
+voice journey. This first slice contains no instrumented-device test receipt.
+
+## Next integration
+
+The next useful work is a protected host-owned mobile API with enrolled device identity,
+object-scoped grants and exact retained handoff/result lookup. It needs the accepted
+Ward → Familiar → Companion order and a separately settled submission/presentation contract.
+Then qualify the chosen live Ktor engine on the handset, wire the exact generated contract,
+and connect Echo's bounded transcription/synthesis custody through the proposed Communion Suite.
+Only that sequence can establish the capture → reviewed words → host work → settled reply journey.
+
+The fixture's known-refusal classification cannot become live recovery policy. The current Altar
+Bridge can fail after admission while constructing its acknowledgement. Its acknowledgement also
+does not echo the request identity: the current client attaches that identity locally. Neither an
+HTTP status nor this locally attached value establishes an exact retained host outcome. Live work
+needs the owning host contract and tests for pre-admission refusal, post-admission failure, lost
+acknowledgement and lookup in the original account/context.
+
+| Review follow-up | Required evidence |
+| --- | --- |
+| Remote account and view integration | Ward enrollment, application-owned filtered projection, exact object/action grants; two accounts, sharing, revocation, expiry and context-switch tests. |
+| Live Bridge recovery | Protected mobile ingress and retained request/handoff/result lookup; transport failures cannot cause duplicate admission or retargeting. |
+| Remote voice journey | Echo custody and bounded capture/transcription/review/synthesis settlement, followed by handset delivery evidence. |
+| Android operation | The S20 FE lifecycle, permission, microphone, cleanup, focus and route probes listed above. |
+
+Folder-first offline music can reuse the platform/lifecycle project but requires its own library
+selection, media session and background playback behavior. Selected photos and explicit copy sync
+follow the [Phone Workspace](phone-workspace.md) study. Those features do not turn client modules
+into host-owned extension execution or confer broad control of the phone.
+
+[Companion](index.md) · [Return](return.md) · [Android Foundation](android-foundation.md)

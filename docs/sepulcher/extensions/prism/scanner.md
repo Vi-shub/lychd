@@ -44,7 +44,7 @@ A Prism-owned Scanner reference adapter may assemble those pieces, but its name 
 their authority. A finite CLI/library path is a Spell-selected ToolProfile delivered into a trusted
 executor or Tomb. A resident, queued, or remote service is an Animator reached through a
 `CallGrant` or `JobGrant`. Asynchronous execution additionally uses Core's
-[`ServiceJobAttempt@1`](../../../adr/14-workers.md#service-job-attempts-designed).
+[`ServiceJobAttempt@1`](../../../adr/14-workers.md#service-job-attempts).
 
 The host normally materializes authorized bytes and uploads them directly. A provider-visible file
 URL is allowed only through a separate egress decision and must never become an ambient fetch or

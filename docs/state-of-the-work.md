@@ -281,14 +281,14 @@ preserving the wait or exact pending delivery on timeout while later owners prog
 workflow/checkpoint refusal contains child effects before failure; post-park probes also have
 deadlines so they release their workers.
 Unresolved child containment stays nonterminal rather than claiming false `FAILED` truth; a timed-
-out cancellation remains `CANCELLING`. Registry boot derives a private one-to-one `legacy_inline`
-contract, placement, implementation, and resolution lock for each executable v2 station without
-changing its frozen Pattern snapshot or digest; exact revision lookup traverses that resolution.
+out cancellation remains `CANCELLING`. Exact revision lookup validates the persisted v2 Pattern
+snapshot and digest against the registered manifest, including its reviewed implementation
+revision; retained inactive revisions remain executable through that same check.
 
 **Boundary:** This does not prove automatic source compatibility, a transactional event outbox,
-separate-worker truth, multi-process streaming, federation, or producer backpressure. The private
-lock is not persisted on Run, portable, configurable, or projected by Loom/Orb; no public Spell or
-Scroll contribution store is delivered.
+separate-worker truth, multi-process streaming, federation, or producer backpressure. No private
+`legacy_inline` boot adapter, Resolution Lock, or public Spell or Scroll contribution store is
+delivered.
 
 **Evidence**
 
@@ -380,6 +380,8 @@ production upgrade, process replacement, exactly-once host effects or external d
 restart, re-admission, idempotent settlement, and fail-closed substitution on resume are tested.
 Post-park probe failure preserves `AWAITING_CONSENT`; uncertain cancellation containment leaves the
 Run `CANCELLING` instead of manufacturing terminal truth.
+Consent policy stops preserve earlier completed tool results, close known refused calls as denied,
+and leave valid history for the next turn without replaying those effects.
 
 Hardware convergence budgets are
 checkpoint-owned per Run and survive a durable park plus a replacement GraphRunner.
@@ -459,7 +461,10 @@ notification delivery, or external channel.
 settlement, and lease-aware dispatch are tested with duplicate attribution, snapshot isolation,
 cancellation invalidation, and strict endpoint-root policy.
 Grant scope closes model-provider clients before lease release, including failure, cancellation,
-and an admission race after hydration.
+and an admission race after hydration. A per-Animator admission generation rejects preparation
+that spans a completed drain and reopen, including asynchronous grant issue and provider entry.
+Inert hard-swap and soft-reload cases verify refusal without a lease or dispatch event, provider
+cleanup, and fresh redispatch; an unrelated Animator's drain does not invalidate the grant.
 OpenAI-shaped clients discard ambient SDK account, admin, webhook, and custom-header configuration;
 request tests prove that only the declared credential reaches the configured endpoint.
 
@@ -501,6 +506,7 @@ integration are not delivered.
   and [fixed-runtime projection](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/animation/services/adapters/runtimes/openai_compat.py)
 - **Verification:** [Registry tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/animation/test_registry.py),
   [grant lifecycle tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_dispatcher.py),
+  [admission-generation tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_dispatcher_admission_generation.py),
   [runtime adapter tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/animation/test_adapters.py),
   [unregistered-runtime admission tests](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_unregistered_runtime_admission.py),
   [catalogue tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/animation/test_catalog.py),
@@ -653,16 +659,34 @@ cannot expose the mutable eviction and launch plans used during execution.
 Soft convergence failures before invoking adapter activation are classified as no effect, including
 observation-only static or already-warming waits. Their gates reopen, coalesced requests share the
 classification, and unrelated warm capabilities remain usable.
+Soft activation writes a durable owner-only guard before invocation and clears the exact record
+only after target WARM. Crash, failed activation, or incomplete marker writes fence a replacement
+Vessel before queue connection, under either actuator profile. Focused filesystem tests include an
+abrupt process exit; generated mount and initialization tests cover persistent storage and mode
+agreement. Hidden host recovery validates the exact record, current declarations, Scribe-owned
+loaded topology, stopped Vessel and target runtime, and pending jobs before release.
+Hard-transition compensation completes or contains before caller or observer cancellation propagates,
+including a first cancellation that arrives during the inverse after ordinary readiness failure.
+Coalesced followers retain the owner's terminal classification and physical/compensation IDs while
+keeping their own request identity, independently of bounded journal eviction. These cases are
+covered by [hard-effect boundary tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/orchestration/test_hard_effect_boundary.py)
+with inert runtime effects.
+Direct actuator observation failures before submission reopen admission without claiming an effect.
+Cancelled Host Reactor requests preserve proved decline/restoration receipts; uncertain outcomes
+remain contained. [Actuator tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_runtime.py)
+exercise both cancellation paths and the manager's gates.
 
 **Boundary — Not yet:** Dynamic shared-capacity admission, durable multi-process orchestration,
 general repair, and a maintained real model/GPU transition receipt are absent. After a soft
-activation call is invoked, its failure has no trustworthy rollback and requires contained operator recovery; `.contained` and
-unresolved `.processing` fence later work.
+activation call is invoked, its failure has no trustworthy rollback and requires contained operator
+recovery; its durable `runtime-guard/pending.json` fences Vessel restart separately from the Host
+Reactor's `.contained` and unresolved `.processing` records. General recovery of corrupt or changed
+declarations is absent; the bounded host command refuses them. Live recovery remains unvalidated.
 
 **Evidence**
 
 - **Source:** [Orchestrator manager](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/orchestration/manager.py)
-- **Verification:** [Transition tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/orchestration/test_manager.py), [runtime workflow scenarios](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/orchestration/test_workflow_scenarios.py), [soft effect-boundary tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/orchestration/test_soft_effect_boundary.py), [observer boundary tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/orchestration/test_observation_boundaries.py), and [Orchestrator API tests](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_api_orchestrator.py)
+- **Verification:** [Transition tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/orchestration/test_manager.py), [runtime workflow scenarios](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/orchestration/test_workflow_scenarios.py), [soft effect-boundary tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/orchestration/test_soft_effect_boundary.py), [durable guard tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_runtime_guard.py), [guard initialization tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_runtime_guard_initialization.py), [soft activation integration](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_soft_activation_recovery.py), [host recovery tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_runtime_recovery.py), [observer boundary tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/orchestration/test_observation_boundaries.py), and [Orchestrator API tests](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_api_orchestrator.py)
 - **Law:** [Orchestrator](./adr/23-orchestrator.md)
 
 ### Resource-aware VRAM and topology scheduling {#resource-aware-scheduling}
@@ -684,14 +708,15 @@ footprints, load time, topology, bandwidth, LRU, refits, tiers, or transition pe
 ## Altar and observability {#altar-and-observability}
 
 The Svelte 5 static client, generated `/api/v1` types, validated semantic SSE, local schema assets,
-and Litestar delivery exist. Focused tests prove contracts and components, not a
-production-factory browser receipt. No XYFlow/Svelte Flow, Sigma, or Graphology dependency and no
-Loom or Orb graph canvas or shared graph-projection supply is delivered; ADR 15's renderer
-directions and admission gates are law, not implementation evidence.
+and Litestar delivery exist. Loom and Orb share an immutable graph-projection supply and a
+read-only Svelte Flow adapter, with [`@xyflow/svelte` 1.6.6](https://github.com/hexanomicon/lychd/blob/main/clients/web/package.json) installed. Focused tests establish
+contracts and components; the required cross-engine retained-heap qualification after forced
+collection remains under verification. Installation and a visible canvas do not discharge
+[ADR 15's renderer admission gate](./adr/15-frontend.md#xyflow-admission).
 The [reading hierarchy and visual direction](./adr/15-frontend.md#reading-hierarchy-and-visual-direction)
-and [instrument reading scenarios](./divination/altar/index.md#presentation-direction) record the
-next presentation targets. Design studies and illustrative browser checks do not establish
-production graph delivery, restart recovery, large-collection performance, or accessibility
+and [instrument reading scenarios](./divination/altar/index.md#presentation-direction) distinguish
+current reading surfaces from further presentation targets. Design studies and illustrative browser checks do not establish
+renderer qualification, restart recovery, large-collection performance, or accessibility
 acceptance; the instrument records below retain their existing evidence boundaries.
 The document language and interface copy are English. There is no message catalogue, explicit
 locale resolver or selector, Principal-preference binding, translated accessibility surface, or
@@ -700,7 +725,7 @@ incidental variation is not delivered localization support.
 The compiled Altar has one fixed LychD Dark palette, dark browser metadata, dark native-control
 colour scheme, and no light/system selector, system-scheme following, palette configuration,
 runtime theme loader, or supported theme extension. Semantic CSS custom properties establish a
-future refactoring seam, but hard-coded dark surfaces remain in the main background, Mermaid, and
+future refactoring seam, but hard-coded dark surfaces remain in the main background, graph chrome, and
 static artwork. There is no complete contrast matrix or bright/dim production-browser receipt;
 ADR 15's bounded operator-palette contract is design law, not delivered configurability.
 
@@ -728,9 +753,12 @@ beside its concern during comparison. Conflict comparison exposes differing fiel
 saved-value choices; citations can open in a separate tab while a draft remains. Superseded
 decisions remain available by disclosure. Board filters describe the loaded page, not the full
 catalogue or an inferred project-health judgment.
+Project detail places concerns first, with separate assessment-group filters and a read-only
+comparison of a stale judgment's retained basis against current requirements. Secondary Project
+context preserves explicit continuation links alongside the concern list.
 
 **Boundary — Not yet:** Concerns remain embedded in Projects. The
-[independent Concern contract](./adr/15-frontend.md#independent-concerns-decomposition-and-addressing-designed)
+[independent Concern contract](./adr/15-frontend.md#independent-concerns-decomposition-and-addressing)
 is Designed: no standalone Concerns, shared decomposition, addressing or decision-to-Concern
 relations, versioned source derivations, or source-based proposal acceptance are delivered.
 There is no AI concern generation, automated coverage judgment, autonomous continuation, project
@@ -756,7 +784,10 @@ outside this evidence; existing installations require migration `0009` before us
 inspection, semantic SSE, closed GenUI descriptors, durable request identity, authoritative
 snapshot recovery, lifecycle fencing, and bounded reconstruction against server-owned Run and
 Pattern identities. Exact retries reuse the canonical Run; distinct overlapping turns are refused.
-Its per-turn run strip is the first thin projection of one Invocation's Circle. Dispatcher grant ids
+Its compact per-turn Circle exposes complete supplied identity, evidence and exact declared-score
+links, status/activity and eligible cancellation. Older retained replies report missing metadata;
+a mismatched Run projection cannot provide another Run's status or actions. This remains a thin
+Invocation projection. Dispatcher grant ids
 rebind the Environment snapshot before inference and after consent re-entry. Browser-shell state
 retains per-session drafts and immutable unknown-admission envelopes across instrument navigation;
 later middleware refusals cannot replace an earlier uncertain identity. Late responses settle that
@@ -769,11 +800,20 @@ session's visible attention.
 The same workspace retains pending and uncertain consent verdicts across card and instrument
 remounts, reconciles late responses, and warns before document exit. IME confirmation does not
 submit an unfinished message.
+Shell consent counts refresh without overlapping reads every five seconds while visible, and on
+focus or return to a visible tab. Hidden, loading, and failed reads show unknown; teardown and
+newer invalidations fence late results. This remains a sampled count, not durable Attention.
+The conversation has a collapsible rail and secondary session detail. Incoming text preserves an
+older reading position; an explicit Latest turn action releases linked-Run focus without losing
+the draft. The composer explains the current admission or active-Run restriction.
 
 The conversation rail reads metadata in pages of 50 with an explicit continuation and Load more;
 its pending counts use one grouped PostgreSQL query without hydrating archive histories. HTTP
 event streams reserve capacity before headers, at most four per Run and 32 per process; excess
 connections receive 429 with retry guidance, and disconnects release their reservation.
+The browser caps envelopes awaiting a Run snapshot at 256, closes on overflow, and invokes its
+bounded recovery path. Nexus detects permanently closed native SSE and uses its existing one-shot
+ticket recovery. Refreshing a linked transition preserves the operator's keyboard focus.
 
 **Boundary — Not yet:** There is no production-browser plus inference-engine receipt, durable cross-process event/token
 delivery, general multi-approval, Attention, or notification channel. Text is the only command
@@ -785,7 +825,8 @@ payload or protect against a hostile authenticated operator.
 
 **Evidence**
 
-- **Source:** [Bridge controller](https://github.com/hexanomicon/lychd/blob/main/src/lychd/interface/web/bridge.py)
+- **Source:** [Bridge controller](https://github.com/hexanomicon/lychd/blob/main/src/lychd/interface/web/bridge.py) and [Circle Run disclosure](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/CircleRun.svelte)
+- **Verification:** [Circle identity/action tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/CircleRun.test.ts)
 - **Verification:** [Bridge tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_bridge.py), [archive tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_bridge_archive.py), [stream admission tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_bridge_stream_budget.py), [PostgreSQL archive receipts](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_db_consent_pg.py), and [client recovery tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/BridgeView.test.ts)
 - **Law:** [Frontend](./adr/15-frontend.md)
 
@@ -798,6 +839,10 @@ ambiguous request identities, follows bounded process-local tickets, and durably
 first target request before launch.
 An earlier unknown outcome retains its UUID through later middleware refusal. Navigation guards
 protect in-flight and unresolved admission from accidental discard.
+Native capability disclosures expose served health, warmth and reason independently of the
+compact chip. Preview loading is target-specific and closing it fences late responses. Full
+uncertain request identities remain visible, and a previous ticket survives selecting another
+preview. Containment and no-op conditions explicitly disable the transition action.
 
 **Boundary — Not yet:** Only request admission is durable. Transition observations lack a durable
 owner, complete history, cross-process projection, restart recovery, and production-browser
@@ -807,7 +852,7 @@ or resume safely; retry refuses to relaunch it.
 **Evidence**
 
 - **Source:** [Nexus controller](https://github.com/hexanomicon/lychd/blob/main/src/lychd/interface/web/nexus.py)
-- **Verification:** [Nexus tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_nexus.py)
+- **Verification:** [Nexus tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_nexus.py) and [client transition tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/NexusView.test.ts)
 - **Law:** [Frontend](./adr/15-frontend.md)
 
 ### Loom workflow instrument {#loom-workflow-views}
@@ -818,16 +863,21 @@ or resume safely; retry refuses to relaunch it.
 permission outlines, checkpoint schemas, implementation revisions, source, active/default state,
 and retained revisions with stale-response-fenced client loading. Verified Orb origin links retain
 the Run and selected event on return; mismatched context is reported without choosing another Run.
+The semantic outline selects a station with labeled incoming and outgoing permissions, declared
+self-loops, and keyboard return to its row. The shared Svelte Flow canvas displays the same
+read-only score, folding the whole Pattern or revealing its stations through zoom and explicit
+controls. Graph failure leaves the outline and inspector available. Failed score reads offer an
+exact-revision retry.
 
 **Boundary — Not yet:** Loom is a view over the fixed registry, not a Spellweaver editor, mutation
 surface, independent Spell identity or catalogue, compatibility or teaching surface, drafting
-canvas, admitted graph-renderer dependency, inert unresolved-Spell projection, Suite executor, or
-production-browser receipt.
+canvas, inert unresolved-Spell projection, or Suite executor. The shared renderer's cross-engine
+forced-collection qualification and complete production-browser acceptance remain unproved.
 
 **Evidence**
 
-- **Source:** [Loom controller](https://github.com/hexanomicon/lychd/blob/main/src/lychd/interface/web/loom.py), [Pattern registry contract](https://github.com/hexanomicon/lychd/blob/main/src/lychd/agents/workflows/base.py), and [Loom client](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/LoomView.svelte)
-- **Verification:** [Loom tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_loom.py) and [client lifecycle tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/LoomView.test.ts)
+- **Source:** [Loom controller](https://github.com/hexanomicon/lychd/blob/main/src/lychd/interface/web/loom.py), [Pattern registry contract](https://github.com/hexanomicon/lychd/blob/main/src/lychd/agents/workflows/base.py), [Loom client](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/LoomView.svelte), and [shared graph adapter](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/graph/GraphCanvas.svelte)
+- **Verification:** [Loom tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_loom.py), [client lifecycle tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/LoomView.test.ts), and [semantic projection tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/graph/loom.test.ts)
 - **Law:** [Workflow](./adr/28-workflow.md)
 
 ### Composition Portfolio {#composition-portfolio-delivery}
@@ -853,6 +903,11 @@ adapters, processing records, executable Patterns, or Memory/Identity handoffs.
 [Accounting Office](./compositions/accounting-office/index.md) also remains a candidate study:
 its proposed mail/bank ports, entity books, jurisdiction profiles, privacy workflow, and accounting
 Patterns establish no implementation, live account access, tax filing, or supported-country claim.
+[Thorn](./compositions/thorn/index.md) remains a candidate whitehat security workbench for scoped
+assessment, incident response, cooperative investigation, and reviewed reports/corrections.
+General monitoring and system maintenance remain outside its case ownership. It supplies no
+implemented case records, monitoring integration, response automation, peer investigation network,
+actor attribution, or reporting adapter; deterrence remains unmeasured.
 
 **Evidence**
 
@@ -861,26 +916,100 @@ Patterns establish no implementation, live account access, tax filing, or suppor
 - **Topic:** [Composition Portfolio](./compositions/index.md)
 - **Law:** [Workflow](./adr/28-workflow.md)
 
+### Offline music and Comfy engineering probes {#music-comfy-engineering-probes}
+
+**State:** Partial
+
+**Proved now:** A source development runner validates immutable bounded recipes, preserves earlier
+control variants behind an expected-digest guard, and renders finite owned FAUST instruments or
+exact PCM clips through an isolated optional DawDreamer process. Aligned stems and a mix retain
+source, recipe, implementation, executable-package and output identities. Verified cache hits
+refuse corrupted/incomplete entries. A standalone read-only audition shows the exact recipe
+timeline and verified mix/stems without a native editor or independent synthesis. A classic
+loopback Comfy probe pins reviewed workflow/input declarations, persists an indeterminate submit
+fence before POST, reconciles exact prompt identity,
+and retains bounded immutable artifacts with partial-download receipts. Focused tests exercise real
+DawDreamer 0.9.0 audio and MockTransport Comfy failure paths.
+
+**Boundary — Not yet:** These are finite engineering mechanisms, not a native Riffmaw or Atelier
+application, canonical musical project, registered Pattern, Invocation, ServiceJob, media custody
+or semantic acceptance path. There is no shipped studio API/editor, live input, plug-in loading,
+realtime/latency proof, engine containment, Comfy deployment, loaded-model attestation or real
+MiniMax generation. Interrupted Comfy materialization can require manual reconciliation; targeted
+cancellation refuses. Stable operator-owned external directories and the optional native profile
+remain explicit prerequisites. Portfolio and general-service delivery stay Designed.
+
+**Evidence**
+
+- **Source:** [Recipe contracts](https://github.com/hexanomicon/lychd/blob/main/src/lychd/compositions/riffmaw/offline/models.py), [guarded edits](https://github.com/hexanomicon/lychd/blob/main/src/lychd/compositions/riffmaw/offline/recipe.py), [offline worker](https://github.com/hexanomicon/lychd/blob/main/src/lychd/system/services/music_probe.py), [audition](https://github.com/hexanomicon/lychd/blob/main/src/lychd/compositions/riffmaw/offline/audition.py), [Comfy attempt contracts](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/comfy_probe.py), [Comfy probe](https://github.com/hexanomicon/lychd/blob/main/src/lychd/system/services/comfy_probe.py), and [development runner](https://github.com/hexanomicon/lychd/blob/main/scripts/music_probe.py)
+- **Verification:** [Recipe tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/compositions/test_riffmaw_offline.py), [runner tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/compositions/test_music_probe_cli.py), [audition boundary tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/compositions/test_music_audition.py), [native audio tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_music_probe.py), and [Comfy protocol tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_comfy_probe.py)
+- **Topic:** [Riffmaw Workbench](./compositions/riffmaw/workbench.md)
+- **Law:** [Backend package boundaries](./adr/11-backend.md), [Workers](./adr/14-workers.md), and [Workflow](./adr/28-workflow.md)
+
+### Companion Android Client {#companion-android-client}
+
+**State:** Partial
+
+**Proved now:** The native Kotlin/Compose client provides a development-only Bridge HTTP fixture,
+generated wire models and token-shape checks from the Altar OpenAPI export, bounded local
+interaction state, and Android foreground AudioRecord/Media3 capture and replay. A closed local
+presentation policy gates views and direct actions, defaults to unavailable and fences context
+replacement. The Android assembly delegates transient mechanics to a controller with injected
+audio ports. Focused JVM tests verify malformed/bounded responses, lost acknowledgements,
+denied offers, stale callbacks, WAV bounds and file custody. The fixture
+performs no host work; these client mechanics do not deliver a Portfolio Composition.
+The debug APK builds with the pinned Gradle toolchain and passes Android lint; that compile
+evidence is separate from the outstanding handset probe.
+
+**Boundary — Not yet:** There is no enrolled handset or real-device validation receipt, live
+network engine, protected mobile ingress, Ward/Familiar enrollment, authenticated working-view
+projection, object-scoped authorization, semantic event subscription,
+Echo transcription/synthesis transport, settled Companion handoff/presentation, or Communion
+Suite execution. Release builds show an unavailable screen. Music, photo access and copy sync
+remain candidate work.
+
+**Evidence**
+
+- **Source:** [Android client](https://github.com/hexanomicon/lychd/tree/main/clients/android), [Bridge transport](https://github.com/hexanomicon/lychd/blob/main/clients/android/core/src/main/kotlin/io/github/hexanomicon/lychd/companion/core/KtorBridgeTransport.kt), [presentation policy](https://github.com/hexanomicon/lychd/blob/main/clients/android/core/src/main/kotlin/io/github/hexanomicon/lychd/companion/core/presentation/PresentationPolicy.kt), [interaction controller](https://github.com/hexanomicon/lychd/blob/main/clients/android/app/src/main/kotlin/io/github/hexanomicon/lychd/companion/CompanionController.kt), and [foreground recorder](https://github.com/hexanomicon/lychd/blob/main/clients/android/app/src/main/kotlin/io/github/hexanomicon/lychd/companion/audio/ForegroundRecorder.kt)
+- **Verification:** [Core tests](https://github.com/hexanomicon/lychd/tree/main/clients/android/core/src/test/kotlin/io/github/hexanomicon/lychd/companion/core), [presentation tests](https://github.com/hexanomicon/lychd/blob/main/clients/android/core/src/test/kotlin/io/github/hexanomicon/lychd/companion/core/presentation/PresentationPolicyTest.kt), [controller tests](https://github.com/hexanomicon/lychd/blob/main/clients/android/app/src/test/kotlin/io/github/hexanomicon/lychd/companion/CompanionControllerTest.kt), [WAV tests](https://github.com/hexanomicon/lychd/blob/main/clients/android/app/src/test/kotlin/io/github/hexanomicon/lychd/companion/audio/Pcm16WavFileTest.kt), and [wire generator tests](https://github.com/hexanomicon/lychd/blob/main/clients/android/tools/test_generate_wire.py)
+- **Topic:** [Android Development](./compositions/companion/android-development.md) and [Access and Views](./compositions/companion/access-and-views.md)
+- **Law:** [Source topology](./adr/01-doctrine.md#repository-source-topology), [Audio](./adr/37-audio.md), and [IAM](./adr/38-iam.md)
+
 ### Orb instrument {#orb-instrument}
 
 **State:** Partial
 
-**Proved now:** Orb renders one Run as ordered, paginated evidence with Pattern revision, capture
-durability, ledger boundaries, gaps, transition links, stable selection, bounded retry, and
-teardown-cancelled snapshot reads. Its delegated-job projection applies newest-job and per-job
-event limits at the store query boundary before rendering the public 32/64 suffixes. Shell
-navigation retains the last selected Orb Run/event during the document lifetime. The Loom round
-trip preserves that selection, and Bridge return focuses the exact Run's turn or reports its
+**Proved now:** Orb opens a paginated Run catalogue and a parallel pan/zoom field. At most three
+live lenses retain 100 records each; the visible catalogue refreshes every five seconds; zoom or explicit controls disclose Run, station/subject,
+supplied occurrence, and loaded records. Exact pinned workflow graphs show declared permissions
+separately from retained evidence. Catalogue queries select bounded metadata without loading
+prompts, manifests, or event histories. The selected-Run route retains ordered, paginated evidence
+with Pattern revision, capture durability, ledger boundaries, gaps, transition links, stable selection, bounded retry, and
+teardown-cancelled reads. Its ledger-polled SSE serves bounded batches, resumes from a delivered
+cursor, reports resets, and closes after the currently retained terminal account drains. Feed
+connection state does not settle Run status. Its delegated-job projection applies newest-job and
+per-job event limits at the store query boundary before rendering the public 32/64 suffixes. The shell
+Orb tab opens the parallel field. Exact Run/event links and the Loom round trip preserve selection, and Bridge return focuses the exact Run's turn or reports its
 absence.
+Capture limits and coverage precede the evidence list. Rows expose supplied subjects and dated
+local timestamps; selecting one focuses its inspector, and closing it returns focus to the row.
+Delegated jobs unfold after the evidence, with verified linked-job focus preserved.
+The selected Run has a loaded-record playback cursor with a frozen evidence lens; live events
+continue without moving that lens. LIVE and Follow latest resume the newest loaded account.
+Allowlisted Animator dispatch identities supply a coloured rail and cursor highlight, with no
+inferred call duration or uptime. Loom and Orb share hover/focus previews and a dot-free canvas.
 
-**Boundary — Not yet:** There is no run list, live tail, graph field, durable Oculus read model,
-Sigma/Graphology adapter, cross-process completeness, health query, artifact custody, annotation,
-or multi-run view.
+**Boundary — Not yet:** Loaded graph counts are not complete-history counts. The current manifest
+supplies no nested subworkflow or parent-Run identity. There is no durable Oculus read model,
+Sigma/Graphology adapter, cross-process completeness, health query, artifact custody, or annotation.
+There is no wall-clock workspace replay, configurable retention, continuous model-call activity,
+or historical Animator availability projection.
+The shared renderer's cross-engine forced-collection qualification remains under verification.
 
 **Evidence**
 
-- **Source:** [Orb controller](https://github.com/hexanomicon/lychd/blob/main/src/lychd/interface/web/orb.py) and [Orb client](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/OrbView.svelte)
-- **Verification:** [Orb API tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_orb.py) and [Orb client tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/OrbView.test.ts)
+- **Source:** [Orb controller](https://github.com/hexanomicon/lychd/blob/main/src/lychd/interface/web/orb.py), [Run catalogue queries](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/cortex/ledger.py), [parallel field](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/OrbField.svelte), and [selected-Run client](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/OrbView.svelte)
+- **Verification:** [Orb API and stream tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_orb.py), [catalogue privacy and pagination tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_orb_catalogue.py), [parallel-field tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/OrbField.test.ts), [selected-Run tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/OrbView.test.ts), and [feed recovery tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/orb/live.test.ts)
 - **Law:** [Observability](./adr/29-observability.md)
 
 ### Structured logging configuration {#structured-logging}

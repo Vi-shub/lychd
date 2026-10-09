@@ -207,7 +207,9 @@ The parked binding is checked in the resumed round before dispatch. After that r
 one-shot tool may leave the prepared catalogue; this must not turn its executed effect into a
 reported refusal. Any subsequent approval captures its own current binding.
 Multiple approvals and generic `CallDeferred` labor fail truthfully because the record cannot
-represent them. No tracked production toolset currently originates an approval request; the
+represent them. A policy stop preserves completed tool results and closes only the known refused
+deferred requests as denied before appending its reply; it cannot erase earlier effects or label
+uncertain work as unexecuted. No tracked production toolset currently originates an approval request; the
 executable path is exercised by test-injected toolsets only. Delegated labor is a separate Graph
 node with its own job and trust boundary; ADR 25 owns durable consent ordering and recovery.
 

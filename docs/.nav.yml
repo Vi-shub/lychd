@@ -1,0 +1,10 @@
+nav:
+  - Prophecy: index.md
+  - Summoning: summoning.md
+  - Map: map.md
+  - State of Work: state-of-the-work.md
+  - Sepulcher: sepulcher
+  - Divination: divination
+  - Compositions: compositions
+  - Lexicon: lexicon
+  - Covenants: adr

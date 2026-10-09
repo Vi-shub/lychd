@@ -13,10 +13,24 @@ caller authentication and authorization.
 
 Remote Ward is **Designed**, with its boundary owned by [State of
 Work](../../state-of-the-work.md#remote-iam). The implemented [local Sigil and scope
-floor](../../state-of-the-work.md#local-sigil-authority) is **Partial**: ordinary contained requests
-receive the fixed, secret-free `magus:*` Sigil; middleware reads no credential and distinguishes no
-caller. Scope guards and consent preauthorization exist, but credential-backed authentication and
-the remote IAM path described below remain Designed.
+floor](../../state-of-the-work.md#local-sigil-authority) is **Partial**: protected contained requests
+must present the dedicated local HTTP Basic credential before receiving the fixed, secret-free
+`magus:*` Sigil. This possession check does not distinguish people. Scope guards and consent
+preauthorization exist; separate User accounts and the remote IAM path below remain Designed.
+
+## One instance, different people and working views
+
+A personal instance may admit friends; a household may share an instance administered by a parent;
+a company may give employees different application views through browser or mobile clients. A
+person or organization may also use several instances, with independently admitted accounts and
+permissions in each. Users need not run a LychD themselves. [IAM's account and instance
+contract](../../adr/38-iam.md#people-accounts-and-instances) owns these relationships.
+
+An assigned profile may offer one person a task form and another a review screen for the same
+work. Ward determines permitted access; the application owns the working views, Spellweaver the
+workflow, and the client their presentation. A profile can package those choices without merging
+their authorities. Follow [profiles and working interfaces](../../adr/38-iam.md#profiles-and-working-interfaces)
+and the [deployment examples](../../compositions/products-and-suites.md#deployment-and-projection-are-different-axes).
 
 ## The marks inside the circle
 

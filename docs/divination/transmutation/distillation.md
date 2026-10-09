@@ -58,9 +58,8 @@ remain attributable under the applicable retention rules.
 What ends, what may persist, and what does return mean?
 
 The Work's [native liturgy](../transcendence/index.md#the-breath-of-the-work)
-says: **Life is the whole circulation. Death is the release of one form.** This authored
-philosophy gives the creative cycle a distinction to examine: a particular form may end while
-its consequences still participate in what follows.
+says: **Life is the whole circulation. Death is the release of one form.** A particular form may
+end while its consequences still participate in what follows.
 
 | Meaning in this reading | Question for the work |
 | --- | --- |

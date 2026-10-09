@@ -1,25 +1,20 @@
 <script lang="ts">
   import { page } from "$app/state";
   import { asset, resolve } from "$app/paths";
-  import { onMount, setContext } from "svelte";
-  import { altarNavigationContext, selectedOrbHref, type AltarNavigation } from "$lib/navigation/instruments";
+  import { onMount } from "svelte";
 
   import { getAltarStatus } from "$lib/api/client";
 
   let { children } = $props();
   let pending = $state<number | null>(null);
   let omens = $state<Array<{ id: number; text: string; fault: boolean }>>([]);
-  const navigation = $state<AltarNavigation>({ orbPath: "/orb" });
-  setContext(altarNavigationContext, navigation);
-
-  // Retain URL selection across instrument lifetimes, including event-only navigation.
-  $effect(() => {
-    const selectedPath = selectedOrbHref(page.url.pathname, page.url.search, resolve("/orb"));
-    if (selectedPath) navigation.orbPath = selectedPath;
-  });
-
   let nextOmen = 0;
   let attentionVersion = 0;
+  let attentionInFlight = false;
+  let attentionQueued = false;
+  let attentionTimer: number | undefined;
+  let attentionFault = "";
+  let mounted = false;
 
   function manageAboutDisclosure(node: HTMLDetailsElement) {
     function dismissOutside(event: MouseEvent) {
@@ -70,29 +65,76 @@
     omens = omens.filter((omen) => omen.id !== id);
   }
 
-  async function refreshAttention() {
+  function clearAttentionTimer() {
+    if (attentionTimer !== undefined) window.clearTimeout(attentionTimer);
+    attentionTimer = undefined;
+  }
+
+  function refreshAttention() {
+    if (!mounted || document.visibilityState !== "visible") return;
+    clearAttentionTimer();
+    pending = null;
     const version = ++attentionVersion;
+    if (attentionInFlight) {
+      attentionQueued = true;
+      return;
+    }
+    attentionInFlight = true;
+    void readAttention(version);
+  }
+
+  async function readAttention(version: number) {
     try {
       const next = (await getAltarStatus()).pending_consents;
-      if (version === attentionVersion) pending = next;
+      if (mounted && version === attentionVersion) {
+        pending = next;
+        attentionFault = "";
+      }
     } catch (error) {
-      if (version !== attentionVersion) return;
+      if (!mounted || version !== attentionVersion) return;
       pending = null;
-      raiseOmen(error instanceof Error ? error.message : "The Altar cannot be reached.");
+      const message = error instanceof Error ? error.message : "The Altar cannot be reached.";
+      if (message !== attentionFault) raiseOmen(message);
+      attentionFault = message;
+    } finally {
+      attentionInFlight = false;
+      if (mounted && document.visibilityState === "visible") {
+        if (attentionQueued) {
+          attentionQueued = false;
+          refreshAttention();
+        } else attentionTimer = window.setTimeout(refreshAttention, 5000);
+      }
+    }
+  }
+
+  function attentionVisibilityChanged() {
+    if (document.visibilityState === "visible") refreshAttention();
+    else {
+      attentionVersion++;
+      attentionQueued = false;
+      pending = null;
+      clearAttentionTimer();
     }
   }
 
   onMount(() => {
+    mounted = true;
     void refreshAttention();
     window.addEventListener("altar:attention", attention);
     window.addEventListener("altar:omen", receiveOmen);
     return () => {
+      mounted = false;
       attentionVersion++;
+      attentionQueued = false;
+      clearAttentionTimer();
       window.removeEventListener("altar:attention", attention);
       window.removeEventListener("altar:omen", receiveOmen);
     };
   });
 </script>
+
+<svelte:window onfocus={refreshAttention} />
+<svelte:document onvisibilitychange={attentionVisibilityChanged} />
 
 <a class="skip-link" href="#altar-main">Skip to instrument</a>
 <header class="topbar">
@@ -118,7 +160,7 @@
   <nav class="instruments" aria-label="Instruments">
     {#each instruments as instrument (instrument.slug)}
       <a
-        href={resolve(instrument.slug === "orb" ? navigation.orbPath : `/${instrument.slug}`)}
+        href={resolve(`/${instrument.slug}`)}
         aria-current={page.url.pathname.startsWith(`/${instrument.slug}`) ? "page" : undefined}
       >
         <span>{instrument.label}</span>

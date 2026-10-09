@@ -20,6 +20,7 @@ from lychd.domain.delegation.models import (
     DelegatedAgentJobStatus,
     DelegatedAgentRequest,
     DelegatedAgentResult,
+    bound_result_text,
 )
 from lychd.domain.delegation.ports import DelegatedAgentJobStore, DelegatedAgentRuntime
 from lychd.lib.asyncio import complete_under_cancellation
@@ -269,6 +270,8 @@ class DelegatedAgentCoordinator:
         cancellation, then the cancellation propagates. An unclassified exception
         from start also settles ``LOST``; only failures before invoking the runtime
         establish ``FAILED`` without an adapter-specific rejection receipt.
+        Diagnostic projection respects the result bound without replacing the
+        original exception re-raised after settlement.
         """
         async with self._locked(f"request:{request.request_id}"):
             existing = await self._store.get_by_request(request.request_id)
@@ -314,7 +317,7 @@ class DelegatedAgentCoordinator:
                         DelegatedAgentResult(
                             job_id=ref.job_id,
                             status=DelegatedAgentJobStatus.LOST if start_invoked else DelegatedAgentJobStatus.FAILED,
-                            error=str(exc) or type(exc).__name__,
+                            error=bound_result_text(str(exc) or type(exc).__name__, result_field="error"),
                         ),
                     )
                 )

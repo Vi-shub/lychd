@@ -55,7 +55,8 @@ for that browser surface.
   brain/learned-system findings; follow its inherited vocabulary into the Lexicon and its
   philosophical joining through [Transcendence scope](transcendence.md) when needed.
 - System correspondence: nearest relevant `docs/sepulcher/` leaf.
-- Navigation and presentation: `zensical.toml`, `docs/overrides/`, `docs/assets/`.
+- Navigation and presentation: `docs/.nav.yml`, the relevant section's `.nav.yml`,
+  `zensical.toml`, `docs/overrides/`, `docs/assets/`.
 - Optional comparison, after local authority:
   [agent and observability UX](references.md#agent-and-observability-ux) reference route.
 

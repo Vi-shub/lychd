@@ -63,7 +63,7 @@ Scout provider/adapter binding and uses no Dispatcher lease. Scout durably recor
 before I/O; `unknown_after_crash` is its domain disposition when no independent terminal evidence
 exists. Neither implementation adds a `ServiceJobAttempt@1` for that immediate call. An
 asynchronous crawl or render through `JobGrant` keeps its Scout domain job but layers it over Core's
-[`ServiceJobAttempt@1`](../../adr/14-workers.md#service-job-attempts-designed): the domain's
+[`ServiceJobAttempt@1`](../../adr/14-workers.md#service-job-attempts): the domain's
 `unknown_after_crash` maps to `INDETERMINATE`, and recovery reconciles the same capability-backed
 execution binding.
 

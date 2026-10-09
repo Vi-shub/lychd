@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
     from lychd.domain.animation.capabilities import CapabilityGrant
 
-__all__ = ["AnimatorAdmission", "LeaseAdmissionClosed", "LeaseLedger", "LeaseRow"]
+__all__ = ["AnimatorAdmission", "LeaseAdmissionChanged", "LeaseAdmissionClosed", "LeaseLedger", "LeaseRow"]
 
 
 class AnimatorAdmission(StrEnum):
@@ -41,6 +41,15 @@ class LeaseAdmissionClosed(RuntimeError):  # noqa: N818 - domain signal, not an 
     def __init__(self, animator_name: str) -> None:
         """Record the animator whose admission gate is closed."""
         super().__init__(f"Animator '{animator_name}' is draining; new leases are not admitted.")
+        self.animator_name = animator_name
+
+
+class LeaseAdmissionChanged(RuntimeError):  # noqa: N818 - domain signal, not an implementation error
+    """A drain invalidated admission evidence before a grant could be registered."""
+
+    def __init__(self, animator_name: str) -> None:
+        """Identify the Animator whose admission generation changed."""
+        super().__init__(f"Animator '{animator_name}' admission changed while preparing this grant.")
         self.animator_name = animator_name
 
 
@@ -67,18 +76,25 @@ class LeaseLedger:
         """Initialize an empty, loop-confined ledger."""
         self._rows: dict[str, LeaseRow] = {}
         self._draining_animators: set[str] = set()
+        self._admission_generations: dict[str, int] = {}
         # One waiter Event per in-flight `drained()` call. A single shared slot
         # would let two concurrent drains clobber each other's wakeup (the loser
         # sleeps its full timeout even after its animators empty); a set notifies
         # every waiter on release.
         self._release_waiters: set[asyncio.Event] = set()
 
-    def acquire(self, grant: CapabilityGrant, *, priority: int) -> None:
-        """Register ``grant.lease`` as a LeaseRow. Duplicate grant_id → RuntimeError."""
+    def acquire(self, grant: CapabilityGrant, *, priority: int, admission_generation: int) -> None:
+        """Register only in the open generation captured before grant preparation.
+
+        Reopening after drain cannot validate a pre-drain observation. Duplicate
+        grant identities remain defects rather than readiness transition signals.
+        """
         grant_id = grant.lease.grant_id
         animator_name = grant.spec.animator_name
         if self.admission(animator_name) is AnimatorAdmission.DRAINING:
             raise LeaseAdmissionClosed(animator_name)
+        if admission_generation != self.admission_generation(animator_name):
+            raise LeaseAdmissionChanged(animator_name)
         if grant_id in self._rows:
             msg = f"Lease already registered for grant_id={grant_id} (double-issue bug)."
             raise RuntimeError(msg)
@@ -97,8 +113,14 @@ class LeaseLedger:
             return AnimatorAdmission.DRAINING
         return AnimatorAdmission.OPEN
 
+    def admission_generation(self, animator_name: str) -> int:
+        """Read the process-local drain fence before asynchronous grant preparation."""
+        return self._admission_generations.get(animator_name, 0)
+
     def begin_drain(self, animator_names: Sequence[str]) -> None:
-        """Close lease admission for the animators before waiting for them to drain."""
+        """Invalidate pending admission and close the affected gates before drain."""
+        for animator_name in set(animator_names):
+            self._admission_generations[animator_name] = self.admission_generation(animator_name) + 1
         self._draining_animators.update(animator_names)
 
     def end_drain(self, animator_names: Sequence[str]) -> None:

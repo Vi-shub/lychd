@@ -33,6 +33,7 @@ __all__ = [
     "RunParked",
     "RunRecord",
     "RunStatus",
+    "RunSummary",
     "can_transition",
 ]
 
@@ -137,6 +138,20 @@ class RunParked:
 def can_transition(current: RunStatus, target: RunStatus) -> bool:
     """Whether ``current → target`` is a legal run transition."""
     return target in LEGAL_TRANSITIONS.get(current, frozenset())
+
+
+@dataclass(frozen=True, kw_only=True)
+class RunSummary:
+    """Run catalogue metadata without prompts, manifests, errors, or evidence bodies."""
+
+    run_id: str
+    session_id: str
+    workflow_name: str
+    status: RunStatus
+    created_at: datetime
+    started_at: datetime | None
+    finished_at: datetime | None
+    error_present: bool
 
 
 @dataclass

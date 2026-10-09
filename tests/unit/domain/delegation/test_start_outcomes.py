@@ -94,6 +94,42 @@ async def test_lost_start_acknowledgement_preserves_replay_and_containment_ident
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("error_length", [16_384, 16_385])
+async def test_start_diagnostic_bound_preserves_lost_settlement_and_original_error(error_length: int) -> None:
+    failure = RuntimeError("é" * error_length)
+
+    class _LargeDiagnosticRuntime(_LostAcknowledgementRuntime):
+        async def start(self, request: DelegatedAgentRequest, job: DelegatedAgentJobRef) -> None:
+            assert request.request_id == job.request_id
+            self.accepted.append(job)
+            raise failure
+
+    runtime = _LargeDiagnosticRuntime()
+    store = InMemoryDelegatedAgentJobStore()
+    coordinator = DelegatedAgentCoordinator(runtimes={runtime.name: runtime}, store=store)
+    request = _request()
+
+    with pytest.raises(RuntimeError) as raised:
+        await coordinator.submit(request)
+
+    assert raised.value is failure
+    lost = await store.get_by_request(request.request_id)
+    assert lost is not None
+    assert lost.status is DelegatedAgentJobStatus.LOST
+    assert lost.result is not None
+    assert lost.result.error is not None
+    assert len(lost.result.error) == 16_384
+    if error_length == 16_384:
+        assert lost.result.error == str(failure)
+    else:
+        assert lost.result.error.startswith("é")
+        assert lost.result.error.endswith("\n...[truncated]")
+    assert await coordinator.submit(request) == lost.ref
+    assert await coordinator.refresh(lost.ref.job_id) == lost
+    assert runtime.accepted == [lost.ref]
+
+
+@pytest.mark.asyncio
 async def test_unknown_runtime_is_definitely_failed_before_start() -> None:
     store = InMemoryDelegatedAgentJobStore()
     coordinator = DelegatedAgentCoordinator(runtimes={}, store=store)

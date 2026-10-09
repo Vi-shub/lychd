@@ -7,8 +7,6 @@ icon: material/magnify
 
 The cheapest listing may be the wrong part; the attractive vehicle may carry unanswered questions. Scavenger keeps a finite acquisition campaign open to inspection until its evidence supports a decision, a commitment, a parcel outcome, or an honest stopping point.
 
-Fix the need and permissible consequence, inspect the whole candidate field and correct its rankings, take approved questions to a seller, then follow exact terms into commitment, receipt, inspection, dispute, or diligence.
-
 ## Contract
 
 `scavenger` revision `2` publishes `scavenger.plan_campaign@1`, `scavenger.observe_market@1`, `scavenger.qualify_candidate@1`, `scavenger.rank_candidates@1`, `scavenger.negotiate@1`, `scavenger.commit@1`, and `scavenger.receive@1`.
@@ -21,6 +19,9 @@ Unbounded scraping, spam, false identity or leverage, hidden criteria changes, p
 
 ## Open the campaign
 
-[Campaign](campaign.md) · [Market](market.md) · [Bargain](bargain.md) · [Acquisition](acquisition.md)
+[Campaign](campaign.md) fixes the need and permitted consequence. [Market](market.md) follows
+the whole candidate field into evidence, ranking, and correction; [Bargain](bargain.md) takes approved questions to a seller.
+When exact terms are ready, [Acquisition](acquisition.md) follows commitment into receipt,
+inspection, dispute, or diligence.
 
 [Composition Portfolio](../index.md) · [Workflow](../../adr/28-workflow.md)

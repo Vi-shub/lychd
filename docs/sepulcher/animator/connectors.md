@@ -5,11 +5,12 @@ icon: material/connection
 
 # :material-connection: Connectors and Dialects
 
-A **Connector** turns one admitted Animator endpoint into callable runtime surfaces by encoding
-requests and decoding responses in an exact wire or process dialect. Read this page when binding
-a protocol; [Capabilities](capabilities.md) defines the contracts and permission carried by the
-grant. Domain judgment, egress policy, job recovery, and runtime transitions remain with their
-owning services.
+A service must receive a request in a language it understands and return something LychD can
+interpret. A **Connector** binds an admitted Animator endpoint to that exact wire or process
+dialect: it encodes the request, decodes the response and exposes the callable runtime surface.
+[Capabilities](capabilities.md) defines what may be requested and permitted through its grant.
+The service's domain still owns judgment, while egress policy, job recovery and runtime
+transitions remain with their respective owners.
 
 The current implementation is narrower than this designed office. Its
 `OpenAICompatibleConnector` hydrates only Pydantic AI Chat Completions or Responses model
@@ -17,19 +18,6 @@ surfaces, projects its configured model catalogue, and exposes agent-loop toolse
 is not necessarily a live discovery result. It is an available **OpenAI model
 connector**, not a universal implementation of every API beneath an `/v1` root. Audio, Images,
 Videos, OCR, Scout, Form, Kinesis, engine jobs, and live sessions have no delivered connector.
-
-## Five boundaries that must not collapse
-
-| Boundary | Owns | Does not own |
-| --- | --- | --- |
-| **Capability interface** | [versioned request and result contract](capabilities.md#interface-profile-and-operation) | transport or application judgment |
-| **Capability profile** | [exact implementation closure and proved operations](capabilities.md#interface-profile-and-operation) | endpoint lifecycle or wire behavior |
-| **Dialect driver** | request encoding, authentication shape, response decoding, errors, progress, cancellation, and reconciliation for one exact protocol | provider truth beyond that proved subset |
-| **Runtime adapter** | Rune hydration, process/container plan, readiness probe, optional in-runtime activation, and control-plane facts | semantic routing or job meaning |
-| **Animator** | one addressable local Soulstone or remote Portal bearing those surfaces | Composition records, Graph, policy, or effect authority |
-
-One runtime adapter may expose several dialect drivers. One driver may serve several admitted
-profiles. Sharing a URL, SDK, container, or Python base class does not merge their contracts.
 
 ## OpenAI compatibility is per dialect
 
@@ -104,7 +92,7 @@ than replaced by a runtime fallback.
 ## Durable job handoff
 
 Before any local or remote asynchronous effect is submitted, the owning Worker persists
-[`ServiceJobAttempt@1`](../../adr/14-workers.md#service-job-attempts-designed) with the exact
+[`ServiceJobAttempt@1`](../../adr/14-workers.md#service-job-attempts) with the exact
 request, execution route, and recovery identity, plus a managed local reservation when required.
 Only then may the driver or executor receive its idempotency identity; persist any returned
 provider/executor job identity.
@@ -123,6 +111,19 @@ consent, transformation receipts, cost, and expiry. A changed crop, prompt, atta
 fallback, or derived artifact requires a fresh decision. Connector code receives the narrow secret
 reference or mounted value required by its exact driver; it cannot enumerate the Codex, borrow a
 different provider credential, or return secrets in diagnostics.
+
+## Five boundaries that must not collapse
+
+| Boundary | Owns | Does not own |
+| --- | --- | --- |
+| **Capability interface** | [versioned request and result contract](capabilities.md#interface-profile-and-operation) | transport or application judgment |
+| **Capability profile** | [exact implementation closure and proved operations](capabilities.md#interface-profile-and-operation) | endpoint lifecycle or wire behavior |
+| **Dialect driver** | request encoding, authentication shape, response decoding, errors, progress, cancellation, and reconciliation for one exact protocol | provider truth beyond that proved subset |
+| **Runtime adapter** | Rune hydration, process/container plan, readiness probe, optional in-runtime activation, and control-plane facts | semantic routing or job meaning |
+| **Animator** | one addressable local Soulstone or remote Portal bearing those surfaces | Composition records, Graph, policy, or effect authority |
+
+One runtime adapter may expose several dialect drivers. One driver may serve several admitted
+profiles. Sharing a URL, SDK, container, or Python base class does not merge their contracts.
 
 [Capabilities](capabilities.md) owns semantic matching and grant variants. [Soulstone
 Runes](soulstone/rune.md) declare concrete local instances; [Portals](portal.md) declare remote

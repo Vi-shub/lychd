@@ -51,7 +51,7 @@ Both delivered Bridge revisions validate fresh and restored state against admitt
 session, prompt, priority, and capability binding before node execution.
 Workflow.mermaid() is a projection.
 
-### Boundary metadata (Designed)
+### Boundary metadata
 
 A future contribution declares execution plane, eligible local/Portal providers, local-only/egress
 behavior, writes, delegation, quarantine, label propagation, and required declassification receipt,
@@ -110,7 +110,7 @@ For a future service job, the owning station persists `ServiceJobAttempt@1` befo
 checkpoints the same owner, then parks. Re-entry reads terminal attempt truth and dispatches afresh;
 it never resumes a Connector, grant, provider SDK object, or process handle. Unknown external
 effect remains contained rather than being repeated. [Workers
-(14)](14-workers.md#service-job-attempts-designed) owns the common attempt and recovery mechanics;
+(14)](14-workers.md#service-job-attempts) owns the common attempt and recovery mechanics;
 the Composition/domain contract owns result meaning and acceptance.
 
 ## Checkpoint Ownership and Terminal Commit

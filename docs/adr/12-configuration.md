@@ -163,9 +163,7 @@ Bind preflight requires the Codex secret file to be Magus-owned with
 group and other permissions closed. Generated units use file form and scope mounts to the unit that
 needs them. Filesystem permissions do not isolate code within that unit.
 
-<span id="policy-and-derived-projections"></span>
-
-### Policy and derived projections (Designed)
+### Policy and derived projections
 
 In the accepted design, Codex also sets the privacy/egress baseline (thresholds, anonymization requirement, destination
 and purpose eligibility, non-declassifiable categories, transformer/verifier profile, receipt
@@ -179,9 +177,9 @@ cannot alter queues, network, mounts, privacy, autonomy, approval, or authority.
 Codex mount. [Security (09)](09-security.md) owns credentials and isolation; the Tomb delivery
 boundary remains [Designed](../state-of-the-work.md#tomb-untrusted-execution).
 
-## Future selectors (Designed)
+## Future selectors
 
-### Application and Gateway profiles (Designed)
+### Application and Gateway profiles
 
 A future application selector requires its own accepted Spellweaver schema and
 may resolve only one registered exact profile revision, such as one of the mutually exclusive
@@ -209,7 +207,7 @@ service Principals, edge secrets, firewall and management boundaries, and recove
 Loose fields such as `gateway=true`, `rpi`, `vps`, or an arbitrary proxy target cannot assemble a
 partial edge.
 
-### Palette configuration (Designed)
+### Palette configuration
 
 Presentation configuration obeys the same typed-source law when it is admitted. In particular, a
 future [Altar palette](15-frontend.md#canonical-appearance-and-bounded-palette-configuration) may
@@ -220,9 +218,9 @@ while Configuration owns loading, validation, attribution, and immutable generat
 Settings contains no palette field and changing the accepted root shape requires an implementation
 and State update.
 
-### General casting selection (Designed)
+### General casting selection
 
-A future [Spellweaver configuration-to-casting selector](28-workflow.md#configuration-to-casting-spine-designed)
+A future [Spellweaver configuration-to-casting selector](28-workflow.md#configuration-to-casting-spine)
 follows the same root-shape law. Local TOML may select exact already-registered Scroll, Spell
 implementation, `AgentSpec`/Posture, and Context projection revisions plus bounded policy, with the
 Agent references resolved only through an exact placement; the portable Scroll remains canonical

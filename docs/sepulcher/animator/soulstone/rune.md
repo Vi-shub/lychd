@@ -54,7 +54,7 @@ non-loopback endpoint belongs at the Portal boundary.
 ## Capability declarations
 
 The model catalogue below is the current v1 compatibility path. General service declarations remain
-[Designed](#general-service-declarations-designed).
+[Designed](#general-service-declarations).
 
 ### Declared models become v1 capabilities
 
@@ -150,7 +150,7 @@ the TOML and construct a new process generation; do not mutate an admitted objec
 writing uses the same exact schema generation admitted by loading, rather than every imported
 Python subclass, so an unregistered branch cannot leak into generated configuration.
 
-## General-service declarations (Designed)
+## General-service declarations
 
 The accepted general-service shape adds first-class `[[capabilities]]` entries. A declaration
 references one registered `interface_id` and immutable `profile_ref` (stable id plus revision or digest), selects its permitted

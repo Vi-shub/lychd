@@ -20,6 +20,7 @@ from lychd.domain.cortex.leases import AnimatorAdmission
 from lychd.domain.orchestration.actuator import (
     RuntimeActuationRestoredError,
     RuntimeCancellationNoEffectError,
+    RuntimeCancellationRestoredError,
     RuntimePreconditionError,
     TransitionIntent,
 )
@@ -278,33 +279,59 @@ async def test_host_reactor_claim_holds_fence_past_ack_timeout(
 
 @pytest.mark.parametrize("cancellations", [1, 2])
 @pytest.mark.parametrize("claim_status", ["acquiring", "processing"])
+@pytest.mark.parametrize("terminal", ["declined", "restored", "completed", "contained", "rejected"])
 @pytest.mark.asyncio
 async def test_host_reactor_cancellation_waits_for_claimed_terminal_record(
     tmp_path: Path,
     mocker: MockerFixture,
     cancellations: int,
     claim_status: str,
+    terminal: str,
 ) -> None:
     mocker.patch("lychd.system.services.runtime._ACK_POLL_SECONDS", 0.001)
     inbox, journal = _secure_reactor_dirs(tmp_path)
     actuator = HostReactorRuntimeActuator(inbox, journal, ack_timeout_s=1)
-    pending = inbox / f"{_intent().transition_id}.json"
-    processing = journal / f"{_intent().transition_id}.{claim_status}.json"
-    completed = journal / f"{_intent().transition_id}.completed.json"
+    scenario = build_capability_scenario(active={"a"})
+    scenario.manager._actuator = actuator
+    trace = TransitionTrace(target_capability_key="b:chat:b-model", priority=80)
+    published = asyncio.Event()
+    write_atomic = actuator._write_atomic
 
-    apply_task = asyncio.create_task(actuator.apply(_intent()))
-    await _wait_until_exists(pending)
+    def record_publication(intent: TransitionIntent) -> None:
+        write_atomic(intent)
+        published.set()
+
+    mocker.patch.object(actuator, "_write_atomic", side_effect=record_publication)
+    apply_task = asyncio.create_task(scenario.manager.request_transition(trace.target_capability_key, 80, trace=trace))
+    await asyncio.wait_for(published.wait(), timeout=1)
+    pending = inbox / f"{trace.physical_transition_id}.json"
+    processing = journal / f"{trace.physical_transition_id}.{claim_status}.json"
     pending.replace(processing)
     try:
         for _ in range(cancellations):
             apply_task.cancel()
             await asyncio.sleep(0.01)
             assert not apply_task.done()
+            assert scenario.broker.paused
     finally:
-        processing.replace(completed)
-    with pytest.raises(asyncio.CancelledError) as cancelled:
+        processing.replace(journal / f"{trace.physical_transition_id}.{terminal}.json")
+    expected_error = {
+        "declined": RuntimeCancellationNoEffectError,
+        "restored": RuntimeCancellationRestoredError,
+    }.get(terminal, asyncio.CancelledError)
+    with pytest.raises(expected_error) as cancelled:
         await apply_task
-    assert type(cancelled.value) is asyncio.CancelledError  # Claimed completion is not a no-effect receipt.
+    assert type(cancelled.value) is expected_error
+    contained = terminal not in {"declined", "restored"}
+    assert (scenario.manager.containment_reason is not None) is contained
+    assert scenario.broker.paused is contained
+    admission = AnimatorAdmission.DRAINING if contained else AnimatorAdmission.OPEN
+    assert scenario.leases.admission("a") is admission
+    assert scenario.leases.admission("b") is admission
+    assert trace.phase == {
+        "declined": "declined_no_effect",
+        "restored": "cancelled_restored",
+    }.get(terminal, "contained_uncertain")
 
 
 def test_claim_probe_cannot_miss_acquisition_publishing_processing(
@@ -552,19 +579,23 @@ async def test_claim_timeout_withdrawal_retains_outcome_through_cancellation(  #
     assert scenario.leases.admission("b") is admission
 
 
-@pytest.mark.parametrize("cancellations", [0, 2])
+@pytest.mark.parametrize(
+    ("cancellations", "terminal"),
+    [(0, "completed"), (2, "completed"), (2, "declined"), (2, "restored"), (2, "contained"), (2, "rejected")],
+)
 @pytest.mark.asyncio
 async def test_host_reactor_post_link_failure_waits_for_concurrent_claim(
     tmp_path: Path,
     mocker: MockerFixture,
     cancellations: int,
+    terminal: str,
 ) -> None:
     inbox, journal = _secure_reactor_dirs(tmp_path)
     actuator = HostReactorRuntimeActuator(inbox, journal, ack_timeout_s=1)
-    transition_id = _intent().transition_id
-    pending = inbox / f"{transition_id}.json"
-    processing = journal / f"{transition_id}.processing.json"
-    completed = journal / f"{transition_id}.completed.json"
+    scenario = build_capability_scenario(active={"a"})
+    scenario.manager._actuator = actuator
+    trace = TransitionTrace(target_capability_key="b:chat:b-model", priority=80)
+    claimed = asyncio.Event()
     fsync_calls = 0
     failure_message = "post-link directory sync failed"
 
@@ -572,13 +603,16 @@ async def test_host_reactor_post_link_failure_waits_for_concurrent_claim(
         nonlocal fsync_calls
         fsync_calls += 1
         if fsync_calls == 2:
+            pending = inbox / f"{trace.physical_transition_id}.json"
+            processing = journal / f"{trace.physical_transition_id}.processing.json"
             pending.replace(processing)
+            claimed.set()
             raise OSError(failure_message)
 
     mocker.patch("lychd.system.services.runtime._ACK_POLL_SECONDS", 0.001)
     mocker.patch("lychd.system.services.runtime.os.fsync", side_effect=claim_then_fail)
-    apply_task = asyncio.create_task(actuator.apply(_intent()))
-    await _wait_until_exists(processing)
+    apply_task = asyncio.create_task(scenario.manager.request_transition(trace.target_capability_key, 80, trace=trace))
+    await asyncio.wait_for(claimed.wait(), timeout=1)
     await asyncio.sleep(0.01)
     assert not apply_task.done()
 
@@ -587,15 +621,27 @@ async def test_host_reactor_post_link_failure_waits_for_concurrent_claim(
             apply_task.cancel()
             await asyncio.sleep(0.01)
             assert not apply_task.done()
+            assert scenario.broker.paused
     finally:
-        processing.replace(completed)
+        processing = journal / f"{trace.physical_transition_id}.processing.json"
+        processing.replace(journal / f"{trace.physical_transition_id}.{terminal}.json")
     if cancellations:
-        with pytest.raises(asyncio.CancelledError) as cancelled:
+        expected_error = {
+            "declined": RuntimeCancellationNoEffectError,
+            "restored": RuntimeCancellationRestoredError,
+        }.get(terminal, asyncio.CancelledError)
+        with pytest.raises(expected_error) as cancelled:
             await apply_task
-        assert type(cancelled.value) is asyncio.CancelledError
+        assert type(cancelled.value) is expected_error
     else:
         with pytest.raises(OSError, match=failure_message):
             await apply_task
+    contained = terminal not in {"declined", "restored"}
+    assert (scenario.manager.containment_reason is not None) is contained
+    assert scenario.broker.paused is contained
+    admission = AnimatorAdmission.DRAINING if contained else AnimatorAdmission.OPEN
+    assert scenario.leases.admission("a") is admission
+    assert scenario.leases.admission("b") is admission
 
 
 @pytest.mark.asyncio
@@ -925,6 +971,51 @@ async def test_systemd_actuator_maps_client_timeout_before_effect_to_safe_declin
 
     actuator._observe_runtime_world.assert_not_awaited()
     actuator._run_systemctl.assert_not_awaited()
+
+
+@pytest.mark.parametrize("observation", ["topology", "pending-jobs", "pre-world"])
+@pytest.mark.parametrize("error_type", [OSError, RuntimeError, RuntimePreconditionError])
+@pytest.mark.asyncio
+async def test_systemd_operational_observation_failure_reopens_manager_gates(
+    observation: str, error_type: type[Exception]
+) -> None:
+    scenario = build_capability_scenario(
+        models={"a": ("a-model",), "b": ("b-model",), "peer": ("peer-model",)},
+        active={"a", "peer"},
+        conflict_domains={"a": ("gpu-0",), "b": ("gpu-0",), "peer": ("gpu-1",)},
+    )
+    actuator = _observing_actuator("a", "b", "peer")
+    actuator._observe_runtime_world = AsyncMock(return_value=_ObservedRuntimeWorld(("a", "peer"), ("a", "peer")))
+    actuator._run_systemctl = AsyncMock()
+    original = error_type("systemd observation unavailable")
+    original.__cause__ = ValueError("original diagnostic")
+    if observation == "topology":
+        actuator._topology_attestor.attest = AsyncMock(side_effect=original)
+    elif observation == "pending-jobs":
+        actuator._pending_relevant_jobs = AsyncMock(side_effect=original)
+    else:
+        actuator._observe_runtime_world = AsyncMock(side_effect=original)
+    scenario.manager._actuator = actuator
+    trace = TransitionTrace(target_capability_key="b:chat:b-model", priority=80)
+
+    with pytest.raises(RuntimePreconditionError, match="systemd observation unavailable") as failure:
+        await scenario.manager.request_transition(trace.target_capability_key, 80, trace=trace)
+
+    if error_type is RuntimePreconditionError:
+        assert failure.value is original
+        assert isinstance(failure.value.__cause__, ValueError)
+    else:
+        assert failure.value.__cause__ is original
+    actuator._run_systemctl.assert_not_awaited()
+    assert scenario.world.active == {"a", "peer"}
+    assert scenario.world.activations == []
+    assert trace.phase == "declined_no_effect"
+    assert scenario.manager.containment_reason is None
+    assert not scenario.broker.paused
+    assert scenario.leases.admission("a") is AnimatorAdmission.OPEN
+    assert scenario.leases.admission("b") is AnimatorAdmission.OPEN
+    plan = await scenario.manager.request_transition("peer:chat:peer-model", 80)
+    assert plan.action_type == "NO_OP"
 
 
 @pytest.mark.parametrize("observation", ["topology", "pending-jobs", "pre-world"])

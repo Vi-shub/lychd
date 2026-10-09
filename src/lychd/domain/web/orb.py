@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from lychd.domain.cortex.ledger import RunLedger
     from lychd.domain.cortex.runs import RunRecord
     from lychd.domain.delegation.ports import DelegatedAgentCoordinatorPort
+    from lychd.domain.web.schemas import LoomView
 
 _CAPTURES = {"process_local", "durable_best_effort"}
 _MAX_DELEGATED_JOBS = 32
@@ -40,7 +41,7 @@ async def build_orb_snapshot(
     *,
     after_seq: int = -1,
     limit: int = 100,
-    loom_available: bool = False,
+    workflow: LoomView | None = None,
     delegates: DelegatedAgentCoordinatorPort | None = None,
 ) -> OrbRunSnapshot:
     """Build one bounded evidence page without explaining absent rows by guesswork."""
@@ -91,9 +92,12 @@ async def build_orb_snapshot(
             digest=str(digest) if exact else None,
             exact=exact,
             loom_path=(
-                f"/loom/{pattern_id}/{revision}?run={quote(run.run_id, safe='')}" if exact and loom_available else None
+                f"/loom/{pattern_id}/{revision}?run={quote(run.run_id, safe='')}"
+                if exact and workflow is not None
+                else None
             ),
         ),
+        workflow=workflow,
         capture=typed_capture,
         ledger_head_seq=ledger_head_seq,
         page_end_seq=page[-1].seq if page else None,
@@ -173,5 +177,9 @@ def _item(event: RunEvent, *, capture: CaptureClass) -> EvidenceItem:
         occurrence_id=event.meta.get("occurrence_id"),
         transition_request_id=transition_request_id,
         nexus_path=f"/nexus?transition={transition_request_id}" if transition_request_id else None,
+        animator_name=event.meta.get("animator") if event.kind.value == "dispatch" else None,
+        capability_family=event.meta.get("family") if event.kind.value == "dispatch" else None,
+        model_id=event.meta.get("model_id") if event.kind.value == "dispatch" else None,
+        grant_id=event.meta.get("grant_id") if event.kind.value == "dispatch" else None,
         capture=capture,
     )

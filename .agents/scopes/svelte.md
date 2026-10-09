@@ -105,9 +105,9 @@ LychD-owned adapter:
 - reconstruct identical semantic state after reconnect/backfill; and
 - target annotations by stable server identity.
 
-Svelte Flow is the admitted candidate for the one renderer Loom and Orb share; no package is
-installed yet. Derive folding and the semantic twin from the shared supply so both survive a
-renderer change. A candidate adapter keeps
+Svelte Flow is installed for the one renderer Loom and Orb share; the lockfile owns its version
+and State records the outstanding cross-engine qualification. Derive folding and the semantic
+twin from the shared supply so both survive a renderer change. The adapter keeps
 bound node and edge arrays as disposable renderer drafts, emits domain commands only from explicit
 public gesture and veto hooks, derives its semantic twin only from the authoritative snapshot plus
 owned selection/focus, and replaces drafts from authority without a keyed whole-flow remount. It

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import OrbView from "$lib/components/OrbView.svelte";
+  import OrbField from "$lib/components/OrbField.svelte";
 </script>
 
-<OrbView />
+<OrbField />

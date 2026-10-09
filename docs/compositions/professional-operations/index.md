@@ -10,7 +10,7 @@ application's records and judgment.
 
 | Composition | Outcome |
 | --- | --- |
-| [Broker](../broker/index.md) | A client answer grounded in current offer knowledge, prepared act, human handoff, or exact blocker. |
+| [Broker](../broker/index.md) | A client question answered from current offer knowledge, a prepared act, or a clear handoff or blocker. |
 
 The [Accounting Office candidate study](../accounting-office/index.md) explores attributable
 business records, reconciliation, and accounting handoffs outside the accepted Portfolio.

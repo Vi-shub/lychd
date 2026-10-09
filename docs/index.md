@@ -58,8 +58,17 @@ To master **[LychD](https://github.com/hexanomicon/lychd)**, pass through the fo
 - **[The Covenants](./adr/index.md):** The Canons of Construction. Study the foundational laws
   and architectural decisions that bind the skeleton of the daemon together.
 
-The **[Composition Portfolio](./compositions/index.md)** introduces the applications being
-designed. To contribute, follow one request through the **[Map](./map.md)**, then use the
+**Enter the Work before raising its body.** Follow
+[Broadcast](./compositions/broadcast/index.md) from source evidence to a publication candidate
+and the separate act of release. The **[Composition Portfolio](./compositions/index.md)** opens
+onto the other applications being designed.
+
+For the philosophical journey, begin with [Incantation](./divination/transcendence/incantation.md)
+and follow the five seals of Transcendence. For the creative cycle, enter
+[Transmutation](./divination/transmutation/index.md): give an undertaking form, put it to trial,
+and carry its lesson into the next creation. These paths need no installation.
+
+To contribute, follow one request through the **[Map](./map.md)**, then use the
 [contribution guide](https://github.com/hexanomicon/lychd/blob/main/CONTRIBUTING.md).
 
 !!! tip "The Tongue of the Construct"
@@ -68,4 +77,4 @@ designed. To contribute, follow one request through the **[Map](./map.md)**, the
 
 **LychD remains pre-alpha. [State of Work](./state-of-the-work.md) records what works and what remains unfinished.**
 
-> _To fulfill the Prophecy, begin by drawing the [Summoning Circle](./summoning.md)._
+> _When you are ready to give the Work a body, draw the [Summoning Circle](./summoning.md)._

@@ -28,7 +28,8 @@ Stasis](../../../adr/24-graph.md#live-and-durable-stasis) owns the distinction.
 A durable park ends the current worker execution; it does not require the Vessel to die. If the
 process does die, [Reanimation](../../phylactery/reanimation.md) reconciles committed Run, queue,
 checkpoint, and wait-owner truth in the replacement process. Restoring an earlier whole-body
-snapshot is a separate [Restoration](../../../adr/07-snapshots.md) rite and remains Designed.
+snapshot is a separate [Restoration](../../../adr/07-snapshots.md) rite; check its
+[implementation evidence](../../../state-of-the-work.md#whole-body-snapshot-restore) before relying on it.
 
 ## What crosses the threshold
 

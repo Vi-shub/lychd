@@ -7,7 +7,7 @@ icon: material/account-group-outline
 
 The Necropolis first appears as one private Discord guild, one channel named `the-reach`, and a server-installed application named **Reach**. The outbound Gateway session admits social contact without publishing an ad hoc entrance to the loopback Vessel.
 
-This social Habitat shares a name with the designed [Necropolis A2A topology](../../adr/26-a2a.md#legion-and-necropolis), not its enrollment. Guild membership creates no peer, Principal, node trust, or LychD grant.
+This social Habitat shares a name with the [Necropolis A2A topology](../../adr/26-a2a.md#legion-and-necropolis), not its enrollment. Guild membership creates no peer, Principal, node trust, or LychD grant.
 
 ## The channel's boundary
 

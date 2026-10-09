@@ -71,7 +71,7 @@ runtime, preprocessing, and postprocessing profile. Optional inputs never imply 
 `SightJob@2` owns perception stages, observation validity, and technical result settlement. The
 consuming owner decides how an observation affects its domain judgment. Each asynchronous or
 durable service or tool execution follows Core's Designed
-[`ServiceJobAttempt@1` recovery contract](../../../adr/14-workers.md#service-job-attempts-designed).
+[`ServiceJobAttempt@1` recovery contract](../../../adr/14-workers.md#service-job-attempts).
 The parent Run remains fenced until the same attempt settles. Partial results enter quarantined
 custody; only rehashed, validated observations enter the settled Prism result, and an uncertain paid or remote request is
 never replayed under a new identity.

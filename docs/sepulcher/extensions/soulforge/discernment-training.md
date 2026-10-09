@@ -97,6 +97,27 @@ families for development and sealed transfer checks. Reuse the proposed
 design template, never as both tuning answers and unseen proof. A useful evaluation example may
 remain excluded from training because its permitted uses differ.
 
+### A candidate lesson: continuation under uncertainty { #continuation-under-uncertainty }
+
+Creation's [support and measure](../weaver/creation.md#support-measure-and-next-step) supplies
+another possible training objective: choose a useful next act from evidence, uncertainty, and a
+remaining budget. First use Drift's [separate comparisons](../drift/workflow-improvement.md#support-and-measure-comparison)
+to test whether an explicit allocation procedure suffices. A parameter change needs a remaining
+transfer failure, not merely an appealing analogy with emotion.
+
+Preserve the question, candidate revision, observations available before allocation, reasons for
+support and measure, allowed next moves, remaining budget, chosen move, and its later outcome.
+The learner's input excludes the future outcome; that outcome may support an attributed target
+or evaluation label. An explanation is recorded evidence only when it was actually supplied.
+
+Pair an untried but informative branch with a defeated branch; an informative failed probe with
+a repeated failure that teaches nothing new; and a useful progress signal with an improving
+proxy that violates the original requirement. The distinction being taught is what changes the
+next act. Sefirotic names and emotional vocabulary are not target labels or proof of competence.
+Keep method credit separate from candidate success: a good counterexample may deserve retention
+while its hypothesis loses support. Hold out task families and compare against the explicit
+procedure before proposing trained weights for use.
+
 ## Obtain training authority over one snapshot
 
 Storage, evaluation, and training are separate uses. Permission to retain a Run or to accept its

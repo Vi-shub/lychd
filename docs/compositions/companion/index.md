@@ -11,7 +11,19 @@ The phone itself is a [Familiar](../familiar/index.md) body. [Avatar](../avatar/
 
 ## Contract
 
-`companion.mobile` revision `3` publishes `companion.admit_device@3`, `companion.open_session@3`, `companion.submit_turn@1`, and `companion.present_result@1`. Admission binds exact `FamiliarBody@3` and capability epoch, its Ward-owned device/application `Principal` and `Credential` generation, initiating Principal/current object-scoped `Authority Grant`, purpose, configuration/feature profile, capture/playback, privacy/retention, reconnect, and visible stop.
+`companion.mobile` revision `3` publishes `companion.admit_device@3`, `companion.open_session@3`,
+`companion.submit_turn@1`, and `companion.present_result@1`. Admission fixes three parts of the
+session:
+
+- **The device:** exact `FamiliarBody@3` and capability epoch, with its Ward-owned
+  device/application `Principal` and `Credential` generation.
+- **The permitted work:** initiating Principal, current object-scoped `Authority Grant`,
+  purpose, and configuration/feature profile.
+- **The local experience:** capture and playback, privacy and retention, reconnect, and visible
+  stop.
+
+These bindings let the session recognize when the body, authority, or conditions on which it
+began have changed.
 
 Results are immutable `CompanionDevice@3`, settled `CompanionSession@3`, `CompanionTurnHandoff@1`, and `CompanionPresentationReceipt@1`, optionally synthesized speech/local delivery, or exact partial/non-completion. Persona changes, ambient capture, mobile administration, voice-only approval, and direct deferred external effects remain outside the contract.
 
@@ -25,15 +37,31 @@ Revoked or changed facts prevent new admission and invoke the live session's dow
 
 ## Mobile client
 
-The first target is native Android, planned in Kotlin/Jetpack Compose under `clients/android/**`. The client owns platform integration and local UI state while Composition records, policy, effects, and finish judgment remain native domain truth. [State of Work](../../state-of-the-work.md#composition-portfolio-delivery) owns the undelivered boundary.
+The first target is native Android in Kotlin/Jetpack Compose under `clients/android/**`.
+The first development slice uses an explicit Bridge fixture and bounded local foreground audio;
+it does not establish enrolled mobile access or a native Composition round trip. The client owns
+platform integration and local UI state while Composition records, policy, effects, and finish
+judgment remain native domain truth. [State of Work](../../state-of-the-work.md#composition-portfolio-delivery)
+owns the delivery boundary.
 
 Capability requirements, local routes, presentation/privacy settings, and admitted feature bindings are explicit session inputs. Extension packages may supply features without becoming an application-owned extension set. This independent disclosure, draft, commit, playback, reconnect, expiry, and revocation lifecycle is why Companion is a Composition rather than just a Familiar profile.
+
+[Android Development](android-development.md) describes the implemented fixture/local-audio slice
+and its build route. [Android Foundation](android-foundation.md) studies the first Bridge and foreground voice client,
+including shared API contracts and the path to later phone capabilities.
+[Phone Workspace](phone-workspace.md) studies a broader candidate direction: an offline music
+player, progressively admitted phone actions, selected photos, and explicit sync over local Wi-Fi
+before later VPN reach. That proposal remains separate from this revision's accepted contract.
 
 ## Communion route
 
 **Communion** is the bounded foreground interaction route inside Companion. [Utterance](utterance.md) follows its separately settled submission and presentation handoffs: submission does not admit destination work, and presentation begins from an already-settled result. A Product promising one live capture-to-result journey needs a named [Suite](../products-and-suites.md#compositions-relate-without-nesting) to coordinate the separate Invocations.
 
 ## Boundaries
+
+[Access and Views](access-and-views.md) applies Ward's existing account/profile law to mobile
+screens, action offers, device conditions and context changes. The current fixture supplies no
+live User or remote authorization.
 
 Push-to-talk is the initial visible, foreground, revocable activation. Companion owns physical controls and indicators, local state, configuration, features, and reconnect. Echo owns speech admission, audio custody and derivation, the chronology of transcription, synthesis, delivery and playback, and revocation.
 
@@ -43,6 +71,6 @@ Raw voice is `restricted`; transcripts and replies are at least `private`. Audio
 
 [Utterance](utterance.md) follows the handoff; [Return](return.md) handles reconnect and custody.
 
-Revision `3` supersedes Designed revision `2` with exact Ward enrollment and independently versioned handoff/presentation Patterns. Revision `2` had replaced revision `1`'s body claim with an exact Familiar dependency. No registry or Run used them; historical meanings remain unchanged without executable migration.
+Revision `3` supersedes revision `2` with exact Ward enrollment and independently versioned handoff/presentation Patterns. Revision `2` had replaced revision `1`'s body claim with an exact Familiar dependency. No registry or Run used them; historical meanings remain unchanged without executable migration.
 
 [Composition Portfolio](../index.md) · [Echo](../../sepulcher/extensions/echo.md) · [Ward](../../sepulcher/extensions/ward.md)

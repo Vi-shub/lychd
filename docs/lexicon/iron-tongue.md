@@ -218,7 +218,7 @@ own identity, revisioned meaning and criteria, and separately attributed assessm
 stand alone, arise from an idea, decompose into further Concerns, and be addressed in several
 places; Project membership or a source Covenant is optional.
 
-[Covenant 15: Frontend](../adr/15-frontend.md#independent-concerns-decomposition-and-addressing-designed)
+[Covenant 15: Frontend](../adr/15-frontend.md#independent-concerns-decomposition-and-addressing)
 
 ### [Consciousness](../divination/transcendence/immortality.md#the-first-axiom) { #consciousness }
 
@@ -526,14 +526,14 @@ The in-process registry whose live GrantLeases are the Orchestrator's drain trut
 
 The distributed-embodiment Extension Domain for fenced delegation across operator-owned nodes.
 
-[Covenant 42](../adr/42-multinode.md)
+[Covenant 42: Multinode](../adr/42-multinode.md)
 
 ### [Legionnaire](../sepulcher/extensions/legion.md) { #legionnaire }
 
 Legion's name for an enrolled operator-owned compute node with its own identity, resource
 authority, journal, and fencing.
 
-[Covenant 42](../adr/42-multinode.md)
+[Covenant 42: Multinode](../adr/42-multinode.md)
 
 ### [Lens](../adr/20-agents.md#mechanical-cognitive-postures) { #lens }
 
@@ -1093,6 +1093,13 @@ realize it. One admitted Circle is an Invocation, represented by its durable Run
 ledger identity.
 
 [Covenant 28](../adr/28-workflow.md)
+
+### [User](../adr/38-iam.md#people-accounts-and-instances) { #user }
+
+LychD's shared human-account abstraction bound to a human Principal under Ward. It is distinct
+from a person represented in application records, an organization, a client device, a Persona,
+or a LychD instance. One instance may serve several Users; one person may use several instances
+without automatic identity linking or shared authority.
 
 ## V
 

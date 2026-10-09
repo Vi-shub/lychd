@@ -1,4 +1,4 @@
-"""Deterministic, no-network delegated runtime used by the reference Composition."""
+"""Deterministic, no-network runtime for the Core-owned ``delegated_rite`` Pattern."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from lychd.domain.delegation.models import (
     DelegatedAgentJobStatus,
     DelegatedAgentRequest,
     DelegatedAgentResult,
+    bound_result_text,
 )
 
 
@@ -47,12 +48,12 @@ class ReferenceDelegatedAgentRuntime:
         request: DelegatedAgentRequest,
         job: DelegatedAgentJobRef,
     ) -> None:
-        """Idempotently retain the pure request-to-result projection."""
+        """Retain a bounded pure projection, marking any omitted echo suffix."""
         self._validate_identity(request, job)
         result = DelegatedAgentResult(
             job_id=job.job_id,
             status=DelegatedAgentJobStatus.SUCCEEDED,
-            output=f"Reference delegate completed: {request.prompt}",
+            output=bound_result_text(f"Reference delegate completed: {request.prompt}", result_field="output"),
         )
         async with self._lock:
             existing = self._jobs.get(job.job_id)

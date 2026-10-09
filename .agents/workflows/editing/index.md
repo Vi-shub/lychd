@@ -6,6 +6,11 @@ Load this playbook after the domain scope when the task authorizes changes under
 tests. It defines the **Edit Agent** procedure. It grants no permission beyond the user's task and
 does not replace the owning ADR, source, tests, or contribution rules.
 
+When a consequential direction or construction choice remains unsettled, use
+[Creation's Inquiry](../../../docs/sepulcher/extensions/weaver/creation.md#reuse-inquiry-at-each-uncertain-boundary)
+and record its [policy packet](../../../docs/sepulcher/extensions/weaver/creation.md#inquiry-policy)
+before handing off the edit. Settled mechanical changes can proceed under the edit contract below.
+
 ## Edit contract
 
 Before the first patch, establish:

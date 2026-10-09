@@ -14,7 +14,7 @@ icon: material/tournament
 
 For one casting, follow [score identity](#spells-scrolls-and-casting), [exact road selection](#execution-road-planning), [admission](#admission-and-ownership), and [Stasis](#gates-effects-and-stasis). To change what may be cast, follow [migration](#migration-without-rewritten-history), [contribution](#pattern-contribution), and [protected authorship](#authorship-provenance-and-protected-regions). [Application and coordination ownership](#compositions-products-suites-and-schedules) keeps those scores accountable to their Compositions, Products, and Suites.
 
-The [current material](#current-material) and [Pattern identity](#pattern-identity) sections describe the fixed source registry. Portable Spells, general Resolution Locks, and the later authoring and coordination surfaces retain their stated Designed boundaries.
+The contracts below connect application ownership to one exact casting. [Current material](#current-material) relates them to the source registry; [State of Work](../state-of-the-work.md#topology-a-local-runs) collects implementation evidence and outstanding work.
 
 ## Decision
 
@@ -39,9 +39,13 @@ code-facing name and the compatibility spelling used by existing paths.
 | Suite | Versioned live coordination of separate Composition-owned Invocations, independent of Product packaging |
 
 Spellweaver owns validation, registration, routing, logical dependencies, Gates, schedules/overlap,
-revision continuity, and contribution. Composition owns domain judgment. Product owns its customer
+revision continuity, and contribution.
+
+Composition owns domain judgment. Product owns its customer
 promise, supported-use-case catalogue, packaging, and defaults, but none of its members' records,
-policy, secrets, consent, or effect authority. IAM/Ward/HitL own authority; Dispatcher capability;
+policy, secrets, consent, or effect authority.
+
+IAM/Ward/HitL own authority; Dispatcher capability;
 Orchestrator readiness; Workers delivery/retry; Phylactery/Graph stores and checkpoints; Drift
 evaluation; Soulforge corpus and training lineage. Promotion remains with the receiving policy,
 required HitL, and target effect owner under [Training](33-training.md).
@@ -202,9 +206,9 @@ The manifest binds:
 - a deterministic SHA-256 digest.
 
 Executable stations map one-to-one with Python nodes. Construction rejects missing, duplicate,
-unknown, or mismatched station mappings; duplicate semantic edges; Gate or delegate marker mismatches;
-dynamic `BaseNode` returns whose topology cannot be proved; and any semantic transition set that
-differs from the public Graph node definitions.
+unknown, or mismatched station mappings; unknown station kinds or edge relations; duplicate semantic
+edges; Gate or delegate marker mismatches; dynamic `BaseNode` returns whose topology cannot be
+proved; and any semantic transition set that differs from the public Graph node definitions.
 
 The declared entry names the actual executable start node and participates in the digest. Exactly
 one terminal is required. Gate loops remain explicit Graph edges; a delegate station additionally
@@ -241,23 +245,25 @@ Portable Spells and Scrolls arrive additively:
 No compatibility shim may present a v2 Python node as a canonical public Spell merely because its
 label resembles one.
 
-The first internal adapter for steps 2–3 has one deliberately private identity. For every
-executable v2 station it derives a Scroll-private contract from `(pattern_id, pattern_revision,
-manifest_digest, station_id, legacy_inline)`, places it under the station key and kind, and binds it
-to the manifest's exact `implementation_revision`, `checkpoint_schema`, and Python node fingerprint
-`module:qualname`. Contract, placement, and implementation identities remain separate and form a
+The first internal adapter for steps 2–3 must use one deliberately private
+identity. For every executable v2 station it must derive a Scroll-private contract from
+`(pattern_id, pattern_revision, manifest_digest, station_id, legacy_inline)`, place it under the
+station key and kind, and bind it to the manifest's exact `implementation_revision`,
+`checkpoint_schema`, and Python node fingerprint `module:qualname`. Contract, placement, and
+implementation identities remain separate and form a
 one-to-one set over executable stations. The declarative terminal maps to Graph `End` and is not
 adapted into a fictional Spell or implementation.
 
-That boot-derived `legacy_inline` Resolution Lock has a deterministic **internal-v0** digest. It is
-not JCS portable identity, a signature input, a public Spell contract, or proof of Python source
-equivalence. It changes when the exact local node binding changes without altering the frozen v2
-Pattern snapshot or digest. During this migration step the lock is used by the in-process exact
-revision lookup but is not stored on Run, exposed by Loom/Orb, or claimed as the future persisted
-Resolution Lock. Persisting and projecting it begins only with a new schema and migration under
-steps 4–5.
+That boot-derived `legacy_inline` Resolution Lock must have a deterministic **internal-v0**
+digest. It is not JCS portable identity, a signature input, a public Spell contract, or proof of
+Python source equivalence. Its digest must change when the exact local node binding changes without
+altering the frozen v2 Pattern snapshot or digest. During this migration step, in-process exact
+revision lookup must use the lock without storing it on Run, exposing it through Loom/Orb, or
+claiming the future persisted Resolution Lock. Persisting and projecting it begins only with a
+new schema and migration under steps 4–5. [State of Work](../state-of-the-work.md#topology-a-local-runs)
+records which steps have executable evidence.
 
-### Configuration-to-casting spine (Designed)
+### Configuration-to-casting spine
 
 The extensibility path is one directional assembly, not runtime reflection:
 
@@ -285,8 +291,8 @@ imports code named by configuration, scans packages for subclasses, or guesses a
 from a similar label. Placement-specific Agent and Context assembly occurs after resolution so a
 Reader may receive an exact `structure` or `verbatim` projection without acquiring Writer tools,
 while a Writer must separately satisfy its declared effect and authority contract. The current
-source delivers the fixed v2 registry plus the private `legacy_inline` boot adaptation and a bounded
-`[weaver.bridge]` selector for `bridge_chat@2`. Its exact capability key is server-admitted Run
+source delivers the fixed v2 registry and a bounded `[weaver.bridge]` selector for `bridge_chat@2`.
+Its exact capability key is server-admitted Run
 intent, copied into typed Graph state; a missing key refuses admission or checkpoint decoding,
 and an unavailable target never falls back to another runtime. The worker binds the revision's
 state validator to persisted Run intent; the Graph runner checks fresh and restored state before
@@ -294,8 +300,8 @@ node execution, including hardware re-entry. A differing key, Run/session identi
 admitted priority refuses the checkpoint. Retried admissions first read
 existing Run truth, so configuration changes cannot rewrite queued or parked work. Revision 1
 applies the same admitted-state checks while keeping its eligible-pool behavior and manifest.
-Portable stores, general lock persistence,
-placement profiles, and dynamic registration remain undelivered.
+Private `legacy_inline` boot adaptation, portable stores, general lock persistence, placement
+profiles, and dynamic registration remain undelivered.
 
 ## Execution-road planning
 
@@ -422,7 +428,7 @@ may ask a local Privacy Agent, independently verifies transformation evidence, c
 specific Privacy Cut, gets an exact tagged-target EgressDecision, transmits once, and quarantines
 the return. Censor/Agent proposes only. Context owns the Cut; Security owns declassification.
 
-### Execution projections for procedural Agent placements (Designed)
+### Execution projections for procedural Agent placements
 
 For a declared long-horizon procedural region, a Composition may define a bounded, versioned
 **Execution Projection**. The Composition owns its meaning; the exact Scroll revision pins its
@@ -484,7 +490,7 @@ Dispatcher, Orchestrator, HitL, or revision. Delegated station declares request/
 containment, budget, timeout, cancellation, artifact boundary, downstream use; provider adapter
 invokes foreign runtime, never embedded CLI/credential/private graph.
 
-### Scoped context handoff (Designed)
+### Scoped context handoff
 
 When a score hands a bounded task to another Agent, the receiving placement starts with a fresh,
 recipient-specific Context. It does not implicitly inherit the parent's conversation, loaded
@@ -513,8 +519,9 @@ history or canonical records, and prompt isolation alone proves no tool or works
 The return contains the candidate result or artifact references, observed verification evidence,
 and remaining unknowns or blockers. The parent admits the useful return under the existing
 acceptance and effect boundaries; no complete child transcript is implicitly appended to its
-Context. Independent review receives its own sufficient packet. This handoff contract is Designed;
-the reference delegated adapter does not establish fresh-context assembly in a foreign runtime.
+Context. Independent review receives its own sufficient packet.
+[Delegation evidence](../state-of-the-work.md#delegated-agent-execution) records the runtime
+boundaries established by the reference adapter.
 
 ### Bounded Inquiry in an engineering workflow
 
@@ -664,7 +671,7 @@ Work](../state-of-the-work.md#smith-forge-promotion) owns that boundary.
 
 ### Concerns and application design
 
-[Atlas](15-frontend.md#independent-concerns-decomposition-and-addressing-designed) maps independent
+[Atlas](15-frontend.md#independent-concerns-decomposition-and-addressing) maps independent
 Concerns, their decomposition, and where they are addressed. An idea or application can take shape
 through that account without first becoming a Project or native Composition. Its own Covenants
 can record its adopted decisions. Work outside LychD may use LychD's Covenants as one optional
@@ -684,7 +691,7 @@ judgment and policy boundaries, effect and authority seams, projections, termina
 recovery law. Pattern and Scroll revisions remain separate identities; changing a Scroll never
 silently changes the Composition revision that selected its catalogue contract.
 
-Publication freezes a Composition revision even while delivery remains only Designed. A material
+Publication freezes a Composition revision independently of its implementation. A material
 change to any pinned part creates a new revision under the same stable identity. A change that
 creates a materially different reusable application capability, transfers its defining durable
 records or judgment, or replaces its authority, finish, or recovery boundary requires a new
@@ -694,7 +701,7 @@ the complete contract may update its current explanation without claiming anothe
 Retirement never reinterprets an old identity or revision. The owning Composition record names the
 retired revision, successor or absence of one, reason, compatibility boundary, and any required
 migration or explicit lack of executable migration. If no registry, Run, or stored application
-record ever used a Designed revision, there may be no runtime migration to perform; its historical
+record ever used a revision, there may be no runtime migration to perform; its historical
 meaning and retirement still remain explicit. [State of Work](../state-of-the-work.md) separately
 records whether any revision is registered, executable, persisted, or supported.
 
@@ -766,9 +773,9 @@ therefore resolve the Suite revision and its pinned Scroll without a Product, wh
 pin the same eligible Suite revision. Neither route grants the publisher or parent Run any member
 authority.
 
-Suite execution is Designed: authority-qualified Suite publication, the Suite-to-Pattern pin,
+Suite execution requires authority-qualified Suite publication, the Suite-to-Pattern pin,
 parent and child identity/revision/closure, fan-out/join, budgets, cancel, Stasis, retry, effects,
-compensation, and partial settlement must be defined before any Suite Casting is delivered.
+compensation, and partial-settlement law before admission of any Suite Casting.
 
 A Schedule makes one durable, deduplicated **Occurrence** for each firing and enters ordinary
 admission. Spellweaver owns calendar/event meaning, service class, temporal eligibility,

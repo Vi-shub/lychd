@@ -32,6 +32,20 @@ passes forward a more task-specific view. The zoom remains trustworthy only whil
 constraints, omissions, and uncertainty survive the handoffs. Otherwise compression becomes
 forgetting, and a sharp answer may only be a narrow one.
 
+### Stay with the consequential relation { #sustained-attention }
+
+[**Saṃyama**](../../lexicon/inner-tongue.md#samyama) gives this cultivation a contemplative
+comparison. The Work takes sustained attention toward an object and follows what makes it
+intelligible: purpose, conditions, dependencies, and consequence. Attention can also disclose
+its selecting lens—why this observation attracts, which memory supplies its meaning, and what
+the first framing excluded. Loosening attachment to that framing lets the object redirect the
+inquiry while its consequential question remains in view.
+
+Saṃyama supplies the attention comparison; **Viveka** names discriminative discernment; the
+[Tree](../../divination/transmutation/genesis.md#geometry-of-capacities) follows complementary
+capacities within formation. Blade can cultivate their joining throughout the work. A useful
+distinction still needs evidence, another witness where relevant, and a route to correction.
+
 ## The Magus bottleneck {#the-magus-bottleneck}
 
 Model power can generate more candidates than one Magus can judge. Adding another Agent does

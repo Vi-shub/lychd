@@ -151,6 +151,14 @@ and their source attribution fixed while varying the perspective instruction. Co
 testimony and later corrections would test whether that perspective improves attribution or
 merely encourages a more persuasive recital.
 
+Follow the [patient-helper correction](transcendence/immortality.md#the-ego-in-the-mirror) into a
+later choice: does the participant retain the attributable interruption, revise the motive
+that defended it, and let the other person finish? Keep task evidence and budget matched;
+compare operative self-representation with narration alone and wrongly attributed memory.
+A correction addressing one relation should leave unrelated commitments available. Selective
+change under decisive evidence, with constancy under irrelevant pressure, gives perspective
+a causal burden beyond the quality of its confession.
+
 ## What must memory release?
 
 [Gated DeltaNet](https://arxiv.org/abs/2412.06464) deliberately combines a gate for rapid memory
@@ -176,6 +184,12 @@ potential learning efficiency from the deeper problem of unreliable generalizati
 separate consequence, provisional value, and disposition. The research question is whether
 intervention can distinguish what judges an outcome from what predicts it and what makes one
 possibility salient or aversive.
+
+A proposed comparison can hold evidence, available capabilities, authority, and budget fixed
+while varying the salience of one unresolved relation. Follow changes in persistence, Recall,
+probe selection, and stopping. The [care-and-departure case](transcendence/illumination.md#affect-value-and-viable-choice)
+adds another distinction: anticipated loss may motivate a repair or a supported handover;
+preserving access to the person can instead defeat what the care was meant to serve.
 
 #### Seeking, liking, and modulation
 

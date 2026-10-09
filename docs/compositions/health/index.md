@@ -11,10 +11,8 @@ attributable, corrigible profile, discuss one bounded health question, and carry
 diagnostic or treatment plan to the right human decision. Unreadable evidence can remain unreadable;
 uncertainty is a result, not a gap for a model to fill.
 
-This Native Reference Composition is **Designed**. Its stable identity is `health.clinical`,
-revision `1`. The [portfolio delivery record](../../state-of-the-work.md#composition-portfolio-delivery)
-owns implementation status; these pages establish no clinical service, medical-device claim,
-provider integration, database schema, or executable Pattern.
+This Native Reference Composition has the stable identity `health.clinical`, revision `1`.
+Its records and proposals support the bounded human decisions described below.
 
 ## Enter through the case
 

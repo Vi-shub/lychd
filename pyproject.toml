@@ -86,7 +86,8 @@ lint = [
     "bump-my-version"
 ]
 typing = [
-    "basedpyright>=1.1.0"
+    "basedpyright>=1.1.0",
+    "numpy>=2.0,<3",
 ]
 # NOTE:
 # `typing` is intentionally NOT included in `dev`.
@@ -98,6 +99,10 @@ dev = [
     { include-group = "docs" },
     { include-group = "test" },
     { include-group = "lint" },
+]
+music-probe = [
+    "dawdreamer==0.9.0",
+    "numpy>=2.0,<3",
 ]
 
 [project.scripts]

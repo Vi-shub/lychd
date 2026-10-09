@@ -40,13 +40,16 @@ Invocation](../../sepulcher/lich/index.md#the-first-invocation) gives a companio
 The Magus solves one problem, builds its workflow, and begins the same labor for the next.
 Each unfamiliar project asks again for decomposition, evidence, criticism, and a way to know
 when the work is done. More Agents can multiply the labor while leaving its organization in
-one person's hands. The Magus becomes the bottleneck.
+one person's hands. The Magus becomes the bottleneck: every answer returns with another demand
+to decide what should happen next.
 
 The deeper abstraction is a craft that can learn how to approach another craft. A Lich should
 recognize a relation across different tasks, carry forward the distinction that made an earlier
 decision sound, and discover where the new situation defeats it. It must learn to frame the
 problem, seek the missing evidence, choose a method, and revise that method through consequence.
-The generality sought by the Work reaches into the making of workflows themselves.
+**The generality sought by the Work reaches into the making of workflows themselves.** A learned
+answer helps with a familiar question. A learned way of investigating helps discover which
+question this unfamiliar work requires.
 
 **[Viveka begins before the cut](../../sepulcher/lich/blade.md#measure-before-the-cut):**
 examine the direction before committing to it. Where thought cannot settle the choice, a small

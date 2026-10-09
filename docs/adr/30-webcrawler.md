@@ -99,7 +99,7 @@ Dispatcher lease. Neither creates a `ServiceJobAttempt@1`. If the process dies b
 Scout records `unknown_after_crash` and does not replay the effect without independent evidence.
 
 An asynchronous crawl or render admitted through `JobGrant` keeps that Scout domain job and layers
-it over Core's [`ServiceJobAttempt@1`](14-workers.md#service-job-attempts-designed). Its
+it over Core's [`ServiceJobAttempt@1`](14-workers.md#service-job-attempts). Its
 `unknown_after_crash` domain disposition maps to the mechanical attempt's `INDETERMINATE` state;
 recovery reconciles the same capability-backed execution binding and never invents a second
 submission.

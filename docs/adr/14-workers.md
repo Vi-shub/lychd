@@ -154,13 +154,17 @@ settles the claimed delivery while storing the exact owner in `Run.consent_id`. 
 the narrow crash window after checkpoint plus Consent but before that park only when the first
 resumable node snapshot binds both the same Run id and the exact latest non-cancelled consent id;
 parking then makes that id authoritative. An already decided owner is parked and then re-fired.
+
 The same exact-state rule recovers a checkpointed delegated job before its Run park. Delegation
-parks atomically `AWAITING_DELEGATE` with its exact `AgentJob` owner. A verdict or terminal job CASes status/owner and creates the next `PENDING`
+parks atomically `AWAITING_DELEGATE` with its exact `AgentJob` owner.
+
+A verdict or terminal job CASes status/owner and creates the next `PENDING`
 delivery in one transaction. That transaction re-reads the exact persisted Consent owner and
 requires decided, non-cancelled truth with a decision principal and timestamp, or re-reads the
 same-run `AgentJob` and requires a shape-valid terminal result matching that job and status. The generic
 status writer cannot move either wait state back to `QUEUED`; only the owner-specific CAS may do so.
 Both consent verdicts resume and Graph reads the durable decision.
+
 The Run's consent and delegated-job pointers identify its current durable wait, not history.
 Each park sets its exact owner and clears the other pointer atomically; the related Consent,
 AgentJob, and event records retain history. That single owner survives re-admission and claim.
@@ -168,9 +172,11 @@ Before the first restored node executes, the worker requires its station kind an
 owner id to match the Run's current owner. Missing, ambiguous, or stale bindings fail without
 executing the checkpoint. Switching between wait kinds therefore cannot resurrect a historical
 approval or job. In-process hardware re-entry after this check does not reconsume the wait owner.
+
 Concurrent handlers converge. Publication failure leaves the new `QUEUED` hop for the relay; no
 wait state is recreated and no possibly published key is reused. Delegation additionally requires
 terminal truth for the same job.
+
 Consent and delegate re-admission remain cancellable: interruption before their atomic transaction leaves the
 wait; interruption after commit leaves the exact pending delivery for recovery. Optional broker
 error diagnostics do not defer cancellation. Required containment of a late published job retains
@@ -260,6 +266,7 @@ publication. A timed-out owner remains eligible for a later pass while the page 
 The same consent/delegate bounds cover the worker's optional probe after a durable park. Reference
 delegate result adoption is cancellable; acknowledged projection retirement finishes under
 shielding, and a later terminal read repairs retirement after an unknown commit outcome.
+
 The lifespan supervisor restarts any relay that exits before shutdown with deterministic
 exponential backoff capped at five seconds. Delegated and consent probes share their timeout-bounded
 reconciliation paths with startup; a verdict or terminal child committed after an earlier clean
@@ -306,7 +313,7 @@ The memory persistence profile and `LiveStasisPhylactery` are test/local process
 checkpoint shapes exist, but the standard suite does not prove checkpoint-plus-consent restart on a
 real PostgreSQL lifecycle.
 
-## Service job attempts (Designed)
+## Service job attempts
 
 Long-running image, video, Form, Kinesis, Scanner, Scout, speech, engine, or provider work is not a
 broker retry and cannot be represented by a live Connector handle in Graph state. The accepted
@@ -375,9 +382,11 @@ durable provider/executor identity and must never replay submission. Database sh
 and a PostgreSQL adapter exist, but no real provider launch, Coffin supervisor, effectful child,
 cross-process pickup, or durable artifact custody is proved. [State of
 Work](../state-of-the-work.md#delegated-agent-execution) owns the Partial claim.
+
 `LOST` is terminal for result adoption and ordinary polling, but it is not evidence that an external
 process stopped. Parent cancellation must still call the owning runtime's containment operation and
 may record `LOST → CANCELLED` only after that operation returns.
+
 Once `runtime.start` has been invoked, an unclassified exception records `LOST`, never proof that
 the job failed or stopped. Exact-request replay retains the original job; late success is inert,
 and explicit cancellation still calls its owning runtime. A failure before that invocation may

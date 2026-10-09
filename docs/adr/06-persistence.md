@@ -218,9 +218,9 @@ Migration `0009` adds Atlas without rewriting execution identity. Its downgrade 
 exclusive table lock and refuses while any Project remains, preserving operator material across
 an attempted rollback. Deployment migration remains an explicit operator act.
 
-### Independent Concern retention (Designed)
+### Independent Concern retention
 
-[Frontend](15-frontend.md#independent-concerns-decomposition-and-addressing-designed) defines
+[Frontend](15-frontend.md#independent-concerns-decomposition-and-addressing) defines
 Concerns with identity and authorization independent of optional Project membership. Their
 definitions, attributed relation revisions, proposal provenance, and judged bases must survive
 independently of a Project's lifecycle. Removing an association cannot erase the Concern or

@@ -158,6 +158,13 @@ Other pages summarize once and link. Begin at the fitting door, use parent index
 read the smallest owner. Executable claims terminate in source, tests, lockfiles, artifacts, or
 maintained receipts; scratch notes, searches, and generated indexes own nothing.
 
+Architecture and application pages describe one coherent system: responsibilities, records,
+handoffs, decisions, and recovery. Use direct contract language without maturity badges or
+`Designed` suffixes on headings. State of Work collects implementation evidence and missing
+pieces. Mention a local limitation only when it changes an operation the reader can perform,
+an exact compatibility boundary, or the interpretation of a worked example; explain that
+concrete limit and link its evidence instead of repeating a delivery category.
+
 ## Repository Source Topology
 
 The repository contains one authoritative LychD system and separately tooled delivery clients.

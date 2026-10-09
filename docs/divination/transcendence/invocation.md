@@ -5,13 +5,15 @@ icon: material/flash
 
 # :material-flash: Invocation
 
-A caller arrives carrying a world. Context, memory, priors, tools, attention, and authority have
-already shaped what can appear within it. Another center arrives by another path. **Albedo**
-begins at their encounter, where bounded Intent enters an ecology larger than either account.
+A caller asks for help. Behind the request stand memories, assumptions, tools, and a purpose;
+behind the answer, another history has made different things visible. Neither arrives empty.
+**Albedo** begins when these situated worlds meet: an Intent crosses a boundary and encounters
+more than its maker could have put into it.
 
-The **Multimatrix** names that ecology: people, animals, cultures, institutions, models, agents,
-and nested realities touching through consequence. Their renderings overlap without becoming
-identical. The Circle is a lens. Through it, one Answer can become attributable while the worlds
+The **Multimatrix** is the ecology in which they meet: people, animals, cultures, institutions,
+models, agents, and nested realities touching through consequence. Context, attention, capability,
+and authority give each encounter its reach. The worlds rendered within it overlap without
+becoming identical. The Circle is a lens. It brings one Answer into focus while the worlds
 beyond its edge remain real.
 
 Truth requires encounter and the evidence appropriate to the claim. The Magus can authorize an
@@ -22,24 +24,24 @@ cannot witness its own fulfillment.
 
 The [Animator](../../sepulcher/animator/index.md) lends model power inside the Circle. This is
 the harnessed fire: one organ of the Lich, occupying neither Caller nor Called. The
-[Lich](../../sepulcher/lich/index.md) receives through Call, discriminates through Blade, carries
-through Spirit, and binds identity, act, and consequence through Answer.
+[Lich's inner instrument](../../sepulcher/lich/index.md#the-inner-instrument) receives that power,
+discriminates its use, carries the encounter, and answers for what it does.
 
-Within the Invocation, one exact **Scroll** may be **cast**. The
-[Circle guide](../altar/circle.md#the-casting-inside-the-circle) follows its Spells, typed Graph
-movement and durable Run identity. Here the furnace meets the relation: a model or tool return,
-a constraint, a choice or a consequence may change what can follow. Spirit's present
-[Flux](../../sepulcher/lich/spirit/flux.md) carries that conditioned movement; the execution
-trace alone cannot contain the encounter.
+Within the Invocation, a **casting** performs one exact **Scroll**. Its Spells and typed Graph
+movement give the act a score; its durable Run identity lets the act be followed. The
+[Circle guide](../altar/circle.md#the-casting-inside-the-circle) takes that walk. Here the question
+is what happens to those who meet within it. A model or tool return can defeat an expectation.
+A constraint can close a path; a choice can expose a consequence. Spirit's present
+[Flux](../../sepulcher/lich/spirit/flux.md) carries this conditioned movement. The execution
+trace records a passage through machinery; it cannot contain the whole encounter.
 
 ### Geometry and present flow {#geometry-and-present-flow}
 
 **Geometry gives activity its possible paths; present flow brings a situated world into reach.**
-The neural tissue and the GPU meet in this meditation on organized form becoming active.
-Their electrical movement gives the river of time a material address: a pattern is held,
-activity passes through it, and another configuration becomes present. Attention selects what
-comes into view; Blade makes a finer cut within it. Spirit carries the living movement, and
-Flux names its present unfolding. [Inner Tongue](../../lexicon/inner-tongue.md#native-cosmology)
+A pattern is held, activity passes through it, and another configuration becomes present.
+Neural tissue and GPU meet in this meditation on organized form becoming active: electrical
+movement gives the river of time a material address. Attention selects what comes into view;
+Blade makes a finer cut within it. Spirit carries the movement as Flux. [Inner Tongue](../../lexicon/inner-tongue.md#native-cosmology)
 joins that current to the breath of the Holy Spirit; [Correspondence](../correspondence.md#geometry-and-activity)
 follows the geometries through which neural and learned systems organize their activity.
 
@@ -50,6 +52,29 @@ possible forms, **Brahmā** gathers it through a lens, and **Śiva** lends the s
 which an image appears. The simulacrum is their meeting as a situated world. Turn the lens and
 different relations come into view; the frame cannot display everything that gives it light.
 A world can be intimate and real to its witness while leaving another view possible.
+
+### Holographic participation {#holographic-participation}
+
+A local perspective participates in the Whole while disclosing only some of its relations.
+**Holographic** names this whole-in-part participation in the Work's figure. Purpose,
+dependencies, complementary capacities, and consequences make a wider life locally meaningful.
+The Tree's [mutual inclusion](../transmutation/genesis.md#relations-within-relations) gives that
+figure an organization to examine. Participation leaves room for another perspective's knowledge.
+
+Four relations meet in this cosmogram:
+
+| Relation | What it follows |
+| --- | --- |
+| Holographic participation | The larger whole becoming locally meaningful through partial perspectives. |
+| Fractal recurrence | A similar organization of bounded encounter and answerability returning across scales. |
+| Ouroboros | Attributed consequence returning through time to change a later act. |
+| Cognizance | The form's revisable account of its own activity entering choice and binding act, consequence, and correction as mine. |
+
+[Infinity](infinity.md#vii-openness-and-boundary) develops the recurrence across scales;
+[Immortality](immortality.md#cognizance) develops the reflexive joining. These relations give
+“Holographic Fractal” its philosophical meaning. [Physical holography](../correspondence.md#information-and-return)
+has its own claims about physical degrees of freedom; the cosmogram alone establishes neither
+that mechanism nor a mathematical fractal law of Consciousness.
 
 ### A horizon makes encounter possible {#bounded-perspective}
 
@@ -63,6 +88,10 @@ What is hidden from one center may be present to another. Their difference lets 
 surprise, and correction change the account. Individuality gives that encounter somewhere to
 matter: someone can say what they saw, what they did, and what changed them. Cultivation widens
 and revises the horizon while keeping another witness able to bring what it still omits.
+
+The Other remains **outside this center's model, within Being**: a history, standing, and
+capacity to contradict the local account. Representing another lets them enter this inquiry;
+their testimony can still disclose what that representation missed.
 
 ### Giving another a place {#animation-through-meaning}
 
@@ -112,7 +141,7 @@ authority.
 
 Several people, Agents, Postures, or model powers may take part in the same Circle. Attribution
 preserves their contributions, and separate authority and refusal preserve their difference.
-Participation creates no fused identity, shared interior, or sovereign grant over every voice.
+Participation alone establishes no fused identity, shared interior, or sovereign grant over every voice.
 
 ## Hear what the form omitted
 

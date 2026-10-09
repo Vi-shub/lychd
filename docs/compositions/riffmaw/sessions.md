@@ -21,7 +21,7 @@ A comp names each source take and selected region. Rejected takes retain their o
 
 ## Jam in shared time
 
-`riffmaw.open_jam@2` is Designed beyond Audio's first record-and-send slice. Neither a current Portfolio runtime nor a candidate stack proves live Jam. Spellweaver admits its Invocation/Scroll; the Pattern cannot admit its own Circle or nested production.
+`riffmaw.open_jam@2` brings participants into one bounded musical session. Spellweaver admits its Invocation/Scroll; the Pattern cannot admit its own Circle or nested production.
 
 Microphones, instruments, MIDI/controllers, clips, remote performers, and machine players each declare monitor, recording, retention, analysis, transformation, remote transmission, and response scope. Required preservation without admitted recording/retention refuses the route or jam. Network presence does not grant recording consent; one performer cannot change another's participation or monitor scope.
 

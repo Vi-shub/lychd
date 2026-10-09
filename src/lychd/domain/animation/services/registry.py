@@ -135,8 +135,12 @@ class AnimatorRegistry:
         self._probe_lock = asyncio.Lock()
         self._loaded = False
 
-    def load(self) -> None:
-        """Build runtime animators from the injected declaration snapshot."""
+    def load(self, *, probe_readiness: bool = True) -> None:
+        """Build canonical declarations and normally collect initial readiness.
+
+        Host-only recovery may omit readiness probes: pod-internal endpoints are
+        not host evidence, and the resulting registry grants no observed warmth.
+        """
         if self._loaded:
             msg = "AnimatorRegistry generation is already loaded; replace the process generation to change it."
             raise RuntimeError(msg)
@@ -190,7 +194,7 @@ class AnimatorRegistry:
 
         # Probe the detached snapshot before publishing any new runtime or state.
         # A failed first load therefore leaves ``_loaded`` false and is retryable.
-        new_capability_states = self._probe_staged_snapshot(new_animators, new_capabilities)
+        new_capability_states = self._probe_staged_snapshot(new_animators, new_capabilities) if probe_readiness else {}
 
         self._soulstones = new_soulstones
         self._animators = new_animators

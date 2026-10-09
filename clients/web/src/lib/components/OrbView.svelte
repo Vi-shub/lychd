@@ -9,6 +9,10 @@
   import { delegationStatusLabel } from "$lib/delegation/presentation";
   import DelegateMark from "./DelegateMark.svelte";
   import AtlasLinks from "./AtlasLinks.svelte";
+  import GraphCanvas from "./graph/GraphCanvas.svelte";
+  import AnimatorRail from "./AnimatorRail.svelte";
+  import { projectOrb, orbEvidenceNodeId, matchesOrbPattern, mergeOrbEvidence } from "$lib/graph/orb";
+  import { listenToOrb, type OrbConnection } from "$lib/orb/live";
   import { bridgeRunHref, loomOriginHref } from "$lib/navigation/instruments";
 
   type Evidence = OrbRunSnapshot["evidence"][number];
@@ -22,23 +26,68 @@
       };
 
   let { runId }: { runId?: string } = $props();
-  let snapshot = $state.raw<OrbRunSnapshot | null>(null);
-  let selected = $state.raw<Evidence | null>(null);
+  let history = $state.raw<OrbRunSnapshot | null>(null);
   let loading = $state(false);
   let loadingMore = $state(false);
   let error = $state("");
   let loadMoreError = $state("");
-  let selectionNote = $state("");
   let loadVersion = 0;
   let loadController: AbortController | undefined;
   let loadMoreController: AbortController | undefined;
   let activeRunId: string | undefined;
   let selectedInspector: HTMLElement | undefined;
   let selectionReturnFocus: HTMLElement | undefined;
+  let livePage = $state.raw<OrbRunSnapshot | null>(null);
+  let liveRecords = $state.raw<Evidence[]>([]);
+  let liveGaps = $state.raw<OrbRunSnapshot["gaps"]>([]);
+  let liveDropped = $state(0);
+  let liveCursor = $state(-1);
+  let connection = $state<OrbConnection>("closed");
+  let feedNote = $state("");
+  let following = $state(true);
+  let playbackCursor = $state<number | null>(null);
+  let playbackSnapshot = $state.raw<OrbRunSnapshot | null>(null);
+  let focusId = $state<string | null>(null);
+  let focusRevision = $state(0);
+  let graphSelection = $state<string | null>(null);
+  let pinnedEvidence = $state.raw<Evidence | null>(null);
+  let stopLive: (() => void) | undefined;
+  let metadataVersion = 0;
+  let resetRecoveryUsed = false;
+  let jobFocusIdentity: string | null = null;
+  let jobFocused = false;
+  let jobFocusVersion = 0;
+  let snapshot = $derived.by((): OrbRunSnapshot | null => {
+    if (!history) return null;
+    const latest = livePage ?? history;
+    const gaps = new Map([...history.gaps, ...liveGaps].map((gap) => [`${gap.start_seq}:${gap.end_seq}`, gap]));
+    return { ...history, ...latest,
+      evidence: mergeOrbEvidence(history.evidence, liveRecords, pinnedEvidence ? [pinnedEvidence] : []),
+      gaps: [...gaps.values()],
+      has_more: history.has_more || (liveDropped > 0 && latest.ledger_head_seq > (history.page_end_seq ?? -1)),
+      page_end_seq: history.page_end_seq,
+      next_after_seq: history.next_after_seq ?? history.page_end_seq
+    };
+  });
+  let pattern = $derived(snapshot?.workflow && matchesOrbPattern(snapshot, snapshot.workflow) ? snapshot.workflow : null);
+  let playbackSource = $derived(playbackSnapshot ?? snapshot);
+  let graph = $derived(playbackSource ? projectOrb(playbackSource, pattern, playbackCursor) : null);
+  let playbackIndex = $derived(playbackSource ? playbackSource.evidence.findLastIndex((record) => playbackCursor === null || record.seq <= playbackCursor) : -1);
+  let playbackRecord = $derived(playbackIndex >= 0 ? playbackSource?.evidence[playbackIndex] : undefined);
   let bridgeHref = $derived(snapshot ? bridgeRunHref(snapshot.run.bridge_path, snapshot.run.run_id) : null);
   let loomHref = $derived(snapshot?.pattern.loom_path ? loomOriginHref(snapshot.pattern.loom_path, snapshot.run.run_id, page.url.search) : null);
   let requestedEventId = $derived(page.url.searchParams.get("event"));
   let requestedJobId = $derived(page.url.searchParams.get("job"));
+  let selected = $derived(snapshot?.evidence.find((event) => event.event_id === requestedEventId) ?? null);
+  let selectedGraphId = $derived(selected && (playbackCursor === null || selected.seq <= playbackCursor) ? orbEvidenceNodeId(selected, pattern) : graphSelection);
+  let selectedGraphNode = $derived(graph?.nodes.find((node) => node.id === selectedGraphId));
+  let selectionNote = $derived(
+    !snapshot || !requestedEventId || selected
+      ? ""
+      : snapshot.has_more
+        ? "The linked event is outside this loaded page. Load more to continue the search."
+        : "The linked event is no longer present in the retained evidence."
+  );
   let linkedJobUnavailable = $derived(Boolean(
     snapshot && requestedJobId && !snapshot.delegated_jobs.some((job) => job.job_id === requestedJobId)
   ));
@@ -69,13 +118,15 @@
     if (runId) void load(runId);
     else {
       loadVersion++;
+      stopLive?.();
+      livePage = null; liveRecords = []; liveGaps = []; pinnedEvidence = null;
       loadController?.abort();
       loadMoreController?.abort();
       loadController = undefined;
       loadMoreController = undefined;
       activeRunId = undefined;
-      snapshot = null;
-      selected = null;
+      history = null;
+      playbackSnapshot = null; playbackCursor = null;
       loading = false;
       loadingMore = false;
       loadMoreError = "";
@@ -84,41 +135,40 @@
 
   onDestroy(() => {
     loadVersion++;
+    stopLive?.();
     loadController?.abort();
     loadMoreController?.abort();
   });
 
   $effect(() => {
+    const id = runId;
     const jobId = requestedJobId;
     const current = snapshot;
-    if (!jobId || !current?.delegated_jobs.some((job) => job.job_id === jobId)) return;
+    const identity = id && jobId ? `${id}:${jobId}` : null;
+    const version = ++jobFocusVersion;
+    const loadAtFocus = loadVersion;
+    if (identity !== jobFocusIdentity) {
+      jobFocusIdentity = identity;
+      jobFocused = false;
+    }
+    if (!identity || !jobId || jobFocused || current?.run.run_id !== id ||
+        !current?.delegated_jobs.some((job) => job.job_id === jobId)) return;
     void tick().then(() => {
+      if (version !== jobFocusVersion || loadAtFocus !== loadVersion) return;
       const target = document.getElementById(delegatedJobElementId(jobId));
-      target?.scrollIntoView?.({ block: "nearest" });
-      target?.focus({ preventScroll: true });
+      if (!target) return;
+      jobFocused = true;
+      target.scrollIntoView?.({ block: "nearest" });
+      target.focus({ preventScroll: true });
     });
   });
 
-  $effect(() => {
-    const requested = requestedEventId;
-    const current = snapshot;
-    if (!current) return;
-    if (!requested) {
-      selected = null;
-      selectionNote = "";
-      return;
-    }
-    const found = current.evidence.find((event) => event.event_id === requested);
-    selected = found ?? null;
-    selectionNote = found
-      ? ""
-      : current.has_more
-        ? "The linked event is outside this loaded page. Load more to continue the search."
-        : "The linked event is no longer present in the retained evidence.";
-  });
-
-  async function load(id: string) {
+  async function load(id: string, recovering = false) {
     const version = ++loadVersion;
+    stopLive?.();
+    stopLive = undefined;
+    connection = "closed";
+    if (!recovering) resetRecoveryUsed = false;
     const controller = new AbortController();
     loadController?.abort();
     loadMoreController?.abort();
@@ -131,9 +181,9 @@
     error = "";
     loadMoreError = "";
     if (identityChanged) {
-      snapshot = null;
-      selected = null;
-      selectionNote = "";
+      history = null;
+      playbackCursor = null;
+      playbackSnapshot = null;
       selectionReturnFocus = undefined;
     }
     try {
@@ -142,7 +192,11 @@
       if (next.run.run_id !== id) {
         throw new Error("The Orb returned evidence for another Run.");
       }
-      snapshot = next;
+      history = next;
+      playbackSnapshot = null; playbackCursor = null;
+      livePage = null; liveRecords = []; liveGaps = []; liveDropped = 0; pinnedEvidence = null;
+      graphSelection = null; feedNote = "";
+      connectLive(next, version);
     } catch (cause) {
       if (version === loadVersion) {
         error = cause instanceof Error ? cause.message : "The evidence could not be read.";
@@ -154,10 +208,11 @@
   }
 
   async function loadMore() {
-    const current = snapshot;
-    const afterSeq = current?.next_after_seq;
-    if (!runId || !current?.has_more || afterSeq == null || loadingMore) return;
+    const current = history;
+    const afterSeq = snapshot?.next_after_seq;
+    if (!runId || !current || !snapshot?.has_more || afterSeq == null || loadingMore) return;
     const version = loadVersion;
+    const liveVersion = metadataVersion;
     const controller = new AbortController();
     loadMoreController = controller;
     loadingMore = true;
@@ -168,15 +223,16 @@
         limit: 100,
         signal: controller.signal
       });
-      if (version !== loadVersion || snapshot !== current) return;
+      if (version !== loadVersion || history !== current) return;
       if (next.run.run_id !== runId || next.run.run_id !== current.run.run_id) {
         throw new Error("The Orb returned evidence for another Run.");
       }
-      snapshot = {
+      history = {
         ...next,
-        evidence: [...current.evidence, ...next.evidence],
-        gaps: [...current.gaps, ...next.gaps]
+        evidence: mergeOrbEvidence(current.evidence, next.evidence),
+        gaps: [...new Map([...current.gaps, ...next.gaps].map((gap) => [`${gap.start_seq}:${gap.end_seq}`, gap])).values()]
       };
+      if (liveVersion === metadataVersion) livePage = next;
     } catch (cause) {
       if (version === loadVersion) {
         loadMoreError = cause instanceof Error ? cause.message : "More evidence could not be read.";
@@ -197,8 +253,9 @@
   async function selectEvidence(evidence: Evidence, opener: HTMLElement) {
     if (!runId) return;
     selectionReturnFocus = opener;
+    following = false;
+    pinnedEvidence = evidence;
     selected = evidence;
-    selectionNote = "";
     const url = new URL(page.url);
     url.searchParams.set("event", evidence.event_id);
     const orbPath = `/orb/${encodeURIComponent(runId)}${url.search}` as `/orb/${string}`;
@@ -207,16 +264,16 @@
       keepFocus: true,
       noScroll: true
     });
-    if (window.matchMedia("(max-width: 760px)").matches) {
-      await tick();
-      selectedInspector?.focus();
-    }
+    await tick();
+    selectedInspector?.focus();
   }
 
   async function clearSelection() {
     if (!runId) return;
     const target = selectionReturnFocus;
     selectionReturnFocus = undefined;
+    graphSelection = null;
+    pinnedEvidence = null;
     const url = new URL(page.url);
     url.searchParams.delete("event");
     const orbPath = `/orb/${encodeURIComponent(runId)}${url.search}` as `/orb/${string}`;
@@ -227,6 +284,67 @@
     });
     await tick();
     if (target?.isConnected) target.focus();
+  }
+
+  function connectLive(initial: OrbRunSnapshot, version: number) {
+    liveCursor = initial.ledger_head_seq;
+    if (typeof EventSource === "undefined") return;
+    stopLive = listenToOrb(initial.run.run_id, initial.ledger_head_seq, {
+      onConnection: (state) => { if (version === loadVersion) connection = state; },
+      onFault: (message) => { if (version === loadVersion) feedNote = message; },
+      onReset: () => {
+        if (version !== loadVersion) return;
+        if (resetRecoveryUsed) { feedNote = "The feed reset again. Refresh explicitly to retry."; return; }
+        resetRecoveryUsed = true;
+        feedNote = "The retained boundary changed. Reading a fresh account.";
+        void load(initial.run.run_id, true);
+      },
+      onFrame: (frame) => {
+        if (version !== loadVersion) return;
+        metadataVersion++;
+        liveCursor = frame.cursor;
+        livePage = frame.snapshot;
+        const records = mergeOrbEvidence(liveRecords, frame.snapshot.evidence);
+        liveDropped += Math.max(0, records.length - 100);
+        liveRecords = records.slice(-100);
+        liveGaps = [...new Map([...liveGaps, ...frame.snapshot.gaps].map((gap) => [`${gap.start_seq}:${gap.end_seq}`, gap])).values()].slice(-100);
+        const last = frame.snapshot.evidence.at(-1);
+        if (last && following && playbackCursor === null) { focusId = orbEvidenceNodeId(last, pattern); focusRevision++; }
+      }
+    });
+  }
+
+  async function selectGraphNode(id: string, opener?: HTMLElement) {
+    graphSelection = id;
+    following = false;
+    const record = playbackSource?.evidence.filter((item) => (playbackCursor === null || item.seq <= playbackCursor) && orbEvidenceNodeId(item, pattern) === id).at(-1);
+    if (record && opener) await selectEvidence(record, opener);
+    else {
+      const url = new URL(page.url);
+      url.searchParams.delete("event");
+      await goto(`/orb/${encodeURIComponent(runId!)}${url.search}` as `/orb/${string}`, { replaceState: true, keepFocus: true, noScroll: true });
+    }
+  }
+
+  function toggleFollowing() {
+    following = !following;
+    if (following) {
+      seek(null);
+    }
+  }
+
+  function seek(seq: number | null) {
+    if (seq !== null && playbackSnapshot === null) playbackSnapshot = snapshot;
+    if (seq === null) playbackSnapshot = null;
+    playbackCursor = seq;
+    following = seq === null;
+    graphSelection = null;
+    const record = seq === null ? snapshot?.evidence.at(-1) : playbackSnapshot?.evidence.find((item) => item.seq === seq);
+    if (record) { focusId = orbEvidenceNodeId(record, pattern); focusRevision++; }
+  }
+  function stepPlayback(delta: number) {
+    const record = playbackSource?.evidence[playbackIndex + delta];
+    if (record) seek(record.seq);
   }
 </script>
 
@@ -249,9 +367,11 @@
         {#if error}<div class="turn__fault" role="alert">{error}</div>{/if}
         <header class="run-identity">
           <div>
-            <span class="eyebrow">Selected Run</span>
-            <h1>Run {snapshot.run.run_id}</h1>
+            <span class="eyebrow">Selected Run · workflow and evidence</span>
+            <h1>Orb</h1>
+            <p class="run-id"><span>Run</span> {snapshot.run.run_id}</p>
             <nav class="context-links" aria-label="Related instruments">
+              <a href={resolve("/orb")}>All Runs</a>
               {#if bridgeHref}<a href={resolve(bridgeHref)}>Bridge</a>{:else}<span>Bridge context unavailable</span>{/if}
               <span>{snapshot.pattern.pattern_id}@{snapshot.pattern.revision}</span>
               {#if loomHref}
@@ -267,11 +387,9 @@
           <div class="run-outcome">
             <span class="eyebrow">Recorded status</span>
             <span class="chip run-status" data-state={snapshot.run.status}>{snapshot.run.status.replaceAll("_", " ")}</span>
-            <span>{snapshot.capture.replaceAll("_", " ")}</span>
+            <span class="capture-label">Capture · {snapshot.capture.replaceAll("_", " ")}</span>
           </div>
         </header>
-
-        <AtlasLinks kind="run" targetId={snapshot.run.run_id} />
 
         {#if linkedJobUnavailable}
           <p class="context-unavailable" role="status">
@@ -286,62 +404,52 @@
           </div>
         {/if}
 
-        {#if snapshot.delegated_jobs.length}
-          <section class="delegated-jobs panel" aria-labelledby="delegated-jobs-title">
-            <div class="panel-head">
-              <h2 id="delegated-jobs-title" class="rune-head">Delegated jobs</h2>
-              <span>{snapshot.delegated_jobs.length} sealed occurrence{snapshot.delegated_jobs.length === 1 ? "" : "s"}</span>
-            </div>
-            <ol class="delegated-job-list">
-              {#each snapshot.delegated_jobs as job (job.job_id)}
-                <li
-                  id={delegatedJobElementId(job.job_id)}
-                  class:current={requestedJobId === job.job_id}
-                  class="delegated-job"
-                  data-state={job.status}
-                  aria-current={requestedJobId === job.job_id ? "true" : undefined}
-                  tabindex="-1"
-                >
-                  <header>
-                    <span class="delegated-job__title"><DelegateMark /> AgentJob {job.job_id.slice(0, 12)}</span>
-                    <span class="chip" data-state={job.status}>{delegationStatusLabel(job.status)}</span>
-                  </header>
-                  <dl class="kv">
-                    <dt>runtime</dt><dd>{job.runtime}</dd>
-                    <dt>coffin</dt><dd>{job.profile}</dd>
-                    <dt>station</dt><dd>{job.step_id}</dd>
-                    <dt>result</dt>
-                    <dd>
-                      {job.output_present ? "bounded output retained" : "no textual output"}
-                      · {job.artifact_count} artifact reference{job.artifact_count === 1 ? "" : "s"}
-                      {job.error_present ? " · private error retained" : ""}
-                    </dd>
-                  </dl>
-                  <ol class="delegated-event-list" aria-label="AgentJob lifecycle">
-                    {#each job.events as event (event.event_id)}
-                      <li>
-                        <span>#{event.seq}</span>
-                        <strong>{delegationStatusLabel(event.status)}</strong>
-                        <time datetime={event.occurred_at}>{new Date(event.occurred_at).toLocaleTimeString()}</time>
-                      </li>
-                    {/each}
-                  </ol>
-                  {#if job.events_truncated}
-                    <p class="inspector-copy">Older lifecycle events are outside this bounded snapshot.</p>
-                  {/if}
-                </li>
-              {/each}
-            </ol>
-          </section>
-        {/if}
-
         <section class="coverage-strip" aria-labelledby="coverage-title">
           <h2 id="coverage-title" class="visually-hidden">Evidence coverage</h2>
-          <div><span>snapshot</span><strong>{new Date(snapshot.snapshot_at).toLocaleTimeString()}</strong></div>
+          <div><span>snapshot · local time</span><strong><time datetime={snapshot.snapshot_at}>{new Date(snapshot.snapshot_at).toLocaleString()}</time></strong></div>
           <div><span>retained through</span><strong>#{snapshot.ledger_head_seq}</strong></div>
-          <div><span>loaded through</span><strong>{snapshot.page_end_seq ?? "none"}</strong></div>
+          <div><span>history page through</span><strong>{snapshot.page_end_seq == null ? "none" : `#${snapshot.page_end_seq}`}</strong></div>
           <div><span>live updates</span><strong>{snapshot.live_tail.replaceAll("_", " ")}</strong></div>
-          <button class="text-action" type="button" onclick={() => void load(runId)}>Refresh</button>
+          <button class="text-action" type="button" disabled={loading} onclick={() => void load(runId)}>{loading ? "Refreshing…" : "Refresh"}</button>
+        </section>
+
+        <section class="orb-graph-panel" aria-labelledby="orb-graph-title">
+          <header class="graph-heading">
+            <div><h2 id="orb-graph-title">Workflow field</h2><p>{pattern ? "Edges: declared permissions · badges: loaded records" : "Exact workflow unavailable · supplied subject groups only"}</p></div>
+            <button type="button" class="text-action" aria-pressed={following} onclick={toggleFollowing}>{following ? "Pause following" : "Follow latest"}</button>
+          </header>
+          <div class="live-connection" role="status">Live feed: <strong>{connection}</strong> · retained cursor {liveCursor < 0 ? "none" : `#${liveCursor}`} · connection is not Run status</div>
+          {#if feedNote}<p class="feed-note" role="status">{feedNote}</p>{/if}
+          <div class="playback-controls" role="group" aria-label="Recorded graph playback">
+            <button type="button" class="text-action" disabled={playbackIndex <= 0} onclick={() => stepPlayback(-1)}>Previous record</button>
+            <label>Record cursor
+              <input type="range" min="0" max={Math.max(0,((playbackSource?.evidence.length ?? 0) - 1))} value={Math.max(0,playbackIndex)}
+                disabled={!playbackSource?.evidence.length} aria-valuetext={playbackRecord ? `Record #${playbackRecord.seq}` : "No loaded records"}
+                oninput={(event) => { const record = playbackSource?.evidence[Number(event.currentTarget.value)]; if (record) seek(record.seq); }} />
+            </label>
+            <button type="button" class="text-action" disabled={playbackIndex >= (playbackSource?.evidence.length ?? 0) - 1} onclick={() => stepPlayback(1)}>Next record</button>
+            <button type="button" class="text-action" aria-pressed={playbackCursor === null} onclick={() => seek(null)}>LIVE</button>
+            <span class="playback-position">{playbackCursor === null ? "Latest loaded evidence" : `Recorded view through #${playbackCursor}`} · {playbackRecord ? new Date(playbackRecord.occurred_at).toLocaleString() : "No loaded record"}</span>
+          </div>
+          <div class="graph-and-animators">
+            {#if graph}<GraphCanvas projection={graph} selectedId={selectedGraphId} onselect={selectGraphNode} label="Selected Run workflow graph" {focusId} {focusRevision} onviewportinteraction={() => following = false} />{/if}
+            <AnimatorRail evidence={playbackSource?.evidence ?? []} cursor={playbackCursor} onselect={seek} />
+          </div>
+          {#if selectedGraphNode && !selected}<p class="graph-selection-note"><strong>{selectedGraphNode.label}</strong> — {selectedGraphNode.detail}. No loaded record is selected.</p>{/if}
+          <p class="graph-boundary">Glow marks the latest supplied record or playback cursor, not continuous work. The cursor filters loaded graph observations; Run status above remains current. Record spacing is sequence, not elapsed time. Subworkflow structure requires supplied identities.</p>
+          {#if liveDropped}<p class="feed-note">The live window keeps the latest 100 records; {liveDropped} earlier live records left that window. Load retained evidence to inspect older records.</p>{/if}
+        </section>
+
+        <section class="coverage-limits" aria-labelledby="limits-title">
+          <h2 id="limits-title">Evidence limits</h2>
+          <p>This is a bounded snapshot. Sequence gaps and known omissions qualify the records below.</p>
+          {#if snapshot.known_omissions.length}
+            <ul class="limits-list">
+              {#each snapshot.known_omissions as omission (omission)}<li>{omission}</li>{/each}
+            </ul>
+          {:else}
+            <p>No additional omissions are reported by this snapshot.</p>
+          {/if}
         </section>
 
         <section class="evidence-panel panel" aria-labelledby="evidence-title">
@@ -352,35 +460,43 @@
               {snapshot.has_more ? " · more retained" : ""}
             </span>
           </div>
-          <ol class="evidence-list">
+          <p id="evidence-order-note" class="evidence-order-note">Sequence is order, not elapsed time or causality. Timestamps use local time.</p>
+          <ol class="evidence-list" aria-describedby="evidence-order-note">
             {#each timeline as item (`${item.type}-${item.seq}`)}
               {#if item.type === "gap"}
                 <li class="evidence-gap">
                   <span class="evidence-seq">#{item.seq}–{item.endSeq}</span>
-                  <strong>?</strong>
-                  <span>Unknown or omitted interval</span>
+                  <div><strong>Unknown or omitted interval</strong><p>The reason for this gap is not supplied.</p></div>
                 </li>
               {:else}
                 <li>
                   <button
-                    class:current={selected?.event_id === item.evidence.event_id}
-                    class="evidence-row"
+                    class={["evidence-row", { current: selected?.event_id === item.evidence.event_id }]}
                     type="button"
+                    aria-current={selected?.event_id === item.evidence.event_id ? "true" : undefined}
                     onclick={(event) => void selectEvidence(item.evidence, event.currentTarget)}
                   >
-                    <span class="evidence-seq">#{item.evidence.seq}</span>
+                    <span class="evidence-seq">
+                      #{item.evidence.seq}
+                      {#if selected?.event_id === item.evidence.event_id}<span class="selection-marker">Selected</span>{/if}
+                    </span>
                     <span
                       class="evidence-kind"
                       data-kind={item.evidence.kind}
                       data-phase={item.evidence.phase}
                     >{item.evidence.kind}</span>
-                    <span class="evidence-summary">{item.evidence.summary}</span>
+                    <span class="evidence-description">
+                      <span class="evidence-summary">{item.evidence.summary}</span>
+                      <span class="evidence-subject">Subject · {item.evidence.subject_key ?? "unknown"}</span>
+                    </span>
                     <time datetime={item.evidence.occurred_at}>
-                      {new Date(item.evidence.occurred_at).toLocaleTimeString()}
+                      {new Date(item.evidence.occurred_at).toLocaleString()}
                     </time>
                   </button>
                 </li>
               {/if}
+            {:else}
+              <li class="evidence-empty">No evidence records or sequence gaps are supplied in this snapshot.</li>
             {/each}
           </ol>
           {#if snapshot.has_more}
@@ -404,6 +520,8 @@
             </div>
           {/if}
         </section>
+
+        <AtlasLinks kind="run" targetId={snapshot.run.run_id} />
       {/if}
     </section>
 
@@ -417,20 +535,22 @@
         <section
           class="panel selected-evidence"
           {@attach captureSelectedInspector}
+          aria-labelledby="selected-event-title"
           tabindex="-1"
         >
           <div class="panel-head">
-            <h2 class="rune-head">Selected event</h2>
+            <h2 id="selected-event-title" class="rune-head">Selected event</h2>
             <button class="sheet-dismiss" type="button" onclick={clearSelection}>Close</button>
           </div>
           <p class="selected-evidence-summary">{selected.summary}</p>
           <dl class="kv">
             <dt>event</dt><dd class="glyph">{selected.event_id}</dd>
             <dt>sequence</dt><dd>#{selected.seq}</dd>
+            <dt>recorded at</dt><dd><time datetime={selected.occurred_at}>{new Date(selected.occurred_at).toLocaleString()}</time> (local)</dd>
             <dt>kind</dt><dd>{selected.kind}</dd>
-            <dt>subject</dt><dd>{selected.subject_key ?? "—"}</dd>
-            <dt>phase</dt><dd>{selected.phase ?? "—"}</dd>
-            <dt>occurrence</dt><dd class="glyph">{selected.occurrence_id ?? "—"}</dd>
+            <dt>subject</dt><dd>{selected.subject_key ?? "Not supplied"}</dd>
+            <dt>phase</dt><dd>{selected.phase ?? "Not supplied"}</dd>
+            <dt>occurrence</dt><dd class="glyph">{selected.occurrence_id ?? "Not supplied"}</dd>
             <dt>capture</dt><dd>{selected.capture.replaceAll("_", " ")}</dd>
           </dl>
           {#if selected.nexus_path}
@@ -444,15 +564,198 @@
             </a>
           {/if}
         </section>
-      {/if}
-      {#if snapshot}
-        <section class="panel">
-          <div class="panel-head"><h2 class="rune-head">Evidence limits</h2></div>
-          <ul class="limits-list">
-            {#each snapshot.known_omissions as omission (omission)}<li>{omission}</li>{/each}
-          </ul>
+      {:else if snapshot && !selectionNote}
+        <section class="panel inspector-empty">
+          <h2 class="rune-head">Inspect a record</h2>
+          <p>Select an evidence row to read its exact identity, recorded fields, and available counterpart links.</p>
         </section>
       {/if}
     </aside>
+
+    {#if snapshot?.delegated_jobs.length}
+      <details class="delegated-jobs panel" open={Boolean(requestedJobId && !linkedJobUnavailable)}>
+        <summary>
+          <span class="rune-head">Delegated jobs</span>
+          <span>{snapshot.delegated_jobs.length} in this bounded snapshot</span>
+        </summary>
+        <p class="job-sequence-note">Job lifecycle sequences belong to each AgentJob; they are separate from the Run sequence.</p>
+        <ol class="delegated-job-list">
+          {#each snapshot.delegated_jobs as job (job.job_id)}
+            <li
+              id={delegatedJobElementId(job.job_id)}
+              class={["delegated-job", { current: requestedJobId === job.job_id }]}
+              data-state={job.status}
+              aria-current={requestedJobId === job.job_id ? "true" : undefined}
+              tabindex="-1"
+            >
+              <header>
+                <span class="delegated-job__title"><DelegateMark /> AgentJob {job.job_id}</span>
+                <span class="chip" data-state={job.status}>{delegationStatusLabel(job.status)}</span>
+              </header>
+              <dl class="kv">
+                <dt>runtime</dt><dd>{job.runtime}</dd>
+                <dt>coffin</dt><dd>{job.profile}</dd>
+                <dt>station</dt><dd>{job.step_id}</dd>
+                <dt>result</dt>
+                <dd>
+                  {job.output_present ? "bounded output retained" : "no textual output"}
+                  · {job.artifact_count} artifact reference{job.artifact_count === 1 ? "" : "s"}
+                  {job.error_present ? " · private error retained" : ""}
+                </dd>
+              </dl>
+              <ol class="delegated-event-list" aria-label="AgentJob lifecycle">
+                {#each job.events as event (event.event_id)}
+                  <li>
+                    <span>#{event.seq}</span>
+                    <strong>{delegationStatusLabel(event.status)}</strong>
+                    <time datetime={event.occurred_at}>{new Date(event.occurred_at).toLocaleTimeString()}</time>
+                  </li>
+                {/each}
+              </ol>
+              {#if job.events_truncated}
+                <p class="inspector-copy">Older lifecycle events are outside this bounded snapshot.</p>
+              {/if}
+            </li>
+          {/each}
+        </ol>
+      </details>
+    {/if}
+
   </div>
 {/if}
+
+<style>
+  .graph-and-animators { display:grid; grid-template-columns:minmax(0,1fr) minmax(12rem,15rem); gap:1rem; align-items:start; }
+  .playback-controls { display:flex; align-items:center; flex-wrap:wrap; gap:.75rem; padding:1rem 0; }
+  .playback-controls label { display:flex; align-items:center; gap:.5rem; font-size:var(--text-sm); }
+  .playback-controls input { accent-color:var(--color-rune); min-width:10rem; }
+  .playback-controls input:focus-visible { outline:2px solid var(--color-rune); outline-offset:3px; }
+  .playback-position { font-size:var(--text-xs); color:var(--color-parchment); }
+  @media(max-width:70rem) { .graph-and-animators { grid-template-columns:minmax(0,1fr); } }
+  .orb-graph-panel { min-width: 0; border: 1px solid var(--color-engraving); border-radius: var(--radius-panel); overflow: hidden; background: var(--color-obsidian); }
+  .graph-heading { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 1rem; }
+  .graph-heading h2 { font: 500 1.2rem/1.3 var(--font-body); color: var(--color-bone); }
+  .graph-heading p, .live-connection, .feed-note, .graph-boundary, .graph-selection-note { color: var(--color-parchment); font-size: var(--text-sm); line-height: 1.5; }
+  .live-connection, .feed-note, .graph-boundary, .graph-selection-note { padding: .5rem 1rem; }
+  .live-connection strong { color: var(--color-bone); }
+  .graph-heading button { flex-shrink: 0; min-height: 2.75rem; padding: .4rem .75rem; border: 1px solid var(--color-engraving); border-radius: var(--radius-rune); }
+  .graph-boundary { border-top: 1px solid var(--color-engraving); }
+  @media (max-width: 48rem) { .graph-heading { align-items: flex-start; flex-direction: column; } }
+
+  .instrument-deck--orb {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 22rem);
+    align-content: start;
+    align-items: start;
+    gap: 1.4rem;
+    background: var(--color-void);
+  }
+
+  .orb-main { gap: 1.2rem; }
+  .orb-inspector { width: auto; min-width: 0; display: flex; position: sticky; top: 4.5rem; }
+  .panel { background: var(--color-obsidian); box-shadow: none; }
+  .panel-head { flex-wrap: wrap; padding: 1rem; }
+  .panel-head::before { content: none; }
+  .rune-head { font-variant: normal; letter-spacing: 0; }
+  .panel-head .rune-head { font-size: var(--text-lg); }
+  .run-identity { gap: 1.25rem; }
+  .run-identity > div { min-width: 0; }
+  .run-identity h1 { font: 400 clamp(1.6rem, 2.2vw, 2rem)/1.2 var(--font-rune); }
+  .eyebrow { color: var(--color-parchment); letter-spacing: 0.08em; }
+  .run-id { margin: 0.65rem 0 0; color: var(--color-bone); font: var(--text-sm)/1.6 var(--font-glyph); overflow-wrap: anywhere; }
+  .run-id > span { color: var(--color-parchment); }
+  .run-outcome { flex-shrink: 0; gap: 0.5rem; }
+  .run-outcome .run-status { font-size: var(--text-sm); }
+  .chip { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+  .chip, .chip::before { animation: none; box-shadow: none; }
+  .capture-label { color: var(--color-parchment); font-size: var(--text-sm); }
+  .context-links { flex-wrap: wrap; align-items: baseline; gap: 0.45rem 1rem; margin-top: 0.8rem; }
+  .context-links a, .context-links span { font-size: var(--text-sm); overflow-wrap: anywhere; }
+  .context-links span { color: var(--color-parchment); }
+  .context-links a { padding-block: 0.35rem; text-underline-offset: 0.25em; }
+  .context-links a:hover { text-decoration: underline; }
+
+  .coverage-strip { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .coverage-strip > div { min-width: 0; padding: 0.8rem; }
+  .coverage-strip span { color: var(--color-parchment); font-size: var(--text-sm); letter-spacing: 0; text-transform: none; }
+  .coverage-strip strong { margin-top: 0.35rem; font: 500 var(--text-sm)/1.5 var(--font-body); overflow-wrap: anywhere; }
+  .coverage-strip .text-action { grid-column: 1 / -1; min-height: 2.5rem; font-size: var(--text-sm); }
+  .coverage-limits { padding: 0 0.1rem; color: var(--color-parchment); font-size: var(--text-sm); line-height: 1.6; }
+  .coverage-limits h2 { color: var(--color-bone); font: 600 var(--text-sm)/1.5 var(--font-body); }
+  .coverage-limits p { margin-top: 0.3rem; }
+  .limits-list { padding: 0.4rem 0 0 1.2rem; color: var(--color-parchment); font-size: var(--text-sm); }
+  .limits-list li + li { margin-top: 0.3rem; }
+
+  .evidence-panel .panel-head > span { color: var(--color-parchment); font-size: var(--text-sm); }
+  .evidence-order-note { padding: 0.8rem 1rem; color: var(--color-parchment); font-size: var(--text-sm); line-height: 1.5; border-bottom: 1px solid var(--color-engraving); }
+  .evidence-list { max-height: none; overflow: visible; }
+  .evidence-row { grid-template-columns: 3rem 5.5rem minmax(0, 1fr) 9rem; gap: 0.75rem; padding: 1rem; }
+  .evidence-row > * { min-width: 0; overflow-wrap: anywhere; }
+  .evidence-row.current { background: color-mix(in srgb, var(--color-rune) 8%, var(--color-obsidian)); }
+  .evidence-row:focus-visible { outline-offset: -3px; }
+  .evidence-seq, .evidence-kind { color: var(--color-parchment); font-size: var(--text-sm); line-height: 1.5; }
+  .selection-marker { display: block; margin-top: 0.4rem; color: var(--color-rune); font: var(--text-xs)/1.5 var(--font-body); }
+  .evidence-description { display: grid; gap: 0.35rem; }
+  .evidence-summary { color: var(--color-bone); font-size: var(--text-base); line-height: 1.5; }
+  .evidence-subject { color: var(--color-parchment); font-size: var(--text-sm); line-height: 1.5; }
+  .evidence-row time { color: var(--color-parchment); font-size: var(--text-sm); line-height: 1.5; }
+  .evidence-gap { grid-template-columns: 3rem minmax(0, 1fr); gap: 0.75rem; padding: 0.9rem 1rem; border-inline: 0; }
+  .evidence-gap strong { color: var(--color-bone); font: 500 var(--text-sm)/1.5 var(--font-body); }
+  .evidence-gap p { margin-top: 0.25rem; color: var(--color-parchment); font-size: var(--text-sm); }
+  .evidence-empty { padding: 1.2rem 1rem; color: var(--color-parchment); font-size: var(--text-base); }
+  .evidence-more { padding: 1rem; }
+  .evidence-more .rune-btn { max-width: 100%; white-space: normal; }
+
+  .selected-evidence { min-width: 0; }
+  .selected-evidence-summary { padding-top: 1rem; font-size: var(--text-base); }
+  .selected-evidence .kv { grid-template-columns: 5.25rem minmax(0, 1fr); padding-block: 1rem; gap: 0.75rem; font-size: var(--text-sm); }
+  .selected-evidence .kv dt { color: var(--color-parchment); }
+  .selected-evidence .kv dd { min-width: 0; }
+  .selected-evidence .glyph { color: var(--color-bone); font-size: var(--text-sm); }
+  .sheet-dismiss { min-height: 2rem; font-size: var(--text-sm); }
+  .inspector-link { font-size: var(--text-sm); line-height: 1.5; }
+  .inspector-empty { padding: 1.1rem; }
+  .inspector-empty h2 { font-size: var(--text-lg); }
+  .inspector-empty p, .selection-note .inspector-copy { margin-top: 0.6rem; color: var(--color-parchment); font-size: var(--text-sm); line-height: 1.6; }
+
+  .delegated-jobs { grid-column: 1 / -1; min-width: 0; }
+  .delegated-jobs > summary { padding: 1rem; color: var(--color-bone); cursor: pointer; }
+  .delegated-jobs > summary .rune-head { font-size: var(--text-lg); }
+  .delegated-jobs > summary > span + span { margin-left: 0.75rem; color: var(--color-parchment); font-size: var(--text-sm); }
+  .job-sequence-note { padding: 0 1rem 1rem; color: var(--color-parchment); font-size: var(--text-sm); line-height: 1.5; }
+  .delegated-job { min-width: 0; box-shadow: none; }
+  .delegated-job.current { box-shadow: inset 2px 0 var(--color-rune); }
+  .delegated-job > header { flex-wrap: wrap; }
+  .delegated-job__title { min-width: 0; overflow-wrap: anywhere; }
+  .delegated-job .kv { grid-template-columns: 5rem minmax(0, 1fr); }
+  .delegated-event-list { font-size: var(--text-sm); }
+
+  @media (max-width: 75rem) {
+    .evidence-row { grid-template-columns: 2.5rem 4.5rem minmax(0, 1fr); }
+    .evidence-row time { grid-column: 3; }
+    .run-identity { flex-direction: column; }
+    .run-outcome { align-items: flex-start; }
+  }
+
+  @media (max-width: 68rem) {
+    .instrument-deck--orb { grid-template-columns: minmax(0, 1fr); }
+    .orb-inspector { position: static; }
+    .evidence-row { grid-template-columns: 3rem 5.5rem minmax(0, 1fr) 9rem; }
+    .evidence-row time { grid-column: auto; }
+  }
+
+  @media (max-width: 48rem) {
+    .instrument-deck--orb { display: grid; gap: 1rem; }
+    .coverage-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .evidence-panel .panel-head > span { margin-left: 0; }
+    .evidence-row { grid-template-columns: 2.5rem minmax(0, 1fr); gap: 0.4rem 0.7rem; }
+    .evidence-description, .evidence-row time { grid-column: 2; }
+    .evidence-gap { grid-template-columns: minmax(0, 1fr); }
+    .selected-evidence { max-height: min(70dvh, 36rem); box-shadow: 0 -0.5rem 2rem color-mix(in srgb, var(--color-void) 85%, transparent); }
+    .delegated-jobs > summary > span + span { display: block; margin: 0.35rem 0 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .evidence-row, .chip, .chip::before { transition: none; animation: none; }
+  }
+</style>

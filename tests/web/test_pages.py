@@ -94,6 +94,8 @@ def test_every_explicit_error_operation_publishes_the_shared_framework_error(
         ("/api/v1/nexus/swaps/{ticket_id}/events", "get", "404"),
         ("/api/v1/nexus/transitions/{request_id}", "get", "404"),
         ("/api/v1/orb/runs/{run_id}", "get", "404"),
+        ("/api/v1/orb/runs/{run_id}/events", "get", "404"),
+        ("/api/v1/orb/runs/{run_id}/events", "get", "429"),
     }
     declared: set[tuple[str, str, str]] = set()
     paths = cast("dict[str, dict[str, Any]]", schema["paths"])

@@ -13,6 +13,6 @@ The drop at one exact point in a master can invite a visual answer. Sync makes t
 
 [Kinesis](../../sepulcher/extensions/prism/kinesis.md) may use the exact map in admitted `synchronize` or constrained-generation work. Its new motion derivative keeps music digest, clock relation, anchors, and uncertainty without rewriting the map or deciding creative acceptance.
 
-A retime, frame-rate conversion, shorter master, or changed mix may stale the map. Reject a mismatched digest/timebase and create a new map revision; preserve the earlier accepted relation.
+A retime, frame-rate conversion, shorter master, or changed mix may stale the map. Reject a mismatched digest/timebase and create a new map revision; preserve the earlier relation as history. Timing-only changes stale dependent synchronization approvals; changed source revisions, consent, or use boundaries still follow each owner's invalidation rules. Consumers judge successors against the new exact references. A shared studio control can propose these changes together; each owner retains its accepted records and successor judgment.
 
 An audiovisual Suite may coordinate exact music, visuals, and cues. It owns the coordination's aggregate ceilings, correlation, and partial settlement under [Workflow](../../adr/28-workflow.md). Members retain their files, provider sessions, creative approvals, domain budget judgment, Sigils, and publication authority.

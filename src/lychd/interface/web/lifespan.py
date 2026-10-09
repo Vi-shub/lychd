@@ -30,6 +30,7 @@ if TYPE_CHECKING:
     from lychd.config.runes.registry import RuneRegistry
     from lychd.config.settings.root import Settings
     from lychd.domain.cortex.engine import RunQueue
+    from lychd.domain.orchestration.containment import SoftActivationGuard
 
 logger = structlog.get_logger()
 
@@ -46,6 +47,16 @@ def _collect_run_queues(app: Litestar) -> dict[str, RunQueue]:
 
     plugin = app.plugins.get(SAQPlugin)
     return {name: cast("RunQueue", plugin.get_queue(name)) for name in _RUN_QUEUE_NAMES}
+
+
+def _soft_activation_guard_at_startup() -> SoftActivationGuard:
+    """Fence unfinished runtime-native effects before any queue can connect."""
+    from lychd.system.constants import PATH_RUNTIME_GUARD_DIR
+    from lychd.system.services.runtime_guard import FileSoftActivationGuard
+
+    guard = FileSoftActivationGuard(PATH_RUNTIME_GUARD_DIR)
+    guard.assert_clear()
+    return guard
 
 
 @asynccontextmanager
@@ -68,6 +79,7 @@ async def altar_services_lifespan(app: Litestar) -> AsyncGenerator[None]:
     maintenance_stop = asyncio.Event()
     maintenance_tasks: list[asyncio.Task[None]] = []
     try:
+        soft_activation_guard = _soft_activation_guard_at_startup()
         await wait_for_host_reactor_idle(settings.orchestration.switching)
         # Resolve and CONNECT every queue before constructing or publishing a
         # runtime handle. litestar-saq's in-process Worker starts detached and
@@ -90,6 +102,7 @@ async def altar_services_lifespan(app: Litestar) -> AsyncGenerator[None]:
             delegated_runtime_catalog=exts.delegated_runtime_catalog,
             settings=settings,
             systemctl_bin=systemctl_bin,
+            soft_activation_guard=soft_activation_guard,
         )
 
         # Hydration and initial probes bridge synchronous work; keep them off the

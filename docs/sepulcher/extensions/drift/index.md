@@ -59,6 +59,8 @@ reverse execution.
 Drift locates the departure from the goal only as far as evidence reaches. The receiving owner
 decides whether and how to correct it.
 
-For a complete worked method, [Workflow improvement](workflow-improvement.md) follows SDLC traces
-through a baseline/candidate comparison and an owner decision to keep, change or investigate the
-procedure. [Ouroboros](../weaver/ouroboros.md) places that evaluation beside memory and training.
+Evaluation can inform Creation before promotion and after use. A trial of the software candidate
+asks whether it meets its goal; a trial of the workflow asks whether the method produces better
+work. [Workflow improvement](workflow-improvement.md#evaluate-at-two-scales) separates those
+subjects and follows the evidence into an owner decision. [Ouroboros](../weaver/ouroboros.md)
+places both passages beside memory and training.

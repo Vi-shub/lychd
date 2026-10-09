@@ -1,6 +1,6 @@
 import { act, render, screen } from "@testing-library/svelte";
 import { createRawSnippet } from "svelte";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { AltarStatus } from "$lib/api/models";
 
@@ -38,6 +38,11 @@ function deferred<T>() {
 beforeEach(() => {
   vi.clearAllMocks();
   page.url.href = "http://localhost/bridge";
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 
 describe("Altar consent status", () => {
@@ -90,33 +95,136 @@ describe("Altar consent status", () => {
     const view = render(AltarShell, { children });
 
     window.dispatchEvent(new CustomEvent("altar:attention", { detail: 0 }));
-    await act(() => refreshedStatus.resolve(status(1)));
-    expect(screen.getByText(/1 awaiting/)).toBeTruthy();
+    window.dispatchEvent(new CustomEvent("altar:attention", { detail: 0 }));
+    expect(getAltarStatus).toHaveBeenCalledOnce();
 
     await act(() => initialStatus.resolve(status(0)));
+    expect(getAltarStatus).toHaveBeenCalledTimes(2);
+    expect(screen.getByText(/Consent status unknown/)).toBeTruthy();
+    await act(() => refreshedStatus.resolve(status(1)));
     expect(screen.getByText(/1 awaiting/)).toBeTruthy();
     expect(screen.queryByText("Consent clear")).toBeNull();
     view.unmount();
+  });
+
+  it("refreshes consent across instruments without overlapping reads or showing a stale clear status", async () => {
+    vi.useFakeTimers();
+    const refreshedStatus = deferred<AltarStatus>();
+    vi.mocked(getAltarStatus)
+      .mockResolvedValueOnce(status(0))
+      .mockReturnValueOnce(refreshedStatus.promise);
+    const view = render(AltarShell, { children });
+    await act(() => Promise.resolve());
+    expect(screen.getByText(/Consent clear/)).toBeTruthy();
+
+    await act(() => { page.url.href = "http://localhost/loom"; });
+    await act(() => vi.advanceTimersByTimeAsync(5000));
+    expect(getAltarStatus).toHaveBeenCalledTimes(2);
+    expect(screen.queryByText(/Consent clear/)).toBeNull();
+    expect(screen.getByText(/Consent status unknown/)).toBeTruthy();
+    await act(() => vi.advanceTimersByTimeAsync(15000));
+    expect(getAltarStatus).toHaveBeenCalledTimes(2);
+
+    await act(() => refreshedStatus.resolve(status(2)));
+    expect(screen.getByRole("link", { name: /2 awaiting/ }).getAttribute("href"))
+      .toBe("/bridge?attention=pending");
+    view.unmount();
+  });
+
+  it("ignores hidden-tab responses and wakes consent reads on visibility and focus", async () => {
+    vi.useFakeTimers();
+    let visibility: DocumentVisibilityState = "visible";
+    vi.spyOn(document, "visibilityState", "get").mockImplementation(() => visibility);
+    const initialStatus = deferred<AltarStatus>();
+    const visibleStatus = deferred<AltarStatus>();
+    const focusedStatus = deferred<AltarStatus>();
+    vi.mocked(getAltarStatus)
+      .mockReturnValueOnce(initialStatus.promise)
+      .mockReturnValueOnce(visibleStatus.promise)
+      .mockReturnValueOnce(focusedStatus.promise);
+    const view = render(AltarShell, { children });
+
+    visibility = "hidden";
+    await act(() => document.dispatchEvent(new Event("visibilitychange")));
+    await act(() => initialStatus.resolve(status(0)));
+    await act(() => window.dispatchEvent(new Event("focus")));
+    await act(() => vi.advanceTimersByTimeAsync(15000));
+    expect(getAltarStatus).toHaveBeenCalledOnce();
+    expect(screen.queryByText(/Consent clear/)).toBeNull();
+
+    visibility = "visible";
+    await act(() => document.dispatchEvent(new Event("visibilitychange")));
+    expect(getAltarStatus).toHaveBeenCalledTimes(2);
+    await act(() => visibleStatus.resolve(status(1)));
+    expect(screen.getByText(/1 awaiting/)).toBeTruthy();
+
+    await act(() => window.dispatchEvent(new Event("focus")));
+    expect(getAltarStatus).toHaveBeenCalledTimes(3);
+    expect(screen.getByText(/Consent status unknown/)).toBeTruthy();
+    await act(() => focusedStatus.resolve(status(2)));
+    expect(screen.getByText(/2 awaiting/)).toBeTruthy();
+    view.unmount();
+  });
+
+  it("keeps failed polls unknown without repeating the same notice and recovers on a later poll", async () => {
+    vi.useFakeTimers();
+    vi.mocked(getAltarStatus)
+      .mockResolvedValueOnce(status(0))
+      .mockRejectedValueOnce(new Error("Status unavailable"))
+      .mockRejectedValueOnce(new Error("Status unavailable"))
+      .mockResolvedValueOnce(status(1));
+    page.url.href = "http://localhost/orb";
+    const view = render(AltarShell, { children });
+    await act(() => Promise.resolve());
+
+    await act(() => vi.advanceTimersByTimeAsync(10000));
+    expect(screen.queryByText(/Consent clear/)).toBeNull();
+    expect(screen.getByText(/Consent status unknown/)).toBeTruthy();
+    expect(screen.getAllByText("Status unavailable")).toHaveLength(1);
+    await act(() => vi.advanceTimersByTimeAsync(5000));
+    expect(screen.getByText(/1 awaiting/)).toBeTruthy();
+    view.unmount();
+  });
+
+  it("stops timers, queued reads, and wake listeners when the shell unmounts", async () => {
+    vi.useFakeTimers();
+    const delayedStatus = deferred<AltarStatus>();
+    vi.mocked(getAltarStatus)
+      .mockResolvedValueOnce(status(0))
+      .mockReturnValueOnce(delayedStatus.promise);
+    const view = render(AltarShell, { children });
+    await act(() => Promise.resolve());
+    await act(() => vi.advanceTimersByTimeAsync(5000));
+    window.dispatchEvent(new CustomEvent("altar:attention"));
+    view.unmount();
+
+    await act(() => delayedStatus.resolve(status(1)));
+    window.dispatchEvent(new CustomEvent("altar:attention"));
+    window.dispatchEvent(new Event("focus"));
+    document.dispatchEvent(new Event("visibilitychange"));
+    await act(() => vi.advanceTimersByTimeAsync(15000));
+    expect(getAltarStatus).toHaveBeenCalledTimes(2);
+    expect(vi.getTimerCount()).toBe(0);
   });
 });
 
 
 describe("shell contextual navigation", () => {
-  it("resumes the latest selected event across switches, while a bare Orb visit stays bare", async () => {
+  it("opens the parallel Run field across instrument switches", async () => {
     vi.mocked(getAltarStatus).mockResolvedValue(status(1));
     page.url.href = "http://localhost/orb/run-a?event=event-a";
     const view = render(AltarShell, { children });
     await act(() => Promise.resolve());
     expect(screen.getByRole("link", { name: "Orb" }).getAttribute("href"))
-      .toBe("/orb/run-a?event=event-a");
+      .toBe("/orb");
     await act(() => { page.url.search = "?event=event-b&job=job-a"; });
     await act(() => { page.url.href = "http://localhost/atlas/project-a"; });
     expect(screen.getByRole("link", { name: "Orb" }).getAttribute("href"))
-      .toBe("/orb/run-a?event=event-b&job=job-a");
+      .toBe("/orb");
     await act(() => { page.url.href = "http://localhost/orb"; });
     expect(page.url.pathname).toBe("/orb");
     expect(screen.getByRole("link", { name: "Orb" }).getAttribute("href"))
-      .toBe("/orb/run-a?event=event-b&job=job-a");
+      .toBe("/orb");
     expect(screen.getByRole("link", { name: /1 awaiting/ }).getAttribute("href"))
       .toBe("/bridge?attention=pending");
     view.unmount();

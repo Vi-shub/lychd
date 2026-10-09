@@ -9,9 +9,9 @@ routes to the implementation and its operating guide rather than duplicating eit
 | --- | --- | --- |
 | Project concerns, judgments, references, and continuation | [AtlasView.svelte](lib/components/AtlasView.svelte), [Atlas link hints](lib/atlas/navigation.ts) | [Atlas](../../../docs/divination/altar/atlas.md) |
 | Conversation, consent, and offering recovery | [BridgeView.svelte](lib/components/BridgeView.svelte), [shell-lifetime workspace](lib/bridge/workspace.svelte.ts) | [Bridge](../../../docs/divination/altar/bridge.md) |
-| One Run's retained records and gaps | [OrbView.svelte](lib/components/OrbView.svelte) | [Orb](../../../docs/divination/altar/orb.md) |
+| Parallel Run field and one Run's retained records and gaps | [OrbField.svelte](lib/components/OrbField.svelte), [OrbView.svelte](lib/components/OrbView.svelte) | [Orb](../../../docs/divination/altar/orb.md) |
 | Observed capability, preview, ticket, and physical request | [NexusView.svelte](lib/components/NexusView.svelte) | [Nexus](../../../docs/divination/altar/nexus.md) |
-| Exact registered score and optional static diagram | [LoomView.svelte](lib/components/LoomView.svelte), [MermaidGraph.svelte](lib/components/MermaidGraph.svelte) | [Loom](../../../docs/divination/altar/loom.md) |
+| Exact registered score and computed graph | [LoomView.svelte](lib/components/LoomView.svelte), [shared canvas](lib/components/graph/GraphCanvas.svelte) | [Loom](../../../docs/divination/altar/loom.md) |
 
 [The layout](routes/+layout.svelte) supplies browser-document context;
 [AltarShell](lib/components/AltarShell.svelte) projects navigation and global attention.
@@ -25,9 +25,10 @@ Their Python owners are [Altar controllers](../../../src/lychd/interface/web/) a
 [web-domain contracts](../../../src/lychd/domain/web/). Regeneration, checks, and builds follow
 [CONTRIBUTING](../../../CONTRIBUTING.md#quality-checks); do not hand-edit generated descriptions.
 
-The planned reading sections in the five guides are future presentation work. No shared
-Loom/Orb graph supply or canvas is present here yet; [the renderer
-gate](../../../docs/adr/15-frontend.md#decision-lock-and-reopening-gate) owns that later seam.
+Loom and Orb share [graph projections](lib/graph/) and one [canvas adapter](lib/components/graph/GraphCanvas.svelte),
+with semantic views over the same identities. [The renderer
+gate](../../../docs/adr/15-frontend.md#decision-lock-and-reopening-gate) owns qualification;
+[State](../../../docs/state-of-the-work.md#orb-instrument) records its remaining limits.
 The client still uses its fixed English interface and LychD Dark palette. Native CSS lives in
 [app.css](app.css); the existing welcome scene's [notice](lib/assets/altar/NOTICE.txt) and
 [generation prompt](lib/assets/altar/working-altar.prompt.md) retain asset provenance.

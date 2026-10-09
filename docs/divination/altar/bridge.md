@@ -23,6 +23,11 @@ Drafts and unresolved offerings remain separate for each session when you visit 
 instrument. They last while this browser document stays open; reload or closing the tab warns
 before losing them. This is not storage across browser restarts.
 
+**Conversations** discloses the session rail; **Séance details** holds secondary identity and
+session attention. The conversation remains the main reading area. If admission is unresolved or
+another Run is unsettled, the composer explains why **Offer** is unavailable while keeping the
+later draft editable; that draft is not queued.
+
 The shell's consent count opens **Conversations awaiting consent**. Choose a marked session to
 review its requests; its rail and inspector show that session's count. Requests without an
 available Bridge conversation remain in the global count and are reported in the chooser.
@@ -32,9 +37,11 @@ project return link stays available, including after opening a new séance. **Li
 to…** opens a prefilled Atlas form for an explicit save; it does not link or send project context
 merely because you navigated.
 
-The Run strip beside the turn shows the Pattern revision, canonical status and current activity.
-Keep its Run identity when you follow the result into another instrument. This strip is the
-present Circle interface; the fuller workspace is described in the [Circle guide](circle.md).
+The compact **Circle** beside the turn shows supplied canonical status and current activity.
+Expand it for full Run identity and the supplied Pattern revision, with a link to its declared
+score. Keep that identity when following the result into another instrument. Older retained
+replies identify missing metadata explicitly. The [Circle guide](circle.md) separates these
+controls from the fuller workspace still being designed.
 
 If a consent card appears, read the pending request and choose one of its supported decisions.
 The server validates the request, descriptor, reference and decision together. Your choice
@@ -47,6 +54,9 @@ admission. Suggesting an action in conversation cannot authorize it.
 When the Run settles, follow the strip's link to [Orb](orb.md) to inspect its evidence. A failed
 or cancelled Run stays visible even when it has no corresponding settled agent turn. Your
 admitted message may therefore appear in the conversation without an answer beside it.
+
+Incoming text preserves your place when you scroll into older work. **Latest turn** returns to
+the conversation's end and releases a linked Run focus without changing your draft.
 
 Follow the question raised by the result: [Loom](loom.md) shows the declared score, Orb shows
 Run evidence, and [Nexus](nexus.md) shows physical observations. Each instrument keeps its own
@@ -77,6 +87,8 @@ Archive retrieval are outside this history path.
     return paired with its original tool call. For a later Invocation it rebuilds the Stable
     Floor for the newly granted capability. Consent resume preserves the current call chain
     while fitting older settled turns to that grant's bounds.
+    A policy stop retains results of already completed tools and marks the known refused request
+    as denied. The stopped reply does not claim that earlier actions were undone.
 
     Closed, server-validated GenUI fragments survive a terminal refresh. Older rows retain inert
     compatibility keys and stay outside the current renderer. Replaying an identical settled
@@ -101,18 +113,15 @@ Neither action is available yet. Follow their development through [Loom](loom.md
 
 ## Reading direction
 
-The planned composition gives the conversation the widest readable area, keeps conversation
-selection accessible, and discloses secondary metadata on demand. The offered text, exact Run
-status, reply or explicit missing reply, and any consent or unresolved admission form one reading
-sequence. The next draft remains distinct. A permission request shows its actual target and
-scope beside its supported decisions; a disabled offering explains what must resolve and does
-not imply that the draft is queued.
+The conversation has the widest readable area. One reading sequence joins the offered text,
+exact Run status, reply or explicit missing reply, and any consent or unresolved admission.
+Keep a permission request's actual target and scope beside its decisions. Conversation selection
+stays accessible; secondary metadata unfolds on demand.
 
-Returning from Orb should bring the reader to the originating Run without displacing a later
-draft. New activity preserves the reader's place in older text, with a separate path to the
-latest turn. Project origin, saved membership, and material included in model Context remain
-different facts. The run strip supplies links rather than a second execution graph; a composed
-Circle still requires its own delivered contracts.
+Judge the composition by what survives a detour: returning from Orb should recover the originating
+Run while preserving the later draft and the reader's place. Project origin, saved membership,
+and material in model Context must remain distinguishable. Circle's links should carry the reader
+to the owning view; its fuller workspace remains a separate design.
 
 Acceptance case: lose an offering's admission response, write a later draft, inspect another
 instrument, and attend to consent in a different session. Return to the original session with

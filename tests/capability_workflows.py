@@ -31,8 +31,10 @@ from lychd.domain.cortex.leases import AnimatorAdmission, LeaseLedger
 from lychd.domain.orchestration.actuator import TransitionIntent
 from lychd.domain.orchestration.arbiter import TransitionArbiter
 from lychd.domain.orchestration.broker import GhoulBroker
+from lychd.domain.orchestration.containment import SoftActivationGuard
 from lychd.domain.orchestration.manager import OrchestratorManager
 from lychd.domain.orchestration.policies import resolve_switch_policy
+from tests.runtime_guards import InertSoftActivationGuard
 
 
 class InertModelConnector(Connector, ModelConnector):
@@ -152,6 +154,7 @@ def build_capability_scenario(
     coexist: tuple[str, ...] = (),
     conflict_domains: dict[str, tuple[str, ...]] | None = None,
     policy: str = "declared-conflicts",
+    soft_activation_guard: SoftActivationGuard | None = None,
 ) -> CapabilityScenario:
     models = models or {"a": ("a-model",), "b": ("b-model",)}
     world = InertRuntimeAdapter(models, active or set())
@@ -184,5 +187,6 @@ def build_capability_scenario(
         arbiter=TransitionArbiter(),
         actuator=actuator,
         switching=switching,
+        soft_activation_guard=soft_activation_guard or InertSoftActivationGuard(),
     )
     return CapabilityScenario(world, registry, leases, broker, actuator, manager, Dispatcher(registry, leases=leases))

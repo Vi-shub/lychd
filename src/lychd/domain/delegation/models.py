@@ -22,6 +22,7 @@ __all__ = [
     "DelegatedAgentProfile",
     "DelegatedAgentRequest",
     "DelegatedAgentResult",
+    "bound_result_text",
 ]
 
 _MAX_IDENTIFIER_LENGTH = 128
@@ -29,6 +30,15 @@ _MAX_PROMPT_LENGTH = 1_048_576
 _MAX_RESULT_TEXT_LENGTH = 1_048_576
 _MAX_ERROR_LENGTH = 16_384
 _MAX_ARTIFACT_REFS = 256
+
+
+def bound_result_text(text: str, *, result_field: Literal["output", "error"]) -> str:
+    """Bound locally projected result text while leaving runtime validation strict."""
+    limit = _MAX_RESULT_TEXT_LENGTH if result_field == "output" else _MAX_ERROR_LENGTH
+    if len(text) <= limit:
+        return text
+    suffix = "\n...[truncated]"
+    return text[: limit - len(suffix)] + suffix
 
 
 class DelegatedAgentProfile(StrEnum):

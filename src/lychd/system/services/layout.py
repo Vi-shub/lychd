@@ -17,6 +17,7 @@ from lychd.system.binding_sites import (
 from lychd.system.constants import (
     HOST_LAYOUT,
     PATH_POSTGRESS_DATA_DIR,
+    PATH_RUNTIME_GUARD_DIR,
 )
 from lychd.system.interruptions import find_terminal_interruption
 from lychd.system.services.btrfs import (
@@ -133,7 +134,7 @@ class LayoutService:
                 return self._provision_binding_site(path, directories)
             if path == PATH_POSTGRESS_DATA_DIR:
                 return self._provision_postgres(path, directories, attempt)
-            directories.create(path)
+            directories.create(path, mode=0o700 if path == PATH_RUNTIME_GUARD_DIR else None)
             logger.info("layout_directory_created", path=str(path))
             return self._provisioned_path(directories)
         except BaseException as exc:  # noqa: BLE001 - settle cancellation after filesystem effects

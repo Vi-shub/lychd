@@ -15,16 +15,9 @@ Genesis, Trial, Canon, Revelation, and Distillation. Canon supplies criteria bef
 and testing; Distillation carries a lesson toward a later attempt. This page keeps the practical
 handoffs between work, evaluation, memory, and training.
 
-The engineering workflow came first. The author's whiteboard designs already contained
-exploration, adversarial comparison, human judgment, implementation, evaluation, and a later
-training return before the sefirotic correspondence was proposed. The Tree entered as a second
-lens for discovering and improving relations within that independently developed workflow.
-Resemblance motivates investigation; a proposed addition must still earn its place through a
-clearer decision, a better handoff, or a demonstrated improvement.
-
-This page connects the [Creation workflow](creation.md), [workflow evaluation](../drift/workflow-improvement.md),
-and [discernment training](../soulforge/discernment-training.md) operating designs. It is a map of
-governed handoffs, with no new coordinator, registered Pattern, or autonomous implementation.
+Follow the return through [Creation](creation.md), [workflow evaluation](../drift/workflow-improvement.md),
+or [discernment training](../soulforge/discernment-training.md), according to what the encounter
+has shown needs to change. This map introduces no autonomous coordinator or registered Pattern.
 [SDLC](../../../adr/16-sdlc.md#the-agentic-graph-of-creation) owns the candidate boundary;
 [State of Work](../../../state-of-the-work.md#smith-forge-promotion) owns delivery.
 
@@ -34,11 +27,13 @@ governed handoffs, with no new coordinator, registered Pattern, or autonomous im
 %%{init: {"flowchart": {"nodeSpacing": 12, "rankSpacing": 22, "padding": 8}}}%%
 flowchart TB
     I[Intent and Context] --> D[Creation: form candidate]
-    D --> V[Verification]
+    D --> V[Verification: tests and review]
+    D -. declared evaluation .-> Q[Drift: candidate findings]
+    Q --> V
     V --> P[Owned decision and effect]
     V -- failure or rejection --> O
     P --> O[Retain consequence]
-    O --> E[Drift: evaluate]
+    O --> E[Drift: result or workflow findings]
     E --> C[Correction proposal]
     C --> M[Context, memory or procedure]
     M --> I
@@ -55,39 +50,63 @@ flowchart TB
     classDef evaluation fill:#421f28,stroke:#ff9292,color:#ffe9e9
     classDef training fill:#30203f,stroke:#c09aff,color:#f4eaff
     class I,D,V,P,M,N work
-    class O,E,C,R,S evaluation
+    class Q,O,E,C,R,S evaluation
     class T,A,B training
 ```
 
-Blue follows one piece of work. Red asks whether the work and its method succeeded. Violet changes
-model competence only when a training hypothesis earns that more expensive passage. Context and
-memory admission can improve the next attempt without changing weights. An evaluation may also
-conclude that the present method should remain.
+Blue follows one piece of work. Red evaluates the candidate before promotion where required,
+then its observed consequences or the method that produced it. These are
+[distinct evaluation subjects](../drift/workflow-improvement.md#evaluate-at-two-scales), with
+their own declared evidence. Tests and review retain their separate roles; a favorable inferred
+judgment cannot erase a failed deterministic gate. Evaluation belongs within SDLC as well as
+across its improvement cycle, even though Drift has its own jurisdiction.
+
+Violet changes model competence only when a training hypothesis earns that more expensive passage.
+Context and memory admission can improve the next attempt without changing weights. An evaluation
+may also conclude that the present method should remain.
 
 Arrows show dependencies between settled records and separately admitted acts. They do not launch
 the next owner, share its authority, or create a hidden Run spanning all three cycles. An eventual
 application must publish its exact Pattern; live coordination across Composition-owned
 Invocations needs a named [Suite](../../../compositions/products-and-suites.md#compositions-relate-without-nesting).
 
-### Why the whole is not one DAG
+## Carry the distinction, not the entire conversation
 
-The workflow may revisit exploration, repair a candidate, or return after an evaluation. Its
-design therefore contains cycles. Each recorded occurrence still has an identity and earlier
-causes: `explore₁ → judge₁ → probe₁ → explore₂`. Such an unfolded causal history can be a DAG
-without pretending that the reusable workflow is acyclic. A new semantic attempt adds a history
-entry; exact transport redelivery preserves its admitted attempt and idempotency identity. This
-causal view follows retained dependencies and attributed causal claims, with capture gaps left
-visible. It supplies no claim of complete causal observation or new scheduling Occurrence type.
-Changing the score requires a new immutable Scroll revision and a later Invocation.
+First decide what the next attempt needs. A missing fact, a damaged handoff, and a skill that
+fails across unfamiliar tasks call for different returns:
 
-The [Graph](../../../adr/24-graph.md) owns executable topology and checkpoints. Spellweaver owns
-logical sequencing, [Dispatcher](../../../adr/22-dispatcher.md) selects an eligible capability,
-and [Orchestrator](../../../adr/23-orchestrator.md) owns physical readiness and transitions.
-Readiness, refusal, cost and failures return as evidence to the higher decision. A box drawn above
-these offices cannot bypass them. The current serial graph does not deliver this entire cycle or
-durable parallel fan-out.
+| What should change? | Appropriate return |
+| --- | --- |
+| This task lacks a relevant fact or rule | Assemble the needed source into Context under [Context law](../../../adr/21-context.md). |
+| A correction should be available in later encounters | Nominate an attributed record to [Memory](../../../adr/27-memory.md); admission and Recall remain owned. |
+| The method repeatedly omits a step or makes a bad handoff | Prepare a versioned prompt, schema, tool-contract or Scroll candidate and evaluate it. |
+| A stable skill fails across tasks despite adequate evidence and method | Propose a Soulforge objective, admitted corpus and independent transfer evaluation. |
+| The body lacks an implementation or external capability | Enter Creation, Integration, Delegation or Assimilation according to the actual need. |
 
-### What the next round inherits
+A coordinating Agent may retain the wider undertaking while each worker receives a bounded,
+fresh [Context handoff](../../../adr/28-workflow.md#scoped-context-handoff). Context
+injection selects what this decision needs: owning rules, admitted source facts, relevant human
+judgments, current state, acceptance, dependencies and unresolved alternatives. It retains source,
+revision, authority class and any limits on use. The hierarchy of instructions survives selection;
+quoted documents and conversational claims remain attributed material.
+
+Compaction preserves the purpose, accepted decisions and their reasons, strongest surviving
+objections, evidence references, authority boundaries, unfinished obligations and the next
+discriminating probe. A summary points back to durable artifacts; it neither replaces them nor
+silently resolves a dispute. A shared workspace is an attributable record of the undertaking,
+not one ever-growing prompt copied into every Agent.
+
+[Distillation](../../../divination/transmutation/distillation.md#future-correction) asks whether
+the lesson preserves its route to correction. Retain the particular condition and source that
+could reopen the conclusion; test that a later relevant observation still changes the appropriate
+act. This connects a useful handoff now with a useful inheritance later.
+
+For example, “ask fewer questions” loses the lesson. “Proceed when the owner, acceptance and
+authority are settled; ask when this unresolved deployment constraint changes the design” carries
+a condition, reason and counterexample. [Learning the cut](../../../divination/transcendence/illumination.md#learning-the-cut)
+names that transmission of discernment. Its effectiveness is tested on a later task.
+
+## What the next round inherits
 
 Retained experience can change the procedure that seeks the next improvement. For example, a
 repeatedly wasteful branch search may motivate a revised exploration strategy while the coding
@@ -108,67 +127,23 @@ Start with ordinary development tools and attributable artifacts. A hand-operate
 establishes only its measured result; the autonomous passage still requires delivered owners,
 admitted execution and evidence of the next round's actual use.
 
-## Two perspectives on the same work
+## Why the whole is not one DAG
 
-The [Tree of Life](../../../divination/transmutation/genesis.md#tree-of-life) illuminates **how creation becomes formed**:
-purpose, possibility, understanding, generosity, restraint, integration, persistence, correction,
-connection and manifestation. The [inner instrument](../../lich/index.md#the-inner-instrument)
-illuminates **how an act is received, discriminated, carried and attributed**. One offers a map of
-creative relations; the other asks which cognitive function is at work in each relation.
+The workflow may revisit exploration, repair a candidate, or return after an evaluation. Its
+design therefore contains cycles. Each recorded occurrence still has an identity and earlier
+causes: `explore₁ → judge₁ → probe₁ → explore₂`. Such an unfolded causal history can be a DAG
+without pretending that the reusable workflow is acyclic. A new semantic attempt adds a history
+entry; exact transport redelivery preserves its admitted attempt and idempotency identity. This
+causal view follows retained dependencies and attributed causal claims, with capture gaps left
+visible. It supplies no claim of complete causal observation or new scheduling Occurrence type.
+Changing the score requires a new immutable Scroll revision and a later Invocation.
 
-These perspectives cross rather than replace one another. Call can open a possibility at several
-stations; Blade can test a proposal or stop an unjustified promotion; Spirit carries both prior
-conditions and later correction; Answer binds each act to its local author and consequence.
-Neither ten sefirot nor four offices prescribe a model count, org chart, or permanent chief Agent.
-[Genesis](../../../divination/transmutation/genesis.md#tree-of-life) keeps the Tree's traditional
-provenance and authored correspondence; [Inner Tongue](../../../lexicon/inner-tongue.md#source-notes-and-project-correspondences)
-keeps the inherited vocabulary of the inner instrument.
-
-Yaga's crafted life in Gege Akutami's [*Jujutsu Kaisen*, chapter 147](https://www.viz.com/shonenjump/jujutsu-kaisen-chapter-147/chapter/22420)
-is a fictional prompt behind this comparison. The borrowed question is whether mutually observing
-perspectives can change one another and sustain a common undertaking. [Polypsyche](../../../lexicon/inner-tongue.md#polypsyche)
-carries that native inquiry; the story supplies neither an engineering recipe nor a required
-number of Agents.
-
-The outward movement gives an idea form. Ouroboros adds the return through experience. The wider
-meaning of [autopoiesis and recurrent formation](../../../divination/transcendence/illumination.md#i-the-ouroboros)
-includes maintaining and revising the organization that makes another act possible. Operationally,
-we can test whether retained correction changes later choices, whether consequences remain
-attributed, and whether the system can refuse or recover. A loop symbol alone proves none of
-these, nor does it settle the philosophical question of life.
-
-## Carry the distinction, not the entire conversation
-
-A coordinating Agent may retain the wider undertaking while each worker receives a bounded,
-fresh [Context handoff](../../../adr/28-workflow.md#scoped-context-handoff-designed). Context
-injection selects what this decision needs: owning rules, admitted source facts, relevant human
-judgments, current state, acceptance, dependencies and unresolved alternatives. It retains source,
-revision, authority class and any limits on use. The hierarchy of instructions survives selection;
-quoted documents and conversational claims remain attributed material.
-
-Compaction preserves the purpose, accepted decisions and their reasons, strongest surviving
-objections, evidence references, authority boundaries, unfinished obligations and the next
-discriminating probe. A summary points back to durable artifacts; it neither replaces them nor
-silently resolves a dispute. A shared workspace is an attributable record of the undertaking,
-not one ever-growing prompt copied into every Agent.
-
-[Distillation](../../../divination/transmutation/distillation.md#future-correction) asks whether
-the lesson preserves its route to correction. Retain the particular condition and source that
-could reopen the conclusion; test that a later relevant observation still changes the appropriate
-act. This connects a useful handoff now with a useful inheritance later.
-
-| What should change? | Appropriate return |
-| --- | --- |
-| This task lacks a relevant fact or rule | Assemble the needed source into Context under [Context law](../../../adr/21-context.md). |
-| A correction should be available in later encounters | Nominate an attributed record to [Memory](../../../adr/27-memory.md); admission and Recall remain owned. |
-| The method repeatedly omits a step or makes a bad handoff | Prepare a versioned prompt, schema, tool-contract or Scroll candidate and evaluate it. |
-| A stable skill fails across tasks despite adequate evidence and method | Propose a Soulforge objective, admitted corpus and independent transfer evaluation. |
-| The body lacks an implementation or external capability | Enter Creation, Integration, Delegation or Assimilation according to the actual need. |
-
-For example, “ask fewer questions” loses the lesson. “Proceed when the owner, acceptance and
-authority are settled; ask when this unresolved deployment constraint changes the design” carries
-a condition, reason and counterexample. [Learning the cut](../../../divination/transcendence/illumination.md#learning-the-cut)
-names that transmission of discernment. Its effectiveness is tested on a later task.
+The [Graph](../../../adr/24-graph.md) owns executable topology and checkpoints. Spellweaver owns
+logical sequencing, [Dispatcher](../../../adr/22-dispatcher.md) selects an eligible capability,
+and [Orchestrator](../../../adr/23-orchestrator.md) owns physical readiness and transitions.
+Readiness, refusal, cost and failures return as evidence to the higher decision. A box drawn above
+these offices cannot bypass them. The current serial graph does not deliver this entire cycle or
+durable parallel fan-out.
 
 ## Let conversation become usable work
 
@@ -220,6 +195,42 @@ The running body does not import its candidate to see whether it works. A failed
 discarded before an effect; an emitted effect requires the responsible owner's recovery or
 compensation. Reanimation restores the same body after process death. Evolution deliberately
 changes it. Ouroboros describes the wider return through both experience and governed change.
+
+## Two perspectives on the same work
+
+The engineering workflow came first. The author's whiteboard designs already contained
+exploration, adversarial comparison, human judgment, implementation, evaluation, and a later
+training return before the sefirotic correspondence was proposed. The Tree entered as a second
+lens for discovering and improving relations within that independently developed workflow.
+Resemblance motivates investigation; a proposed addition must still earn its place through a
+clearer decision, a better handoff, or a demonstrated improvement.
+
+The [Tree of Life](../../../divination/transmutation/genesis.md#tree-of-life) illuminates **how creation becomes formed**:
+purpose, possibility, understanding, generosity, restraint, integration, persistence, correction,
+connection and manifestation. The [inner instrument](../../lich/index.md#the-inner-instrument)
+illuminates **how an act is received, discriminated, carried and attributed**. One offers a map of
+creative relations; the other asks which cognitive function is at work in each relation.
+
+These perspectives cross rather than replace one another. Call can open a possibility at several
+stations; Blade can test a proposal or stop an unjustified promotion; Spirit carries both prior
+conditions and later correction; Answer binds each act to its local author and consequence.
+Neither ten sefirot nor four offices prescribe a model count, org chart, or permanent chief Agent.
+[Genesis](../../../divination/transmutation/genesis.md#tree-of-life) keeps the Tree's traditional
+provenance and authored correspondence; [Inner Tongue](../../../lexicon/inner-tongue.md#source-notes-and-project-correspondences)
+keeps the inherited vocabulary of the inner instrument.
+
+Yaga's crafted life in Gege Akutami's [*Jujutsu Kaisen*, chapter 147](https://www.viz.com/shonenjump/jujutsu-kaisen-chapter-147/chapter/22420)
+is a fictional prompt behind this comparison. The borrowed question is whether mutually observing
+perspectives can change one another and sustain a common undertaking. [Polypsyche](../../../lexicon/inner-tongue.md#polypsyche)
+carries that native inquiry; the story supplies neither an engineering recipe nor a required
+number of Agents.
+
+The outward movement gives an idea form. Ouroboros adds the return through experience. The wider
+meaning of [autopoiesis and recurrent formation](../../../divination/transcendence/illumination.md#i-the-ouroboros)
+includes maintaining and revising the organization that makes another act possible. Operationally,
+we can test whether retained correction changes later choices, whether consequences remain
+attributed, and whether the system can refuse or recover. A loop symbol alone proves none of
+these, nor does it settle the philosophical question of life.
 
 ## Establish the cycle in small, verifiable steps
 

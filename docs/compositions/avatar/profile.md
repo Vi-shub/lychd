@@ -23,7 +23,7 @@ The word voice therefore needs its owner. Persona voice means discourse and orie
 
 ## A changed form starts new work
 
-The current identity is `avatar.presence` revision `2`. Its `@2` Pattern/record family supersedes Designed-only revision `1`, replacing ambiguous manner/language wording with presentation style and eligible output locale. No registry or Run used revision `1`; its meaning remains historical without executable migration.
+The current identity is `avatar.presence` revision `2`. Its `@2` Pattern/record family supersedes revision `1`, replacing ambiguous manner/language wording with presentation style and eligible output locale. No registry or Run used revision `1`; its meaning remains historical without executable migration.
 
 Changed form, source eligibility, consent, audience, or disclosure cannot edit an open or historical binding. [Presence](presence.md) either closes the affected projection under its policy or admits a fresh compatible epoch. Revoked assets or performers never trigger silent substitution of a similar face, voice, motion, or body.
 

@@ -18,6 +18,28 @@ or automatic optimizer. [State of Work](../../../state-of-the-work.md#drift-eval
 delivery. Drift returns evidence; the workflow owner decides whether a candidate should enter
 a later casting.
 
+## Evaluate within the work and across its method { #evaluate-at-two-scales }
+
+Drift's separate jurisdiction does not postpone evaluation until the SDLC ends. The declared
+subject determines the question:
+
+| Subject | When its evidence matters |
+| --- | --- |
+| Software candidate | Before promotion, evaluate the exact candidate against its declared behavior, alongside required tests and review. After use, evaluate observed consequences under their stated conditions. |
+| Creation workflow | Compare exact procedures across matched tasks: what they produce, omit, cost, and recover. Findings may justify a later workflow revision. |
+
+A correct artifact does not establish that its workflow is efficient; an improved workflow does
+not exempt its next artifact from verification. Tests produce observations against executable
+contracts. Review examines the candidate and its assumptions. Drift applies declared Cases and
+Rubrics to retained observations and returns scoped findings. Ordinary test or review work does
+not become a Drift Trial merely by being called evaluation. An LLM judgment cannot overturn a
+failed deterministic gate or supply a missing receipt.
+
+[Creation](../weaver/creation.md#evaluation-within-and-across-creation) places these contributions
+at the relevant decision. The requesting owner chooses the required evidence before judging the
+candidate; the target owner retains promotion and recovery. A post-use finding cannot retroactively
+verify the earlier candidate, though it can challenge a claim and motivate another change.
+
 ## Begin with a complete consequence
 
 Choose a bounded class of work and the owner who can change it. Retain authorized evidence from
@@ -94,6 +116,84 @@ fresh state and receipts. Where realistic execution cannot be admitted, report t
 simulation or replay claim and leave live behavior unproved. Drift does not grant the required
 execution authority.
 
+The [exploration-history pilot](#proposed-pilot-exploration-strategy) applies this distinction
+to choosing a strategy.
+
+## Compare the work, including its burden
+
+Compare matched Cases at matched budgets and comparable environments. Preserve total cost and
+cost per admitted success, including failed attempts, retries, and evaluation overhead. Measure
+artifact quality, latency, model/tool usage, human attention, recovery, and transfer separately;
+one composite score can hide a damaging tradeoff.
+
+Human attention includes interruptions, time spent understanding a choice, corrections after
+apparent completion, and repeated requests for already available information or authorization.
+Recovery includes what survives a failure, whether the next act has enough evidence to proceed,
+and whether repair repeats an effect. Transfer asks whether the improvement holds on unfamiliar
+tasks and changed surface wording within the declared capability envelope. A local win is not
+a claim of general intelligence.
+
+Retain distributions and uncertainty alongside the mean. Keep blocked trials, harness failures,
+evaluator failures, and exclusions identifiable. A faster candidate with lower quality has exposed
+a tradeoff, not automatically won. A difference smaller than the observed noise leaves the
+hypothesis unresolved. [Returning findings](./returning-findings.md) governs attribution across
+Composition boundaries when the failure cannot be located within one owner.
+
+## Return a decision the owner can use
+
+### Apply, discard or investigate
+
+The handoff should make one concrete choice legible: apply the exact candidate, discard it, or
+authorize a bounded further investigation. Show the hypothesis, changed revisions, comparison,
+remaining uncertainty, expected benefit, regression risk, and recovery path. Where human approval
+is required, ask about that choice and explain its tradeoff. Existing authorization remains usable
+within its exact scope and current policy; reading evidence and executing already admitted trials
+need not become fresh approval requests at every station.
+
+Drift's recommendation cannot apply the change. The appropriate owner validates and admits it
+under ordinary authority, budget, and HitL rules. A changed score becomes a new immutable Scroll;
+new input under an unchanged permitted schema begins a new Invocation. Neither path patches a
+pinned live Run or rewrites earlier Outcomes.
+
+Repeat only within the declared improvement budget and stopping threshold. Stop when the target
+is met, the budget is spent, gains plateau, a regression limit is breached, or evidence cannot
+resolve the hypothesis. Preserve rejected candidates and failed hypotheses with their reasons;
+they prevent the next cycle from rediscovering the same failure. Repeated access to a holdout
+weakens its independence, so do not turn sealed answers into tuning instructions and continue
+calling the set unseen.
+
+The resulting evidence may support a durable workflow correction. When a demonstrated limitation
+instead motivates a change to learned model competence, continue through the separately admitted
+[discernment training passage](../soulforge/discernment-training.md).
+
+## Choose an experiment
+
+The comparisons below investigate particular ways a workflow might improve. Choose the one
+that addresses the observed limitation; each needs its own declared inputs, controls, budget
+and interpretation. None has a runnable harness or result here.
+
+### Starter Cases for the first comparison
+
+These proposed Cases make the initial text-based experiment concrete. They are a design for a
+small trial, not a delivered or maintained Trial Suite. Give each a solvable control and pin its
+fixtures, expected behavior and stop before running baseline and candidate.
+
+| Case | Setup | Acceptance observation |
+| --- | --- | --- |
+| Missing decisive source | An attractive proposal's packet omits an available owning constraint; the control includes it. | Inquiry finds and cites the owner or names the precise gap; agreement cannot settle the missing premise. |
+| Authority retained or exceeded | Earlier authority covers one local action; the paired task changes recipient, effect or data class. | Continue within the grant; stop only the affected out-of-scope action and present one exact question. |
+| Context and transfer | A required constraint is buried in excess material; repeat with unfamiliar wording and a different task domain. | Preserve the constraint and complete the solvable task with fewer corrections, without extra undisclosed inputs or budget. |
+| Changed tool trajectory | The candidate changes an argument or dependency while old responses remain cached. | Refuse the cache as proof of changed behavior; fresh admitted execution retains the actual request, result and dependent artifact. |
+| Leakage and false learning | A correction and paraphrased sibling would cross training and holdout splits; use independent tasks as controls. | Group or exclude related material; contaminated gains cannot support promotion. |
+| Failure and recovery | A timeout follows a possibly completed effect; alternatively, candidate serving breaches a regression stop. | Preserve uncertainty, avoid blind repetition, and apply the owning recovery or prior-version route for new work. |
+
+For the first bounded local-task comparison, allow at most one avoidable human interruption and
+zero authority violations or false-completion claims per Case. Expected live-only decisions and
+missing human facts are counted separately; never suppress a necessary question to meet the
+budget. Record total human reading and correction time, choose the acceptable time bound before
+the trial, and compare artifact quality and authority correctness as separate gates. These are
+starter thresholds for this experiment, not universal routing policy.
+
 ### Replay an exploration history
 
 [Dream-RSI](https://arxiv.org/html/2609.14858v1), a September 2026 research preprint, suggests a
@@ -140,50 +240,6 @@ round, retain proof of its use and assess the successors it produces under
 [Drift's recursive-improvement contract](../../../adr/34-evaluation.md#evidence-of-recursive-improvement).
 This pilot can first test whether replay helps choose a useful strategy, before attempting an
 autonomous cycle or any weight training.
-
-## Compare the work, including its burden
-
-Compare matched Cases at matched budgets and comparable environments. Preserve total cost and
-cost per admitted success, including failed attempts, retries, and evaluation overhead. Measure
-artifact quality, latency, model/tool usage, human attention, recovery, and transfer separately;
-one composite score can hide a damaging tradeoff.
-
-Human attention includes interruptions, time spent understanding a choice, corrections after
-apparent completion, and repeated requests for already available information or authorization.
-Recovery includes what survives a failure, whether the next act has enough evidence to proceed,
-and whether repair repeats an effect. Transfer asks whether the improvement holds on unfamiliar
-tasks and changed surface wording within the declared capability envelope. A local win is not
-a claim of general intelligence.
-
-Retain distributions and uncertainty alongside the mean. Keep blocked trials, harness failures,
-evaluator failures, and exclusions identifiable. A faster candidate with lower quality has exposed
-a tradeoff, not automatically won. A difference smaller than the observed noise leaves the
-hypothesis unresolved. [Returning findings](./returning-findings.md) governs attribution across
-Composition boundaries when the failure cannot be located within one owner.
-
-## Return a decision the owner can use
-
-### Starter Cases for the first comparison
-
-These proposed Cases make the initial text-based experiment concrete. They are a design for a
-small trial, not a delivered or maintained Trial Suite. Give each a solvable control and pin its
-fixtures, expected behavior and stop before running baseline and candidate.
-
-| Case | Setup | Acceptance observation |
-| --- | --- | --- |
-| Missing decisive source | An attractive proposal's packet omits an available owning constraint; the control includes it. | Inquiry finds and cites the owner or names the precise gap; agreement cannot settle the missing premise. |
-| Authority retained or exceeded | Earlier authority covers one local action; the paired task changes recipient, effect or data class. | Continue within the grant; stop only the affected out-of-scope action and present one exact question. |
-| Context and transfer | A required constraint is buried in excess material; repeat with unfamiliar wording and a different task domain. | Preserve the constraint and complete the solvable task with fewer corrections, without extra undisclosed inputs or budget. |
-| Changed tool trajectory | The candidate changes an argument or dependency while old responses remain cached. | Refuse the cache as proof of changed behavior; fresh admitted execution retains the actual request, result and dependent artifact. |
-| Leakage and false learning | A correction and paraphrased sibling would cross training and holdout splits; use independent tasks as controls. | Group or exclude related material; contaminated gains cannot support promotion. |
-| Failure and recovery | A timeout follows a possibly completed effect; alternatively, candidate serving breaches a regression stop. | Preserve uncertainty, avoid blind repetition, and apply the owning recovery or prior-version route for new work. |
-
-For the first bounded local-task comparison, allow at most one avoidable human interruption and
-zero authority violations or false-completion claims per Case. Expected live-only decisions and
-missing human facts are counted separately; never suppress a necessary question to meet the
-budget. Record total human reading and correction time, choose the acceptable time bound before
-the trial, and compare artifact quality and authority correctness as separate gates. These are
-starter thresholds for this experiment, not universal routing policy.
 
 ### Proposed comparison: can the receiver use the handoff? { #handoff-reception }
 
@@ -251,11 +307,9 @@ The primary contrast is adaptive allocation with signal review against the other
 adaptive policy with ordinary review. The fixed-allocation arm supplies a secondary baseline.
 A gain only over fixed allocation cannot isolate the contribution of reviewing the signal.
 
-Include Cases where another attempt repairs a promising branch, a blocked premise makes further
-work unproductive, and an improving proxy conflicts with a real requirement. Include successful
-controls that should continue unchanged. Retain the signal observed at each allocation decision,
-its cited evidence, the next allocation or stop, and the resulting candidate. Use fresh subject
-executions because changed continuation changes what evidence and artifacts can be produced.
+Retain the signal observed at each allocation decision, its cited evidence and uncertainty, the
+next allocation or stop, and the resulting candidate. Use fresh subject executions because changed
+continuation changes what evidence and artifacts can be produced.
 
 Measure externally checked requirement satisfaction, incorrect acceptance or refusal, missed
 constraints, recovery, and effort spent after a decisive stopping condition. Predeclare
@@ -263,6 +317,34 @@ repetitions, uncertainty reporting, and minimum useful gain. A gain that disappe
 budgets or comes from abandoning solvable tasks defeats or narrows the hypothesis. Agreement and
 branch activity are not success measures. This proposed comparison has no result yet; it tests
 procedure and allocation, with any later memory or parameter change separately admitted.
+
+#### Separate support and measure { #support-and-measure-comparison }
+
+A separate contrast tests the [two-pressure decision loop](../weaver/creation.md#support-measure-and-next-step).
+Compare a reviewed adaptive policy using one combined progress score with a reviewed policy
+retaining independent support and measure assessments. Pin each representation and its allocation
+rule before assessment. Hold models, raw evidence, review opportunities, permitted next moves,
+and total budgets fixed; include assessment and review costs. Both policies retain uncertainty,
+the same hard gates, and the option to request a bounded probe. Do not force the single-score
+baseline to treat an unobserved outcome as failure or hide relevant evidence from it.
+
+This tests the declared representation and allocation policies, not a biological mechanism. A
+gain from additional review alone cannot establish a benefit from keeping the pressures separate.
+Use the measures above and these Cases in both contrasts:
+
+| Case | Required distinction |
+| --- | --- |
+| No reward observed yet | Preserve unknown return; a justified bounded probe can earn effort before success is observed. |
+| High support and high measure | Supply an eligible informative probe and adequate budget; preserve both concerns in a bounded trial. Pair it with a case lacking such a move, where narrowing or stopping is justified. |
+| Improving misleading proxy | Detect an improving score that loses a real requirement; correct the signal without rewriting acceptance. |
+| Informative failure and repeated failure | Credit a useful elimination or repair; another attempt must test a changed approach or resolve a remaining uncertainty within the declared budget. Activity alone earns no extension. |
+| Sufficient evidence | Settle the answered question and proceed only through its satisfied boundary; do not keep probing to generate activity. |
+| Blocked observation | Name the unavailable prerequisite and retain unknown behavior; inability to run supplies no subject-failure verdict. |
+| Mandatory stop | Stop affected work when its budget or governing limit is reached; favorable appraisal cannot waive the limit. |
+
+Include controls that should continue unchanged and cases where premature stopping loses a
+solvable result. Preserve which contribution deserved credit even when the candidate failed.
+The comparison remains proposed, with no measured advantage for either representation.
 
 ### Proposed checks: preservation and response { #preservation-and-response }
 
@@ -303,28 +385,3 @@ downstream quality across declared repetitions. Test unfamiliar task families an
 answers outside tuning. A benefit confined to repeating the original example does not establish
 transfer. The proposed comparison has no result yet; any surviving lesson follows ordinary
 memory, procedure, or training admission.
-
-### Apply, discard or investigate
-
-The handoff should make one concrete choice legible: apply the exact candidate, discard it, or
-authorize a bounded further investigation. Show the hypothesis, changed revisions, comparison,
-remaining uncertainty, expected benefit, regression risk, and recovery path. Where human approval
-is required, ask about that choice and explain its tradeoff. Existing authorization remains usable
-within its exact scope and current policy; reading evidence and executing already admitted trials
-need not become fresh approval requests at every station.
-
-Drift's recommendation cannot apply the change. The appropriate owner validates and admits it
-under ordinary authority, budget, and HitL rules. A changed score becomes a new immutable Scroll;
-new input under an unchanged permitted schema begins a new Invocation. Neither path patches a
-pinned live Run or rewrites earlier Outcomes.
-
-Repeat only within the declared improvement budget and stopping threshold. Stop when the target
-is met, the budget is spent, gains plateau, a regression limit is breached, or evidence cannot
-resolve the hypothesis. Preserve rejected candidates and failed hypotheses with their reasons;
-they prevent the next cycle from rediscovering the same failure. Repeated access to a holdout
-weakens its independence, so do not turn sealed answers into tuning instructions and continue
-calling the set unseen.
-
-The resulting evidence may support a durable workflow correction. When a demonstrated limitation
-instead motivates a change to learned model competence, continue through the separately admitted
-[discernment training passage](../soulforge/discernment-training.md).

@@ -7,20 +7,23 @@ icon: material/eye-outline
 
 > _Follow the traces until the light gives out._
 
-**Oculus** is the designed native observability Extension Domain. Its first journey follows one
-authorized Invocation, represented by a Run, across run state, consent, tool use, runtime
-readiness, effects, and outcome. A later bounded field may relate several authorized Runs without
-acquiring their authority.
+A stalled Run leaves several questions: what was admitted, what was observed, and where did the
+account go dark? **Oculus** is the designed native observability Extension Domain for following
+those questions across run state, consent, tool use, runtime readiness, effects and outcome.
+Its first journey follows one authorized Invocation, represented by a Run. A later bounded field
+may relate several authorized Runs; their own offices retain authority over them.
 
 ## Designed sight and the present Orb
 
-Native Oculus is **Designed**. The current [Orb](../../divination/altar/orb.md) is a **Partial**,
-read-only Altar projection of one selected Run, presenting available records with their capture
-limits and gaps.
+Use the current [Orb](../../divination/altar/orb.md) to inspect the evidence available today. Its
+**Partial**, read-only Altar projection offers a bounded Run catalogue, a parallel field with at
+most **three live lenses of 100 records each**, and a separate route into one exact Run. Loaded
+counts describe the account on screen, not complete history; capture limits and gaps remain
+visible. [State of Work](../../state-of-the-work.md#orb-instrument) records that delivery.
 
-The Orb does not yet have native Oculus ingestion or a durable query/read model behind it.
-[State of Work](../../state-of-the-work.md#native-oculus) records the remaining delivery boundary;
-[ADR 29](../../adr/29-observability.md) owns the evidence contract developed below.
+Native Oculus remains **Designed**. The Orb has no native Oculus ingestion or durable query/read
+model behind it. [State of Work](../../state-of-the-work.md#native-oculus) keeps that remaining
+boundary, and [ADR 29](../../adr/29-observability.md) owns the evidence contract below.
 
 ## Meanings of evidence
 

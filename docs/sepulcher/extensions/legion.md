@@ -71,5 +71,5 @@ safe or true. Results and artifacts remain typed and quarantined until their own
 The first Legion profile admits only artifacts already present under exact content digests.
 Missing material makes placement infeasible—never an implicit URL or Master-path fetch, download,
 or Portal fallback. Later transfer requires separately admitted, content-addressed, bounded,
-policy- and integrity-checked custody with atomic publication and corruption quarantine. ADR 42
-owns the mechanics.
+policy- and integrity-checked custody with atomic publication and corruption quarantine. The
+[Multinode Covenant](../../adr/42-multinode.md) owns the mechanics.

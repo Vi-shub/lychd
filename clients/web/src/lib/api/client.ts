@@ -241,6 +241,9 @@ export type RunStreamOptions = {
   onHardClose?: (message: string) => void;
 };
 
+// Native EventSource keeps delivering while an authoritative snapshot is pending.
+const MAX_PENDING_RUN_EVENTS = 256;
+
 export function listenToRun(
   runId: string,
   onEvent: (event: ReturnType<typeof runEventEnvelopeSchema.parse>) => void,
@@ -262,14 +265,21 @@ export function listenToRun(
     "resync"
   ] as const;
   let cursor = initialRunEventCursor(options.initialCursor);
-  let serial = Promise.resolve();
+  const pending: ReturnType<typeof runEventEnvelopeSchema.parse>[] = [];
+  let draining = false;
   let refetching = false;
   let stopped = false;
 
-  function fault(message: string) {
+  function close() {
     if (stopped) return;
     stopped = true;
+    pending.length = 0;
     source.close();
+  }
+
+  function fault(message: string) {
+    if (stopped) return;
+    close();
     try {
       options.onHardClose?.(message);
     } finally {
@@ -277,8 +287,37 @@ export function listenToRun(
     }
   }
 
+  async function drain() {
+    if (draining || stopped) return;
+    draining = true;
+    try {
+      while (!stopped && pending.length) {
+        const event = pending.shift()!;
+        const disposition = reduceRunEventCursor(cursor, event);
+        cursor = disposition.cursor;
+        if (disposition.refetch) {
+          refetching = true;
+          const snapshot = await onRefetch();
+          if (stopped) return;
+          cursor = initialRunEventCursor(snapshot.cursor);
+          refetching = false;
+          if (snapshot.terminal) close();
+        } else if (disposition.deliver) {
+          onEvent(event);
+        }
+        if (event.kind === "done") close();
+      }
+    } catch {
+      fault("The authoritative run snapshot could not be refreshed.");
+    } finally {
+      draining = false;
+      refetching = false;
+    }
+  }
+
   for (const kind of kinds) {
     source.addEventListener(kind, (raw) => {
+      if (stopped) return;
       let event: ReturnType<typeof runEventEnvelopeSchema.parse>;
       try {
         event = runEventEnvelopeSchema.parse(JSON.parse((raw as MessageEvent<string>).data));
@@ -291,29 +330,12 @@ export function listenToRun(
         return;
       }
 
-      serial = serial
-        .then(async () => {
-          if (stopped) return;
-          const disposition = reduceRunEventCursor(cursor, event);
-          cursor = disposition.cursor;
-          if (disposition.refetch) {
-            refetching = true;
-            const snapshot = await onRefetch();
-            cursor = initialRunEventCursor(snapshot.cursor);
-            refetching = false;
-            if (snapshot.terminal) {
-              stopped = true;
-              source.close();
-            }
-          } else if (disposition.deliver) {
-            onEvent(event);
-          }
-          if (event.kind === "done") {
-            stopped = true;
-            source.close();
-          }
-        })
-        .catch(() => fault("The authoritative run snapshot could not be refreshed."));
+      if (pending.length >= MAX_PENDING_RUN_EVENTS) {
+        fault("The run stream exceeded its pending event limit; its projection may be stale.");
+        return;
+      }
+      pending.push(event);
+      void drain();
     });
   }
   source.onerror = () => {
@@ -324,10 +346,7 @@ export function listenToRun(
       fault("The run stream closed; its projection may be stale.");
     } else if (!refetching) onFault("The run stream went quiet; reconnecting.");
   };
-  return () => {
-    stopped = true;
-    source.close();
-  };
+  return close;
 }
 
 export type TransitionStreamOptions = {
@@ -372,7 +391,10 @@ export function listenToSwap(
     }
   });
   source.onerror = () => {
-    if (!stopped) onFault("The transition stream went quiet.");
+    if (stopped) return;
+    if (source.readyState === EventSource.CLOSED) {
+      fault("The transition stream closed; its projection may be stale.");
+    } else onFault("The transition stream went quiet.");
   };
   return () => {
     stopped = true;

@@ -11,6 +11,7 @@ import lychd.config.settings.root as settings_mod
 from lychd.config.settings.orchestration import OrchestrationSettings, SwitchingSettings
 from lychd.config.settings.root import Settings
 from lychd.config.settings.server import ServerJobsSettings
+from tests.runtime_guards import InertSoftActivationGuard
 
 
 def test_orchestration_defaults() -> None:
@@ -121,4 +122,5 @@ def test_missing_routed_queues_fail_before_runtime_publication(monkeypatch: pyte
             runes=RuneRegistry(()),
             runtime_adapters=[],
             profile="memory",
+            soft_activation_guard=InertSoftActivationGuard(),
         )

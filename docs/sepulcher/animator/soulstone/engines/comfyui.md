@@ -11,8 +11,13 @@ how results return to their owners. ComfyUI is a graph execution engine; a local
 a Soulstone when LychD owns its container, queue, readiness, GPU placement, model mounts, and
 lifecycle. Several semantic owners may use that engine.
 
-This adapter is a **Designed** candidate. No LychD Comfy adapter or visual byte path is delivered;
+This native adapter is a **Designed** candidate. No native ServiceJob adapter or admitted visual
+byte path is delivered;
 [State of Work](../../../../state-of-the-work.md#vision-admission) owns delivery status.
+The separate [Workbench engineering probe](../../../../compositions/riffmaw/workbench.md)
+exercises classic-server submission/reconciliation and bounded retrieval outside native admission.
+Its mock-transport evidence does not prove a running server, model closure, generation or semantic
+acceptance. [State](../../../../state-of-the-work.md#music-comfy-engineering-probes) owns that subset.
 
 ## Keep model, engine, and road apart
 

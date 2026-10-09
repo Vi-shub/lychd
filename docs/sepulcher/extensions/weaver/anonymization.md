@@ -13,7 +13,7 @@ privacy lineage through the Pattern and creates a new sanitized branch before re
 Cut; [Security](../../../adr/09-security.md#portal-privatization-and-egress) owns declassification
 and refusal; this page owns the journey through the score.
 
-!!! warning "Designed; egress remains closed"
+!!! warning "Egress remains closed"
     Context Blocks do not yet carry Privatization Labels or conservative aggregate joins, and no
     deterministic local Censor is delivered. The Privacy Agent, verified Privacy Cut, sanitized
     provider branch, and Portal Egress Gate are also undelivered. Portal declarations and probes
@@ -76,6 +76,58 @@ depends on both utility and an attested exit: if the Cut cannot preserve enough 
 and diagnostic meaning, or the bastion cannot attest the exact crossing, the work stays local. No
 single model may certify its own sanitization.
 
+## Preserve the question through the Cut { #preserve-the-coding-question }
+
+Within [Creation's delegated branch](creation.md#cli-delegation-branch), first name what the
+recipient must distinguish to solve the task. A sanitized coding projection may need a minimal
+module interface, dependency relation, synthetic failing fixture, and expected behavior. It need
+not contain the whole repository, its history, or the parent's conversation. If the task depends
+on an identifier's exact spelling or bytes, replacing it may destroy the problem; use an adequate
+synthetic reproducer or keep that work local.
+
+Independent Cut verification keeps disclosure and utility findings separately attributable for
+the same candidate projection. The disclosure finding addresses identification, linkage,
+inference, and credential exposure from the declared recipient's perspective. The utility finding
+addresses whether the coding question is still answerable. Each names the exact offending or
+missing relation and a bounded proposed repair. These are distinct obligations, not a requirement
+for two more agents on top of the independent verifier. The admitted plan may use additional
+adversarial reviewers when warranted; independence from the transformer remains required.
+A repaired candidate receives renewed verification, including both findings where affected.
+Agreement cannot compensate for either failed obligation or replace the Egress Gate.
+
+For the dossier exporter, replacing every record ID with one category label can hide names while
+merging distinct records. Giving every occurrence a different token can instead sever repeated
+references to the same record. A useful projection preserves the required equality and inequality
+relations inside its scoped namespace, and keeps accepted, unresolved, and unknown states distinct.
+The receiving coding agent sees only that admitted projection. A local verifier checks the result
+against the original preservation criteria after any permitted rehydration.
+
+A first useful coding return can be a repair to the synthetic reproducer or a structured proposal
+that a local worker applies to the real base under Creation's checks. Reversible source changes
+need a return format with declared substitution positions and a validated mapping to that base;
+whole-patch search-and-replace is not that contract. If the requested return cannot satisfy those
+conditions, choose the proposal route or keep construction local.
+
+Prepare synthetic Cases before admitting a remote road:
+
+| Case | Required observation |
+| --- | --- |
+| Repeated identifier and two distinct identifiers | Required references remain consistent; distinct source records are not merged. |
+| A path or diagnostic carries an identifying value | The whole outbound envelope is assessed, including metadata and errors. |
+| Redaction removes the premise of a failing test | Utility review refuses that projection; narrow the task or keep it local. |
+| A returned placeholder belongs to another Cut or an undeclared field | Rehydration refuses it without exposing the local map. |
+| A returned patch attempts to reinterpret instructions or invoke an effect | Quarantine retains it as candidate data; it grants no action. |
+
+Compare the declared local and sanitized task forms on these obligations as well as cost and
+repair quality. A cheaper answer that lost the defect or disclosed a protected relation is not a
+successful offload. These are proposed acceptance Cases, not executed privacy or utility receipts.
+
+Presidio's [anonymizer operators](https://presidio.dataprivacystack.org/anonymizer/) provide a
+concrete external comparison: replacement defaults can use one entity-type label, and maintaining
+relations across transformations needs explicit handling. That motivates the identity Cases above;
+it does not establish LychD's Cut, map lease, or declassification. Detector/operator choice remains
+a future implementation decision under the existing owners.
+
 ## Transformations are evidence
 
 | Act | Result |
@@ -112,18 +164,27 @@ lower a label, call a Portal, or treat its own confidence as permission.
 Masking visible identifiers is not a sufficient privacy claim. The `DisclosurePlan@1` names every
 relevant entity that may reasonably use auxiliary information: provider and subprocessors, A2A
 peer, delegated runtime, configured gateway or storage custodian, and intended later recipients.
-The verifier evaluates the exact candidate from each relevant perspective:
+The verifier evaluates the exact candidate from each relevant perspective under the declared
+disclosure policy:
 
-- **no singling out (isolation):** can a person, account, household, organization, repository, or record still be
+- **singling out (isolation):** can a person, account, household, organization, repository, or record still be
   singled out inside the supplied material?
-- **no linkage:** can remaining values, structure, timing, paths, quotations, commits, or outside
+- **linkage:** can remaining values, structure, timing, paths, quotations, commits, or outside
   data reconnect it to its source?
-- **no sensitive inference:** can the candidate reveal a protected fact even without recovering a
+- **sensitive inference:** can the candidate reveal a protected fact even without recovering a
   name?
 - **no credentials:** are secrets, bearer material, private keys, session state, and authority-
   bearing references absent rather than merely renamed?
 - **sufficient utility:** do the exact identifiers, relationships, citations, imports, diagnostics,
   and invariants required by the task still survive?
+
+Record which disclosure claim the evidence supports. [Context](../../../adr/21-context.md#privatization-and-the-privacy-cut)
+permits an authorized sanitized disclosure that remains private; an anonymity claim must separately
+meet its stronger declared policy. Task-essential internal references do not themselves establish
+either permission or anonymity: their structure may still identify the source to this recipient.
+The verifier must assess the permitted relations and residual risk, including related disclosures.
+A synthetic reproducer likewise retains its source influence. Prohibited categories, credentials,
+failed mandatory conditions, and unresolved required evidence cannot be waived for utility.
 
 [NIST SP 800-188](https://csrc.nist.gov/pubs/sp/800/188/final) similarly requires a declared data-
 sharing model, measurable de-identification performance, and re-identification study rather than

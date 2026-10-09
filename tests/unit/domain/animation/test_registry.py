@@ -703,3 +703,29 @@ async def test_issue_grant_raises_for_unknown_capability(tmp_path: Path) -> None
 
     with pytest.raises(CapabilityUnavailable):
         await registry.issue_grant("nope:chat:nope", holder="run:r1")
+
+
+def test_recovery_declarations_do_not_probe_and_keep_canonical_digest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from lychd.domain.orchestration.actuator import capability_config_generation
+
+    runes_dir = tmp_path / "runes"
+    _write(
+        runes_dir / "animator" / "soulstones" / "vllm" / "embedder.toml",
+        'name = "embedder"\nmodel_path = "/models/embedder.gguf"',
+    )
+    probed = _registry(runes_dir)
+    expected = capability_config_generation(probed)
+    recovery = _registry(runes_dir)
+
+    def refuse_probe(*args: object, **kwargs: object) -> None:
+        del args, kwargs
+        message = "Host recovery must not probe runtime endpoints"
+        raise AssertionError(message)
+
+    monkeypatch.setattr(recovery, "_probe_staged_snapshot", refuse_probe)
+    recovery.load(probe_readiness=False)
+    assert capability_config_generation(recovery) == expected
+    assert recovery.list_capabilities() == probed.list_capabilities()
+    assert all(recovery.get_capability_state(spec.key) is None for spec in recovery.list_capabilities())

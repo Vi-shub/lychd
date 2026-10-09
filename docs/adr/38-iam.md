@@ -22,6 +22,7 @@ be evidence but never application authority.
 | Record | Office |
 | --- | --- |
 | **Principal** | Immutable identity of a human, service, peer, or owned node. |
+| **User** | LychD's shared human-account abstraction bound to a human Principal, not an application-specific person record. |
 | **Credential** | Revocable proof bound to one Principal, issuer, protocol, audience, and lifecycle. |
 | **Session** | Authentication continuity, distinct from a Principal, Sigil, Grant, or Bridge conversation. |
 | **Sigil** | Secret-free request/Run context carrying Principal identity and bounded claims. |
@@ -31,6 +32,57 @@ be evidence but never application authority.
 A Sigil propagates attribution and bounded claims. It is not a bearer secret, and its historical
 scope bag is not current authorization. Roles cannot turn route access into ownership of every
 object served there.
+
+## People, accounts, and instances
+
+One logical LychD instance may serve an individual, a family or household, an organization, or
+another group of people. Several people or organizations may use the same instance under explicit
+access and sharing policy. Conversely, one person or organization may operate or use several
+instances. These are use contexts, not mutually exclusive runtime modes or a requirement to create
+an organization or tenant for every installation. Single-user operation is the smallest case, not
+a one-person-per-instance invariant.
+
+Ward owns the common User account and its binding to a Principal; Compositions reference that
+identity while retaining their own domain records and policies. A represented person, such as a
+care recipient or employee, need not have an account. Linking that record to a User does not itself
+grant access. A person may use only a client of a shared instance and need no LychD of their own;
+an enrolled device or service remains distinct from the human for whom it acts.
+
+Enrollment and authorization are local to the receiving instance. The same human may have
+different accounts, roles, and working interfaces in personal, household, and workplace instances.
+Shared names, organization membership, or a common operator do not link identities or transfer
+credentials, grants, memory, or trust automatically. Sovereign task delegation between instances follows
+[A2A](26-a2a.md); adding Users is neither A2A nor [Legion's](42-multinode.md) distribution of one
+control plane across physical nodes.
+
+Groups and organizational memberships may supply explicit policy relationships without replacing
+individual attribution. Direct Principal assignments remain possible without either. Several
+Principals may receive the full administrative powers defined by an installation, using separate
+credentials. Policy must state whether those powers include content access or the ability to
+change access policy. The trusted host operator remains distinct from an application administrator;
+shared use does not promise isolation from that operator or from trusted in-process extensions
+under [Security](09-security.md).
+
+## Profiles and working interfaces
+
+A user-facing profile may compose permission assignments with application defaults and named
+client views. The same installation need not offer every User the same apps, screens, navigation,
+workflow views, or approval controls. Ward decides access to protected surfaces, records, and
+actions; a durable profile or Role assignment is an input to that decision, not a perpetual Grant.
+Permission to open a screen does not confer access to every object it can display.
+
+Compositions own the meaning of their working views and application policy; Products may package
+them. [Spellweaver](28-workflow.md) owns the admitted score and workflow state, not User accounts or
+screen layout. An offered action must satisfy both current authorization and the workflow's
+declared state and transition rules. A presentation profile cannot silently rewrite a Scroll,
+widen its authority ceilings, or change a running Invocation.
+
+Clients render the authorized projection for the selected account, instance, work context, and
+device capabilities. Restricted data must be excluded before delivery, not merely hidden in the
+client. [Frontend](15-frontend.md#user-specific-working-interfaces) owns browser projection; mobile
+experiences such as [Companion](../compositions/companion/index.md) use the same identity boundary
+without becoming the global profile authority. Application-specific actions, resources, and policy
+inputs require explicit Ward integration; package registration alone grants no such integration.
 
 ## Admission and effect-time authority
 

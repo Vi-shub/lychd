@@ -10,6 +10,11 @@ evidence that an effectful runtime adapter ships.
 [State of Work](../../docs/state-of-the-work.md#delegated-agent-execution) owns that boundary;
 ADRs 09, 14, 24, and 28 own containment, job, Graph, and Pattern law.
 
+For a consequential unresolved direction or construction choice, prepare the task through
+[Creation's Inquiry and policy packet](../../docs/sepulcher/extensions/weaver/creation.md#inquiry-policy).
+That method can guide an operator campaign under actual platform permissions; its native LychD
+workflow remains Designed. This playbook governs the bounded delegation that follows.
+
 ## Admission preflight
 
 Current LychD ships no effectful Coffin adapter. An operator-controlled campaign may use a
@@ -54,7 +59,7 @@ For multi-agent work:
 
 1. one informed Lead reads canonical owners;
 2. children start without inherited conversation history and receive closed, role-specific
-   packets under [ADR 28's scoped context handoff](../../docs/adr/28-workflow.md#scoped-context-handoff-designed);
+   packets under [ADR 28's scoped context handoff](../../docs/adr/28-workflow.md#scoped-context-handoff);
 3. proposal, review, and repair use separate contexts when self-judgment would matter;
 4. the parent retains global budget, ordering, and acceptance; and
 5. child output returns as a candidate artifact, never as promoted truth.

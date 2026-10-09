@@ -39,11 +39,32 @@ Name the owner and kind of every profile: Workshop service profile, Reach deploy
 
 The Portfolio should grow more slowly than Products, profiles, use cases, and Deployments. A numerical cap would instead reward god-Compositions that accumulate incompatible records and safety law.
 
-Before acceptance, identify the record that survives chat, its judgments/policies, and every finish/refusal/unknown/partial/restart/recovery. Find the existing owner, if any, and explain why a Pattern, profile, Product, projection, Extension Domain, package Contribution, Provider, or typed reference is insufficient. Name the smallest falsifying fixture and independently motivated consumers. Two Products/use cases corroborate reuse; they are neither quota nor proof, and decorative wrappers count for little.
+Before acceptance, follow a case beyond the conversation. Identify the record that must survive,
+the judgments and policies that govern it, and the endings it must distinguish: finished,
+refused, partial, or unknown. Explain how stopped work restarts or recovers.
+
+Then test the proposed ownership. Find an existing owner, if one fits, and show why a Pattern,
+profile, Product, projection, Extension Domain, package Contribution, Provider, or typed reference
+cannot carry the work. Name the smallest fixture that could disprove the design and the consumers
+who need it for independent reasons. Two Products or use cases can corroborate reuse; they are
+neither quota nor proof. Decorative wrappers count for little.
 
 ## Reuse without making a god
 
-A profile can vary vocabulary and rules while keeping one lifecycle, authority, recovery, and finish. Workshop can admit a new trade only while the service case still fits. Homestead remains place custody/provision even when a professional visits the property. [Keeper](keeper/index.md) and [Cultivator](cultivator/index.md) separately own living-subject histories and care judgment: a serviced heater establishes neither a colony's seasonal state nor a crop's suitability. Pets and livestock can use Keeper profiles; indoor plants and cultivated fungi can use Cultivator profiles without sharing a universal biological state list. Familiar can reuse a body contract only while its capability, safety, stop, and settlement law stays coherent; a different emergency/recovery boundary may need another owner. A vague universal casework schema cannot absorb Broker, legal, accounting, or municipal judgment without evidence of a shared root lifecycle.
+A profile can vary vocabulary and rules while preserving one lifecycle, authority, recovery,
+and finish. Workshop can admit a new trade only while the service case still fits. A vague
+universal casework schema cannot absorb Broker, legal, accounting, or municipal judgment without
+evidence of a shared root lifecycle.
+
+Follow a serviced heater into a shared enclosure. Homestead keeps the place and its provision,
+even when a professional visits. The repair establishes neither a colony's seasonal state nor
+a crop's suitability: [Keeper](keeper/index.md) and [Cultivator](cultivator/index.md) retain
+those histories and care judgments. Pets and livestock can use Keeper profiles; indoor plants
+and cultivated fungi can use Cultivator profiles. They need no universal biological state list.
+
+A physical body poses the same test at another boundary. Familiar can reuse its contract while
+capability, safety, stop, and settlement law stay coherent. A different emergency or recovery
+boundary may require another owner.
 
 ## Shared machinery, separate judgments
 
@@ -78,7 +99,7 @@ Until an exact external authority or accepted Composition revision resolves the 
 
 Give the reader one representative journey, then the exact identity, Pattern catalogue, inputs, outcomes, records, handoffs, and stopping line needed to understand it. Classify foreign relations as settled reference, unmanaged external precondition, or live Suite seam. Keep local authority/privacy/effect/recovery and the smallest falsifying fixture; link shared architecture and delivery instead of repeating them.
 
-Native records, policies, and finish judgment enter `src/lychd/compositions/<identity>/**`; `clients/<target>/**` can project them without acquiring their authority. A stable key and separate Composition revision, such as `example.application` revision `1`, differs from Pattern `example.perform_work@1`. [Workflow](../adr/28-workflow.md#composition-identity-revision-and-retirement) owns frozen revision, successor, and retirement law, including Designed revisions. [State](../state-of-the-work.md#composition-portfolio-delivery) owns registration and execution evidence.
+Native records, policies, and finish judgment enter `src/lychd/compositions/<identity>/**`; `clients/<target>/**` can project them without acquiring their authority. A stable key and separate Composition revision, such as `example.application` revision `1`, differs from Pattern `example.perform_work@1`. [Workflow](../adr/28-workflow.md#composition-identity-revision-and-retirement) owns frozen revision, successor, and retirement law. [State](../state-of-the-work.md#composition-portfolio-delivery) owns registration and execution evidence.
 
 ## From study to matter
 

@@ -20,6 +20,7 @@ from lychd.config.settings import BridgeCastingSettings, Settings, WeaverSetting
 from lychd.domain.animation.services.registry import AnimatorRegistry
 from lychd.domain.cortex.engine import RunQueue
 from lychd.interface.web.altar_services import build_altar_services
+from tests.runtime_guards import InertSoftActivationGuard
 
 
 def _weaver() -> WeaverSettings:
@@ -60,6 +61,7 @@ def test_explicit_registry_cannot_silently_override_configured_bridge() -> None:
             workflows=builtin_workflow_registry(),
             settings=Settings(weaver=_weaver()),
             profile="memory",
+            soft_activation_guard=InertSoftActivationGuard(),
         )
 
 
@@ -76,6 +78,7 @@ async def test_assembly_shares_selected_registry_without_probing_capabilities(mo
         runtime_adapters=(),
         settings=Settings(weaver=_weaver()),
         profile="memory",
+        soft_activation_guard=InertSoftActivationGuard(),
     )
     try:
         assert services.workflows.default is BRIDGE_CHAT_BOUND

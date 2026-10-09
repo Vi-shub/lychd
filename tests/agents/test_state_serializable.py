@@ -10,6 +10,7 @@ tier-selection unit: a Gate-bearing workflow → Durable, a linear one → Live.
 # pyright: reportPrivateUsage=false
 from __future__ import annotations
 
+from dataclasses import replace
 from types import SimpleNamespace
 from typing import Any
 
@@ -68,6 +69,16 @@ def test_builtin_pattern_v2_digests_are_frozen(workflow: Workflow, expected_dige
     assert workflow.manifest.schema_version == 2
     assert workflow.manifest.digest == expected_digest
     assert workflow.manifest.snapshot()["digest"] == expected_digest
+
+
+def test_pattern_rejects_unknown_station_kind() -> None:
+    with pytest.raises(ValueError, match="Unknown Pattern node kind"):
+        replace(BRIDGE_CHAT.manifest.nodes[0], kind="unknown_kind")
+
+
+def test_pattern_rejects_non_permission_edge() -> None:
+    with pytest.raises(ValueError, match="must declare relation='permits'"):
+        replace(BRIDGE_CHAT.manifest.edges[0], relation="forbids")
 
 
 @pytest.mark.asyncio

@@ -7,29 +7,37 @@ icon: material/hubspot
 
 > _Fifteen arts gather beneath one skin._
 
-An unfamiliar organ becomes legible by its attachment, governing jurisdiction, and concrete form.
-This directory maps fifteen **Extension Domains**. Their names say
-where work belongs; presence on the map proves neither a package nor delivered behavior.
+Search the web, judge an artifact, train a model candidate, carry a voice: different work needs
+different organs. The fifteen **Extension Domains** below say where each responsibility belongs.
+They map jurisdictions; a name on the map promises neither an installed package nor delivered
+behavior.
 
 ## The Federation of Fifteen
 
-| Name | Jurisdiction |
+| Name | Work it owns |
 | --- | --- |
-| [Oculus](oculus.md) | **Evidence and observability:** relates bounded observations, derivations, correlations, and explicit gaps without displacing owning records |
-| [Tether](tether.md) | **Private reachability:** opens exact private paths while tunnel possession grants no application authority |
-| [Veil](veil.md) | **Hostile ingress:** terminates TLS and protocols, canonicalizes metadata, and admits routes while authority stays behind the edge |
-| [Ward](ward.md) | **IAM and authority:** resolves principals and rechecks current permission over an exact object or effect |
-| [Spellweaver](weaver/index.md) | **Workflow:** validates Spell contracts and Scroll/Pattern lifecycle, admits castings, and owns continuity and logical time |
-| [Scout](scout.md) | **Web acquisition:** bounds search, fetch, extraction, rendering, and interaction without turning contact into truth or stronger permission |
-| [Smith](smith.md) | **Assimilation:** re-expresses admitted material as attributable candidate code; authorship supplies no promotion authority |
-| [Soulforge](soulforge/index.md) | **Training:** binds admitted corpus, base digest, objective, Recipe, Training Run, evaluation, and candidate-weight lineage |
-| [Drift](drift/index.md) | **Evaluation:** tests how exact subjects meet or depart from declared goals through versioned trials and calibrated findings with uncertainty; privilege and promotion remain elsewhere |
-| [Toll](toll.md) | **Economics:** separates quote, authorization, settlement, delivery, refund, and reconciliation |
-| [Prism](prism/index.md) | **Visual and spatial grounding:** binds observations, transformations, reconstructions, and generated forms to exact sources and derivatives without replacing one with another |
-| [Echo](echo.md) | **Speech lifecycle:** carries speech capture, transcription, synthesis, and delivery with origin, consent, and outcome intact |
-| [Shadow](shadow/index.md) | **Possibility lineage:** holds isolated candidate worlds with exact parentage, evidence, and terminal disposition; no branch appoints reality |
-| [Mirror](mirror.md) | **Identity:** preserves Persona lineage, hydration provenance, and attribution without minting caller authority |
-| [Legion](legion.md) | **Distributed embodiment:** fences delegation across operator-owned bodies while each body retains authority over its iron |
+| [Oculus](oculus.md) | **Evidence and observability:** follow bounded observations, derivations, correlations and explicit gaps back to their sources. |
+| [Tether](tether.md) | **Private reachability:** open exact private paths. |
+| [Veil](veil.md) | **Hostile ingress:** terminate TLS and protocols, canonicalize metadata and admit declared routes. |
+| [Ward](ward.md) | **IAM and authority:** resolve principals and recheck current permission over an exact object or effect. |
+| [Spellweaver](weaver/index.md) | **Workflow:** validate Spell contracts and Scroll/Pattern lifecycle, admit castings and preserve continuity and logical time. |
+| [Scout](scout.md) | **Web acquisition:** bound search, fetch, extraction, rendering and interaction. |
+| [Smith](smith.md) | **Assimilation:** re-express admitted material as attributable candidate code. |
+| [Soulforge](soulforge/index.md) | **Training:** bind admitted corpus, base digest, objective, Recipe, Training Run, evaluation and candidate-weight lineage. |
+| [Drift](drift/index.md) | **Evaluation:** test exact subjects against declared goals through versioned trials and calibrated findings that retain uncertainty. |
+| [Toll](toll.md) | **Economics:** distinguish quote, authorization, settlement, delivery, refund and reconciliation. |
+| [Prism](prism/index.md) | **Visual and spatial grounding:** bind observations, transformations, reconstructions and generated forms to exact sources and derivatives, keeping them distinct. |
+| [Echo](echo.md) | **Speech lifecycle:** carry capture, transcription, synthesis and delivery with origin, consent and outcome intact. |
+| [Shadow](shadow/index.md) | **Possibility lineage:** hold isolated candidate worlds with exact parentage, evidence and terminal disposition. |
+| [Mirror](mirror.md) | **Identity:** preserve Persona lineage, hydration provenance and attribution. |
+| [Legion](legion.md) | **Distributed embodiment:** fence delegation across operator-owned bodies while each retains authority over its iron. |
+
+The offices cooperate through their own contracts. A private path or admitted edge route still
+leaves application authority with the service behind it. Acquiring a source establishes neither
+its truth nor a wider permission. Oculus keeps observations distinct from owning records, and
+Mirror's identity binding supplies no caller authority. A Shadow branch, Smith candidate or
+favorable Drift finding must reach the responsible owner before it can become an admitted effect;
+none can promote its own conclusion or grant privilege.
 
 ## Domain, package, and provider
 

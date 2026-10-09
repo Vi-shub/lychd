@@ -45,6 +45,19 @@ python scripts/generate_python_third_party_notices.py \
   --forbid-distribution psycopg-binary
 ```
 
+## Optional Music Engineering Environment
+
+The `music-probe` development group installs DawDreamer 0.9.0 and NumPy from the lockfile; it is
+excluded from the production Vessel dependency set. DawDreamer's wheel includes its GNU GPL
+version 3 license and separate bundled-library notices under its distribution's `licenses/`
+directories. NumPy also includes its installed license inventory. Those upstream licenses remain
+with the external packages; this repository does not incorporate their source into its owned
+finite FAUST programs or change their licensing.
+
+The Python notice generator above can inventory the exact optional development environment.
+Any distributed engine environment needs its own installed-package and bundled-library inventory;
+the Vessel's production inventory does not describe this optional profile.
+
 ## Advanced Alchemy and Alembic Migration Templates
 
 The migration environment under `src/lychd/db/migrations/` incorporates and adapts the asyncio

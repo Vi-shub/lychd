@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import asynccontextmanager
-from typing import TYPE_CHECKING, Any
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, cast
 
 from lychd.domain.animation.capabilities import (
     CapabilityPhase,
@@ -22,7 +23,8 @@ from lychd.domain.orchestration.actuator import (
     capability_config_generation,
 )
 from lychd.domain.orchestration.arbiter import TransitionArbiter, TransitionDeclined
-from lychd.domain.orchestration.journal import TransitionJournal, notify_transition
+from lychd.domain.orchestration.containment import SoftActivationRecord
+from lychd.domain.orchestration.journal import TransitionJournal, TransitionRecord, notify_transition
 from lychd.domain.orchestration.schema import TransitionPlan, TransitionTrace
 from lychd.lib.asyncio import complete_under_cancellation
 
@@ -33,10 +35,28 @@ if TYPE_CHECKING:
     from lychd.domain.cortex.leases import LeaseLedger
     from lychd.domain.cortex.priority import Priority
     from lychd.domain.orchestration.actuator import RuntimeActuator
+    from lychd.domain.orchestration.containment import SoftActivationGuard
     from lychd.domain.orchestration.policies import SwitchPolicy
-    from lychd.domain.orchestration.schema import TransitionPhase
+    from lychd.domain.orchestration.schema import TransitionAction, TransitionPhase
 
 __all__ = ["OrchestratorManager", "TransitionDeclined"]
+
+
+@dataclass(frozen=True, slots=True)
+class _TransitionOutcome:
+    """Terminal cohort evidence retained independently of bounded journal history."""
+
+    observation: TransitionRecord
+    total_metabolic_cost: float | None
+
+    def apply(self, trace: TransitionTrace) -> None:
+        """Copy the physical outcome while preserving the follower's own identity."""
+        trace.phase = cast("TransitionPhase", self.observation.phase)
+        trace.action_type = cast("TransitionAction | None", self.observation.action_type)
+        trace.total_metabolic_cost = self.total_metabolic_cost
+        trace.physical_transition_id = self.observation.physical_transition_id
+        trace.compensation_transition_id = self.observation.compensation_transition_id
+        trace.detail = self.observation.detail
 
 
 class OrchestratorManager:
@@ -52,6 +72,7 @@ class OrchestratorManager:
         arbiter: TransitionArbiter,
         actuator: RuntimeActuator,
         switching: SwitchingSettings,
+        soft_activation_guard: SoftActivationGuard,
         transitions: TransitionJournal | None = None,
     ) -> None:
         """Initialize orchestration against the injected registry, leases, and policy.
@@ -66,8 +87,11 @@ class OrchestratorManager:
         self._arbiter = arbiter
         self._actuator = actuator
         self._switching = switching
+        soft_activation_guard.assert_clear()
+        self._soft_activation_guard = soft_activation_guard
         self.transitions = transitions or TransitionJournal()
         self._contained_reason: str | None = None
+        self._cohort_outcomes: dict[tuple[str, Priority], asyncio.Future[_TransitionOutcome]] = {}
 
     def _publish(
         self,
@@ -196,17 +220,25 @@ class OrchestratorManager:
 
         Warm/open preflight bypasses physical arbitration. All other plans refresh
         inside the arbiter; only HARD_SWAP is subject to the priority threshold.
+        Each joined request retains its own identity and the owner's terminal evidence.
         """
         priority = validate_priority(priority)
         trace = trace or TransitionTrace(target_capability_key=target_capability_key, priority=float(priority))
         self.transitions.record(trace)
+        cohort = (target_capability_key, priority)
+        owned_outcome: asyncio.Future[_TransitionOutcome] | None = None
+        following = False
         try:
             self._raise_if_contained()
             in_flight = self._arbiter.follow_inflight(target_capability_key, priority)
             if in_flight is not None:
+                following = True
+                outcome = self._cohort_outcomes.get(cohort)
                 self._publish(trace, "arbitrating")
-                result = await in_flight
+                result = await self._follow_transition(in_flight, outcome, trace)
             else:
+                owned_outcome = asyncio.get_running_loop().create_future()
+                self._cohort_outcomes[cohort] = owned_outcome
                 result = await self._arbiter.run(
                     target_capability_key,
                     priority,
@@ -216,46 +248,64 @@ class OrchestratorManager:
                         trace,
                     ),
                 )
-        except TransitionDeclined as exc:
-            trace.action_type, trace.total_metabolic_cost = exc.plan.action_type, exc.plan.total_metabolic_cost
-            self._publish(trace, "declined_no_effect", detail=str(exc))
-            raise
-        except (RuntimePreconditionError, RuntimeCancellationNoEffectError) as exc:
-            self._publish(trace, "declined_no_effect", detail=str(exc))
-            raise
-        except RuntimeActuationRestoredError as exc:
-            self._publish(trace, "failed_restored", detail=str(exc))
-            raise
-        except RuntimeCancellationRestoredError as exc:
-            self._publish(trace, "cancelled_restored", detail=str(exc))
-            raise
         except BaseException as exc:
-            if trace.phase not in {
-                "declined_no_effect",
-                "failed_restored",
-                "cancelled_restored",
-                "contained_uncertain",
-            }:
-                phase = (
-                    "contained_uncertain"
-                    if self._contained_reason is not None
-                    else "declined_no_effect"
-                    if trace.phase == "requested"
-                    else "failed"
+            self._record_transition_failure(trace, exc, following=following)
+            raise
+        else:
+            trace.action_type, trace.total_metabolic_cost = result.action_type, result.total_metabolic_cost
+            self._publish(trace, "completed")
+            return result
+        finally:
+            if owned_outcome is not None:
+                owned_outcome.set_result(
+                    _TransitionOutcome(TransitionRecord.from_trace(trace), trace.total_metabolic_cost)
                 )
-                self._publish(
-                    trace,
-                    phase,
-                    detail=str(exc),
-                )
+                self._cohort_outcomes.pop(cohort, None)
+
+    def _record_transition_failure(self, trace: TransitionTrace, exc: BaseException, *, following: bool) -> None:
+        """Classify one request without discarding a settled owner's restoration receipt."""
+        phase: TransitionPhase
+        if isinstance(exc, TransitionDeclined):
+            trace.action_type, trace.total_metabolic_cost = exc.plan.action_type, exc.plan.total_metabolic_cost
+            phase = "declined_no_effect"
+        elif isinstance(exc, (RuntimePreconditionError, RuntimeCancellationNoEffectError)):
+            phase = "declined_no_effect"
+        elif isinstance(exc, RuntimeActuationRestoredError):
+            phase = "failed_restored"
+        elif isinstance(exc, RuntimeCancellationRestoredError):
+            phase = "cancelled_restored"
+        elif trace.phase in {"declined_no_effect", "failed_restored", "cancelled_restored", "contained_uncertain"}:
+            if following:
+                self._publish(trace, trace.phase, detail=str(exc))
             else:
                 trace.detail = str(exc)
                 self.transitions.record(trace)
-            raise
-        # Coalesced followers report the owner's outcome without retaining its plan.
-        trace.action_type, trace.total_metabolic_cost = result.action_type, result.total_metabolic_cost
-        self._publish(trace, "completed")
-        return result
+            return
+        else:
+            phase = (
+                "contained_uncertain"
+                if self._contained_reason is not None
+                else "declined_no_effect"
+                if trace.phase == "requested"
+                else "failed"
+            )
+        self._publish(trace, phase, detail=str(exc))
+
+    @staticmethod
+    async def _follow_transition(
+        in_flight: asyncio.Future[TransitionPlan],
+        outcome: asyncio.Future[_TransitionOutcome] | None,
+        trace: TransitionTrace,
+    ) -> TransitionPlan:
+        """Inherit settled owner evidence without treating a cancelled wait as completion."""
+        try:
+            return await in_flight
+        finally:
+            # The arbiter wakes followers without yielding; the owner records its
+            # terminal snapshot before they resume. Cancellation of this shielded
+            # wait still belongs only to the follower, never to the shared operation.
+            if not in_flight.cancelled() and outcome is not None and outcome.done():
+                outcome.result().apply(trace)
 
     async def _resolve_transition_preflight(
         self,
@@ -289,10 +339,7 @@ class OrchestratorManager:
         if plan.action_type == "NO_OP":
             target_animator = self._target_animator(target_capability_key)
             if self._leases.admission(target_animator) is not AnimatorAdmission.OPEN:
-                msg = (
-                    f"Animator '{target_animator}' admission remains closed; "
-                    "operator recovery or process restart is required."
-                )
+                msg = f"Animator '{target_animator}' admission remains closed; operator recovery is required."
                 raise RuntimeError(msg)
             return plan
 
@@ -344,48 +391,77 @@ class OrchestratorManager:
                         deadline=convergence_deadline,
                     )
                 except (Exception, asyncio.CancelledError) as convergence_error:
-                    compensation = build_compensation_intent(intent)
-                    trace.compensation_transition_id = compensation.transition_id
-                    self._publish(trace, "compensating")
-                    compensation_task = asyncio.create_task(self._actuator.apply(compensation))
-                    try:
-                        await complete_under_cancellation(compensation_task)
-                    except BaseException as compensation_error:
-                        # A half-restored physical world is unsafe. Deliberately
-                        # leave both admission layers closed for operator recovery.
-                        self._contain("typed runtime compensation failed")
-                        message = (
-                            f"Transition '{intent.transition_id}' failed readiness convergence and "
-                            "its typed compensation failed; runtime admission remains closed."
-                        )
-                        raise RuntimeError(message) from compensation_error
-                    self._publish(
-                        trace,
-                        (
-                            "cancelled_restored"
-                            if isinstance(convergence_error, asyncio.CancelledError)
-                            else "failed_restored"
-                        ),
-                    )
+                    await self._restore_after_convergence_failure(intent, trace, convergence_error)
                     raise
             return plan
 
         await self._execute_soft_swap(target_capability_key, trace=trace)
         return plan
 
+    async def _restore_after_convergence_failure(
+        self,
+        intent: TransitionIntent,
+        trace: TransitionTrace,
+        convergence_error: BaseException,
+    ) -> None:
+        """Finish the exact inverse, then preserve readiness or deferred cancellation."""
+        compensation = build_compensation_intent(intent)
+        trace.compensation_transition_id = compensation.transition_id
+        cancellation = convergence_error if isinstance(convergence_error, asyncio.CancelledError) else None
+        try:
+            self._publish(trace, "compensating")
+        except asyncio.CancelledError as exc:
+            # Cancellation cannot skip restoration, including before its task exists.
+            cancellation = exc
+        try:
+            compensation_task = asyncio.create_task(self._actuator.apply(compensation))
+            try:
+                await asyncio.shield(compensation_task)
+            except asyncio.CancelledError as exc:
+                # Remember the first caller cancellation before the cleanup helper
+                # suppresses subsequent requests while the exact inverse settles.
+                if cancellation is None:
+                    cancellation = exc
+                await complete_under_cancellation(compensation_task)
+        except BaseException as compensation_error:
+            self._contain("typed runtime compensation failed")
+            message = (
+                f"Transition '{intent.transition_id}' failed readiness convergence and "
+                "its typed compensation failed; runtime admission remains closed."
+            )
+            raise RuntimeError(message) from compensation_error
+        self._publish(
+            trace,
+            "cancelled_restored" if cancellation is not None else "failed_restored",
+        )
+        if cancellation is not None and cancellation is not convergence_error:
+            raise cancellation from convergence_error
+
     async def _execute_soft_swap(self, target_capability_key: str, *, trace: TransitionTrace) -> None:
         """Drain the whole runtime and distinguish observation from attempted activation.
 
         Loading model B can unload model A from the same process. Once activation
         is invoked, failure keeps both gates closed because no exact inverse exists.
+        A durable write-ahead guard also fences a replacement Vessel until recovery.
         """
         target_animator = self._target_animator(target_capability_key)
         self._publish(trace, "draining")
         async with self._runtime_mutation_barrier([target_animator]):
             activation_invoked = False
+            activation_record: SoftActivationRecord | None = None
 
             def mark_activation() -> None:
-                nonlocal activation_invoked
+                nonlocal activation_invoked, activation_record
+                activation_record = SoftActivationRecord(
+                    target_animator=target_animator,
+                    target_capability_key=target_capability_key,
+                    config_generation=capability_config_generation(self.registry),
+                )
+                try:
+                    self._soft_activation_guard.arm(activation_record)
+                except Exception:
+                    self._contain("soft activation guard could not durably fence the attempt")
+                    raise
                 activation_invoked = True
                 self._publish(trace, "actuating")
 
@@ -393,7 +469,11 @@ class OrchestratorManager:
                 self._publish(trace, "verifying")
                 deadline = asyncio.get_running_loop().time() + self._switching.warmup_timeout_s
                 await self._converge_warm(target_capability_key, deadline=deadline, before_activation=mark_activation)
+                if activation_record is not None:
+                    self._soft_activation_guard.clear(activation_record)
             except (Exception, asyncio.CancelledError) as exc:
+                if self._contained_reason is not None:
+                    raise
                 if activation_invoked:
                     # Invocation may change model residency even when its result
                     # rejects or fails. No trustworthy inverse exists here.
@@ -432,17 +512,14 @@ class OrchestratorManager:
                 self._leases.end_drain(animator_names)
 
     def _contain(self, reason: str) -> None:
-        """Latch the first uncertain physical outcome until this process restarts."""
+        """Latch uncertainty locally; the soft activation guard also survives restart."""
         if self._contained_reason is None:
             self._contained_reason = reason
 
     def _raise_if_contained(self) -> None:
         if self._contained_reason is None:
             return
-        msg = (
-            f"Runtime mutation containment is active ({self._contained_reason}); "
-            "operator recovery or process restart is required."
-        )
+        msg = f"Runtime mutation containment is active ({self._contained_reason}); operator recovery is required."
         raise RuntimeError(msg)
 
     async def _refresh_lifecycle_managed_animators(self) -> None:

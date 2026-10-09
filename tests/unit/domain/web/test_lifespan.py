@@ -28,6 +28,7 @@ from lychd.system.services.queues import connect_run_queues, disconnect_run_queu
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Coroutine
+    from pathlib import Path
 
     from pytest_mock import MockerFixture
 
@@ -459,7 +460,11 @@ async def test_cancellation_reconciliation_pages_both_statuses(mocker: MockerFix
 async def test_postgres_reconciliation_failure_blocks_publication_and_cleans_up(
     mocker: MockerFixture,
     failure_stage: str,
+    tmp_path: Path,
 ) -> None:
+    guard_directory = tmp_path / "runtime-guard"
+    guard_directory.mkdir(mode=0o700)
+    mocker.patch("lychd.system.constants.PATH_RUNTIME_GUARD_DIR", guard_directory)
     cleanup_events: list[str] = []
     settings = SimpleNamespace(
         server=SimpleNamespace(database=SimpleNamespace(profile="postgres")),

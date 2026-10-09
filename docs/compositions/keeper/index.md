@@ -10,10 +10,6 @@ must remain attached to the same colony. Keeper preserves that history for anima
 from a household pet to a livestock group. Its identity is `keeper.husbandry`, revision `1`.
 Pet and livestock purposes may overlap; neither determines a subject's entire record.
 
-This Native Reference Composition is **Designed**. The [portfolio delivery
-record](../../state-of-the-work.md#composition-portfolio-delivery) owns delivery status; these
-pages establish no implemented tables, migrations, or registrations.
-
 ## Enter through the work
 
 | Reader journey | Pinned Pattern | Primary records |
@@ -60,7 +56,7 @@ lost acknowledgments block blind retries.
 
 ## Falsifying fixture
 
-The required synthetic fixture is a design test, not a claimed run. Begin a colony with uncertain
+The acceptance fixture begins a synthetic colony with uncertain
 identity and counts in a tube; add an arena, then leave a move unconfirmed. Review seasonal mode
 independently of placement. Duplicate a feeding event and lose its acknowledgment; reconcile exact
 supply-use events without inventing consumption. Reuse the model for a dog with a pet role and a

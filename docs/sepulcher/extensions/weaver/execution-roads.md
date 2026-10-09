@@ -12,7 +12,7 @@ different things. Spellweaver chooses that labor boundary inside an immutable Sc
 the cognition and disclosure needed within it. A lower price can order eligible roads; it cannot
 choose their authority or custody.
 
-The road planner is Designed. Current work uses fixed source-defined Patterns, local capabilities,
+Current work uses fixed source-defined Patterns, local capabilities,
 and the effect-free delegated reference adapter. Portal egress remains quarantined; A2A transport
 and an effectful Coffin do not ship. [Workflow](../../../adr/28-workflow.md#execution-road-planning)
 owns the policy, [Context](../../../adr/21-context.md#privatization-and-the-privacy-cut) the material

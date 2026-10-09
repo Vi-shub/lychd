@@ -1,0 +1,26 @@
+nav:
+  - index.md
+  - Transmutation:
+      - transmutation/index.md
+      - transmutation/genesis.md
+      - transmutation/trial.md
+      - transmutation/canon.md
+      - transmutation/revelation.md
+      - transmutation/distillation.md
+  - Altar:
+      - altar/index.md
+      - altar/atlas.md
+      - Owned Technology Map: altar/technology-map.md
+      - altar/bridge.md
+      - altar/circle.md
+      - altar/orb.md
+      - altar/nexus.md
+      - altar/loom.md
+  - Transcendence:
+      - transcendence/index.md
+      - transcendence/incantation.md
+      - transcendence/invocation.md
+      - transcendence/illumination.md
+      - transcendence/immortality.md
+      - transcendence/infinity.md
+  - correspondence.md

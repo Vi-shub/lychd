@@ -51,7 +51,7 @@ anonymous workflow tensors.
 `ImageJob@2` owns the requested operation, candidate set, technical validation, and result
 settlement. Creative adoption belongs to Atelier or another consuming Composition; successful
 custody and probes never accept the image on that owner's behalf. Each concrete execution uses Core's Designed
-[`ServiceJobAttempt@1`](../../../adr/14-workers.md#service-job-attempts-designed) mechanics;
+[`ServiceJobAttempt@1`](../../../adr/14-workers.md#service-job-attempts) mechanics;
 `INDETERMINATE` remains contained and nonterminal rather than a successful or failed image result.
 Numeric progress, previews, cancellation acceptance and settlement, multiple references, hard
 masks, deterministic seeds, and partial streaming are independent capability facts. A Connector

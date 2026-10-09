@@ -1078,6 +1078,26 @@
       "EvidenceItem": {
         "additionalProperties": false,
         "properties": {
+          "animator_name": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "capability_family": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "capture": {
             "enum": [
               "process_local",
@@ -1088,8 +1108,28 @@
           "event_id": {
             "type": "string"
           },
+          "grant_id": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "kind": {
             "type": "string"
+          },
+          "model_id": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "nexus_path": {
             "oneOf": [
@@ -1594,6 +1634,92 @@
         "title": "NexusSnapshot",
         "type": "object"
       },
+      "OrbEventEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "after_seq": {
+            "minimum": -1.0,
+            "type": "integer"
+          },
+          "cursor": {
+            "minimum": -1.0,
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "evidence",
+              "reset",
+              "settled"
+            ],
+            "type": "string"
+          },
+          "run_id": {
+            "type": "string"
+          },
+          "schema_version": {
+            "const": 1,
+            "default": 1,
+            "type": "integer"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/OrbRunSnapshot"
+          }
+        },
+        "required": [
+          "after_seq",
+          "cursor",
+          "kind",
+          "run_id",
+          "snapshot"
+        ],
+        "title": "OrbEventEnvelope",
+        "type": "object"
+      },
+      "OrbRunPage": {
+        "additionalProperties": false,
+        "properties": {
+          "capture": {
+            "enum": [
+              "process_local",
+              "durable_best_effort"
+            ],
+            "type": "string"
+          },
+          "next_cursor": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/OrbRunSummary"
+            },
+            "type": "array"
+          },
+          "schema_version": {
+            "const": 1,
+            "default": 1,
+            "type": "integer"
+          },
+          "snapshot_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "capture",
+          "next_cursor",
+          "runs",
+          "snapshot_at"
+        ],
+        "title": "OrbRunPage",
+        "type": "object"
+      },
       "OrbRunSnapshot": {
         "additionalProperties": false,
         "properties": {
@@ -1635,8 +1761,8 @@
             "type": "integer"
           },
           "live_tail": {
-            "const": "not_available",
-            "default": "not_available",
+            "const": "ledger_poll",
+            "default": "ledger_poll",
             "type": "string"
           },
           "next_after_seq": {
@@ -1673,6 +1799,16 @@
           "snapshot_at": {
             "format": "date-time",
             "type": "string"
+          },
+          "workflow": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/LoomView"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -4450,6 +4586,99 @@
         "summary": "TransitionStatus"
       }
     },
+    "/api/v1/orb/runs": {
+      "get": {
+        "deprecated": false,
+        "operationId": "getOrbRuns",
+        "parameters": [
+          {
+            "allowEmptyValue": false,
+            "allowReserved": false,
+            "deprecated": false,
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "maxLength": 512,
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          {
+            "allowEmptyValue": false,
+            "allowReserved": false,
+            "deprecated": false,
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50.0,
+              "minimum": 1.0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrbRunPage"
+                }
+              }
+            },
+            "description": "Request fulfilled, document follows",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "detail": "Bad Request",
+                      "extra": {},
+                      "status_code": 400
+                    }
+                  ],
+                  "properties": {
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    },
+                    "status_code": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Bad request syntax or unsupported method"
+          }
+        },
+        "summary": "Runs"
+      }
+    },
     "/api/v1/orb/runs/{run_id}": {
       "get": {
         "deprecated": false,
@@ -4473,6 +4702,7 @@
             "required": false,
             "schema": {
               "default": -1,
+              "maximum": 2147483647.0,
               "minimum": -1.0,
               "type": "integer"
             }
@@ -4554,6 +4784,108 @@
           }
         },
         "summary": "Run"
+      }
+    },
+    "/api/v1/orb/runs/{run_id}/events": {
+      "get": {
+        "deprecated": false,
+        "operationId": "streamOrbRunEvents",
+        "parameters": [
+          {
+            "deprecated": false,
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "allowEmptyValue": false,
+            "allowReserved": false,
+            "deprecated": false,
+            "in": "query",
+            "name": "after_seq",
+            "required": false,
+            "schema": {
+              "default": -1,
+              "maximum": 2147483647.0,
+              "minimum": -1.0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrbEventEnvelope"
+                }
+              }
+            },
+            "description": "Bounded retained-evidence updates for one selected Run."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "detail": "Bad Request",
+                      "extra": {},
+                      "status_code": 400
+                    }
+                  ],
+                  "properties": {
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    },
+                    "status_code": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Bad request syntax or unsupported method"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          }
+        },
+        "summary": "Events"
       }
     }
   },

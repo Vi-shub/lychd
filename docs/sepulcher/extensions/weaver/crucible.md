@@ -7,17 +7,19 @@ icon: material/anvil
 
 > _Lay your convictions on the anvil. Listen for the crack._
 
-**Crucible** is Spellweaver's canonical two-round adversarial choreography for a consequential
-question with several defensible answers. It produces an attributed decision dossier, not truth by
-debate and not permission to mutate the world. [Blade](../../lich/blade.md#crucible) owns the
-discipline of discrimination; [Workflow](../../../adr/28-workflow.md#crucible-choreography) owns
-the score; the office receiving the result retains judgment and effect authority.
+A consequential choice can survive a persuasive first answer and still fail on the objection
+nobody was asked to make. **Crucible** gives serious alternatives two rounds: first an independent
+case, then a reply to the actual opposition. A separate Lead gathers what survives into an
+attributed decision dossier; the receiving owner decides what to do with it.
 
-!!! warning "Designed, not delivered"
-    Crucible is not registered in the current fixed workflow catalogue. Durable parallel branches,
-    a dossier schema, a Crucible Altar projection, and automatic Pattern publication do not ship.
-    [State of Work](../../../state-of-the-work.md#composition-portfolio-delivery) records the
-    executable boundary.
+This is Spellweaver's canonical adversarial choreography. [Blade](../../lich/blade.md#crucible)
+owns the discipline of discrimination; [Workflow](../../../adr/28-workflow.md#crucible-choreography)
+owns the score. Debate supplies neither factual proof nor effect permission.
+
+Crucible is absent from the fixed workflow catalogue; durable parallel
+branches, a dossier schema, an Altar projection and automatic Pattern publication remain
+undelivered. [State of Work](../../../state-of-the-work.md#composition-portfolio-delivery)
+records that boundary.
 
 ## When to light it
 

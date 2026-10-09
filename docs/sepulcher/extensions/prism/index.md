@@ -88,7 +88,7 @@ so there is no executable migration. `prism.scanner@1` is unchanged.
 
 `ImageJob`, `VideoJob`, `SightJob`, `FormJob`, and `KinesisJob` are domain work identities. Each
 asynchronous or durable provider or local execution is a separately identified
-[`ServiceJobAttempt@1`](../../../adr/14-workers.md#service-job-attempts-designed). One domain job may
+[`ServiceJobAttempt@1`](../../../adr/14-workers.md#service-job-attempts). One domain job may
 receive another attempt only through declared forward-branch or retry law; the shared mechanics do
 not collapse these contracts into a generic `MediaJob`.
 

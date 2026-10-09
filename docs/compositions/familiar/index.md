@@ -56,8 +56,11 @@ A Product may package Familiar, Companion, and Avatar, and a Suite may coordinat
 
 The first network-disabled mock body supplies simulated GPS, IMU, camera, mic, speaker, battery, recorded path, obstacle, speaking transition, and low-battery landing evidence. It proves the follow/settlement contract, not flight dynamics, actual avoidance, or hardware compatibility. No real drone, vehicle, public airspace, or non-consenting subject enters it.
 
-Revision `3` supersedes Designed revision `2` by naming exact Ward phone enrollment and advancing body admission/`FamiliarBody` to `@3`. Revision `2` had replaced revision `1`'s universal Legion precondition with owner-qualified attachment. Mission/follow and `FamiliarMission` advance to `@3` for the new body and Avatar bindings. No registry or Run used those retired revisions; history remains unchanged without executable migration.
+Revision `3` supersedes revision `2` by naming exact Ward phone enrollment and advancing body admission/`FamiliarBody` to `@3`. Revision `2` had replaced revision `1`'s universal Legion precondition with owner-qualified attachment. Mission/follow and `FamiliarMission` advance to `@3` for the new body and Avatar bindings. No registry or Run used those retired revisions; history remains unchanged without executable migration.
 
 ## Enter by question
 
-[Embodiment](embodiment.md) · [Follow](follow.md) · [Robotic Dance](dance.md) · [Composition Portfolio](../index.md)
+[Embodiment](embodiment.md) asks which body and capabilities can be admitted.
+[Follow](follow.md) carries one subject designation through a finite mission, loss, and return.
+[Robotic Dance](dance.md) explores the candidate use case of shared physical movement.
+Return to the [Composition Portfolio](../index.md) for other settings in which the Lich may act.

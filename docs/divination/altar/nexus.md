@@ -30,8 +30,10 @@ snapshot time before treating a row as current.
 | `fault` | `error` |
 | `cold` | Everything else, including `cold`, `unknown`, and non-dynamic `activatable` |
 
-For distinctions the chip collapses, `/orchestrator/status` exposes raw `phase`, `warm`, `health`,
-`reason`, and process-wide `mutation_containment`.
+Expand a capability's **Observation details** for the served `warm`, `health`, and `reason`,
+Animator, runtime and model. The checked time remains on the row. An unknown value remains unknown even when its compact
+chip reads `cold`. `/orchestrator/status` also exposes raw `phase` and process-wide
+`mutation_containment`.
 
 **Portals** remain read-only. **Delegated runtime pools** also remain read-only and show
 display/delivery state, adapter and transport, owning extension, Coffin profiles, Provider Gate
@@ -40,7 +42,8 @@ reservations. A refresh does not reserve a capability for a later Run.
 
 ## Preview the change you intend
 
-Choose **Preview** on a managed capability. The **Non-binding preview** drawer shows `action`
+Choose **Preview** on a managed capability. Its exact target remains visible while loading;
+closing the preview prevents a late response from reopening it. The **Non-binding preview** shows `action`
 (`NO_OP`, `SOFT_SWAP`, or `HARD_SWAP`), `target`, Animator ids selected for `evict` and `launch`,
 and `policy cost`. Cost currently counts planned evictions; it does not measure VRAM, time,
 energy, or topology.
@@ -76,7 +79,9 @@ An accepted request returns HTTP 202 with a process-local ticket:
 | `settled` | The task returned; Nexus refreshes the board. |
 | `failed` | The task raised or was cancelled. |
 
-The strip shows target, current transition phase, and request id. Terminal ticket truth remains
+The **Request ticket** shows target, current transition phase, and full request id. It remains
+visible when you preview a different target. **Request outcomes** retains full identities
+after an uncertain submission, including when its preview is closed. Terminal ticket truth remains
 for a 60-second reconnect window by default. The bounded store refuses new work before launch
 rather than evicting active or fresh-terminal tickets. Tickets have no cancellation action,
 durable history, or restart recovery. Durable admission prevents duplicate effects; it does not
@@ -105,16 +110,18 @@ Keep the original request identity while reconciling the physical outcome. A con
 unresolved result needs operator recovery; another transition request cannot clear that uncertainty.
 Reconcile a unit/probe mismatch before retrying.
 
-The current surface is a card board, preview drawer, ticket strip, and latest-observation
-inspector. It shows no queue order, leases, GPU/VRAM/topology/thermal pressure, durable history,
-configuration editing, provider accounts, billing, or credentials. Its semantic board remains
-primary; any future body map starts as a read-only lens over validated observations. The
+The current surface is a grouped observation board, preview, request ticket, and latest-observation
+inspector. Narrow screens place details in the reading flow. It shows no queue order, leases,
+GPU/VRAM/topology/thermal pressure, durable history, configuration editing, provider accounts,
+billing, or credentials.
+
+Its semantic board remains primary; any future body map starts as a read-only lens over validated observations. The
 [Frontend Covenant](../../adr/15-frontend.md#decision-lock-and-reopening-gate) owns that design and
 its admission gates.
 
 ## Reading direction
 
-The planned refinement keeps snapshot time and containment first, then grouped observations
+The current layout keeps snapshot time and containment first, then grouped observations
 with their freshness, one selected preview, and its explicit request. Aligned eviction and
 launch lists make the consequence easier to compare than an inferred topology graph. Preserve
 the distinction between a capability row and the Animator that would be evicted; affected-row

@@ -14,12 +14,17 @@ budgets within which it may proceed. Its record preserves what happened, includi
 blockage, or refusal. An experiment can remain entirely local; testing does not require
 deployment or public release.
 
-[Exodus](https://bible.usccb.org/bible/exodus/0) offers a quiet literary echo in its account
-of departure. Here, departure means allowing experience to answer a proposal. Consider field
-notes edited in two copies while disconnected: a controlled concurrent-edit Case may reveal
-that reconciliation overwrites an observation. That loss belongs in the result even if every
+[Exodus](https://bible.usccb.org/bible/exodus/0) gives this chapter its image of departure:
+the candidate leaves the world its maker could dictate. Return to Genesis's
+[field notes](genesis.md), edited in two copies while disconnected: a controlled concurrent-edit
+Case may reveal that reconciliation overwrites an observation. That loss belongs in the result even if every
 other check passes. The declared conditions make the encounter interpretable; they do not
 promise a favorable answer.
+
+The Tree's [support and measure](genesis.md#chesed-gevurah-weights) meet in this encounter.
+Chesed gives the candidate enough room to disclose what it can do; Gevurah gives the trial
+limits. Hod receives the failure that must be able to stop persistence. A fair trial gives
+the candidate a chance to answer and the world a chance to defeat it.
 
 The practical evaluation contract remains with [Drift's Trials](../../sepulcher/extensions/drift/trials.md),
 while [Creation verification](../../sepulcher/extensions/weaver/creation.md) keeps its place in the

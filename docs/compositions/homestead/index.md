@@ -34,7 +34,16 @@ Admission fixes a reviewed household boundary, assets and resource evidence, res
 
 ## The household
 
-Every request declares its posture: observe, advise, bounded stewardship inside a live commissioned envelope, or deterministic safe containment. A Mind interprets and proposes. Deterministic tools check units, identities, money, reconciliation, freshness, thresholds, resource balance, set-point limits, effect predicates, and idempotency. Professionals, manufacturers, utilities, merchants, controllers, and the Magus retain their own judgment. Schedules create finite Occurrences.
+Every request declares what kind of involvement is permitted: observation, advice, bounded
+stewardship inside a live commissioned envelope, or deterministic safe containment. A Mind
+interprets and proposes within that posture.
+
+Tools make the checks that an explanation cannot replace. Units, identities, money, and
+reconciliation establish what is being accounted for. Freshness, thresholds, resource balance,
+and set-point limits constrain what can be requested. Effect predicates and idempotency govern
+the admitted action. These checks remain deterministic; professionals, manufacturers, utilities,
+merchants, controllers, and the Magus retain their own judgment. Schedules create finite
+Occurrences.
 
 Homestead owns household models, physical asset identity, resource policy, stores, recurring provision, forecasts, alerts, maintenance, work orders, and admission of its effects. Keeper and Cultivator retain care profiles, living-subject histories, biological suitability, and care outcomes. Homestead provides no health or consumption judgment, unapproved purchase/disclosure, design certification, permits, construction, potability claim, unsafe energization, interlock bypass, hazardous repair, or general robot authority. No general smart-home or physical-actuator Domain is accepted; [Multinode](../../adr/42-multinode.md), Workflow, Security, IAM, Vision, and host owners keep their boundaries.
 
@@ -59,7 +68,7 @@ Live merchants, accounts, addresses, payments, mains, batteries, pumps, wells, c
 
 ## Revision continuity
 
-Revision `2` retains Homestead's place, stores, provision, and maintenance ownership. It retires Designed revision `1`: cultivation is extracted into the new `cultivator.cultivation` identity, and `homestead.tend_land@1` has no executable alias. [The former cultivation route](cultivation.md) preserves that boundary. Keeper's animal-care contract is new work, not a renamed Homestead Pattern.
+Revision `2` retains Homestead's place, stores, provision, and maintenance ownership. It retires revision `1`: cultivation is extracted into the new `cultivator.cultivation` identity, and `homestead.tend_land@1` has no executable alias. [The former cultivation route](cultivation.md) preserves that boundary. Keeper's animal-care contract is new work, not a renamed Homestead Pattern.
 
 The new stores and provision Pattern revisions admit attributed care supplies and yield handoffs; `InventorySnapshot@1` and `ProvisionResult@1` keep their existing meaning. Existing Product, Suite, or profile pins require explicit review before selecting revision `2`; no pin silently follows the successor. Revision `1`, including its original five-Pattern catalogue, remains meaningful in history. No registry, Run, or stored Composition record used it, so there is no executable data migration. [State of Work](../../state-of-the-work.md#composition-portfolio-delivery) owns delivery evidence.
 

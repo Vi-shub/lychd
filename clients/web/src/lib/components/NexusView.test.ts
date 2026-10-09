@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/svelte";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { NexusSnapshot, SwapTicket, TransitionPlan } from "$lib/api/models";
@@ -30,10 +30,12 @@ import {
   getNexusPlan,
   getNexusSnapshot,
   getNexusSwap,
+  getNexusTransition,
   listenToSwap
 } from "$lib/api/client";
 import NexusView from "./NexusView.svelte";
 import { beforeNavigate } from "$app/navigation";
+import { page } from "$app/state";
 
 const snapshot: NexusSnapshot = {
   snapshot_at: "2026-07-30T00:00:00Z",
@@ -215,6 +217,145 @@ describe("Nexus refresh ownership", () => {
 });
 
 describe("Nexus projection and focus", () => {
+  it("refreshes a linked transition without reclaiming keyboard focus", async () => {
+    vi.useFakeTimers();
+    page.url.search = "?transition=request-a";
+    const first = deferred<NexusSnapshot>();
+    vi.mocked(getNexusSnapshot)
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValue({ ...snapshot, transitions: [transition("settled")] });
+    vi.mocked(getNexusTransition).mockResolvedValue(transition("actuating"));
+    const view = render(NexusView);
+
+    try {
+      await act(() => first.resolve({ ...snapshot, transitions: [transition("actuating")] }));
+      await act(() => Promise.resolve());
+      const inspector = screen.getByRole("region", { name: "Selected transition observation" });
+      expect(document.activeElement).toBe(inspector);
+      const preview = screen.getByRole("button", { name: "Preview" });
+      preview.focus();
+
+      await act(() => vi.advanceTimersByTimeAsync(5000));
+
+      expect(within(inspector).getByText("settled")).toBeTruthy();
+      expect(document.activeElement).toBe(preview);
+    } finally {
+      view.unmount();
+      page.url.search = "";
+    }
+  });
+
+  it("closes a pending preview without allowing its delayed answer to reopen it", async () => {
+    const calculation = deferred<TransitionPlan>();
+    vi.mocked(getNexusPlan).mockReturnValue(calculation.promise);
+    vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false })));
+    const view = render(NexusView);
+    const opener = await screen.findByRole("button", { name: "Preview" });
+
+    await fireEvent.click(opener);
+    const inspector = screen.getByRole("region", { name: "Non-binding preview" });
+    expect(inspector.getAttribute("aria-busy")).toBe("true");
+    await waitFor(() => expect(document.activeElement).toBe(inspector));
+    expect(within(inspector).getByText("chat:local")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Request transition" })).toBeNull();
+    await fireEvent.click(within(inspector).getByRole("button", { name: "Close" }));
+    await act(() => calculation.resolve(plan));
+
+    expect(document.activeElement).toBe(opener);
+    expect(inspector.getAttribute("aria-busy")).toBe("false");
+    expect(opener.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByRole("button", { name: "Request transition" })).toBeNull();
+    expect(createNexusSwap).not.toHaveBeenCalled();
+    view.unmount();
+  });
+
+  it("keeps containment visible and refuses a lifecycle request while allowing a read-only preview", async () => {
+    vi.mocked(getNexusSnapshot).mockResolvedValue({
+      ...snapshot, containment_reason: "physical outcome unresolved"
+    });
+    const view = render(NexusView);
+    await fireEvent.click(await screen.findByRole("button", { name: "Preview" }));
+    expect(screen.getByRole("alert").textContent).toContain("Runtime admission is contained");
+    const request = await screen.findByRole("button", { name: "Request transition" }) as HTMLButtonElement;
+    expect(request.disabled).toBe(true);
+    await fireEvent.click(request);
+    expect(getNexusPlan).toHaveBeenCalledWith("chat:local");
+    expect(createNexusSwap).not.toHaveBeenCalled();
+    view.unmount();
+  });
+
+  it("explains a no-op preview without enabling a lifecycle request", async () => {
+    vi.mocked(getNexusPlan).mockResolvedValue({ ...plan, action_type: "NO_OP" });
+    const view = render(NexusView);
+    await fireEvent.click(await screen.findByRole("button", { name: "Preview" }));
+    const request = await screen.findByRole("button", { name: "Request transition" }) as HTMLButtonElement;
+    expect(request.disabled).toBe(true);
+    expect(screen.getByText("No lifecycle change is planned for this target.")).toBeTruthy();
+    await fireEvent.click(request);
+    expect(createNexusSwap).not.toHaveBeenCalled();
+    view.unmount();
+  });
+
+  it("keeps the complete uncertain request identity visible after closing its preview", async () => {
+    vi.mocked(createNexusSwap).mockRejectedValueOnce(new TypeError("response lost"));
+    const view = render(NexusView);
+    await fireEvent.click(await screen.findByRole("button", { name: "Preview" }));
+    await fireEvent.click(await screen.findByRole("button", { name: "Request transition" }));
+    await screen.findByText("response lost");
+    const requestId = vi.mocked(createNexusSwap).mock.calls[0]?.[1];
+    if (!requestId) throw new Error("The request identity was not allocated.");
+    await fireEvent.click(screen.getByRole("button", { name: "Close" }));
+
+    const outcomes = screen.getByRole("region", { name: "Request outcomes" });
+    expect(within(outcomes).getByText(requestId)).toBeTruthy();
+    expect(within(outcomes).getByText("chat:local")).toBeTruthy();
+    expect(within(outcomes).getByText("Response uncertain")).toBeTruthy();
+    expect(createNexusSwap).toHaveBeenCalledOnce();
+    view.unmount();
+  });
+
+  it("retains the previous ticket identity while previewing another capability", async () => {
+    const firstRow = snapshot.board.covens[0]?.[1][0];
+    if (!firstRow) throw new Error("The fixture has no capability row.");
+    vi.mocked(getNexusSnapshot).mockResolvedValue({
+      ...snapshot,
+      board: { ...snapshot.board, covens: [["local", [firstRow, { ...firstRow, capability_key: "chat:other" }]]] }
+    });
+    const view = render(NexusView);
+    const previews = await screen.findAllByRole("button", { name: "Preview" });
+    const [firstPreview, secondPreview] = previews;
+    if (!firstPreview || !secondPreview) throw new Error("Both preview controls are required.");
+    await fireEvent.click(firstPreview);
+    await fireEvent.click(await screen.findByRole("button", { name: "Request transition" }));
+    await screen.findByRole("region", { name: "Request ticket" });
+    await fireEvent.click(secondPreview);
+
+    expect(within(screen.getByRole("region", { name: "Non-binding preview" })).getByText("chat:other")).toBeTruthy();
+    const ticketRegion = screen.getByRole("region", { name: "Request ticket" });
+    expect(within(ticketRegion).getByText("chat:local")).toBeTruthy();
+    expect(within(ticketRegion).getByText("request-a")).toBeTruthy();
+    expect(createNexusSwap).toHaveBeenCalledOnce();
+    view.unmount();
+  });
+
+  it("exposes unknown health and freshness without interpreting the compact cold chip as health", async () => {
+    const firstRow = snapshot.board.covens[0]?.[1][0];
+    if (!firstRow) throw new Error("The fixture has no capability row.");
+    vi.mocked(getNexusSnapshot).mockResolvedValue({
+      ...snapshot,
+      board: { ...snapshot.board, covens: [["local", [{ ...firstRow, state: "cold", health: "unknown", checked_at: null, warm: false, reason: "probe unavailable" }]]] }
+    });
+    const view = render(NexusView);
+    await screen.findByRole("button", { name: "Preview" });
+    const disclosure = screen.getByLabelText("Observation details for chat:local");
+    expect(disclosure.tagName).toBe("SUMMARY");
+    expect(disclosure.parentElement?.textContent).toContain("probe unavailable");
+    expect(disclosure.parentElement?.textContent).toContain("unknown");
+    expect(screen.getByText("freshness unknown")).toBeTruthy();
+    expect(createNexusSwap).not.toHaveBeenCalled();
+    view.unmount();
+  });
+
   it("fences preview identity while a transition admission is unresolved", async () => {
     const admission = deferred<{ ticket: SwapTicket }>();
     const firstRow = snapshot.board.covens[0]?.[1][0];
@@ -505,6 +646,49 @@ describe("Nexus projection and focus", () => {
     await act(() => secondHardClose("invalid transition again"));
     expect(screen.getByText("projection stale")).toBeTruthy();
     expect(getNexusSwap).toHaveBeenCalledOnce();
+    view.unmount();
+  });
+
+  it("recovers a permanently refused EventSource once and leaves a second refusal visibly stale", async () => {
+    class TicketSource extends EventTarget {
+      static CLOSED = 2;
+      static instances: TicketSource[] = [];
+      readyState = 0;
+      onerror: (() => void) | null = null;
+      close = vi.fn(() => { this.readyState = TicketSource.CLOSED; });
+      constructor(_url: string) {
+        super();
+        TicketSource.instances.push(this);
+      }
+    }
+    vi.stubGlobal("EventSource", TicketSource);
+    const actual = await vi.importActual<typeof import("$lib/api/client")>("$lib/api/client");
+    vi.mocked(listenToSwap).mockImplementation(actual.listenToSwap);
+    const recovery = deferred<{ ticket: SwapTicket }>();
+    vi.mocked(getNexusSwap).mockReturnValue(recovery.promise);
+    const view = render(NexusView);
+    await fireEvent.click(await screen.findByRole("button", { name: "Preview" }));
+    await fireEvent.click(await screen.findByRole("button", { name: "Request transition" }));
+    const first = TicketSource.instances[0]!;
+
+    await act(() => first.onerror?.());
+    expect(getNexusSwap).not.toHaveBeenCalled();
+    expect(screen.queryByText("projection stale")).toBeNull();
+    first.readyState = TicketSource.CLOSED;
+    await act(() => first.onerror?.());
+    expect(screen.getByText("projection stale")).toBeTruthy();
+    expect(getNexusSwap).toHaveBeenCalledExactlyOnceWith("ticket-a");
+    expect(first.close).toHaveBeenCalledOnce();
+
+    await act(() => recovery.resolve({ ticket: ticket() }));
+    expect(screen.getByText("warming")).toBeTruthy();
+    expect(TicketSource.instances).toHaveLength(2);
+    const second = TicketSource.instances[1]!;
+    second.readyState = TicketSource.CLOSED;
+    await act(() => second.onerror?.());
+    expect(screen.getByText("projection stale")).toBeTruthy();
+    expect(getNexusSwap).toHaveBeenCalledOnce();
+    expect(second.close).toHaveBeenCalledOnce();
     view.unmount();
   });
 });

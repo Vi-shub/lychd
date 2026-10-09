@@ -9,9 +9,28 @@ Before trusting a result, find the Run that produced it and the limit of what wa
 Looking through the **Orb** is **scrying**: inspecting ordered structural evidence with its gaps
 still visible.
 
-Choose **Look into the Orb** at a Bridge result, or open `/orb/{run_id}`. The bare `/orb` route
-sends you toward Bridge; there is no authorized searchable Run list. During this browser visit,
-the shell’s **Orb** tab returns to the last selected Run and event.
+Open `/orb` for the parallel Run field, or choose **Look into the Orb** at a Bridge result to
+inspect `/orb/{run_id}`. The shell’s **Orb** tab opens the parallel field; exact Run and event
+links preserve the account being reviewed.
+
+## Read the parallel field
+
+The field starts with a bounded page of Run identities. **Load more retained Runs** extends the
+catalogue; the number shown is the loaded count. Its newest page refreshes every five seconds
+while visible. **Refresh Runs** rereads it immediately, preserving already opened Run lenses.
+The canvas can display several workflows together, with at most three live Run lenses open.
+Close a lens before unfolding another; its loaded Run group remains in the field.
+
+Zoom out to see whole Run groups. Zoom in to disclose **Stations**, supplied **Occurrences**, and
+**Records**, or choose those same levels directly. **Zoom changes detail** controls this automatic
+disclosure. Each lens retains at most 100 records, and its coverage notice distinguishes that
+window from older retained history. Current manifests supply no nested subworkflow identities;
+an occurrence or delegated job is not an invented child workflow.
+
+Select a Run to read its feed beside the canvas. **Follow selected Run** follows its projection;
+manual camera interaction pauses following. Connection state and recorded Run status have separate
+labels. **Open exact Run and history** enters the selected account below. The semantic Run list
+offers the same identities and entry points without requiring canvas gestures.
 
 ## Establish the account you are reading
 
@@ -31,12 +50,19 @@ Then read the coverage strip:
 | **snapshot** | The snapshot being inspected. |
 | **retained through** | The retained ledger head. |
 | **loaded through** | How far this page has loaded. |
-| **live updates** | Current snapshots say `not available`. |
+| **live updates** | `ledger poll`: updates come from retained evidence, subject to its capture limits. |
 
 **Refresh** requests a new bounded snapshot. The first page contains up to 100 evidence records;
 **Load more retained evidence** requests another page while more remain. A visible `#start–end`
 gap means an unknown or omitted interval. The Orb does not infer why those sequence numbers are
 absent.
+
+The live feed reads newly retained structural records and metadata in bounded batches. It resumes
+from its delivered cursor on reconnect, replaces a reset account through a fresh snapshot, and
+settles when the ledger reports terminal status and the currently retained account has drained.
+That settlement does not promise a complete trace. Token text, prompts, output bodies, and private
+errors are absent. The live window keeps the latest 100 received records; older retained evidence
+remains separately pageable. Refresh or a transport connection never changes the Run's status.
 
 ## Locate the event
 
@@ -52,7 +78,8 @@ for the recorded wait's owner and return boundary, or
 [Reanimation](../../sepulcher/phylactery/reanimation.md#reanimation-a-new-vessel-judges-durable-truth)
 when the Vessel has died.
 
-When delegated work exists, **Delegated jobs** shows at most the newest 32 summaries, each with
+When delegated work exists, open **Delegated jobs** below the evidence and selected-record detail.
+The disclosure shows at most the newest 32 summaries, each with
 its `AgentJob` identity, runtime, Coffin profile, station, status, bounded-result presence,
 artifact-reference count, and up to the latest 64 lifecycle events. Older omitted jobs and
 truncation are explicit. A linked job absent from this bounded snapshot remains visibly unverified;
@@ -62,46 +89,64 @@ Orb does not choose another job in its place. Prompts, output text, and private 
 
 **Bridge** returns to the owning conversation and focuses the exact Run’s turn when available.
 An unavailable turn is reported. **Exact Pattern** opens [Loom](loom.md) only when the Run's pinned
-manifest validates. Its Run and selected-event query preserves the return destination; neither
+manifest validates and equals the entire registered revision. The graph uses that same exact
+declared score when available. Its Run and selected-event query preserves the return destination; neither
 changes Pattern identity.
 
 A selected event with exact transition correlation offers **Open transition in Nexus** and
 carries the selected event id. The link supplies a relation worth inspecting; viewing it requests
 no mutation. [Nexus](nexus.md) keeps any lifecycle decision separate.
 
-Selection and pagination leave Run state unchanged. To inspect another Run, return through
-Bridge. The current Orb offers no annotation, retry, cancellation, approval, publication or
-transition action. Multi-Run fields, graph canvases, time lenses, historical replay and live tails
-also remain outside this surface.
+Selection, folding, and pagination leave Run state unchanged. Open `/orb` to compare another Run,
+or follow it from Bridge. The current Orb offers no annotation, retry, cancellation, approval,
+publication or transition action.
+
+## Revisit a recorded moment
+
+In an exact Run, **Record cursor**, **Previous record**, and **Next record** move through loaded
+structural evidence. The graph shows observations through that sequence; future observations and
+Animator selections disappear. Entering playback freezes that loaded lens, so incoming events and
+live-window eviction cannot rewrite the moment being inspected. **LIVE** or **Follow latest**
+returns to the latest loaded account. Refresh reads a fresh account and leaves playback.
+
+The **Animators** rail names only identities supplied by retained dispatch records. Its stable
+colours match dispatch nodes, and a glow marks a grant at the viewed cursor. A grant proves which
+Animator was selected, not how long it was running or whether it remained available. Older records
+without this identity remain unknown; current Nexus observations never fill in historical detail.
+The parallel field shows these same supplied identities for its selected live Run.
+
+Hover or keyboard focus previews a graph node's meaning without changing selection. Escape closes
+the preview. Glow marks the latest record or playback cursor, not continuous execution. The Run
+status above the graph remains current. Record spacing represents sequence, not elapsed time;
+gaps, missing records, unretained tokens, and unloaded pages still limit the account. This is a
+record cursor, not full-workspace wall-clock replay or a configurable retention service.
 
 ## Witness without possession
 
-Evidence ends where capture, retention, or loading ends. Future graph views must preserve those
-limits; [Frontend's folding law](../../adr/15-frontend.md#folding-not-scale) governs their groups,
-expansion, and faithful sequence.
-
-That projection is designed. [Oculus](../../sepulcher/extensions/oculus.md) owns the evidence office.
-Neither a richer view nor more retained rows can authorize the Orb to invent the
-missing part of a history.
+A richer view can reveal more of the retained account. It cannot fill the missing part of a
+history. [Frontend's folding law](../../adr/15-frontend.md#folding-not-scale) keeps groups,
+expansion, and sequence faithful to what their sources supplied.
 
 ## Reading direction
 
-The planned hierarchy brings Run identity, canonical status, capture class, snapshot time,
-retained and loaded boundaries, omissions, and unavailable live updates before the records.
-Delegated-job detail unfolds after that account, so a large job collection cannot hide the
-limits that qualify all evidence.
+Place the selected account's qualifications where the reader judges it: Run identity, canonical
+status, capture class, snapshot time, retained and loaded boundaries, and omissions stay beside
+the graph and records. Summaries show the supplied subject; selection opens exact identity and
+fields. Run-record timestamps include a date and use local time. A verified linked job opens its
+disclosure and receives focus after the evidence and selected record, where a long job collection
+cannot bury the account's limits.
 
-A future lane view can arrange records by their supplied subject and sequence. Equal spacing
-means order, not elapsed time; proximity does not establish causality. Unknown subjects remain
-unknown. Gaps span the account instead of being bridged by an invented connector. Delegated-job
-events retain their own sequence unless the server supplies a Run correlation. List and lanes
-preserve identical record selection and omissions. Complete fold membership, counts and bounded
-expansion need the [server-owned folding contract](../../adr/15-frontend.md#folding-not-scale).
+The diagram must distinguish declared permission from supplied record membership and observed
+traversal. Sequence and equal spacing establish order, not elapsed time or causality. Unknown
+subjects and gaps stay visible; job events keep their own sequence unless the server supplies
+a Run correlation. Fold counts describe loaded membership. Deeper expansion needs supplied
+identities under the [folding contract](../../adr/15-frontend.md#folding-not-scale).
 
 Acceptance case: open an event beyond the first page, distinguish not-yet-loaded evidence from
 an unretained interval or failed read, inspect the exact score or correlated physical transition,
 and return to the same selected event using only the keyboard. A narrow display should start
 with a readable list. Efficient direct event seeking needs a separate retrieval contract; the
-current path remains loading subsequent pages. This is a [presentation
-target](../../adr/15-frontend.md#reading-hierarchy-and-visual-direction), not a delivered graph,
-live tail, complete trace, or execution control.
+current path remains loading subsequent pages. The shared renderer's cross-engine lifecycle
+qualification and wider accessibility acceptance remain recorded separately in
+[State of Work](../../state-of-the-work.md#orb-instrument). A graph and live feed establish
+neither complete capture nor execution control.

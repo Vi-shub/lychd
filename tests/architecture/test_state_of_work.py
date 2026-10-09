@@ -152,8 +152,9 @@ def test_evidence_labels_and_minimum_contract_match_each_state() -> None:
 
         if state_value in _RUNNABLE_STATES:
             assert {"Source", "Verification"} <= labels, title
-            assert "/blob/main/src/" in evidence, title
-            assert "/blob/main/tests/" in evidence, title
+            # ADR 01 places platform client code and tests under clients as well as backend roots.
+            assert re.search(r"/blob/main/(?:src/|clients/[^)]+/src/)", evidence), title
+            assert re.search(r"/blob/main/(?:tests/|clients/[^)]+/src/test/)", evidence), title
         elif state_value == "Designed":
             assert labels & {"Law", "Topic"}, title
         elif state_value == "External":

@@ -9,7 +9,7 @@ import stat
 from contextlib import contextmanager, suppress
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Never
 
 from lychd.domain.orchestration.actuator import (
     RuntimeActuationRestoredError,
@@ -22,7 +22,6 @@ from lychd.lib.asyncio import complete_under_cancellation
 from lychd.system.path_safety import path_has_symlink_component
 from lychd.system.services.lifecycle.models import LifecycleError
 from lychd.system.services.systemctl_process import (
-    SystemctlClientTimeoutError,
     communicate_systemctl_client,
     validate_systemctl_timeout,
     wait_systemctl_client,
@@ -129,7 +128,7 @@ class SystemdRuntimeActuator:
             await self._apply_locked(intent)
 
     async def _apply_locked(self, intent: TransitionIntent) -> None:
-        """Observe under lifecycle authority, preserving proof until submission begins."""
+        """Decline operational observation failures before submission begins."""
         try:
             await self._topology_attestor.attest(intent)
             pending = await self._pending_relevant_jobs(intent)
@@ -143,7 +142,9 @@ class SystemdRuntimeActuator:
         except asyncio.CancelledError as cancellation:
             message = f"Cancelled transition '{intent.transition_id}' during systemd observation before any effect."
             raise RuntimeCancellationNoEffectError(message) from cancellation
-        except SystemctlClientTimeoutError as exc:
+        except (OSError, RuntimeError) as exc:
+            if isinstance(exc, RuntimePreconditionError):
+                raise
             message = (
                 f"Transition '{intent.transition_id}' could not establish its systemd "
                 f"pre-world before any effect: {exc}."
@@ -523,10 +524,9 @@ class HostReactorRuntimeActuator:
             fence = asyncio.create_task(
                 self._cancel_or_wait(intent.transition_id, require_terminal=publication_exposed)
             )
-            if await complete_under_cancellation(fence):
-                msg = f"Cancelled transition '{intent.transition_id}' was retracted before host claim."
-                raise RuntimeCancellationNoEffectError(msg) from cancellation
-            raise
+            self._raise_settled_cancellation(
+                intent.transition_id, cancellation, retracted=await complete_under_cancellation(fence)
+            )
         except (RuntimePreconditionError, RuntimeActuationRestoredError):
             raise
         except (OSError, RuntimeError) as exc:
@@ -539,16 +539,31 @@ class HostReactorRuntimeActuator:
             try:
                 retracted = await asyncio.shield(fence)
             except asyncio.CancelledError as cancellation:
-                if await complete_under_cancellation(fence):
-                    msg = f"Cancelled transition '{intent.transition_id}' was retracted before host claim."
-                    raise RuntimeCancellationNoEffectError(msg) from cancellation
-                raise
+                self._raise_settled_cancellation(
+                    intent.transition_id, cancellation, retracted=await complete_under_cancellation(fence)
+                )
             if isinstance(exc, _PublishedIntentError):
                 if retracted:
                     msg = f"Transition '{intent.transition_id}' publication failed; delivery was retracted before host claim."
                     raise RuntimePreconditionError(msg) from exc.original
                 raise exc.original from exc
             raise
+
+    def _raise_settled_cancellation(
+        self, transition_id: str, cancellation: asyncio.CancelledError, *, retracted: bool
+    ) -> Never:
+        """Retain only proven withdrawal, no-effect, or exact-restoration receipts."""
+        if retracted:
+            msg = f"Cancelled transition '{transition_id}' was retracted before host claim."
+            raise RuntimeCancellationNoEffectError(msg) from cancellation
+        terminal = self._terminal_status(transition_id)
+        if terminal == "declined":
+            msg = f"Cancelled transition '{transition_id}' was declined before applying effects."
+            raise RuntimeCancellationNoEffectError(msg) from cancellation
+        if terminal == "restored":
+            msg = f"Cancelled transition '{transition_id}' restored its exact prior runtime world."
+            raise RuntimeCancellationRestoredError(msg) from cancellation
+        raise cancellation
 
     def _write_atomic(self, intent: TransitionIntent) -> None:
         validate_reactor_boundaries(self._intents_dir, self._journal_dir)

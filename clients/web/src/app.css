@@ -310,9 +310,6 @@
   .pattern-details summary { padding: 0.85rem 1rem; color: var(--color-rune); cursor: pointer; font-size: var(--text-sm); }
   .pattern-details[open] summary { border-bottom: 1px solid var(--color-engraving); }
   .digest { word-break: break-all; }
-  .diagram-lens { grid-column: 1 / -1; min-width: 0; }
-  .diagram-lens .mermaid { padding: 1rem; overflow: auto; }
-  .diagram-failure { padding: 0.8rem 1rem 0; color: var(--color-ember); font-size: var(--text-xs); }
 
   /* Orb: bounded scrying list plus inspector */
   .orb-empty {
@@ -1388,22 +1385,10 @@
 
   .loom-canvas { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
   .graph-stage { padding: 26px 18px; overflow-x: auto; }
-  .mermaid { display: block; }
-  .mermaid svg { display: block; margin: 0 auto; max-width: 100%; }
 
   .loom-meta { display: flex; gap: 12px; flex-wrap: wrap; }
   .loom-meta .panel { flex: 1; min-width: 260px; }
   .loom-desc { padding: 12px 16px; color: var(--color-parchment); font-size: var(--text-sm); }
-  .mermaid-src {
-    font-family: var(--font-glyph);
-    font-size: var(--text-xs); line-height: 1.65;
-    color: var(--color-parchment);
-    padding: 12px 16px;
-    overflow-x: auto;
-    white-space: pre;
-  }
-  .mermaid-src .kw { color: var(--color-rune); }
-  .mermaid-src .st { color: var(--color-frost); }
 
   /* ── Skeleton shells + loading + omens (§8, §6.3) ─────────────────── */
   .shell-placeholder {

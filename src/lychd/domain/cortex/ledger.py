@@ -25,6 +25,7 @@ from lychd.domain.cortex.runs import (
     RunDeliveryState,
     RunRecord,
     RunStatus,
+    RunSummary,
     can_transition,
 )
 from lychd.domain.delegation.models import (
@@ -281,6 +282,12 @@ class RunLedger(Protocol):
 
     async def list_for_session(self, session_id: str) -> list[RunRecord]:
         """Return all Runs owned by one Bridge session in creation order."""
+        ...
+
+    async def list_run_summaries(
+        self, *, before: tuple[datetime, str] | None = None, limit: int = 21
+    ) -> list[RunSummary]:
+        """Read at most 51 metadata-only Runs newest first by creation time and identity."""
         ...
 
     async def get_nonterminal_for_session(self, session_id: str) -> RunRecord | None:
@@ -750,6 +757,27 @@ class InMemoryRunLedger:
             records = [record for record in records if (record.created_at, record.run_id) > after]
         page = records if limit is None else records[:limit]
         return [_copy_run_record(record) for record in page]
+
+    async def list_run_summaries(
+        self, *, before: tuple[datetime, str] | None = None, limit: int = 21
+    ) -> list[RunSummary]:
+        """Page Run identities without copying stored prompts, manifests, or events."""
+        records = sorted(self._runs.values(), key=lambda run: (run.created_at, run.run_id), reverse=True)
+        if before is not None:
+            records = [run for run in records if (run.created_at, run.run_id) < before]
+        return [
+            RunSummary(
+                run_id=run.run_id,
+                session_id=run.session_id,
+                workflow_name=run.workflow_name,
+                status=run.status,
+                created_at=run.created_at,
+                started_at=run.started_at,
+                finished_at=run.finished_at,
+                error_present=run.error is not None,
+            )
+            for run in records[: min(max(limit, 1), 51)]
+        ]
 
     async def list_for_session(self, session_id: str) -> list[RunRecord]:
         """Return one session's Runs from memory in creation order."""
@@ -1626,6 +1654,53 @@ class DbRunLedger:
         async with self._session_factory() as session:
             rows = (await session.scalars(statement)).all()
         return [self._to_record(row) for row in rows]
+
+    async def list_run_summaries(
+        self, *, before: tuple[datetime, str] | None = None, limit: int = 21
+    ) -> list[RunSummary]:
+        """Select only catalogue columns and bound PostgreSQL hydration before reading."""
+        from sqlalchemy import and_, or_, select
+
+        from lychd.db.models import Run
+
+        statement = (
+            select(
+                Run.id,
+                Run.session_id,
+                Run.workflow_name,
+                Run.status,
+                Run.created_at,
+                Run.started_at,
+                Run.finished_at,
+                Run.error.is_not(None).label("error_present"),
+            )
+            .order_by(Run.created_at.desc(), Run.id.desc())
+            .limit(min(max(limit, 1), 51))
+        )
+        if before is not None:
+            created_at, run_id = before
+            try:
+                run_uuid = UUID(run_id)
+            except ValueError:
+                return []
+            statement = statement.where(
+                or_(Run.created_at < created_at, and_(Run.created_at == created_at, Run.id < run_uuid))
+            )
+        async with self._session_factory() as session:
+            rows = (await session.execute(statement)).all()
+        return [
+            RunSummary(
+                run_id=str(row.id),
+                session_id=str(row.session_id),
+                workflow_name=str(row.workflow_name),
+                status=RunStatus(row.status),
+                created_at=row.created_at,
+                started_at=row.started_at,
+                finished_at=row.finished_at,
+                error_present=bool(row.error_present),
+            )
+            for row in rows
+        ]
 
     async def list_for_session(self, session_id: str) -> list[RunRecord]:
         """Return one session's durable Runs in creation order."""

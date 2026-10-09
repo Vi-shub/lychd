@@ -54,7 +54,7 @@ silently replaces visual direction.
 settlement. Creative adoption belongs to Atelier or another consuming Composition; successful
 custody and probes never accept the work on that owner's behalf. Each concrete execution uses
 Core's Designed
-[`ServiceJobAttempt@1`](../../../adr/14-workers.md#service-job-attempts-designed) mechanics.
+[`ServiceJobAttempt@1`](../../../adr/14-workers.md#service-job-attempts) mechanics.
 Numeric progress, step progress, previews, cancellation before start, cancellation while running,
 and cancellation granularity are separate Connector facts. Deleting a provider record is not
 evidence that a running generation was cancelled; an indeterminate attempt remains contained and

@@ -46,6 +46,42 @@ async def test_reference_runtime_completes_through_real_coordinator_without_netw
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("maximum_prompt", [False, True])
+async def test_reference_runtime_bounds_echo_for_valid_large_prompt(*, maximum_prompt: bool) -> None:
+    prefix = "Reference delegate completed: "
+    text_limit = 1_048_576
+    prompt = "é" * (text_limit if maximum_prompt else text_limit - len(prefix))
+    context = _assembled_delegation()
+    coordinator = DelegatedAgentCoordinator(
+        runtimes=context.delegated_runtimes.runtime_adapters,
+        store=InMemoryDelegatedAgentJobStore(),
+    )
+    request = DelegatedAgentRequest(
+        request_id="large-reference-request",
+        run_id="reference-run",
+        step_id="delegate",
+        runtime="reference",
+        prompt=prompt,
+    )
+
+    ref = await coordinator.submit(request)
+    completed = await coordinator.refresh(ref.job_id)
+
+    assert completed.status is DelegatedAgentJobStatus.SUCCEEDED
+    assert completed.result is not None
+    output = completed.result.output
+    assert output is not None
+    assert len(output) == text_limit
+    if maximum_prompt:
+        assert output.startswith(prefix + "é")
+        assert output.endswith("\n...[truncated]")
+    else:
+        assert output == prefix + prompt
+    assert completed.request.prompt == prompt
+    assert await coordinator.submit(request) == ref
+
+
+@pytest.mark.asyncio
 async def test_reference_runtime_cancellation_is_terminal_and_idempotent() -> None:
     context = _assembled_delegation()
     coordinator = DelegatedAgentCoordinator(

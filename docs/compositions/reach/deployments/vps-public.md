@@ -9,7 +9,7 @@ One public Discord question is enough to test the entire restricted VPS body: ev
 
 The [worked question](#first-e2e-contract-one-public-discord-question) also states the common turn and delivery chain used by the [home-only](home-public.md) and [edge/home](vps-edge-home-core.md) profiles. Those profiles keep their own placement, custody, and recovery boundaries.
 
-It is **Designed, not deployable**. [State of Work](../../../state-of-the-work.md#composition-portfolio-delivery) records Reach’s delivery boundary. The profile does not authorize exposing the current loopback application or exporting Discord material.
+The profile requires the separate service and authority boundaries below. Before deployment, check their [implementation evidence](../../../state-of-the-work.md#composition-portfolio-delivery); the current loopback application cannot be exposed as this VPS body. Exporting Discord material requires its own admission.
 
 ## One restricted deployment
 

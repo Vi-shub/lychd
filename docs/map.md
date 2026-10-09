@@ -17,8 +17,14 @@ return through evaluation and learning.
 
 ## One body in one breath
 
-An **Intent** is a request for work. Spellweaver resolves its **Scroll**, the exact workflow score
-for an immutable Pattern revision. Admission opens one **Invocation**; its **Run** is the durable
+Take Broadcast's [local publication candidate](./compositions/broadcast/index.md#the-local-candidate):
+frozen sources and an editorial brief enter the work; a candidate returns for editorial judgment.
+The route below follows how such application-owned work passes through the body.
+
+An **Intent** is a request for work. [Spellweaver](./sepulcher/extensions/weaver/index.md)
+resolves its **Scroll**, the exact workflow score for an
+[immutable Pattern revision](./sepulcher/extensions/weaver/pattern-lifecycle.md).
+Admission opens one **Invocation**; its **Run** is the durable
 record of that execution. **Graph** carries the casting through stations that place named actions,
 or **Spells**. Follow those relationships through the diagram:
 

@@ -6,6 +6,7 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from lychd.system.constants import PATH_RUNTIME_GUARD_DIR
 from lychd.system.services.lifecycle._authority import current_authority
 from lychd.system.services.lifecycle.models import (
     CreatedResources,
@@ -49,6 +50,7 @@ class InitializationPlanner:
         """Inspect every initialization target without performing an effect."""
         authority = current_authority()
         directory_modes = dict.fromkeys(self._reactor_directories, 0o700)
+        directory_modes[authority.crypt_root / PATH_RUNTIME_GUARD_DIR.name] = 0o700
         reactor_directories: set[Path] = set()
         for target in self._reactor_directories:
             reactor_directories.add(target)

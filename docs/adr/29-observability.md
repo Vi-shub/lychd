@@ -72,7 +72,7 @@ Trace context never authenticates a caller or authorizes an effect.
 | Logs | Structlog/stdlib human or JSON stderr | Diagnostic |
 | Traces | No producer or export adapter | No native ingestion, export, retention, or read contract |
 | Metrics | No producer, registry, store, or query | Designed |
-| Orb | Bounded selected-Run projection | Read-only |
+| Orb | Bounded Run catalogue, graph lenses, and retained-evidence feeds | Read-only |
 
 Future Oculus exposes typed query and event ports; clients do not inspect its tables directly.
 An Eye receives a one-way allowlisted export, with no canonical read-back. The legacy Phoenix
@@ -107,14 +107,25 @@ authorize an effect, mutate Graph, or become training material by default.
 
 ### 5. Orb Read Models
 
-[Orb](../divination/altar/orb.md) opens one Run by direct URL. It keeps ledger-head and page bounds
-separate, reports sequence gaps and omissions, and names capture as `process_local` or
-`durable_best_effort`. A Pattern link requires a valid pinned manifest; a Nexus link requires a
-recorded transition identity. LOG events are summarized without their raw message.
+[Orb](../divination/altar/orb.md) discovers Runs through a bounded metadata catalogue and opens
+one Run by direct URL. It keeps ledger-head and page bounds separate, reports sequence gaps and
+omissions, and names capture as `process_local` or
+`durable_best_effort`. A Pattern link and declared workflow graph require a valid pinned manifest
+equal to the registered revision; a Nexus link requires a recorded transition identity.
+LOG events are summarized without their raw message.
 
-Current Orb has no Run list, live tail, graph view, native Oculus model, cross-process
-completeness, artifact custody, annotation, or multi-Run field. An SSE `RESYNC` asks the browser to
-replace its projection from a snapshot; it does not recover history inside the browser.
+The parallel field retains at most three live lenses of 100 records each. Its graph folds supplied
+Run, station/subject, occurrence, and record identities; counts describe loaded membership.
+Retained-evidence SSE polls the owning ledger in bounded batches, preserves explicit gaps, and
+resets an invalid future cursor through an authoritative snapshot. A ledger-terminal settlement
+drains currently retained evidence without claiming completeness. This feed is distinct from the
+process-local Bridge token channel. [Frontend](15-frontend.md#snapshots-streams-and-recovery)
+owns its browser recovery and lifecycle contract.
+
+Current Orb has no native Oculus model, nested subworkflow identity, cross-process completeness,
+artifact custody, or annotation. A reset requests snapshot replacement; it does not recover history
+inside the browser.
+
 Viewing, filtering, and layout never change a Run. A future annotation is a separately authorized
 record, not an implicit retry, approval, cancellation, publication, or transition.
 

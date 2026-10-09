@@ -29,7 +29,9 @@ agents while preserving the distinct burdens of law, operation, threshold, and m
 
 ## Decision and invariants
 
-Zensical renders `docs/`. `zensical.toml` owns navigation, extensions, theme, and deploy metadata;
+Zensical renders `docs/`. `zensical.toml` owns extensions, theme, and deploy metadata. Native
+Awesome Nav reads the top-level order from `docs/.nav.yml` and each section's navigation from
+its own `.nav.yml`; navigation stays beside the content it arranges.
 `docs/overrides/stylesheets/hexanomicon.css` supplies the visual layer. Admonitions, details,
 snippets, and Mermaid are used when they clarify. Snippets stay short and use repository-root paths.
 

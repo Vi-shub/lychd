@@ -11,7 +11,7 @@ wait, miss, yield, or finish.
 
 > _The night bell sounds above the forge. Below, a hammer is still falling._
 
-Scheduling is Designed: no durable Occurrence service, periodic workflow scheduler, eligibility
+No durable Occurrence service, periodic workflow scheduler, eligibility
 engine, service-class field, or safe preemption is implemented. Current `runs` and `rites` queues
 and scalar priorities remain delivery machinery. [Workflow](../../../adr/28-workflow.md#compositions-products-suites-and-schedules)
 owns this temporal design; [Workers](../../../adr/14-workers.md) owns that present machinery.

@@ -47,6 +47,7 @@ from lychd.domain.cortex.runs import RunStatus
 from lychd.domain.cortex.substrate import RunSubstrate, reset_run_substrate, set_run_substrate
 from lychd.interface.web.altar_services import build_altar_services
 from tests.agents.fakes import FakeDispatcher, FakeOrchestrator, FakeRegistry
+from tests.runtime_guards import InertSoftActivationGuard
 from tests.web.conftest import TEST_ACCESS_PASSWORD, TEST_AUTHORIZATION
 
 pydantic_ai.models.ALLOW_MODEL_REQUESTS = False
@@ -92,6 +93,7 @@ async def test_production_wiring_no_injection_queued_running_done_and_sse() -> N
         runes=RuneRegistry(()),
         runtime_adapters=[],
         profile="memory",  # DB-free: the InMemoryRunLedger
+        soft_activation_guard=InertSoftActivationGuard(),
     )
     # Replace the live dispatcher with an offline one so the graph completes without
     # a Soulstone. The publication and worker lookup still use the production memo path.
@@ -311,6 +313,7 @@ async def test_queues_api_reads_real_substrate_zero_injection(monkeypatch: pytes
         runes=RuneRegistry(()),
         runtime_adapters=[],
         profile="memory",
+        soft_activation_guard=InertSoftActivationGuard(),
     )
     _publish(services.substrate)
 
@@ -319,7 +322,9 @@ async def test_queues_api_reads_real_substrate_zero_injection(monkeypatch: pytes
     grant = SimpleNamespace(
         lease=GrantLease(grant_id="lease-1", holder="run:z", issued_at=datetime.now(UTC)), spec=spec
     )
-    services.leases.acquire(grant, priority=70)
+    services.leases.acquire(
+        grant, priority=70, admission_generation=services.leases.admission_generation(spec.animator_name)
+    )
     _ = CapabilityFamily  # imported for parity with the rest of the suite
 
     try:
@@ -431,6 +436,9 @@ def test_production_wiring_real_factory_over_postgres_survives_second_boot(  # n
     reactor_journal.mkdir()
     reactor_inbox.chmod(0o700)
     reactor_journal.chmod(0o700)
+    guard_directory = tmp_path / "runtime-guard"
+    guard_directory.mkdir(mode=0o700)
+    monkeypatch.setattr("lychd.system.constants.PATH_RUNTIME_GUARD_DIR", guard_directory)
 
     monkeypatch.setattr(
         rune_registry_module,

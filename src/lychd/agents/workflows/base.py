@@ -104,7 +104,10 @@ class PatternNode:
     implementation: type[Any] | None = field(default=None, repr=False, compare=False)
 
     def __post_init__(self) -> None:
-        """Require renderer-independent identity and an implementation for executable stations."""
+        """Require a known station kind, stable identity, and its declared implementation."""
+        if self.kind not in {"step", "gate", "delegate", "terminal"}:
+            msg = f"Unknown Pattern node kind: {self.kind!r}."
+            raise ValueError(msg)
         if not self.key or not self.label:
             msg = "Pattern nodes require non-empty keys and labels."
             raise ValueError(msg)
@@ -146,6 +149,12 @@ class PatternEdge:
     source: str
     target: str
     relation: Literal["permits"] = "permits"
+
+    def __post_init__(self) -> None:
+        """Keep every declared edge a permission to traverse the score."""
+        if self.relation != "permits":
+            msg = "Pattern edges must declare relation='permits'."
+            raise ValueError(msg)
 
     def snapshot(self) -> dict[str, str]:
         """Return the safe persisted projection."""

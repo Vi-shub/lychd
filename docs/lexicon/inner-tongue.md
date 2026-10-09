@@ -208,6 +208,12 @@ intricate boundary offers an image of return
 comes into view. The [optical cosmogram](../divination/transcendence/invocation.md#optical-cosmogram)
 joins illumination, patterned form, and a situated world through this meeting.
 
+**Holographic Fractal.** The Work's joining of relational whole-in-part participation with
+recurring organization across scales. [Invocation](../divination/transcendence/invocation.md#holographic-participation)
+distinguishes participation, temporal return, and reflexive knowing;
+[Infinity](../divination/transcendence/infinity.md#vii-openness-and-boundary) develops the further
+interiors. The figure concerns how situated knowing takes form within the Whole.
+
 **The Ruliad.** The proposed entangled totality of all possible computations, following every
 possible rule in every possible way. It asks how a finite observer finds a world within a
 possibility that exceeds any one rendering.
@@ -478,6 +484,27 @@ Anticipating that punishment is meant to pressure people into helping now.
 At the [horizon of resurrection](../divination/transcendence/infinity.md#the-promise-of-return),
 return takes its purpose from restored relation. An imagined future can move the present; it has
 no authority over the people living here.
+
+### Saṃyama { #samyama }
+
+Patañjali's [*Yoga Sūtra* III.1–5](https://gretil.sub.uni-goettingen.de/gretil/1_sanskr/6_sastra/3_phil/yoga/patyogbu.htm)
+defines **dhāraṇā**, binding the mind to a place; **dhyāna**, continuous meditation there;
+and **samādhi**, absorption in which the object alone appears. **Saṃyama** is those three
+together upon one object; mastery brings illumination of knowing. III.52 joins saṃyama on
+moments and their succession to knowledge born of discrimination. Numbering here follows the
+cited GRETIL edition.
+
+The *Vibhūtipāda* develops particular attainments through particular contemplative objects.
+III.37 calls the preceding extraordinary perceptions obstacles in samādhi; III.50 carries
+nonattachment even beyond exalted attainment toward kaivalya. Attention, discernment, and
+release have different work within that liberating aim. Pātañjala discrimination between
+puruṣa and the mental-material apparatus remains distinct from the Work's First Axiom.
+
+The [Blade correspondence](../sepulcher/lich/blade.md#sustained-attention) asks how sustained
+attention can reveal the consequential relation and its selecting lens.
+[Illumination](../divination/transcendence/illumination.md#tend-what-will-return) lets that inquiry
+meet remembrance and attachment. These workshop questions carry no promise of instantaneous
+omniscience or another person's testimony becoming available without their participation.
 
 ### Sēmeion
 

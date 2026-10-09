@@ -4,18 +4,19 @@ title: Presence & Embodiment
 
 # Presence & Embodiment
 
-Enter through a social setting, virtual world, presentation, or physical device. Avatar owns
-presentation while each target retains its local judgment; Companion owns mobile sessions while
-Familiar retains body safety. These distinctions guide the Area's routes.
+Where should the encounter happen: a social channel, a virtual place, or a physical device?
+Choose the owner of that setting below. Avatar can carry the Lich's appearance across settings;
+each place still judges what may happen there. On a phone, Companion keeps the session while
+Familiar keeps the body's capabilities and safety.
 
 | Composition | Outcome |
 | --- | --- |
-| [Blockworld](../blockworld/index.md) | A finite mission with verified, recoverable world effects. |
-| [Reach](../reach/index.md) | A bounded social turn, summon, or admitted presence effect. |
-| [Avatar](../avatar/index.md) | An attributable Lich presentation projected into separately admitted places, with honest partial settlement. |
-| [Spectre](../spectre/index.md) | An admitted VR Habitat and bounded Encounter, completed, safely exited, or interrupted. |
-| [Familiar](../familiar/index.md) | An admitted physical body and bounded real-world task or presence that settles honestly. |
-| [Companion](../companion/index.md) | A configurable mobile client and bounded device session over an exact admitted phone-shaped Familiar body. |
+| [Blockworld](../blockworld/index.md) | One finite mission in a block world, with evidence of what changed and a way to recover. |
+| [Reach](../reach/index.md) | One bounded social turn, summon, or presence effect in an admitted external place. |
+| [Avatar](../avatar/index.md) | The Lich’s chosen appearance across places, with each projection’s outcome kept distinct. |
+| [Spectre](../spectre/index.md) | A virtual place and a bounded meeting that people can enter, leave, or interrupt. |
+| [Familiar](../familiar/index.md) | A physical body carrying a bounded task or presence, with its local limits and outcome preserved. |
+| [Companion](../companion/index.md) | A configurable phone client for bounded sessions over an admitted Familiar body. |
 
 Companion's first client target is native Android. Communion is its bounded interaction route,
 not another Composition or Product. [The worked handoffs](../products-and-suites.md#avatar-and-spectre)

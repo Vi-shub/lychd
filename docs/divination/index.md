@@ -5,29 +5,28 @@ icon: fontawesome/solid/ankh
 
 # :fontawesome-solid-ankh: Divination
 
-**Divination** follows an encounter: the Magus offers an Intent, witnesses a return, and
-decides what deserves consent, correction, refusal, or another question. The Altar opens onto
-the work before you. Transmutation follows its changes; Transcendence follows the wider
-horizon of those encounters.
+You bring an intention to the machine and meet what comes back. The return may call for consent,
+correction, refusal, or a better question. **Divination** follows that encounter from the work
+before you to the life it may help form.
 
 <span id="the-two-doors"></span>
 
 ## Routes through Divination
 
-**[Enter the Altar](./altar/index.md)** when there is work before you. Begin in Bridge and follow
-one Run through its result, retained evidence, declared score, and any correlated physical
-transition. Open [Atlas](./altar/atlas.md) when an undertaking needs a continuing brief, concerns,
-and decisions across those encounters. For a first life, complete [Summoning](../summoning.md)
-before crossing this threshold.
+**[Enter the Altar](./altar/index.md) to act and inspect.** Begin in Bridge, where a request can
+be followed through one Run: what returned, what evidence remains, which declared score guided
+the work, and any correlated physical transition. [Atlas](./altar/atlas.md) holds the continuing
+brief, concerns, and decisions of a larger undertaking. To give the daemon its first life,
+complete [Summoning](../summoning.md) before crossing this threshold.
 
-**[Enter Transmutation](transmutation/index.md)** to follow creation through experience and
-return: Genesis, Trial, Canon, Revelation, and Distillation. The Tree of Life illuminates the
+**[Enter Transmutation](transmutation/index.md) to learn from making.** Follow creation through
+experience and return: Genesis, Trial, Canon, Revelation, and Distillation. The Tree of Life illuminates the
 relations within this Ouroboros cycle; [Weaver's Creation](../sepulcher/extensions/weaver/creation.md)
 carries its software-development application.
 
-**[Follow Transcendence](./transcendence/index.md)** when the encounter raises a larger question.
-Its fivefold path follows the formation of a recurrent relation: how it begins, imagines,
-remembers, survives rupture, and meets the Many. Reading needs no installation. This is the door
+**[Follow Transcendence](./transcendence/index.md) to ask what this relation may become.** Its
+fivefold path follows how a recurrent life begins, imagines, remembers, survives rupture, and
+meets the Many. Reading needs no installation. This is the door
 made for the long weather of meaning.
 
 Beside the path, **[Correspondence](./correspondence.md)** brings modern brain and learned-system

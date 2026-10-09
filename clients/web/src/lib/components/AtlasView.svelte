@@ -31,6 +31,7 @@
     { value: "review", label: "Needs review" }, { value: "insufficient", label: "Insufficient" },
     { value: "disputed", label: "Disputed" }, { value: "sufficient", label: "Sufficient" }
   ];
+  const concernObservations = concernFilters.filter((filter) => filter.value !== "all" && filter.value !== "sufficient");
   type Editor = {
     mode: Mode;
     baseVersion: number;
@@ -108,6 +109,10 @@
   let pinnedConcern = $derived(view?.concerns.find((concern) =>
     (editor?.mode === "concern" || editor?.mode === "assessment") && editor.concern_id === concern.id && !matchesConcern(concern)
   ));
+  let concernCounts = $derived(concernObservations.map((filter) => ({
+    ...filter,
+    count: view?.concerns.filter((concern) => concernState(concern) === filter.value).length ?? 0
+  })));
   let currentDecisions = $derived((view?.decisions ?? []).filter(
     (decision) => !view?.decisions.some((other) => other.supersedes_id === decision.id)
   ).toReversed());
@@ -349,6 +354,13 @@
   function matchesConcern(concern: AtlasConcern) {
     return (concernFilter === "all" || concernState(concern) === concernFilter) &&
       `${concern.statement} ${concern.criteria}`.toLocaleLowerCase().includes(concernQuery.trim().toLocaleLowerCase());
+  }
+
+  function clearConcernFilters() {
+    if (editor) return;
+    concernFilter = "all";
+    concernQuery = "";
+    document.getElementById(`${uid}-concern-query`)?.focus();
   }
 
   function activityName(reference: AtlasReference) {
@@ -829,42 +841,31 @@
   {:else if view}
     <div class="project-detail">
       <nav class="section-nav" aria-label="Project sections">
-        <a href={`#${uid}-brief-title`}>Brief &amp; next step</a>
         <a href={`#${uid}-concerns-title`}>Concerns · {view.concerns.length}</a>
+        <a href={`#${uid}-brief-title`}>Brief &amp; next step</a>
         <a href={`#${uid}-decisions-title`}>Decisions · {currentDecisions.length}</a>
         <a href={`#${uid}-references-title`}>Linked activity · {view.references.length}</a>
       </nav>
       {#if conflict && latestLoaded}<p class="review-note">Latest saved information is shown below. Your draft above has not been applied.</p>{/if}
-      <section class="panel overview" aria-labelledby={`${uid}-brief-title`}>
-        <header class="section-heading">
-          <h2 id={`${uid}-brief-title`} tabindex="-1">Brief</h2>
-          <button type="button" disabled={editorLocked || loading} onclick={() => openEditor("project")}>Edit project</button>
-        </header>
-        <div class="overview-body">
-          <div class="overview-brief">
-            <p class="prose">{view.brief || "No brief recorded yet."}</p>
-            <p class="metadata">Updated <time datetime={view.updated_at}>{date(view.updated_at)}</time></p>
-          </div>
-          <div class="next-step">
-            <h3>Proposed next step</h3>
-            <p class="prose">{view.next_action || "No next step recorded."}</p>
-            <nav class="next-links" aria-label="Continue in Bridge">
-              <a href={`/bridge?choose=conversation&project=${encodeURIComponent(view.id)}`}>Choose or start a conversation →</a>
-              {#each continuationTargets as { targetId, note } (targetId)}
-                <a href={`${referenceHref({ kind: "session", target_id: targetId })}?project=${encodeURIComponent(view.id)}`}>{note || "Conversation"} · {targetId} →</a>
-              {/each}
-            </nav>
-            <p class="field-help">Choose a conversation or start one in Bridge. Project context is not sent automatically.</p>
-          </div>
-        </div>
-      </section>
-
+      <div class="project-reading">
       <section aria-labelledby={`${uid}-concerns-title`}>
         <header class="section-heading">
           <div><h2 id={`${uid}-concerns-title`} tabindex="-1">Concerns <span class="metadata">{view.concerns.length}</span></h2></div>
           <button class="primary" type="button" disabled={editorLocked || loading} onclick={() => openEditor("concern")}>Add concern</button>
         </header>
         {#if view.concerns.length > 1}
+          <div class="concern-counts" role="group" aria-label="Concern assessments">
+            {#each concernCounts as observation (observation.value)}
+              <button
+                type="button"
+                aria-label={`${observation.count} ${observation.label}`}
+                aria-pressed={concernFilter === observation.value}
+                disabled={Boolean(editor)}
+                onclick={() => { concernFilter = concernFilter === observation.value ? "all" : observation.value; }}
+              ><strong>{observation.count}</strong><span>{observation.label}</span></button>
+            {/each}
+          </div>
+          <p class="field-help">Counts describe recorded judgments. Earlier judgments with a changed basis count as needing review.</p>
           <div class="concern-filters">
             <div><label for={`${uid}-concern-query`}>Find a concern</label><input id={`${uid}-concern-query`} type="search" bind:value={concernQuery} disabled={Boolean(editor)} placeholder="Search questions and conditions" /></div>
             <div><label for={`${uid}-concern-filter`}>Assessment</label>
@@ -875,7 +876,12 @@
               </select>
             </div>
           </div>
-          <p class="metadata" role="status">Showing {visibleConcerns.length} of {view.concerns.length} concerns</p>
+          <div class="filter-result">
+            <p class="metadata" role="status">Showing {visibleConcerns.length} of {view.concerns.length} concerns</p>
+            {#if concernFilter !== "all" || concernQuery.trim()}
+              <button type="button" disabled={Boolean(editor)} onclick={clearConcernFilters}>Clear concern filters</button>
+            {/if}
+          </div>
           {#if pinnedConcern}<p class="field-help">The concern being edited stays visible while you compare changes.</p>{/if}
         {/if}
         <ul class="record-list">
@@ -894,6 +900,23 @@
                   <h4>{needsReview(concern, latest) ? "Earlier" : "Latest"} judgment: {judgmentNames[latest.judgment]}</h4>
                   <p class="prose">{latest.rationale}</p>
                   <p class="metadata">Recorded by {latest.author} · <time datetime={latest.created_at}>{date(latest.created_at)}</time></p>
+                  {#if needsReview(concern, latest)}
+                    <details class="basis-comparison">
+                      <summary>Compare with judged basis</summary>
+                      <div class="basis-columns">
+                        <section aria-label="Judged basis">
+                          <h4>Judged then</h4>
+                          <p class="metadata">Concern revision {latest.concern_revision} · Brief revision {latest.brief_revision}</p>
+                          <dl><dt>Concern</dt><dd class="prose">{latest.statement}</dd><dt>Satisfaction conditions</dt><dd class="prose">{latest.criteria || "None recorded"}</dd><dt>Brief</dt><dd class="prose">{latest.brief || "None recorded"}</dd></dl>
+                        </section>
+                        <section aria-label="Current basis">
+                          <h4>Current requirements</h4>
+                          <p class="metadata">Concern revision {concern.revision} · Brief revision {view.brief_revision}</p>
+                          <dl><dt>Concern</dt><dd class="prose">{concern.statement}</dd><dt>Satisfaction conditions</dt><dd class="prose">{concern.criteria || "None recorded"}</dd><dt>Brief</dt><dd class="prose">{view.brief || "None recorded"}</dd></dl>
+                        </section>
+                      </div>
+                    </details>
+                  {/if}
                   {#if latest.reference_ids.length}
                     <p class="field-help">Cited in this judgment</p>
                     <ul class="assessment-references">
@@ -946,13 +969,40 @@
             </li>
           {:else}
             {#if view.concerns.length}
-              <li class="panel empty"><p>No concerns match these filters.</p><button type="button" onclick={() => { concernFilter = "all"; concernQuery = ""; }}>Show all concerns</button></li>
+              <li class="panel empty"><h3>No matching concerns</h3><p>No concerns match these filters.</p><p>Try another question or assessment, or return to all {view.concerns.length} concerns.</p><button type="button" onclick={clearConcernFilters}>Show all concerns</button></li>
             {:else}
               <li class="panel empty"><h3>What deserves attention?</h3><p>Add a question, requirement, or concern. It can exist before there is any result to assess.</p></li>
             {/if}
           {/each}
         </ul>
       </section>
+
+      <section class="panel overview" aria-labelledby={`${uid}-brief-title`}>
+        <header class="section-heading">
+          <h2 id={`${uid}-brief-title`} tabindex="-1">Project context</h2>
+          <button type="button" disabled={editorLocked || loading} onclick={() => openEditor("project")}>Edit project</button>
+        </header>
+        <div class="overview-body">
+          <details class="overview-brief" open={view.concerns.length === 0}>
+            <summary>Brief</summary>
+            <p class="prose">{view.brief || "No brief recorded yet."}</p>
+            <p class="metadata">Updated <time datetime={view.updated_at}>{date(view.updated_at)}</time></p>
+          </details>
+          <div class="next-step">
+            <h3>Proposed next step</h3>
+            <p class="prose">{view.next_action || "No next step recorded."}</p>
+            <nav class="next-links" aria-label="Continue in Bridge">
+              <a href={`/bridge?choose=conversation&project=${encodeURIComponent(view.id)}`}>Choose or start a conversation →</a>
+              {#each continuationTargets as { targetId, note } (targetId)}
+                <a href={`${referenceHref({ kind: "session", target_id: targetId })}?project=${encodeURIComponent(view.id)}`}>{note || "Conversation"} · {targetId} →</a>
+              {/each}
+            </nav>
+            <p class="field-help">Choose a conversation or start one in Bridge. Project context is not sent automatically.</p>
+          </div>
+        </div>
+      </section>
+
+      </div>
 
       <div class="supporting-grid">
         <section class="panel supporting" aria-labelledby={`${uid}-decisions-title`}>
@@ -1039,7 +1089,7 @@
   button:hover:not(:disabled) { border-color: var(--color-rune); }
   button.primary { color: var(--color-rune); border-color: var(--color-rune-dim); background: color-mix(in srgb, var(--color-rune) 8%, var(--color-obsidian)); }
   button:disabled { opacity: 0.55; cursor: not-allowed; }
-  :is(button, a, input, select, textarea, summary):focus-visible { outline: 2px solid var(--color-rune); outline-offset: 3px; }
+  :is(button, a, input, select, textarea, summary, h2, h3):focus-visible { outline: 2px solid var(--color-rune); outline-offset: 3px; }
   .actions { justify-content: flex-start; }
   .panel { border: 1px solid var(--color-engraving); border-radius: var(--radius-panel); background: var(--color-obsidian); }
   .section-heading { margin-bottom: 1rem; align-items: flex-start; }
@@ -1074,6 +1124,18 @@
   .citation-choice > a { justify-self: start; margin-left: 1.85rem; min-height: 2.5rem; display: inline-flex; align-items: center; }
   .concern-filters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(12rem, 0.5fr); gap: 1rem; margin-bottom: 0.6rem; }
   .concern-filters label { margin-top: 0; }
+  .concern-counts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.65rem; }
+  .concern-counts button { display: grid; gap: 0.15rem; text-align: left; background: var(--color-obsidian); }
+  .concern-counts strong { font: 400 1.4rem/1.25 var(--font-rune); }
+  .concern-counts span { font-size: var(--text-sm); color: var(--color-parchment); overflow-wrap: anywhere; }
+  .concern-counts button[aria-pressed="true"] { border-color: var(--color-rune); box-shadow: inset 0 -2px var(--color-rune); }
+  .concern-counts + .field-help { margin-block: 0.6rem 1.2rem; }
+  .filter-result { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.7rem; }
+  .filter-result button { font-size: var(--text-sm); background: transparent; }
+  .basis-comparison { margin-top: 1rem; border-top: 1px solid var(--color-engraving); }
+  .basis-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+  .basis-columns section { min-width: 0; }
+  .basis-columns dl { padding: 0.75rem; }
   fieldset { min-width: 0; padding: 0; margin: 0; border: 0; }
   label, legend { display: block; margin-top: 1rem; margin-bottom: 0.4rem; font-weight: 500; }
   input:not([type="checkbox"]), textarea, select {
@@ -1126,12 +1188,14 @@
   .atlas-chart__route { stroke: var(--color-rune); stroke-width: 1.5; }
   .atlas-chart__point { fill: var(--color-obsidian); stroke: var(--color-rune); stroke-width: 1.5; }
   .project-detail { display: grid; gap: 1.2rem; }
-  .overview-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.5rem; align-items: start; }
+  .project-reading { display: grid; grid-template-columns: minmax(0, 1fr) minmax(17rem, 0.46fr); gap: 1.2rem; align-items: start; }
+  .project-reading > section { min-width: 0; }
+  .overview-body { display: grid; gap: 1rem; align-items: start; }
   .overview-brief { max-width: 44rem; }
   .overview-brief .metadata { margin-top: 1rem; }
   .overview, .concern, .supporting { padding: clamp(1rem, 2vw, 1.5rem); }
   .prose { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--color-parchment); line-height: 1.65; }
-  .next-step { padding: 0 0 0 1.1rem; border-left: 2px solid var(--color-rune-dim); }
+  .next-step { padding-top: 1rem; border-top: 1px solid var(--color-engraving); }
   .record-list { display: grid; gap: 1rem; }
   .concern .section-heading h3 { flex: 1 1 18rem; }
   .criteria h4 { color: var(--color-parchment); font-weight: 500; }
@@ -1151,10 +1215,14 @@
   .decision, .reference { border-top: 1px solid var(--color-engraving); padding-top: 1rem; }
   .decision .badge { margin-block: 0.5rem; }
   .reference code { display: block; margin-top: 0.35rem; overflow-wrap: anywhere; font-size: var(--text-xs); }
+  @media (max-width: 68rem) {
+    .project-reading { grid-template-columns: minmax(0, 1fr); }
+  }
   @media (max-width: 48rem) {
     .atlas-introduction { gap: 0; }
     .atlas-chart { display: none; }
-    .supporting-grid, .form-pair, .comparison-values, .concern-filters, .overview-body { grid-template-columns: 1fr; }
+    .supporting-grid, .form-pair, .comparison-values, .concern-filters, .overview-body, .basis-columns { grid-template-columns: minmax(0, 1fr); }
+    .concern-counts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .atlas-heading { gap: 1rem; }
     .section-heading { gap: 0.8rem; }
     .atlas { padding: 1rem; }

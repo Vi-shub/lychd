@@ -5,17 +5,29 @@ icon: material/lightning-bolt-circle
 
 # :material-lightning-bolt-circle: Capabilities
 
-A **capability** is the exact versioned service contract a caller may request from an
-[Animator](./index.md). It says what operation and typed material may cross a grant; it is not a
-model name, endpoint, container, tool, Rune, Coven, or application purpose.
+Before choosing a service, name the operation the work needs. A **capability** is the exact
+versioned contract a caller may request from an [Animator](./index.md): what it may ask for, and
+which typed inputs and results may cross the grant. Model, endpoint, container, tool, Rune, Coven
+and application purpose each answer a different question.
 
-The interface/profile design below is **Designed** until source, migrations, adapters, tests, and
-operator receipts promote it. The [delivered v1 surface](#the-delivered-v1-surface) remains a narrower
-chat/model and toolset compatibility path.
+The interface/profile design described below remains **Designed** until source, migrations, adapters, tests and
+operator receipts establish delivery.
+
+## The delivered v1 surface
+
+`CapabilitySpec` uses the key
+`{animator}:{family}:{model_id}`, seven closed families, coarse input/output modality strings, and
+one compatibility grant class. `chat` grants carry a hydrated Pydantic AI model and only explicitly
+declared agent-loop toolsets; `tool_execution` grants require a non-empty toolset surface. The other
+five family labels remain routing metadata and fail closed at issue. That v1 shape supports the
+proved chat/model path, narrow toolset compatibility, and readiness mechanics. It does not prove
+executable audio, visual, embedding, rerank, service-job, or host-tool routes. [State of
+Work](../../state-of-the-work.md#animator-dispatch-spine) owns that boundary.
 
 ## Interface, profile, and operation
 
-Three identities prevent a model catalogue from becoming an unsafe universal router:
+For the designed interface/profile path, distinguish the contract you need from the exact
+implementation that can fulfill it and the act you are requesting now:
 
 | Record | Question it answers | Example |
 | --- | --- | --- |
@@ -33,40 +45,6 @@ Image input may enrich `model.chat@1`; it does not become precise Sight. Audio o
 model does not become an eligible speech synthesizer. A Comfy graph that can produce an image and
 a video exposes two proved interfaces or operations only when each contract closes. `tool` is not
 an interface that means every side effect.
-
-## The delivered v1 surface
-
-The currently delivered spine is narrower: `CapabilitySpec` uses the key
-`{animator}:{family}:{model_id}`, seven closed families, coarse input/output modality strings, and
-one compatibility grant class. `chat` grants carry a hydrated Pydantic AI model and only explicitly
-declared agent-loop toolsets; `tool_execution` grants require a non-empty toolset surface. The other
-five family labels remain routing metadata and fail closed at issue. That v1 shape supports the
-proved chat/model path, narrow toolset compatibility, and readiness mechanics. It does not prove
-executable audio, visual, embedding, rerank, service-job, or host-tool routes. [State of
-Work](../../state-of-the-work.md#animator-dispatch-spine) owns that boundary.
-
-## Stable identity
-
-The designed v2 key is:
-
-```text
-{animator}:{interface_id}:{profile_ref}
-```
-
-`profile_ref` is a safe stable id plus exact immutable revision or content digest; an unversioned
-mutable label is not a profile reference. The selected operation is pinned in the demand and grant
-rather than multiplied into endpoint identity. Mutable provider handles, deployment paths, and
-floating tags are not keys.
-
-Identity components are ASCII lowercase slugs with digits, dots, underscores, and hyphens; colon,
-whitespace, path separators, controls, and empty components are forbidden. An interface ends in an
-integer `@revision`. A profile reference is `profile-id@revision` or
-`profile-id@sha256-<lowercase-hex>`; the referenced record still carries the full digest. Parsing is
-structural, never a split of an unrestricted provider string.
-
-Existing v1 keys remain legible only through an explicit compatibility projection from exact
-family/model pairs to exact interfaces and profiles. A migration never silently reinterprets a
-persisted key, and no unknown family is converted to a generic service.
 
 ## Capability demand
 
@@ -190,6 +168,29 @@ queues, stopping, reconciliation, and evidence. Core's future `SessionGrant` sup
 technical admission, lease/reservation, and late-output fencing requirements. A common mechanical
 session envelope may be accepted only after those owners expose genuinely shared invariants; until
 then their records remain distinct and Designed.
+
+## Stable identity
+
+The designed v2 key is:
+
+```text
+{animator}:{interface_id}:{profile_ref}
+```
+
+`profile_ref` is a safe stable id plus exact immutable revision or content digest; an unversioned
+mutable label is not a profile reference. The selected operation is pinned in the demand and grant
+rather than multiplied into endpoint identity. Mutable provider handles, deployment paths, and
+floating tags are not keys.
+
+Identity components are ASCII lowercase slugs with digits, dots, underscores, and hyphens; colon,
+whitespace, path separators, controls, and empty components are forbidden. An interface ends in an
+integer `@revision`. A profile reference is `profile-id@revision` or
+`profile-id@sha256-<lowercase-hex>`; the referenced record still carries the full digest. Parsing is
+structural, never a split of an unrestricted provider string.
+
+Existing v1 keys remain legible only through an explicit compatibility projection from exact
+family/model pairs to exact interfaces and profiles. A migration never silently reinterprets a
+persisted key, and no unknown family is converted to a generic service.
 
 ## Runes, Runes in groups, and placement
 

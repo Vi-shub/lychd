@@ -6,7 +6,7 @@ icon: material/language-html5
 # :material-language-html5: 15. Frontend
 
 !!! abstract "Context and Problem Statement"
-    The Altar gives a browser form to conversation, selected-Run evidence, capability transitions,
+    The Altar gives a browser form to conversation, bounded Run evidence, capability transitions,
     and Pattern inspection. It is a disposable projection: Litestar and the Phylactery retain
     validation, policy, lifecycle, and durable mutation. Static output needs no JavaScript production
     server; it does not make browser state authoritative or the loopback surface safe for hostile
@@ -69,9 +69,9 @@ owns delivery.
 | --- | --- | --- |
 | Atlas | Versioned Projects, concerns, attributed judgments, decisions, next steps, and explicit activity references | Initial planning surface; no autonomous continuation or automatic coverage. |
 | Bridge | Session selection, single-active-Run text admission, reconstruction, semantic stream, consent, and closed fragments | Partial: text only; live reconstruction and tokens are process-local. |
-| Orb | One selected Run's ordered, paged structural evidence, gaps, capture label, and links | Partial: no index, tail, complete trace store, annotation, or multi-Run field. |
+| Orb | Paged Run catalogue, parallel graph field, and bounded selected-Run evidence feeds with gaps, capture labels, and links | Partial: no complete trace store, nested subworkflow identity, or annotation. |
 | Nexus | Timestamped capability observations, non-binding plan preview, typed request, and ticket stream | Partial: observations and tickets are process-local and not restart-complete. |
-| Loom | Immutable Scroll/Pattern-revision reader, station/permission outline, optional Mermaid lens | Partial: fixed registry reader without independent Spell identities, editing, teaching, or publication. |
+| Loom | Immutable Scroll/Pattern-revision graph and station/permission outline | Partial: fixed registry reader without independent Spell identities, editing, teaching, or publication. |
 
 The shell owns navigation, source identity, pending-consent count, and transient notices; an
 instrument owns route-local presentation. `/scrying`, `/reliquary`, `/bindings`, and ambiguous
@@ -79,7 +79,7 @@ unversioned Loom detail are deliberately not routes. Scrying is Orb's act, not a
 Artifact references and configuration observations are contextual projections, not browser custody
 or configuration authority.
 
-The browser shell may retain drafts by exact session and the last selected Orb destination for
+The browser shell may retain drafts by exact session and explicit review destinations for
 its own lifetime. This is recoverable navigation state, not a durable dossier or execution truth.
 Cross-instrument links preserve an explicit Run and selected event where supported; returning to
 Bridge focuses that Run's turn. A stale or unavailable selection is reported, never silently
@@ -89,6 +89,42 @@ replaced with another Run.
 contract. One Bridge séance may contain many Invocation/Run projections; a future Circle focus may
 compose authorized Loom, Nexus, and Orb lenses around exactly one of them without importing their
 authority into browser state. The current run strip is only its delivered seed.
+
+### User-specific working interfaces
+
+The [Ward account and profile contract](38-iam.md#profiles-and-working-interfaces) permits different
+Users of one instance to receive different applications, navigation, screens, and workflow views.
+The built-in operator instruments are not a compulsory interface for every household member,
+guest, or employee. A shared client may select named working views, and a dedicated client may
+present a narrower application experience; neither becomes a separate identity or effect authority.
+
+The server supplies only the projection authorized for the current Principal and objects. The
+client applies admitted presentation defaults and device affordances, not permission inferred from
+a profile label. Opening a route or hiding a control grants no data or action access. Different
+views of one Run preserve its identity and admitted score; workflow state and current authority
+jointly constrain offered actions.
+
+Client connection choice is not mobile-only. Browser and native clients may offer saved
+instance/account selections and refresh their working interface during use. A browser may navigate
+to an instance-served frontend or, where explicitly supported, select another backend within a
+persistent client; dedicated fixed-instance clients remain valid. These are optional client
+designs, not requirements for a universal client or simultaneous connections. Interface refresh
+uses supported presentation contracts; it does not admit arbitrary remote UI code.
+
+Selecting another account or instance is distinct from changing a working view, or reaching the
+same verified instance through another network address. Each selected context uses its own
+applicable credentials and current Ward authority. A switch does not itself transfer history,
+admitted sessions, or active work, imply cancellation of server work, or authorize replay at the
+new destination.
+
+Client state must remain bound to the selected instance and account. Switching either, signing
+out, or losing access clears or isolates affected drafts, cached records, subscriptions, and
+pending presentation so another user cannot inherit them. Outstanding requests and callbacks
+remain bound to their originating context: late results cannot populate another context, and
+pending submissions cannot be retargeted by a connection change. Reconnect revalidates access
+before receiving protected state or submitting work. These requirements do not turn the fixed local
+bootstrap into a delivered multi-user browser surface; [State](../state-of-the-work.md#remote-iam)
+retains that boundary.
 
 ### Reading hierarchy and visual direction
 
@@ -101,7 +137,7 @@ graph, or separate owners of the same action. Each has a different primary readi
 | --- | --- | --- |
 | Atlas | Concerns, their decomposition and where they are addressed; current assessment basis; optional Project brief and next step | An optional selected-concern relation lens distinguishing decomposition, sources, addressing, and assessment citations. |
 | Bridge | Conversation and offered text; the exact Run's reply, consent or unresolved admission; next draft | No default graph. A future Circle composes authorized lenses around one Invocation. |
-| Orb | Selected Run and capture limits; ordered evidence; selected record; bounded delegated jobs | Recorded subject lanes may aid reading order; they never invent elapsed time, causality, or a complete traversal. |
+| Orb | Parallel Run groups; selected Run and capture limits; ordered evidence; selected record; bounded delegated jobs | Zoom discloses supplied Run, station, occurrence, and record membership; declared permissions and observed records remain distinct. |
 | Nexus | Snapshot and containment; observed capabilities; explicit preview and request; ticket and physical observations | A native board remains primary. Planned evictions and launches are more useful than an inferred topology map. |
 | Loom | Exact registered revision and entry; stations and allowed successors; selected station; immutable identity | A read-only score can explain declared branches, joins, and loops, using the same permission data as its outline. |
 
@@ -127,10 +163,14 @@ licence or source-distribution obligations.
 
 Graph and list are two views of the same supplied identities and relations. In Loom an edge means
 only a declared permission: placement cannot invent a branch condition, read/write effect, or
-observed transition. In Orb order and subject lanes describe retained records, with unknown
+observed transition.
+
+In Orb order and subject lanes describe retained records, with unknown
 subjects and gaps explicit across the view. Equal spacing is ordinal unless a served timestamp
 supports an explicitly labelled time axis. Job and Run sequences remain separate unless the
-server supplies their correlation. In Atlas, decomposition, source inspiration, and where a
+server supplies their correlation.
+
+In Atlas, decomposition, source inspiration, and where a
 concern is addressed remain distinct from the evidence chain: concern, assessment, cited
 reference, and activity destination. A shared destination cannot collapse the reference records
 or make an uncited relation into evidence. A selected-concern list precedes any optional diagram
@@ -155,7 +195,7 @@ identity, or persuasive copy cannot supply those contracts.
 
 Atlas maps Concerns: what needs attention, how it decomposes, where it is addressed, and what
 supports a judgment. A Concern can begin with an idea or question before any Project exists.
-The independent Concern contract is [Designed](#independent-concerns-decomposition-and-addressing-designed).
+The independent Concern contract is [Designed](#independent-concerns-decomposition-and-addressing).
 The initial server-owned Project aggregate holds a
 brief, concerns, attributed assessments and decisions, a proposed next action, and explicit
 references to existing Bridge sessions or Runs. A Project may begin without a conversation or Run
@@ -205,7 +245,7 @@ does not establish whether that earlier write committed.
 automatic concern coverage, autonomous continuation, graph clustering, and implicit shared
 Context remain outside this initial contract.
 
-### Independent Concerns, decomposition, and addressing (Designed)
+### Independent Concerns, decomposition, and addressing
 
 A Concern has its own stable identity, authorization owner, revisioned statement, and optional
 criteria. It can stand alone, concern an idea or an application, or participate in explicitly
@@ -263,7 +303,7 @@ regeneration proposes a comparison instead of overwriting authored meaning. A so
 requires review of affected derivations without silently rewriting them. Generated proposals do
 not adopt a Covenant, assess coverage, publish an application, or admit execution by themselves.
 
-[Persistence](06-persistence.md#independent-concern-retention-designed) owns retention and
+[Persistence](06-persistence.md#independent-concern-retention) owns retention and
 migration. The initial Project aggregate and activity-only references do not implement this
 independent identity, relation model, or proposal flow; [State](../state-of-the-work.md#atlas-projects)
 keeps that delivery boundary explicit.
@@ -343,6 +383,12 @@ and failure before the first event all release the reservation. A stream limit n
 settled turn or changes Run execution. Existing bounded subscriber queues still replace overflow
 with explicit `resync`, and browser reconnect uses its transport backoff.
 
+The browser also bounds pending Run envelopes to 256 while an authoritative refetch is in flight.
+Overflow closes that subscription and invokes bounded snapshot recovery; teardown clears pending
+envelopes and fences late completion. A permanently closed native EventSource requires explicit
+recovery rather than a claim that browser retries continue. This is an envelope-count limit, not
+a payload-byte limit or a deadline for the snapshot request.
+
 The client seeds from the snapshot cursor, serially validates and reduces events, ignores applied
 sequence numbers, and refetches on gap or `resync`. Its initial cursor is reducer state: the
 current `EventSource` constructor does not send an explicit cursor. A run or ticket identity
@@ -363,12 +409,33 @@ identity. Orb pagination likewise merges only when both the requested and curren
 name the same Run; its Loom link additionally requires the entire valid pinned manifest to equal the
 registered revision, as worker replay does.
 
+Orb's catalogue reads metadata across Run statuses in newest-first creation-time/id pages, with
+an opaque continuation cursor and at most 50 identities per request. It does not hydrate prompts,
+manifests, or event histories. A selected snapshot supplies a workflow graph only when its full
+pinned manifest equals the registered revision; a missing graph remains explicit.
+
+Orb's separate retained-evidence SSE polls the ledger once per second, serving at most 100 records
+per batch under the shared HTTP stream budget. Its versioned `evidence`, `reset`, and `settled`
+envelopes bind Run identity, requested `after_seq`, delivered `cursor`, and the safe snapshot.
+Live reads start at the snapshot's ledger head while history pagination keeps its own boundary.
+`Last-Event-ID` overrides the initial query cursor on reconnect. Metadata-only updates may retain
+the cursor; omitted sequence intervals remain explicit gaps. A future cursor requires snapshot
+replacement. Ledger-terminal status drains the currently retained account before `settled` closes
+the feed; this does not promise that every best-effort observation was retained. Token deltas and
+private bodies never enter this feed. Slow readers delay their next bounded read without queuing
+producer events. Disconnect closes the source and releases its reservation.
+
+The parallel field opens at most three Run lenses and keeps at most 100 records in each. Its
+counts describe loaded membership, and omitted older records remain available through selected-Run
+pagination. Run changes, closed lenses, and teardown fence callbacks and abort owned reads.
+
 #### Teardown
 
 Component destruction advances the same local authority boundary. A request that settles after
 teardown cannot attach a stream, mutate component state, schedule another poll, or navigate. Loom
-uses its load generation for this rule; Orb aborts owned snapshot and pagination reads as it
-advances that generation; Bridge and Nexus additionally fence stream callbacks and timers.
+uses its load generation for this rule; Orb aborts owned catalogue, snapshot, and pagination reads
+and closes its streams as it advances that generation; Bridge and Nexus likewise fence stream
+callbacks and timers.
 
 ### Closed rendering, readable form
 
@@ -430,16 +497,21 @@ pass; the settling read cannot erase a newer invalidation.
 #### Renderer and native CSS boundaries
 
 Extensions have no UI source, template, script, import, or third-party sandbox surface.
-`@xyflow/svelte` is admitted for Loom but not installed; State owns delivery. Loom's optional
-locally bundled Mermaid diagram runs in strict
-security mode and derives its stations and permission endpoints from the admitted manifest,
-including declared durable re-entry. Each rendering owns a disposable DOM target; replacing the
-score or destroying the lens detaches that target and invalidates a pending import. Its textual
-station/permission score remains visible and authoritative on rendering failure. Plain-text source lives below `/api/v1/loom/source/workflows/{workflow}` and
+Loom and Orb use one `@xyflow/svelte` adapter over their immutable semantic projections. Its
+coordinates, camera, selection, and motion remain disposable presentation. The keyboard-operable
+station outline, Run list, and record inspectors remain available when rendering fails. Neither
+canvas admits publication, execution, connection editing, or durable layout mutation. Installation
+does not discharge the lifecycle and semantic-twin admission gates below; State owns the receipt.
+Plain-text source lives below `/api/v1/loom/source/workflows/{workflow}` and
 `/api/v1/loom/source/patterns/{pattern_id}/{revision}` so every legal two-segment exact Pattern route
-remains addressable. Mermaid source is not Pattern data. A later renderer must isolate DTO identity from
-renderer coordinates, treat geometry and motion as disposable, deny publication/execution from a
-read-only view, and keep a keyboard-operable outline, list, table, or timeline.
+remains addressable. Mermaid source is not Pattern data.
+
+Recorded graph playback uses an explicit Run sequence cursor over loaded structural evidence.
+It filters node observations and supplied Animator grant identities at that cursor, while current
+Run status and connection state remain separately labelled. A grant records selection, not a
+model-call duration or an Animator uptime interval. Missing lifecycle evidence remains unknown;
+current Nexus readiness cannot fill a historical gap. Hover discloses semantic detail without
+changing selection, cursor, authority, or the declared score.
 
 Native CSS uses custom properties, cascade layers, media queries, semantic classes, and state
 attributes. Type, label, icon, shape, and copy carry meaning without colour; the stylesheet has a
@@ -452,8 +524,8 @@ Vite packages in the lockfile are not a styling API.
 
 A greenfield review compared React 19 with Vite, Node with Bun, native CSS with Tailwind,
 shared with separate Loom and Orb renderers, and a Rust/Wasm frontend. It reaffirmed the following
-architecture. The renderer and editing admissions below govern prospective work; the current
-instruments remain the narrower projections described above.
+architecture. The renderer qualification and editing gates below remain binding on the
+read-only projections described above and any later expansion.
 
 - **Svelte 5 with static SvelteKit remains the Altar framework.** React's more explicit effect
   diagnostics and React Flow's tagged renderer changes are real advantages, but renderer changes
@@ -487,7 +559,7 @@ focus-reset, asset-mount, API-404, notice, and release-artifact gate.
 
 #### XYFlow admission
 
-The XYFlow line is admitted for Loom under a corrected gate. Its [shared pan/zoom
+The shared XYFlow adapter remains subject to a measured qualification gate. Its [shared pan/zoom
 implementation](https://github.com/xyflow/xyflow/blob/main/packages/system/src/xypanzoom/XYPanZoom.ts)
 creates a `ResizeObserver` that its destroy path does not disconnect, and upstream declares that
 omission deliberate: `destroy()` also runs to pause zooming during a user selection, so
@@ -528,8 +600,10 @@ field no reader can read is not evidence, and no engine repairs that. The bounde
 its consequence, and it is what keeps a DOM renderer sufficient.
 
 Folding follows structure the authority already declares—for Orb, Run, then station subject, then
-occurrence, then event, with delegated jobs as their own declared groups. A group states its
-membership count, carries its declared name, and remains selectable and expandable through the same
+occurrence, then event, with delegated jobs as their own declared groups. Zoom may choose among
+these levels; explicit detail controls provide the same operation without a zoom gesture. A group states
+its loaded membership count, names any unknown total or unloaded members, carries its declared name,
+and remains selectable and expandable through the same
 typed identities. Geometric or computed clustering is not admitted: proximity would assert a
 relation no authority declared, and a group must never be readable as evidence LychD did not record.
 
@@ -538,6 +612,8 @@ unexpanded group whose members were never served is an explicit unknown, exactly
 gap. Bounded expansion remains a Vessel contract: authority serves what was asked for, and the
 browser holds only what it was served. Folding belongs to Loom and Orb through their shared supply;
 Nexus folds by disclosure in its own board and inherits no renderer.
+Current Pattern manifests do not supply nested subworkflow or parent-Run identities. A station,
+delegated job, or shared name cannot manufacture that hierarchy; deeper nesting remains unavailable.
 
 ### Deferred dense renderers
 

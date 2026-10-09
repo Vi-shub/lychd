@@ -7,7 +7,7 @@ icon: material/tune-variant
 
 When home loses power, should Reach go quiet, retain bounded incoming messages elsewhere, or continue as an independent restricted body? That availability choice determines where authority and credentials must live.
 
-These profiles are **Designed, not deployable**. [State of Work](../../../state-of-the-work.md#composition-portfolio-delivery) records Reach’s delivery boundary. [Configuration](../../../adr/12-configuration.md) will select one exact immutable profile, not combine loose topology switches.
+[Configuration](../../../adr/12-configuration.md) selects one exact immutable profile. The profiles below define its service placement and authority boundaries; [State of Work](../../../state-of-the-work.md#composition-portfolio-delivery) records the implementation prerequisites for deploying them.
 
 ## Choose the body
 

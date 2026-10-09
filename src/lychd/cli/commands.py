@@ -279,6 +279,74 @@ def reactor_consume() -> None:
     asyncio.run(_consume_reactor_intents())
 
 
+@reactor_group.command(name="recover-soft")
+@click.argument("activation_id")
+def reactor_recover_soft(activation_id: str) -> None:
+    """Verify stopped runtime ownership and retire one exact soft activation."""
+    import asyncio
+    import re
+
+    if re.fullmatch(r"[0-9a-f]{32}", activation_id) is None:
+        message = "expected the exact 32-character activation ID"
+        raise click.BadParameter(message, param_hint="activation_id")
+    try:
+        asyncio.run(_recover_soft_activation(activation_id))
+    except (RuntimeError, ValueError, OSError, ExceptionGroup) as exc:
+        raise click.ClickException(str(exc)) from exc
+    get_console().print(f"[green]✓[/] Retired soft activation {activation_id} after verified host recovery.")
+
+
+async def _recover_soft_activation(activation_id: str) -> None:
+    """Compose the host recovery verifier without model probes or ASGI."""
+    from contextlib import nullcontext
+
+    from lychd.config.runes.registry import load_rune_registry
+    from lychd.config.settings.root import get_settings
+    from lychd.domain.animation.services.declarations import compile_animator_declarations
+    from lychd.domain.animation.services.registry import AnimatorRegistry
+    from lychd.extensions.host import get_extensions
+    from lychd.system.constants import PATH_RUNTIME_GUARD_DIR
+    from lychd.system.host_tools import trusted_host_tool
+    from lychd.system.operator.process import SubprocessRunner
+    from lychd.system.services.lifecycle.lock import LifecycleLock
+    from lychd.system.services.runtime_guard import FileSoftActivationGuard
+    from lychd.system.services.runtime_recovery import SoftActivationRecovery
+    from lychd.system.services.runtime_topology import RuntimeTopologyAttestor
+    from lychd.system.services.scribe import ScribeService
+
+    with LifecycleLock():
+        settings = get_settings()
+        extensions = get_extensions()
+        runes = load_rune_registry(extensions)
+        registry = AnimatorRegistry(
+            declarations=compile_animator_declarations(settings=settings, runes=runes),
+            runtime_adapters=extensions.runtime_adapters,
+            portal_definitions=extensions.portal_definitions,
+        )
+        registry.load(probe_readiness=False)
+        systemctl_bin = trusted_host_tool("systemctl")
+        if systemctl_bin is None:
+            message = "Soft activation recovery cannot resolve a trusted systemctl executable."
+            raise RuntimeError(message)
+        scribe = ScribeService()
+        timeout = settings.orchestration.switching.systemctl_timeout_s
+        await SoftActivationRecovery(
+            guard=FileSoftActivationGuard(PATH_RUNTIME_GUARD_DIR),
+            registry=registry,
+            topology=RuntimeTopologyAttestor(
+                registry,
+                systemctl_bin=systemctl_bin,
+                systemctl_timeout_s=timeout,
+                owned_bindings_provider=scribe.inspect_owned_bindings,
+            ),
+            owned_bindings=scribe.inspect_owned_bindings,
+            runner=SubprocessRunner(),
+            systemctl_bin=systemctl_bin,
+            systemctl_timeout_s=timeout,
+            lock_factory=nullcontext,
+        ).recover(activation_id)
+
+
 async def _consume_reactor_intents() -> None:
     """Build host registry truth and drain the configured Reactor inbox."""
     import asyncio

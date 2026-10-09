@@ -30,12 +30,11 @@ change it or the public Pattern revision when new behavior cannot safely resume 
 not automatically detect source edits. Edge parity and return semantics must still be established
 by source review and tests.
 
-Boot assembly derives an internal `legacy_inline` resolution for each executable current station;
-the declarative terminal remains Graph `End`, not a Spell. This private lock fingerprints the
-Python node binding so a comparison can detect change while leaving the frozen v2 manifest snapshot
-and digest untouched. It is not
-persisted on Run, portable, configurable from TOML, or exposed by Loom/Orb, and therefore does not
-pretend that the portable Spell catalogue has shipped.
+The [migration contract](../../../adr/28-workflow.md#migration-without-rewritten-history)
+adds a private `legacy_inline` resolution for each executable station while preserving the frozen
+v2 manifest snapshot and digest. The terminal stays Graph `End`. [State of
+Work](../../../state-of-the-work.md#topology-a-local-runs) records evidence for this passage from
+manifest equality to separate contract and implementation bindings.
 
 The catalogue is immutable after construction. It rejects duplicate `(key, revision)` pairs,
 requires an explicit active revision when one name has alternatives, requires explicit non-default
@@ -77,7 +76,7 @@ missing workflow, or unavailable revision fails as
 Checkpoint and suspension mechanics belong to [Stasis and return](stasis-and-return.md).
 `AgentJob` and provider boundaries belong to [Delegated agents](delegated-agents.md).
 
-## Portable contracts and configuration (Designed)
+## Portable contracts and configuration
 
 Each semantic station currently behaves like a legacy inline Spell placement: key, label, kind,
 implementation closure, and edges are bound only inside its Scroll. There is no independent Spell
@@ -88,7 +87,7 @@ revoked, or unauthorized placement instead of substituting a similar name or new
 future Loom may show the absence only in an inert resolution report; an unresolved placement never
 enters an executable Graph.
 
-Future configuration follows the closed spine in [ADR 28](../../../adr/28-workflow.md#configuration-to-casting-spine-designed):
+Configuration follows the closed spine in [ADR 28](../../../adr/28-workflow.md#configuration-to-casting-spine):
 TOML selects exact registered identities and bounded policy only. Never place import paths, node
 classes, graph edges, prompts, source bytes, credentials, or live handles in a Scroll selector.
 Unknown ids and missing exact revisions are refusal, not cues for package scanning or nearest-name
@@ -166,5 +165,5 @@ generation mechanism is proved.
 
 A future scheduler would create an Occurrence and submit it through ordinary revision-pinned
 admission. Its timer never calls a Graph node, model, or container directly. [Scheduling and
-service classes](scheduling-and-service-classes.md) owns the designed temporal contract; no
-Occurrence service is implemented.
+service classes](scheduling-and-service-classes.md) owns that temporal contract and routes its
+implementation evidence.

@@ -27,6 +27,7 @@ from lychd.system.constants import (
     PATH_LAB_DIR,
     PATH_POSTGRES_ROOT_DIR,
     PATH_POSTGRESS_DATA_DIR,
+    PATH_RUNTIME_GUARD_DIR,
     PATH_SYSTEMD_UNITS_DIR,
     PATH_SYSTEMD_USER_UNITS_DIR,
 )
@@ -691,6 +692,7 @@ class Transmuter:
         """Return the trusted Vessel control-plane mounts."""
         mounts = [
             f"{PATH_CODEX_ROOT}:{PATH_CODEX_ROOT}:ro,Z",
+            f"{PATH_RUNTIME_GUARD_DIR}:{PATH_RUNTIME_GUARD_DIR}:rw,Z",
             f"{PATH_LAB_DIR}:{PATH_LAB_DIR}:rw,Z",
             f"{PATH_CORE_DIR}:{PATH_CORE_DIR}:ro,Z",
             f"{PATH_EXTENSIONS_DIR}:{PATH_EXTENSIONS_DIR}:ro,Z",

@@ -431,6 +431,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orb/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Runs */
+        get: operations["getOrbRuns"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orb/runs/{run_id}": {
         parameters: {
             query?: never;
@@ -440,6 +457,23 @@ export interface paths {
         };
         /** Run */
         get: operations["getOrbRun"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orb/runs/{run_id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Events */
+        get: operations["streamOrbRunEvents"];
         put?: never;
         post?: never;
         delete?: never;
@@ -720,10 +754,14 @@ export interface components {
         };
         /** EvidenceItem */
         EvidenceItem: {
+            animator_name?: string | null;
+            capability_family?: string | null;
             /** @enum {string} */
             capture: "process_local" | "durable_best_effort";
             event_id: string;
+            grant_id?: string | null;
             kind: string;
+            model_id?: string | null;
             nexus_path?: string | null;
             /** Format: date-time */
             occurred_at: string;
@@ -839,6 +877,34 @@ export interface components {
             snapshot_at: string;
             transitions: components["schemas"]["TransitionRecordView"][];
         };
+        /** OrbEventEnvelope */
+        OrbEventEnvelope: {
+            after_seq: number;
+            cursor: number;
+            /** @enum {string} */
+            kind: "evidence" | "reset" | "settled";
+            run_id: string;
+            /**
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+            snapshot: components["schemas"]["OrbRunSnapshot"];
+        };
+        /** OrbRunPage */
+        OrbRunPage: {
+            /** @enum {string} */
+            capture: "process_local" | "durable_best_effort";
+            next_cursor: string | null;
+            runs: components["schemas"]["OrbRunSummary"][];
+            /**
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+            /** Format: date-time */
+            snapshot_at: string;
+        };
         /** OrbRunSnapshot */
         OrbRunSnapshot: {
             /** @enum {string} */
@@ -850,10 +916,10 @@ export interface components {
             known_omissions: string[];
             ledger_head_seq: number;
             /**
-             * @default not_available
+             * @default ledger_poll
              * @constant
              */
-            live_tail: "not_available";
+            live_tail: "ledger_poll";
             next_after_seq: number | null;
             page_end_seq: number | null;
             pattern: components["schemas"]["PatternReference"];
@@ -865,6 +931,7 @@ export interface components {
             schema_version: 1;
             /** Format: date-time */
             snapshot_at: string;
+            workflow?: components["schemas"]["LoomView"] | null;
         };
         /** OrbRunSummary */
         OrbRunSummary: {
@@ -2206,6 +2273,44 @@ export interface operations {
             };
         };
     };
+    getOrbRuns: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Request fulfilled, document follows */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrbRunPage"];
+                };
+            };
+            /** @description Bad request syntax or unsupported method */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                        extra?: null | {
+                            [key: string]: unknown;
+                        } | unknown[];
+                        status_code: number;
+                    };
+                };
+            };
+        };
+    };
     getOrbRun: {
         parameters: {
             query?: {
@@ -2246,6 +2351,63 @@ export interface operations {
             };
             /** @description Additional response */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+        };
+    };
+    streamOrbRunEvents: {
+        parameters: {
+            query?: {
+                after_seq?: number;
+            };
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Bounded retained-evidence updates for one selected Run. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": components["schemas"]["OrbEventEnvelope"];
+                };
+            };
+            /** @description Bad request syntax or unsupported method */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                        extra?: null | {
+                            [key: string]: unknown;
+                        } | unknown[];
+                        status_code: number;
+                    };
+                };
+            };
+            /** @description Additional response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };

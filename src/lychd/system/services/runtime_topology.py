@@ -188,6 +188,13 @@ class RuntimeTopologyAttestor:
         """Reject stale declarations, unsafe closures, or altered loaded units."""
         expected = self._compile_expected_graph()
         self._validate_intent(intent, expected)
+        await self._attest_expected_graph(expected)
+
+    async def attest_current_topology(self) -> None:
+        """Prove owned loaded runtime topology without authorizing a transaction."""
+        await self._attest_expected_graph(self._compile_expected_graph())
+
+    async def _attest_expected_graph(self, expected: _ExpectedGraph) -> None:
         sources_by_unit = self._attest_binding_ownership(expected)
         await self._attest_loaded_target_set(expected)
 

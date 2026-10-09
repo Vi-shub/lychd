@@ -22,17 +22,30 @@ A direct link takes the form `/loom/{pattern_id}/{revision}`. Both parts are req
 
 ## Read identity, then possibility
 
-Read the three views together:
+Read the views together:
 
 | View | What to inspect |
 | --- | --- |
 | Header | `title`, `description`, `pattern_id@revision`, declared entry, and **Registered from source**. A durable publication store is not implemented. |
-| **Semantic score** | Station and permission counts; each node's `label`, `key`, `kind`, and permitted next station. |
+| **Pattern graph** | Pan and zoom through the declared score. **Whole Pattern** folds it into one group; **Stations** reveals the declared stations and permissions. |
+| **Graph outline** | Station and permission counts; each node's `label`, `key`, `kind`, declared entry and permitted successors. Select a station to inspect it. |
+| **Selected station** | Incoming and outgoing permissions with endpoint labels, keys and the declared relation; self-loops are explicit. **Back to selected station** returns keyboard focus to its row. |
 | **Identity & source** | Expand the disclosure for `checkpoint`, declared `entry`, reviewed `implementation` revision, 64-character `digest`, `trigger`, and plain-text Mermaid `source`. |
 
-The semantic score is the main reading surface. A station and its permitted edge tell you what the score allows. The optional diagram derives the same stations and permissions, including declared wait loops, from that manifest. A Run's retained evidence establishes which movements were observed.
+The workflow canvas and semantic outline derive the same stations and permissions, including
+declared wait loops, from the exact manifest. Zoom changes whole-Pattern and station detail;
+explicit buttons offer the same operation. The shared Svelte Flow renderer supplies a read-only
+computed layout. It subscribes to no execution and highlights no live station. A Run's retained
+evidence in Orb establishes which movements were observed.
 
-**Reveal** and **Hide** under **Diagram lens**, below the score, control an optional static diagram. It subscribes to no execution and highlights no live station.
+Hover or keyboard focus on a canvas node reveals its meaning and identity without selecting it.
+Escape closes that preview. The same graph adapter serves Orb; a plain canvas background keeps
+the score readable, while declared kinds remain distinct from inferred agent or tool identities.
+
+The selected station and its outline remain usable if the graph fails. **No
+outgoing permission declared** describes the manifest; it does not infer that execution has
+terminated. A failed score read offers **Retry reading Pattern**, preserving the requested exact
+revision instead of silently selecting another one.
 
 The station's kind needs care when interpreting the score. A Spell is an independently identified semantic action, and the accepted grammar places its exact contract in a Scroll-local station. Current manifests do not yet carry independent Spell identity. In particular, the distinct glyph for a `delegate` station does not establish an independent Spell contract or provider-backed execution.
 
@@ -60,21 +73,20 @@ Follow [ADR 15's editing gate](../../adr/15-frontend.md#loom-workload-and-editin
 
 ## Reading direction
 
-The next reading pass emphasizes the exact revision, registration from source, entry, station
-counts, and declared successors before secondary digest and source detail. The current semantic
-outline and optional static Mermaid lens remain the starting point. A future computed graph may
-become the wide-screen default only when it makes branches, joins, and returns easier to
-understand; narrow screens begin with the outline.
+The exact revision, source registration, entry, station counts, and declared successors should
+be legible before the reader opens digest or source detail. The computed graph has an outline
+and station inspector beside or below it as space permits. That outline must answer the same
+question without pan or zoom gestures.
 
-Both views must use the same declared nodes and permission endpoints. A station's incoming and
-outgoing permissions belong in its detail. Draw a self-loop only when declared, and say **No
-outgoing permission declared** rather than inferring execution termination. Do not invent
-conditional edge labels, station effects, independent Spell identity, or execution colours from
-placement. The read-only graph offers no handles that imply connecting, editing, publishing,
-or running the score.
+Judge every mark against the manifest. Both views share declared nodes and permission endpoints;
+station detail exposes incoming and outgoing permissions. Placement cannot supply a conditional
+edge label, station effect, independent Spell identity, or execution colour. Handles must not
+imply connecting, editing, publishing, or running this read-only score.
 
 Acceptance case: open a retained exact revision with Run context, find all permitted successors
-and a return loop using the keyboard, then disable or fail the diagram. The outline must still
+and a return loop using the keyboard, then fail the graph. The outline must still
 answer the same question and preserve selection. Return to the original Orb event; selecting a
 different Pattern discards that context. [Frontend](../../adr/15-frontend.md#reading-hierarchy-and-visual-direction)
-owns this target and the shared renderer gates; the mock diagram is not their production receipt.
+owns this target and the shared renderer gates; installation does not establish the required
+cross-engine lifecycle receipt. [State](../../state-of-the-work.md#loom-workflow-views) keeps that
+qualification separate from the available canvas.

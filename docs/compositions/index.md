@@ -5,13 +5,16 @@ icon: material/shape-outline
 
 # :material-shape-outline: Compositions
 
-A publication candidate, a musical work, a household ledger, and a bounded mission each need more than a persuasive answer. Something must keep their records after the conversation, decide what counts as finished, and account for the work that could not complete.
+A publication needs sources, editorial judgment, and a release decision. A musical work needs its own acceptance, credits, and production records. Combining them should preserve what each contribution means and who answers for it.
 
-A **Composition** is that reusable native application owner: its domain records, judgment, policies, effects, projections, and Pattern catalogue remain coherent across customers, Products, and deployments. Browse by the outcome you want to leave behind.
+A **Composition** gives that work a durable home. It keeps the application's records, judges its
+results, and governs the effects it may request. Its policies, projections, and catalogue of
+Patterns belong to the same reusable application across customers, Products, and deployments.
+Browse by the outcome you want to leave behind.
 
 ## The Portfolio
 
-These **Native Reference Compositions** are accepted first-party contracts and worked examples. [State of Work](../state-of-the-work.md#composition-portfolio-delivery) separately records delivery; membership does not make an application selectable or executable.
+These **Native Reference Compositions** are accepted first-party application contracts and worked examples. [State of Work](../state-of-the-work.md#composition-portfolio-delivery) collects their implementation evidence.
 
 ### Areas
 
@@ -31,14 +34,37 @@ coordinates live work within one Area or across several. The [Area contract](../
 keeps navigation separate from application ownership. Guides and Candidate studies remain
 separate views of explanations and proposals.
 
+## Follow a shared work
+
+[Atelier](atelier/index.md) produces accepted visuals, [Riffmaw](riffmaw/index.md) music, and
+[Language Edition](language-edition/index.md) aligned dialogue and captions.
+[Broadcast](broadcast/edit.md) admits their exact settled bundles into its timeline and judges
+the resulting editorial work. Its [release](broadcast/release.md) is a separate external act.
+
+The direction can change without erasing earlier work. A locked Broadcast master and script can
+enter Language Edition; the returned language bundle enters a new Broadcast Invocation for a
+new edition. Each owner preserves its records, acceptance, and recovery.
+
+Settled artifacts connect these applications directly. A result that must coordinate several
+owners' live Invocations—commissioning work, awaiting revisions, or recovering their execution—
+needs a **Suite**.
+The [worked handoffs](products-and-suites.md#compositions-relate-without-nesting) extend this
+relationship to household care, embodied presence, and professional casework. A **Product** gives
+the resulting application or Suite a named operator promise.
+
 ## Candidate studies
+
+These studies develop application boundaries beyond the accepted Portfolio.
+
+[Thorn](thorn/index.md) studies whitehat security casework: authorized assessment, bounded response
+during an attack, cooperative investigation, and supported reports and corrections. Monitoring
+supplies evidence; general system maintenance keeps its own owners.
 
 [Accounting Office](accounting-office/index.md) studies business documents, bank reconciliation,
 entity-owned books, asset and subscription obligations, and period close. Provider adapters and
-jurisdiction profiles vary under one proposed accounting lifecycle; the study establishes no live
-banking, filing, or supported-country capability.
+jurisdiction profiles vary under one proposed accounting lifecycle.
 
-[Workshop](workshop/index.md) tests technical-service casework outside the accepted Portfolio. Mechanic is its proposed first Product under the passenger-vehicle service profile. A candidate proposal establishes neither acceptance nor delivery.
+[Workshop](workshop/index.md) tests technical-service casework. Mechanic is its proposed first Product under the passenger-vehicle service profile.
 
 [Transmuter](transmuter/index.md) studies the passage from imported digital material to
 attributed knowledge and proposals for memory and identity. Extractor and Synthesizer are its
@@ -46,7 +72,11 @@ internal stages; naming, labeling, and classification belong to Extractor.
 
 ## The Composition test
 
-For a new idea, start with the durable result and its judgment, refusal, partial completion, unknown effects, stopping, and recovery. [Choosing a Home](choosing-a-home.md) tests whether it needs a Composition or belongs to an existing Product, profile, Pattern, projection, mechanism, reference, or Suite.
+For a new idea, ask what should remain when the conversation ends and who can judge it finished.
+Then try the difficult endings: work refused, partly completed, stopped, or interrupted with an
+effect still unknown. Who keeps that account and decides how to recover? [Choosing a Home](choosing-a-home.md)
+tests whether those responsibilities need a Composition or already belong to a Product, profile,
+Pattern, projection, mechanism, reference, or Suite.
 
 The companion guides follow the choices involved in shaping and combining applications:
 
@@ -58,3 +88,7 @@ The companion guides follow the choices involved in shaping and combining applic
 | <span id="media-owners-do-not-follow-file-extensions"></span>Who accepts each part of a compound result? | [The media comparison](choosing-a-home.md#media-owners-do-not-follow-file-extensions) locates visual work, music, language editions, picture sound, and interactive world sound by acceptance rather than codec. |
 
 <span id="how-a-leaf-should-read"></span>**How a leaf should read:** [authoring criteria](choosing-a-home.md#how-a-leaf-should-read) keep each application rooted in a representative journey and falsifiable result. [Lexicon](../lexicon/index.md) owns terms; [Workflow](../adr/28-workflow.md#compositions-products-suites-and-schedules) owns their architectural law.
+
+Follow the [Map](../map.md#the-application-road) to carry an application's work through the body,
+and [Transmutation](../divination/transmutation/index.md) to follow creation through trial,
+judgment, and return.

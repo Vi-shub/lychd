@@ -140,7 +140,11 @@ confirmation, and reconciliation law exists.
 Importing or rendering the root does not construct Litestar, connect Postgres, start workers,
 initialize models, or load the Altar. Host planning and observation call bounded services directly;
 run help loads inert metadata lazily. ASGI, database, and Reactor consumers are hidden process
-entrypoints, not alternative operator surfaces. A handler validates input, forms a typed request,
+entrypoints. The hidden `reactor recover-soft ACTIVATION_ID` is a bounded host recovery operation:
+it verifies the exact durable activation record, current declarations and owned topology, and cold
+Vessel and target Animator before clearing the fence. It accepts no arbitrary path or unit and
+never stops or starts a service. [Orchestrator (23)](23-orchestrator.md) owns that recovery law;
+this spelling adds no public root verb or stable machine projection. A handler validates input, forms a typed request,
 delegates, renders deterministic human or documented machine output, and translates typed refusal.
 It does not reimplement lifecycle, authorization, persistence, deletion, or orchestration.
 

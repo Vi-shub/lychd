@@ -3,9 +3,6 @@
  * Parsing preserves bounded identity hints only. Destination readers must still
  * validate Run ownership and the entire pinned Pattern before offering a return.
  */
-export type OrbDestination = "/orb" | `/orb/${string}`;
-export interface AltarNavigation { orbPath: OrbDestination }
-export const altarNavigationContext = Symbol("altar-navigation");
 
 /** Navigation hints are bounded identities, never admission or evidence authority. */
 export function navigationId(value?: string | null): string | null {

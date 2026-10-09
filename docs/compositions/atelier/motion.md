@@ -37,6 +37,10 @@ A [Riffmaw](../riffmaw/sync.md) `MusicCueMap@1` offers musical events, windows, 
 
 Before a `VideoJob@2`, `MediaFacetAuthoritySet@1` must declare visual role, `atelier.studio` revision `5`, and exact commission request digest. Any sound role needs separate authority. The compound Prism parent remains attached; Atelier issues its own `SemanticFacetAdmissionReceipt@1` for the visual facet. Riffmaw, Language Edition, Broadcast, or Foundry separately admits declared music, timed-language, picture-sound, or world-sound facets. Undeclared sound is quarantined/deleted. Inseparable streams cannot be used when any required owner refuses the compound.
 
+Those judgments may concern one joint model attempt with a shared timebase. They require neither
+duplicate generation nor a separate screen for each role; [Vision](../../adr/36-vision.md#compound-media-and-application-acceptance)
+keeps the single technical parent and each facet's admission explicit.
+
 ## Review the movement
 
 Check duration, seams, ordering, camera continuity, clipping, flicker/accessibility hazards, and export stability across time, not merely in the last frame. A bounded correction makes a successor revision. Wrong timebase, stale assets, unsupported profile, or ambiguous synchronization returns findings or refusal.

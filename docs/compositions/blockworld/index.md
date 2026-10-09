@@ -33,6 +33,8 @@ The first fixture is managed: private, allowlisted, online-mode, and operated th
 
 ## Enter by question
 
-[Mission](mission.md) · [Sentinel](sentinel.md) · [Continuity](continuity.md)
+[Mission](mission.md) defines the work the inhabitant may attempt. [Sentinel](sentinel.md)
+guards each crossing into the server. After interruption or restoration,
+[Continuity](continuity.md) reconciles what remains before another awakening begins.
 
 [Workflow](../../adr/28-workflow.md) · [Containers](../../adr/08-containers.md) · [Security](../../adr/09-security.md) · [Composition Portfolio](../index.md)

@@ -24,6 +24,12 @@ from the first account. What can be asked changes with what has become reachable
 the craft here through reception and address; [Blade](./blade.md) examines the relevance,
 sufficiency, and limits of what has been found. A missing premise can send Call outward again.
 
+A familiar request may need only a quick route proposal. A specialized decision model can help
+Call identify a destination and express uncertainty without asking a general reasoning model to
+solve the task first. [Specialized models for routing](../extensions/weaver/discovery.md#specialized-models-for-routing)
+considers Jev and similar models as possible latency optimizations. Call and Blade name functions,
+not fixed model sizes or speeds: a quick proposal still meets discernment before action.
+
 Call may turn toward a [Seed](./spirit/seed.md) and invite [Recall](./spirit/recall.md), or open
 several candidates. That is opening, not selection. Unchecked routing takes the **Rajas** image of activity into branching
 without consequence; [the guṇa correspondence](../../lexicon/inner-tongue.md#guna) keeps that

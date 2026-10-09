@@ -28,6 +28,7 @@ from lychd.domain.orchestration.manager import OrchestratorManager
 from lychd.domain.orchestration.policies import DeclaredConflictPolicy
 from lychd.extensions.builtin.animator import LlamaCppMode, LlamaCppSoulstoneConfig
 from lychd.extensions.builtin.animator.runtimes import LlamaCppRuntimeAdapter
+from tests.runtime_guards import InertSoftActivationGuard
 
 
 def _router_registry(model_id: str = "target") -> AnimatorRegistry:
@@ -75,6 +76,7 @@ async def test_loading_router_model_converges_without_duplicate_load(respx_mock:
         arbiter=TransitionArbiter(),
         actuator=actuator,
         switching=SwitchingSettings(),
+        soft_activation_guard=InertSoftActivationGuard(),
     )
 
     with pytest.raises(HardwareTransitionRequired):

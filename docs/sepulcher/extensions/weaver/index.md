@@ -96,7 +96,8 @@ Choose the route that matches the question:
 - **[Crucible](./crucible.md)** covers two-round adversarial formation: declared biased Postures,
   independent first claims, attributed rebuttal, dissent-preserving synthesis, and the Magus Gate.
 - **[Creation](creation.md)** applies bounded Inquiry at direction and construction
-  scales, then follows task handoffs, tests, review, documentation and authorized VCS effects.
+  scales, turns support and measure into bounded next steps, and follows local or delegated
+  task handoffs through verification, documentation and authorized VCS effects.
 - **[:material-autorenew: Ouroboros](ouroboros.md)** connects work, evaluation and training through
   correction, memory, Assimilation, Packaging and Evolution.
 - **[Scheduling and service classes](./scheduling-and-service-classes.md)** covers foreground,
@@ -109,8 +110,8 @@ Choose the route that matches the question:
   information-flow labels, Portal admission, quarantined return, and the boundary that makes
   subsidized remote reasoning usable.
 - **[Delegated agents](delegated-agents.md)** covers the typed delegated station, `AgentJob`
-  boundary, containment, and the present deterministic, no-network, effect-free reference
-  adapter.
+  boundary, future CLI adapter acceptance, containment, and the present deterministic,
+  no-network, effect-free reference adapter.
 
 ## Creation and its interpretation
 
@@ -133,7 +134,7 @@ work needs live coordination across application owners.
 
 ## Hand off a bounded task
 
-In the designed [scoped context handoff](../../../adr/28-workflow.md#scoped-context-handoff-designed),
+In the [scoped context handoff](../../../adr/28-workflow.md#scoped-context-handoff),
 the coordinating Agent keeps the wider purpose while another Agent receives a fresh Context for
 one task. For a repository change, that packet gives the requested result, relevant operator
 decisions, acceptance checks, allowed paths, source revision, dependencies, and a scope routing to

@@ -38,6 +38,7 @@ from lychd.domain.cortex.runs import RunStatus
 from lychd.extensions.host import AssembledExtensions, assemble_extensions
 from lychd.ghouls.runs import perform_run
 from lychd.interface.web.altar_services import build_altar_services
+from tests.runtime_guards import InertSoftActivationGuard
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -505,6 +506,7 @@ temperature = 0.2
         runtime_adapters=configured.extensions.runtime_adapters,
         portal_definitions=configured.extensions.portal_definitions,
         settings=configured.settings,
+        soft_activation_guard=InertSoftActivationGuard(),
     )
     try:
         session = await services.bridge_sessions.create_session()

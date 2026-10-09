@@ -44,6 +44,36 @@ what order. Enter another scope when the task crosses its boundary; leave unrela
 unloaded. A link to a workflow does not start it, and a link to a Pattern does not register or
 authorize its casting.
 
+## Specialized models for routing
+
+Specialized decision models are promising candidates for reducing routing latency and cost when
+repeated choices require semantic interpretation. For example,
+[TypeSafe's Jev](https://docs.typesafe.ai/introduction) evaluates supplied state and typed questions;
+its Choice primitive returns a selected option, probabilities, and confidence without generating
+a prose answer. Such a model could propose a scope, registered Pattern, or declared graph branch,
+leaving deeper reasoning for unresolved questions. This is an optimization to evaluate, not a
+selected LychD dependency or a claim that the fastest router has been established.
+
+Keep explicit commands and reliable deterministic matches as the baseline. For unresolved intent,
+offer the model bounded destinations and an explicit uncertain or unsupported outcome. Supply the
+relevant conversational context: a short confirmation can refer to substantial earlier work.
+Clear proposals still pass normal validation and admission; ambiguity can trigger clarification,
+another bounded probe, or deeper reasoning. A route proposal cannot rewrite an admitted Scroll.
+
+Keep probabilities distinct from confidence. Jev's
+[Choice confidence](https://docs.typesafe.ai/confidence) rescales the leading probability relative
+to an even split across the options; `confidence = 0.9` does not itself mean 90% observed routing
+accuracy. Check calibration and abstention on representative held-out cases, then set thresholds
+according to the consequences of a wrong route. Compare end-to-end latency and cost, including
+context preparation, network time, validation, fallbacks, and recovery, against rules and existing
+model options at comparable task success.
+
+Placement remains a separate choice. Jev's documented
+[hosted API](https://docs.typesafe.ai/introduction/quickstart) is a remote disclosure boundary;
+a local routing model requires its own verified deployment option. Sensitivity flags may inform
+the [Privacy Cut](anonymization.md), but a remote router cannot receive private material merely
+to decide whether that material may leave. Routing scores grant neither capability use nor egress.
+
 ## Follow a repository route
 
 The repository already provides a concrete example:
@@ -69,7 +99,7 @@ A missing prerequisite calls for a targeted probe or bounded request for the mis
 
 Once the relevant owners and procedure are known, the coordinator can frame the task and select
 the scope routes for its recipient. Under the designed
-[scoped context handoff](../../../adr/28-workflow.md#scoped-context-handoff-designed), those routes
+[scoped context handoff](../../../adr/28-workflow.md#scoped-context-handoff), those routes
 travel with the task, acceptance target, operator constraints, allowed inputs and effects, exact
 revisions, dependencies, and unresolved unknowns. The recipient then discovers further material
 within that admitted boundary.
@@ -90,4 +120,4 @@ The current [Loom](../../../state-of-the-work.md#loom-workflow-views) browses th
 registry. Scope routes and playbook links are repository navigation; they do not establish a
 runtime discovery service or executable subgraph composition. General parallel fan-out and joins
 retain the [Graph design boundary](../../../adr/24-graph.md#future-parallel-topology), and scoped
-Agent handoff remains Designed.
+Agent handoff is not implemented by those repository routes.

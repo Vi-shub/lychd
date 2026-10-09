@@ -20,7 +20,15 @@ Each road settles its own Invocation. Exact artifacts can enter later forward wo
 
 ## The work
 
-[Sources](sources.md) finds the exact musical moment. [Sessions](sessions.md) preserves takes and shared time; [Music](music.md) develops them into an arrangement and master candidate. [Studio](studio.md) keeps tool roles and dated candidates separate from the craft. [Hardware](hardware.md) admits exact musical capture routes. [Voice](voice.md) and [Sound](sound.md) explain role boundaries; [Sync](sync.md) offers musical cues; [Package](package.md) seals the handoff.
+Find the material in [Sources](sources.md), down to the exact musical moment. When people or
+machines perform, [Sessions](sessions.md) preserves their takes and shared time;
+[Hardware](hardware.md) admits the capture routes they use. [Music](music.md) develops that
+material into an arrangement and master candidate.
+
+Choose machinery through [Studio](studio.md), which keeps tool roles and dated candidates
+separate from the craft. For uncertain roles, [Voice](voice.md) distinguishes musical performance
+from speech, and [Sound](sound.md) follows what belongs to music. [Sync](sync.md) offers cues for
+another work; [Package](package.md) seals the musical handoff.
 
 ## Reference contract
 
@@ -30,6 +38,8 @@ Prompt, lyric, requested sung language, and interface locale remain separate. Ex
 
 ## Revision continuity
 
-Designed `riffmaw.audio` revision `1`, its `Sonic*` family, and former `riffmaw.forge_track@1`, `riffmaw.capture_take@1`, `riffmaw.open_jam@1`, `riffmaw.index_sources@1`, and `riffmaw.mark_moment@1` are retired without reinterpretation. New identity `riffmaw.music` revision `1` used the five Pattern names at `@2`. Revision `2` advances principal `riffmaw.forge_music_bundle` to `@2` for model-native pre-execution music authority and semantic admission. `MusicAssetBundle@1` already accommodates those exact provenance receipts; other music Patterns remain unchanged. No registry, Run, or stored application record used the retired designs, so no executable migration exists.
+??? info "Earlier designs and their exact successors"
+
+    `riffmaw.audio` revision `1`, its `Sonic*` family, and former `riffmaw.forge_track@1`, `riffmaw.capture_take@1`, `riffmaw.open_jam@1`, `riffmaw.index_sources@1`, and `riffmaw.mark_moment@1` are retired without reinterpretation. New identity `riffmaw.music` revision `1` used the five Pattern names at `@2`. Revision `2` advances principal `riffmaw.forge_music_bundle` to `@2` for model-native pre-execution music authority and semantic admission. `MusicAssetBundle@1` already accommodates those exact provenance receipts; other music Patterns remain unchanged. No registry, Run, or stored application record used the retired designs, so no executable migration exists.
 
 [Audio](../../adr/37-audio.md) · [Workflow](../../adr/28-workflow.md) · [Composition Portfolio](../index.md)

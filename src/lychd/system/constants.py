@@ -81,6 +81,9 @@ PATH_PORTALS_DIR: Final[Path] = PATH_ANIMATOR_DIR / "portals"  # ~/.config/lychd
 PATH_CRYPT_ROOT: Final[Path] = PATH_XDG_DATA_HOME / DEFAULT_MODULE_NAME  # ~/.local/share/lychd
 """Persistent LychD data and workspaces."""
 
+PATH_RUNTIME_GUARD_DIR: Final[Path] = PATH_CRYPT_ROOT / "runtime-guard"
+"""Durable Vessel-owned soft activation fence, separate from the Host Reactor journal."""
+
 PATH_TRIGGERS_DIR: Final[Path] = PATH_CRYPT_ROOT / "triggers"  # ~/.local/share/lychd/triggers
 """Vessel-to-host Reactor exchange."""
 
@@ -169,6 +172,7 @@ HOST_LAYOUT: Final[tuple[Path,...]] = (
 
     # --- The Body ---
     PATH_CRYPT_ROOT,           # ~/.local/share/lychd/
+    PATH_RUNTIME_GUARD_DIR,    # ├── runtime-guard/   <-- Unsettled model activation
     PATH_TRIGGERS_DIR,         # ├── triggers/        <-- The Signal (Nervous System)
     PATH_LAB_DIR,              # ├── lab/             <-- The Workspace
     PATH_EXTENSIONS_DIR,       # ├── extensions/      <-- The Tissue

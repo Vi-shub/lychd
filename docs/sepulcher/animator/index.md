@@ -7,19 +7,11 @@ icon: fontawesome/solid/heart-pulse
 
 > _Follow the spark to where the iron answers._
 
-An **Animator** is a live addressable service handle through which LychD discovers, probes, and
-invokes capability. A model is one possible source of that capability. Search, rendering, speech,
-or another independently managed service may answer through the same office under its own typed
-contract. The Animator carries no deployment manifest or application purpose.
-
-## The Holy Contract
-
-Check what the service declares, what its bound surface has proved, and what is ready now.
-[Capabilities](capabilities.md#declaration-evidence-observation-and-grant) keeps those records
-distinct: a probe may invalidate a declaration, but cannot invent a capability.
-
-Adapters keep native protocols behind the stable surface requested by Graph or an extension.
-An Animator-backed web effect still needs Scout's separate grant, destination, budget, and receipt.
+LychD calls services for work: a model can answer, a search service can find, a renderer can draw.
+An **Animator** is the live handle through which LychD addresses, discovers, probes and invokes
+such a capability. A model is one possible source; independently managed search, rendering or
+speech services may answer under their own typed contracts. The handle carries neither the service's
+deployment manifest nor the application's purpose.
 
 ## Two Sources of Power
 
@@ -32,6 +24,27 @@ An Animator-backed web effect still needs Scout's separate grant, destination, b
 host routes](audio-routes.md) handles device attachments; a raw device or finite host helper does
 not become an Animator merely because its work uses audio.
 
+## The Holy Contract
+
+Check what the service declares, what its bound surface has proved, and what is ready now.
+[Capabilities](capabilities.md#declaration-evidence-observation-and-grant) keeps those records
+distinct: a probe may invalidate a declaration, but cannot invent a capability.
+
+Adapters keep native protocols behind the stable surface requested by Graph or an extension.
+An Animator-backed web effect still needs Scout's separate grant, destination, budget, and receipt.
+
+## The Galvanic Arc
+
+```text
+typed demand → declared eligible profile → current observation
+  ├─ WARM and admitted → exact grant and lease → invocation → owned return
+  └─ managed but cold → handle-free transition → readiness → dispatch again
+```
+
+While readiness converges, the waiting Graph holds no Connector or lease. Dispatcher selects and
+grants; Orchestrator alone converges an admissible physical or runtime-native transition. The current implementation performs
+this handshake for its narrower v1 family/model demand and chat-model/toolset compatibility grant.
+
 ## Animus: the power answering
 
 **Animus** names the power answering through an admitted, active capability. A loaded model—Gemma
@@ -43,18 +56,6 @@ A Spell shapes that draw into a typed request. The return becomes candidate mate
 Circle: Blade discriminates, Spirit carries it in [Flux](../lich/spirit/flux.md), and Answer
 binds the act locally. Inference alone supplies neither Persona, identity, memory, authority, nor
 operational Cognizance.
-
-## The Galvanic Arc
-
-```text
-typed demand → declared eligible profile → current observation
-  ├─ WARM and admitted → exact grant and lease → invocation → owned return
-  └─ managed but cold → handle-free transition → readiness → dispatch again
-```
-
-The waiting Graph holds no Connector or lease. Dispatcher selects and grants; Orchestrator alone
-converges an admissible physical or runtime-native transition. The current implementation performs
-this handshake for its narrower v1 family/model demand and chat-model/toolset compatibility grant.
 
 ## Capability and Readiness
 

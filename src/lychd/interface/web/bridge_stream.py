@@ -1,4 +1,4 @@
-"""HTTP-lifetime reservations for bounded Bridge event streams."""
+"""HTTP-lifetime reservations and source cleanup for bounded Run event streams."""
 
 from __future__ import annotations
 
@@ -21,12 +21,20 @@ if TYPE_CHECKING:
 class _ReservedStreamResponse(ASGIResponse):
     """Acquire before headers and release independently of generator startup."""
 
-    def __init__(self, response: ASGIResponse, *, bus: InProcessEventBus, run_id: str) -> None:
+    def __init__(
+        self,
+        response: ASGIResponse,
+        *,
+        bus: InProcessEventBus,
+        run_id: str,
+        source: AsyncIterator[ServerSentEventMessage],
+    ) -> None:
         """Retain the configured response and its process-local reservation owner."""
         super().__init__()
         self._response = response
         self._bus = bus
         self._run_id = run_id
+        self._source = source
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         try:
@@ -38,6 +46,10 @@ class _ReservedStreamResponse(ASGIResponse):
                 detail=str(exc),
                 headers={"Retry-After": "5"},
             ) from exc
+        finally:
+            close = getattr(self._source, "aclose", None)
+            if close is not None:
+                await close()
 
 
 class BoundedRunEventStream(ServerSentEvent):
@@ -48,9 +60,10 @@ class BoundedRunEventStream(ServerSentEvent):
         super().__init__(content)
         self._bus = bus
         self._run_id = run_id
+        self._source = content
 
     def to_asgi_response(self, *args: Any, **kwargs: Any) -> ASGIResponse:
         """Wrap the fully configured response without duplicating Litestar options."""
         # Litestar annotates the inherited Request without its generic arguments.
         response = super().to_asgi_response(*args, **kwargs)  # pyright: ignore[reportUnknownMemberType]
-        return _ReservedStreamResponse(response, bus=self._bus, run_id=self._run_id)
+        return _ReservedStreamResponse(response, bus=self._bus, run_id=self._run_id, source=self._source)

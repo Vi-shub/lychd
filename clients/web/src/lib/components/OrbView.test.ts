@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/svelte";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { OrbRunSnapshot } from "$lib/api/models";
@@ -15,14 +15,17 @@ vi.mock("$lib/api/client", () => ({
 import { page } from "$app/state";
 import { getOrbRun } from "$lib/api/client";
 import OrbView from "./OrbView.svelte";
+import { listenToOrb, type OrbLiveCallbacks } from "$lib/orb/live";
+vi.mock("$lib/orb/live", () => ({ listenToOrb: vi.fn(() => vi.fn()) }));
 
 const snapshot: OrbRunSnapshot = {
   schema_version: 1,
+  workflow: null,
   snapshot_at: "2026-07-30T00:00:00Z",
   capture: "process_local",
   ledger_head_seq: 0,
   page_end_seq: 0,
-  live_tail: "not_available",
+  live_tail: "ledger_poll",
   next_after_seq: null,
   has_more: false,
   known_omissions: [],
@@ -75,6 +78,7 @@ function deferred<T>() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.stubGlobal("EventSource", vi.fn());
   page.url.href = "http://localhost/orb/run-a";
   vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: true })));
   vi.mocked(getOrbRun).mockResolvedValue(snapshot);
@@ -85,6 +89,61 @@ afterEach(() => {
 });
 
 describe("Orb evidence focus", () => {
+  it("discloses a linked job without hiding the Run coverage and ordered evidence", async () => {
+    page.url.href = "http://localhost/orb/run-a?job=job-linked";
+    const linked: OrbRunSnapshot = {
+      ...snapshot,
+      known_omissions: ["Older jobs are outside this bounded snapshot."],
+      delegated_jobs: [{
+        job_id: "job-linked", request_id: "request-linked", runtime: "reference", profile: "read", step_id: "step-a",
+        status: "completed", output_present: false, artifact_count: 0, error_present: false,
+        events: [], events_truncated: false
+      }]
+    };
+    vi.mocked(getOrbRun).mockResolvedValue(linked);
+    const view = render(OrbView, { runId: "run-a" });
+    const coverage = await screen.findByRole("region", { name: "Evidence coverage" });
+    const limits = screen.getByRole("region", { name: "Evidence limits" });
+    const evidence = screen.getByRole("region", { name: "Ordered evidence" });
+    const disclosure = view.container.querySelector<HTMLDetailsElement>("details.delegated-jobs")!;
+    const job = view.container.querySelector("#delegated-job-job-linked");
+
+    expect(coverage.compareDocumentPosition(limits) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(limits.compareDocumentPosition(evidence) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(evidence.compareDocumentPosition(disclosure) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(disclosure.open).toBe(true);
+    await waitFor(() => expect(document.activeElement).toBe(job));
+    expect(screen.getByText(/Job lifecycle sequences belong to each AgentJob/)).toBeTruthy();
+    const reader = screen.getByRole("button", { name: /Step completed/ });
+    reader.focus();
+    const callbacks = vi.mocked(listenToOrb).mock.calls[0]![2];
+    await act(() => callbacks.onFrame({ schema_version: 1, run_id: "run-a", kind: "evidence", after_seq: 0, cursor: 0,
+      snapshot: { ...linked, evidence: [] } }));
+    expect(document.activeElement).toBe(reader);
+    await fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
+    await waitFor(() => expect(getOrbRun).toHaveBeenCalledTimes(2));
+    expect(document.activeElement).toBe(reader);
+    vi.mocked(getOrbRun).mockResolvedValue({ ...linked, run: { ...linked.run, run_id: "run-b" } });
+    await view.rerender({ runId: "run-b" });
+    await waitFor(() => expect(document.activeElement).toBe(view.container.querySelector("#delegated-job-job-linked")));
+    view.unmount();
+  });
+
+  it("keeps unselected job detail closed so its volume cannot precede the evidence", async () => {
+    vi.mocked(getOrbRun).mockResolvedValue({
+      ...snapshot,
+      delegated_jobs: [{
+        job_id: "job-visible", request_id: "request-visible", runtime: "reference", profile: "read", step_id: "step-a",
+        status: "completed", output_present: false, artifact_count: 0, error_present: false,
+        events: [], events_truncated: false
+      }]
+    });
+    const view = render(OrbView, { runId: "run-a" });
+    await screen.findByRole("region", { name: "Ordered evidence" });
+    expect(view.container.querySelector<HTMLDetailsElement>("details.delegated-jobs")?.open).toBe(false);
+    view.unmount();
+  });
+
   it("reports a linked delegated job absent from the selected Run snapshot", async () => {
     page.url.href = "http://localhost/orb/run-a?job=job-unavailable";
     vi.mocked(getOrbRun).mockResolvedValue({
@@ -154,12 +213,13 @@ describe("Orb evidence focus", () => {
   });
 
   it("returns focus to the evidence row after its inspector closes", async () => {
+    vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false })));
     const view = render(OrbView, { runId: "run-a" });
     const opener = await screen.findByRole("button", { name: /Step completed/ });
 
     await fireEvent.click(opener);
     const close = await screen.findByRole("button", { name: "Close" });
-    expect(document.activeElement).not.toBe(opener);
+    expect(document.activeElement).toBe(screen.getByRole("region", { name: "Selected event" }));
     await fireEvent.click(close);
 
     expect(document.activeElement).toBe(opener);
@@ -196,7 +256,7 @@ describe("Orb evidence focus", () => {
     expect(await screen.findByRole("button", { name: /Step completed/ })).toBeTruthy();
     await fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
 
-    expect((await screen.findByRole("alert")).textContent).toContain("Refresh unavailable");
+    expect((await screen.findByText("Refresh unavailable")).getAttribute("role")).toBe("alert");
     expect(screen.getByRole("button", { name: /Step completed/ })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Refresh" })).toBeTruthy();
     view.unmount();
@@ -204,6 +264,38 @@ describe("Orb evidence focus", () => {
 });
 
 describe("Orb evidence pagination", () => {
+  it("keeps a linked event outside the loaded page distinct from a gap and selects it after loading", async () => {
+    page.url.href = "http://localhost/orb/run-a?event=event-b";
+    vi.mocked(getOrbRun)
+      .mockResolvedValueOnce({
+        ...snapshot,
+        ledger_head_seq: 4,
+        page_end_seq: 2,
+        next_after_seq: 2,
+        has_more: true,
+        gaps: [{ start_seq: 1, end_seq: 2, classification: "unknown_or_omitted" }]
+      })
+      .mockResolvedValueOnce({
+        ...snapshot,
+        ledger_head_seq: 4,
+        page_end_seq: 4,
+        evidence: [{ ...snapshot.evidence[0]!, event_id: "event-b", seq: 4, summary: "Linked event" }]
+      });
+    const view = render(OrbView, { runId: "run-a" });
+    expect(await screen.findByText(/outside this loaded page/)).toBeTruthy();
+    expect(screen.getByText("Unknown or omitted interval")).toBeTruthy();
+    expect(screen.getByText(/Sequence is order, not elapsed time or causality/)).toBeTruthy();
+
+    await fireEvent.click(screen.getByRole("button", { name: "Load more retained evidence" }));
+
+    const linkedRow = await screen.findByRole("button", { name: /Linked event/ });
+    expect(linkedRow.getAttribute("aria-current")).toBe("true");
+    expect(screen.getByRole("region", { name: "Selected event" })).toBeTruthy();
+    expect(screen.queryByText(/outside this loaded page/)).toBeNull();
+    expect(screen.getByText("Unknown or omitted interval")).toBeTruthy();
+    view.unmount();
+  });
+
   it("releases pagination ownership when navigation changes Run identity", async () => {
     const firstPage: OrbRunSnapshot = {
       ...snapshot,
@@ -268,7 +360,7 @@ describe("Orb evidence pagination", () => {
     expect(await screen.findByRole("button", { name: /Step completed/ })).toBeTruthy();
     await fireEvent.click(screen.getByRole("button", { name: "Load more retained evidence" }));
 
-    expect((await screen.findByRole("alert")).textContent).toContain("Next page unavailable");
+    expect((await screen.findByText("Next page unavailable")).getAttribute("role")).toBe("alert");
     expect(screen.getByRole("button", { name: /Step completed/ })).toBeTruthy();
 
     await fireEvent.click(
@@ -317,9 +409,7 @@ describe("Orb evidence pagination", () => {
     expect(await screen.findByRole("button", { name: /Step completed/ })).toBeTruthy();
     await fireEvent.click(screen.getByRole("button", { name: "Load more retained evidence" }));
 
-    expect((await screen.findByRole("alert")).textContent).toContain(
-      "The Orb returned evidence for another Run."
-    );
+    expect((await screen.findByText("The Orb returned evidence for another Run.")).getAttribute("role")).toBe("alert");
     expect(screen.queryByRole("button", { name: /Foreign step/ })).toBeNull();
     expect(screen.getByRole("button", { name: /Step completed/ })).toBeTruthy();
     view.unmount();
@@ -335,4 +425,66 @@ it("hands exact Run and event context to Bridge and the pinned Pattern", async (
   expect(screen.getByRole("link", { name: "Exact Pattern →" }).getAttribute("href"))
     .toBe("/loom/bridge_chat/1?run=run-a&event=event-a&job=job-a");
   view.unmount();
+});
+
+
+describe("Orb selected-Run live ownership", () => {
+  it("freezes historical Animator evidence across live-window eviction and resumes on Follow latest", async () => {
+    const view = render(OrbView, { runId: "run-a" });
+    await waitFor(() => expect(listenToOrb).toHaveBeenCalledOnce());
+    const callbacks = vi.mocked(listenToOrb).mock.calls[0]![2];
+    const grant = { ...snapshot.evidence[0]!, event_id: "grant-live", seq: 1, kind: "dispatch", summary: "Grant selected", animator_name: "historical-reasoner", model_id: "model-at-one" };
+    await act(() => callbacks.onFrame({ schema_version: 1, run_id: "run-a", kind: "evidence", after_seq: 0, cursor: 1,
+      snapshot: { ...snapshot, ledger_head_seq: 1, evidence: [grant] } }));
+    const rail = screen.getByRole("complementary", { name: "Recorded Animators" });
+    await fireEvent.click(within(rail).getByRole("button", { name: /historical-reasoner/ }));
+    const slider = screen.getByRole("slider", { name: "Record cursor" });
+    expect(slider.getAttribute("aria-valuetext")).toBe("Record #1");
+    expect(screen.getByRole("button", { name: "LIVE" }).getAttribute("aria-pressed")).toBe("false");
+    await act(() => {
+      for (let seq = 2; seq <= 103; seq++) callbacks.onFrame({ schema_version: 1, run_id: "run-a", kind: "evidence", after_seq: seq - 1, cursor: seq,
+        snapshot: { ...snapshot, ledger_head_seq: seq, evidence: [{ ...grant, event_id: `future-${seq}`, seq, animator_name: "future-animator" }] } });
+    });
+    expect(slider.getAttribute("aria-valuetext")).toBe("Record #1");
+    expect(within(rail).getByText("historical-reasoner")).toBeTruthy();
+    expect(within(rail).queryByText("future-animator")).toBeNull();
+    await fireEvent.click(screen.getByRole("button", { name: "Follow latest" }));
+    expect(screen.getByRole("button", { name: "LIVE" }).getAttribute("aria-pressed")).toBe("true");
+    expect(slider.getAttribute("aria-valuetext")).toBe("Record #103");
+    expect(within(rail).queryByText("historical-reasoner")).toBeNull();
+    expect(within(rail).getByText("future-animator")).toBeTruthy();
+    view.unmount();
+  });
+
+  it("closes the prior feed and fences callbacks after a Run change and unmount", async () => {
+    const closeA = vi.fn(), closeB = vi.fn();
+    vi.mocked(listenToOrb).mockReturnValueOnce(closeA).mockReturnValueOnce(closeB);
+    const view = render(OrbView, { runId: "run-a" });
+    await waitFor(() => expect(listenToOrb).toHaveBeenCalledOnce());
+    const callbacks = vi.mocked(listenToOrb).mock.calls[0]![2] as OrbLiveCallbacks;
+    vi.mocked(getOrbRun).mockResolvedValue({ ...snapshot, run: { ...snapshot.run, run_id: "run-b" } });
+    await view.rerender({ runId: "run-b" });
+    await waitFor(() => expect(listenToOrb).toHaveBeenCalledTimes(2));
+    expect(closeA).toHaveBeenCalledOnce();
+    await act(() => callbacks.onFrame({ schema_version: 1, run_id: "run-a", kind: "evidence", after_seq: 0, cursor: 1,
+      snapshot: { ...snapshot, ledger_head_seq: 1, evidence: [{ ...snapshot.evidence[0]!, event_id: "late-a", seq: 1, summary: "Late foreign callback" }] } }));
+    expect(screen.queryByText("Late foreign callback")).toBeNull();
+    expect(screen.getByText("run-b")).toBeTruthy();
+    view.unmount();
+    expect(closeB).toHaveBeenCalledOnce();
+  });
+
+  it("appends real records while preserving selected evidence and paused follow", async () => {
+    page.url.href = "http://localhost/orb/run-a?event=event-a";
+    const view = render(OrbView, { runId: "run-a" });
+    const opener = await screen.findByRole("button", { name: /Step completed/ });
+    await fireEvent.click(opener);
+    const callbacks = vi.mocked(listenToOrb).mock.calls[0]![2];
+    await act(() => callbacks.onFrame({ schema_version: 1, run_id: "run-a", kind: "evidence", after_seq: 0, cursor: 1,
+      snapshot: { ...snapshot, ledger_head_seq: 1, evidence: [{ ...snapshot.evidence[0]!, event_id: "event-live", seq: 1, summary: "Fresh ledger record" }] } }));
+    expect(screen.getByRole("button", { name: /Fresh ledger record/ })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Selected event" }).textContent).toContain("event-a");
+    expect(screen.getByRole("button", { name: "Follow latest" }).getAttribute("aria-pressed")).toBe("false");
+    view.unmount();
+  });
 });

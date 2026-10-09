@@ -488,3 +488,20 @@ async def test_attestation_covers_capability_empty_soulstones(
     capabilities.assert_not_called()
     assert animator_target_unit("silent") in observed_units
     assert animator_service_unit("silent") in observed_units
+
+
+@pytest.mark.asyncio
+async def test_recovery_attests_current_topology_without_fabricating_intent(
+    tmp_path: Path, mocker: MockerFixture
+) -> None:
+    stones = [_stone("alpha", conflict_domains=["gpu-0"]), _stone("beta", conflict_domains=["gpu-0"])]
+    graph = _exact_pair_graph()
+    _attach_owned_sources(graph, tmp_path, "alpha", "beta")
+    subprocess, observed_units = _mock_systemctl_show(mocker, graph)
+    await RuntimeTopologyAttestor(
+        _registry(stones),
+        systemctl_bin=_SYSTEMCTL,
+        owned_bindings_provider=lambda: _owned_bindings(tmp_path, "alpha", "beta"),
+    ).attest_current_topology()
+    assert observed_units == sorted(graph)
+    assert subprocess.await_count == len(graph) + 2

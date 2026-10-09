@@ -18,11 +18,28 @@ the boundary your change crosses:
 | --- | --- |
 | Application startup, domain logic, or persistence | [Backend](docs/adr/11-backend.md), then its linked source and tests. |
 | Run admission, execution, or recovery | [Workers](docs/adr/14-workers.md) and the relevant [Graph](docs/adr/24-graph.md) section. |
+| Agent steps, consent continuation, or delegated work | [Agents](docs/adr/20-agents.md), then [HitL](docs/adr/25-hitl.md) or [Graph](docs/adr/24-graph.md). |
 | Browser behavior or API projection | [Frontend](docs/adr/15-frontend.md), then the affected instrument in the [Altar source map](clients/web/src/README.md). |
 | Documentation, vocabulary, or lore | [Documentation topology](docs/adr/01-doctrine.md#documentation-topology), then the owning page and its neighbors. |
 
 You can start with that one boundary. Use the Covenant index for adjacent decisions as the change
 reaches them; the full grimoire is not a prerequisite to a first contribution.
+
+### Start with three development lanes
+
+Use these entry points to divide work around the same system contracts:
+
+| Lane | Trace one contract | First verification |
+| --- | --- | --- |
+| Agentic | [Bridge workflow](src/lychd/agents/workflows/bridge_chat.py): model result → consent → completed history. Read [delegation status](docs/state-of-the-work.md#delegated-agent-execution) before adding an external runtime. | `make test PYTEST_TARGETS="tests/agents tests/unit/domain/delegation tests/unit/domain/cortex/test_delegate_resume.py"` |
+| Fullstack | [Altar source map](clients/web/src/README.md): generated API contract → retained evidence → accessible instrument. | `make frontend-check` and the affected `tests/web` slice; then `make frontend-build`. |
+| Backend | [Runtime actuator](src/lychd/system/services/runtime.py): observation → effect → settlement → reopened admission or containment. | `make test PYTEST_TARGETS="tests/unit/system/services/test_runtime.py tests/unit/domain/orchestration"` |
+
+Claim one contract in an issue before changing it. Changes to shared API types, checkpoint identity,
+or effect settlement need review from the adjacent lane; keep their source, tests and generated
+artifacts together. A first contribution should reproduce one failure and close it through the
+existing owner. The [quality gates](#quality-checks) distinguish repository evidence from live-host
+acceptance; the [delivery ledger](docs/state-of-the-work.md) keeps the remaining boundaries.
 
 ## Branches and everyday collaboration
 
@@ -119,6 +136,8 @@ does not itself issue credentials or authorize a release.
   (`clients/web/package.json`): supported ranges are 24.20.x-or-newer within Node 24 and
   12.0.x-or-newer within npm 12, starting at 12.0.2. npm 12 keeps dependency lifecycle
   scripts blocked unless explicitly approved; the Linux Altar build requires no such approvals.
+- Android client setup and focused checks are in [the client README](clients/android/README.md).
+  Its Gradle gates are separate from the Python and web-client commands below.
 
 ## Setup and Commands
 
@@ -190,6 +209,21 @@ default. A rootless compatibility environment may deliberately opt in with
 `TESTCONTAINERS_RYUK_PRIVILEGED=true make test-containers`; do not export that setting as a normal
 repository default.
 
+The optional offline music engineering profile runs without the Vessel or a native Composition:
+
+```bash
+uv sync --locked --group music-probe --inexact
+uv run --locked --group music-probe python scripts/music_probe.py --help
+uv run --locked --group music-probe pytest tests/unit/compositions tests/unit/system/services/test_music_probe.py tests/unit/system/services/test_comfy_probe.py
+```
+
+The `music-probe` group installs DawDreamer and NumPy for finite native audio proofs; it is not a
+Vessel dependency. The typing group includes NumPy's array annotations without installing
+DawDreamer. Native audio tests explicitly skip when DawDreamer is absent; the group-enabled gate
+must execute them. Pure recipe, CLI and Comfy transport tests require no running model or service.
+Keep recipes, imported media and results in explicit absolute paths outside every checkout.
+[Workbench](docs/compositions/riffmaw/workbench.md) owns the supported probe operations and limits.
+
 For frontend changes, run:
 
 ```bash
@@ -208,10 +242,18 @@ uv run --locked --only-group docs zensical build --clean
 ```
 
 Check local file links and fragments, including links into a renamed heading. A moved page needs
-its incoming links, parent index, compatibility anchors, and `zensical.toml` navigation updated
+its incoming links, parent index, compatibility anchors, and the owning `.nav.yml` updated
 together. The architecture suite checks the delivery ledger and its evidence routes; the clean
 build checks the published tree. `make docs` serves the Hexanomicon at `http://localhost:7778` for
 local reading and layout inspection.
+
+Zensical's built-in [Awesome Nav](https://zensical.org/docs/compatibility/mkdocs/plugins/#awesome-nav)
+reads `docs/.nav.yml` for the top-level order and section-local `.nav.yml` files for their pages.
+Paths are relative to the file's directory. Add a page to its section's list where readers should
+encounter it; a new subsection can have its own `.nav.yml` and be referenced by directory name.
+The lists preserve a deliberate reading order: new files are not automatically added to the menu.
+No separate Awesome Pages or Awesome Nav package is required. `zensical.toml` keeps the renderer,
+theme, extensions, and site metadata.
 
 ### Browser development and its backend
 

@@ -13,11 +13,11 @@ from uuid import uuid4
 from pydantic import BaseModel, Field, model_validator
 from pydantic_ai import DeferredToolRequests, DeferredToolResults
 from pydantic_ai.messages import (
-    ModelMessage,
     ModelMessagesTypeAdapter,
     ModelRequest,
     ModelResponse,
     TextPart,
+    ToolReturnPart,
 )
 from pydantic_ai.models import Model
 from pydantic_ai.usage import UsageLimits
@@ -46,6 +46,10 @@ from lychd.domain.cortex.priority import PRIORITY_DEFAULT
 from lychd.domain.cortex.runs import ConsentPending
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from pydantic_ai.messages import ToolCallPart
+
     from lychd.agents.router import Intent
     from lychd.agents.services import TurnLedgerPort
     from lychd.domain.animation.capabilities import CapabilityGrant
@@ -109,10 +113,28 @@ async def _session_history(session_id: str, turns: TurnLedgerPort) -> list[Any]:
 
 
 def _fallback_reply(state: BridgeChatState) -> BridgeReply:
-    """Honest non-completion prose when a bottleneck settled the turn without a reply."""
+    """Report a stopped turn without denying effects completed before its bottleneck."""
     if state.bottleneck is not None:
-        return BridgeReply(answer=f"The turn settled without the action: {state.bottleneck.detail}")
+        return BridgeReply(answer=f"The turn stopped: {state.bottleneck.detail}")
     return BridgeReply(answer="The turn settled without a reply.")
+
+
+def _refuse_deferred_calls(state: BridgeChatState, calls: Sequence[ToolCallPart], *, detail: str) -> None:
+    """Close only calls this policy branch refused before dispatch, preserving prior results."""
+    state.bottleneck = Bottleneck(kind="policy_block", detail=detail)
+    refusal = ModelRequest(
+        parts=[
+            ToolReturnPart(
+                tool_name=call.tool_name,
+                tool_call_id=call.tool_call_id,
+                content=f"LychD refused this deferred request: {detail}",
+                outcome="denied",
+                metadata={"lychd_policy_refusal": True},
+            )
+            for call in calls
+        ]
+    )
+    state.new_messages.extend(ModelMessagesTypeAdapter.dump_python([refusal], mode="json"))
 
 
 def _agent_deps(ctx: GraphRunContext[BridgeChatState, WorkflowServices], grant: CapabilityGrant) -> LychDDeps:
@@ -161,11 +183,11 @@ async def settle_turn(
 
     new_messages = state.new_messages
     if state.bottleneck is not None:
-        synthetic: list[ModelMessage] = [
-            ModelRequest.user_text_prompt(state.prompt),
-            ModelResponse(parts=[TextPart(reply.answer)]),
-        ]
-        new_messages = list(ModelMessagesTypeAdapter.dump_python(synthetic, mode="json"))
+        messages = ModelMessagesTypeAdapter.validate_python(new_messages)
+        if not messages:
+            messages.append(ModelRequest.user_text_prompt(state.prompt))
+        messages.append(ModelResponse(parts=[TextPart(reply.answer)]))
+        new_messages = list(ModelMessagesTypeAdapter.dump_python(messages, mode="json"))
     new_messages = bind_messages_to_logical_run(new_messages, state.run_id)
     await turns.settle_agent_turn(
         state.session_id,
@@ -244,15 +266,18 @@ class Converse(BaseNode[BridgeChatState, WorkflowServices]):
         ctx.state.new_messages = pumped.new_messages
         if isinstance(output, DeferredToolRequests):
             if not is_single_approval(output):
-                ctx.state.bottleneck = Bottleneck(
-                    kind="policy_block", detail="multiple tool approvals in one turn are not yet supported"
+                _refuse_deferred_calls(
+                    ctx.state,
+                    [*output.approvals, *output.calls],
+                    detail="multiple tool approvals in one turn are not yet supported",
                 )
                 return ProjectReply()
             tool_name = output.approvals[0].tool_name
             binding = bound_toolset.binding_for(tool_name)
             if binding is None:
-                ctx.state.bottleneck = Bottleneck(
-                    kind="policy_block",
+                _refuse_deferred_calls(
+                    ctx.state,
+                    output.approvals,
                     detail=f"approval tool '{tool_name}' has no durable effect identity",
                 )
                 return ProjectReply()
@@ -325,8 +350,16 @@ class AwaitConsent(Gate, BaseNode[BridgeChatState, WorkflowServices]):
                     usage_limits=usage_limits,
                 )
             except ConsentToolBindingChangedError:
-                ctx.state.bottleneck = Bottleneck(
-                    kind="policy_block",
+                # Binding refusal happens before dispatch. Resolve only the exact
+                # parked ids from the current response, never infer uncertain work.
+                response = next(message for message in reversed(history) if isinstance(message, ModelResponse))
+                calls = [call for call in response.tool_calls if call.tool_call_id in ctx.state.pending_call_ids]
+                if {call.tool_call_id for call in calls} != set(ctx.state.pending_call_ids):
+                    msg = "Parked consent call identities are missing from their continuation."
+                    raise ValueError(msg) from None
+                _refuse_deferred_calls(
+                    ctx.state,
+                    calls,
                     detail="the approved tool or capability changed while consent was parked; fresh consent is required",
                 )
                 return ProjectReply()
@@ -339,19 +372,22 @@ class AwaitConsent(Gate, BaseNode[BridgeChatState, WorkflowServices]):
         ctx.state.pending_consent_tool_binding = None
         if isinstance(output, DeferredToolRequests):  # the tool chained another approval
             if not is_single_approval(output):
-                ctx.state.bottleneck = Bottleneck(
-                    kind="policy_block", detail="multiple tool approvals in one turn are not yet supported"
+                _refuse_deferred_calls(
+                    ctx.state,
+                    [*output.approvals, *output.calls],
+                    detail="multiple tool approvals in one turn are not yet supported",
                 )
                 return ProjectReply()
             ctx.state.consent_rounds += 1
             if ctx.state.consent_rounds >= MAX_CONSENT_ROUNDS:
-                ctx.state.bottleneck = Bottleneck(kind="policy_block", detail="consent round limit reached")
+                _refuse_deferred_calls(ctx.state, output.approvals, detail="consent round limit reached")
                 return ProjectReply()
             tool_name = output.approvals[0].tool_name
             binding = bound_toolset.binding_for(tool_name)
             if binding is None:
-                ctx.state.bottleneck = Bottleneck(
-                    kind="policy_block",
+                _refuse_deferred_calls(
+                    ctx.state,
+                    output.approvals,
                     detail=f"approval tool '{tool_name}' has no durable effect identity",
                 )
             else:

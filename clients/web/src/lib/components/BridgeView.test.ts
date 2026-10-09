@@ -209,6 +209,66 @@ afterEach(() => {
 });
 
 describe("Bridge route and stream ownership", () => {
+  it("keeps a later draft unsent until the observed Run settles", async () => {
+    getSnapshotMock
+      .mockResolvedValueOnce(snapshot("session-a", [projection()]))
+      .mockResolvedValue(snapshot("session-a", [cancelledProjection()]));
+    const view = render(BridgeView, { sessionId: "session-a" });
+    const composer = await screen.findByRole("textbox", { name: "Message" });
+    await fireEvent.input(composer, { target: { value: "my later draft" } });
+    expect((screen.getByRole("button", { name: "Offer" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText(/Wait for this Run to settle/).textContent).toContain("not queued");
+    await fireEvent.keyDown(composer, { key: "Enter" });
+    expect(sendMock).not.toHaveBeenCalled();
+    await fireEvent.click(screen.getByRole("button", { name: "Cancel run run-a" }));
+    await waitFor(() => expect((screen.getByRole("button", { name: "Offer" }) as HTMLButtonElement).disabled).toBe(false));
+    expect((composer as HTMLTextAreaElement).value).toBe("my later draft");
+    expect(sendMock).not.toHaveBeenCalled();
+    view.unmount();
+  });
+
+  it("preserves older reading through incoming text until Latest turn is requested", async () => {
+    getSnapshotMock.mockResolvedValue(snapshot("session-a", [projection()]));
+    const view = render(BridgeView, { sessionId: "session-a" });
+    await screen.findByText("authoritative partial");
+    const conversation = screen.getByRole("region", { name: "Conversation" });
+    Object.defineProperties(conversation, {
+      scrollHeight: { configurable: true, value: 1000 },
+      clientHeight: { configurable: true, value: 200 },
+      scrollTop: { configurable: true, writable: true, value: 40 }
+    });
+    await fireEvent.scroll(conversation);
+    await act(() => latestRunListener()(event("run-a", 18, "token", { text: " and more" })));
+    expect(conversation.scrollTop).toBe(40);
+    await fireEvent.click(screen.getByRole("button", { name: "Latest turn ↓" }));
+    expect(conversation.scrollTop).toBe(1000);
+    expect(document.activeElement).toBe(screen.getByText("authoritative partial and more").closest("article"));
+    Object.defineProperty(conversation, "scrollHeight", { configurable: true, value: 1200 });
+    await act(() => latestRunListener()(event("run-a", 19, "token", { text: " still" })));
+    expect(conversation.scrollTop).toBe(1200);
+    view.unmount();
+  });
+
+  it("lets Latest turn release an exact Run focus without moving or sending the draft", async () => {
+    mockPage.url = new SvelteURL("http://localhost/bridge/session-a?run=run-old");
+    const initial = snapshot("session-a", [projection()]);
+    initial.session!.turns = [{ ...accepted("run-old", "an older reply").turn, role: "agent" }];
+    getSnapshotMock.mockResolvedValue(initial);
+    const view = render(BridgeView, { sessionId: "session-a" });
+    const older = (await screen.findByText("an older reply")).closest("article");
+    await waitFor(() => expect(document.activeElement).toBe(older));
+    const composer = screen.getByRole("textbox", { name: "Message" });
+    await fireEvent.input(composer, { target: { value: "keep this draft" } });
+    await fireEvent.click(screen.getByRole("button", { name: "Latest turn ↓" }));
+    const latest = screen.getByText("authoritative partial").closest("article");
+    expect(document.activeElement).toBe(latest);
+    await act(() => latestRunListener()(event("run-a", 18, "token", { text: " grows" })));
+    expect(document.activeElement).toBe(latest);
+    expect((composer as HTMLTextAreaElement).value).toBe("keep this draft");
+    expect(sendMock).not.toHaveBeenCalled();
+    view.unmount();
+  });
+
   it("loads one older page at a time, retaining the selected conversation and unique rail identities", async () => {
     getSnapshotMock.mockResolvedValueOnce({ ...snapshot("session-a"), sessions_next_cursor: "older-page" });
     const page = deferred<Awaited<ReturnType<typeof getBridgeSessions>>>();
@@ -426,7 +486,7 @@ describe("Bridge route and stream ownership", () => {
     await fireEvent.click(stop);
 
     expect(cancelMock).toHaveBeenCalledWith("run-a");
-    expect(await screen.findAllByText("cancelled")).toHaveLength(2);
+    expect(await screen.findAllByText("cancelled")).toHaveLength(1);
     expect(screen.queryByRole("button", { name: "Cancel run run-a" })).toBeNull();
     view.unmount();
   });
@@ -547,7 +607,7 @@ describe("Bridge route and stream ownership", () => {
     await fireEvent.click(await screen.findByRole("button", { name: "Cancel run run-a" }));
 
     expect(getRunSnapshotMock).toHaveBeenCalledWith("run-a");
-    expect(await screen.findAllByText("cancelled")).toHaveLength(2);
+    expect(await screen.findAllByText("cancelled")).toHaveLength(1);
     expect(screen.queryByText("Response lost")).toBeNull();
     view.unmount();
   });
@@ -729,7 +789,7 @@ describe("Bridge route and stream ownership", () => {
     await act(async () => {
       await Promise.resolve();
     });
-    expect(screen.getAllByText("cancelled")).toHaveLength(2);
+    expect(screen.getAllByText("cancelled")).toHaveLength(1);
     getSnapshotMock.mockClear();
 
     await act(() => vi.advanceTimersByTime(500));
@@ -752,7 +812,7 @@ describe("Bridge route and stream ownership", () => {
     expect(await screen.findByText("session-b")).toBeTruthy();
     await view.rerender({ sessionId: "session-a" });
 
-    expect(await screen.findAllByText("cancelled")).toHaveLength(2);
+    expect(await screen.findAllByText("cancelled")).toHaveLength(1);
     expect(screen.getByText("authoritative partial")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Cancel run run-a" })).toBeNull();
     expect(close).toHaveBeenCalledOnce();
@@ -790,7 +850,7 @@ describe("Bridge route and stream ownership", () => {
 
     expect(screen.getByText("authoritative partial continuation")).toBeTruthy();
     if (cursor === 18) {
-      expect(screen.getAllByText("cancelled")).toHaveLength(2);
+      expect(screen.getAllByText("cancelled")).toHaveLength(1);
     } else {
       expect(screen.getByText("projection stale")).toBeTruthy();
       getSnapshotMock.mockImplementation(async (id) =>
@@ -813,7 +873,7 @@ describe("Bridge route and stream ownership", () => {
 
     await act(() => latestRunListener()(event("run-a", 18, "done", { status: "failed", turn: null })));
 
-    expect(screen.getAllByText("failed")).toHaveLength(2);
+    expect(screen.getAllByText("failed")).toHaveLength(1);
     expect(screen.getByText(content || "No reply text was retained for this Run.")).toBeTruthy();
     expect(screen.queryByText("The turn has settled.")).toBeNull();
     expect(screen.queryByRole("button", { name: "Cancel run run-a" })).toBeNull();

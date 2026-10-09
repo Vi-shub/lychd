@@ -200,7 +200,9 @@ it("does not treat a successful historical judgment as current after requirement
   render(AtlasView, { projectId });
   expect(await screen.findByText("Review needed")).toBeTruthy();
   expect(screen.queryByText("Recorded sufficient")).toBeNull();
-  expect(screen.getByText("The earlier brief.")).toBeTruthy();
+  const history = screen.getByText("Assessment history (1)").closest("details");
+  if (!history) throw new Error("Expected retained assessment history");
+  expect(within(history).getByText("The earlier brief.")).toBeTruthy();
   expect(screen.getAllByText("The first guide was accepted.").length).toBeGreaterThan(0);
 });
 
@@ -543,5 +545,85 @@ it("shows and filters current negative judgments separately from stale review an
   await fireEvent.click(screen.getByRole("checkbox", { name: "Current disputed judgments" }));
   expect(screen.getByRole("link", { name: /Recovery disputed/ })).toBeTruthy();
   expect(screen.queryByRole("link", { name: /Recovery missing|Requirements changed|Recovery sufficient/ })).toBeNull();
+  expect(changeAtlasProject).not.toHaveBeenCalled();
+});
+
+it("uses distinct concern counts to find stale judgments while preserving search and clearing filters accessibly", async () => {
+  const concerns = Array.from({ length: 50 }, (_, index) => ({
+    ...concern,
+    id: `concern-${index}`,
+    statement: `Recovery question ${index}`,
+    revision: index === 0 ? 2 : 1
+  }));
+  const assessment = {
+    id: "assessment-old", concern_id: concerns[0]!.id, concern_revision: 1,
+    brief_revision: 1, statement: "Earlier recovery question", criteria: "Earlier criteria",
+    brief: project().brief, judgment: "insufficient" as const,
+    rationale: "Earlier basis", reference_ids: [], author: "Magus", created_at: now
+  };
+  vi.mocked(getAtlasProject).mockResolvedValue(project({ concerns, assessments: [assessment] }));
+  render(AtlasView, { projectId });
+  const counts = await screen.findByRole("group", { name: "Concern assessments" });
+  expect(within(counts).getByRole("button", { name: "49 Unassessed" })).toBeTruthy();
+  expect(within(counts).getByRole("button", { name: "0 Insufficient" })).toBeTruthy();
+  const review = within(counts).getByRole("button", { name: "1 Needs review" });
+  const query = screen.getByRole("searchbox", { name: "Find a concern" });
+  await fireEvent.input(query, { target: { value: "question 1" } });
+  await fireEvent.click(review);
+  expect((query as HTMLInputElement).value).toBe("question 1");
+  expect(review.getAttribute("aria-pressed")).toBe("true");
+  expect(screen.getByRole("heading", { name: "No matching concerns" })).toBeTruthy();
+  await fireEvent.click(screen.getByRole("button", { name: "Clear concern filters" }));
+  expect(document.activeElement).toBe(query);
+  expect((query as HTMLInputElement).value).toBe("");
+  expect(screen.getByText("Showing 50 of 50 concerns")).toBeTruthy();
+  await fireEvent.click(review);
+  expect(screen.getByRole("heading", { name: "Recovery question 0" })).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "Recovery question 1" })).toBeNull();
+  await fireEvent.click(screen.getByRole("button", { name: "Review assessment" }));
+  expect((review as HTMLButtonElement).disabled).toBe(true);
+  expect((screen.getByRole("button", { name: "Clear concern filters" }) as HTMLButtonElement).disabled).toBe(true);
+  expect(changeAtlasProject).not.toHaveBeenCalled();
+});
+
+it("compares a stale assessment's original basis with current requirements without saving or changing attribution", async () => {
+  vi.mocked(getAtlasProject).mockResolvedValue(project({
+    brief_revision: 2,
+    concerns: [{ ...concern, revision: 2, criteria: "The new recovery criteria." }],
+    assessments: [{
+      id: "assessment-old", concern_id: concernId, concern_revision: 1, brief_revision: 1,
+      statement: concern.statement, criteria: "The original recovery criteria.", brief: "The original brief.",
+      judgment: "sufficient", rationale: "Accepted against the original criteria.",
+      reference_ids: [], author: "Original reviewer", created_at: now
+    }]
+  }));
+  render(AtlasView, { projectId });
+  const toggle = await screen.findByText("Compare with judged basis");
+  const comparison = toggle.closest("details");
+  if (!comparison) throw new Error("Expected the judged basis disclosure");
+  expect(comparison.open).toBe(false);
+  await fireEvent.click(toggle);
+  const judged = within(comparison).getByRole("region", { name: "Judged basis" });
+  const current = within(comparison).getByRole("region", { name: "Current basis" });
+  expect(within(judged).getByText("The original recovery criteria.")).toBeTruthy();
+  expect(within(judged).getByText("The original brief.")).toBeTruthy();
+  expect(within(current).getByText("The new recovery criteria.")).toBeTruthy();
+  expect(within(current).getByText("Keep the release supportable.")).toBeTruthy();
+  expect(screen.getByText(/Recorded by Original reviewer ·/)).toBeTruthy();
+  expect(screen.getByText("Review needed")).toBeTruthy();
+  expect(changeAtlasProject).not.toHaveBeenCalled();
+});
+
+it("starts with concerns and discloses the project brief while keeping continuation links available", async () => {
+  vi.mocked(getAtlasProject).mockResolvedValue(project({ concerns: [concern] }));
+  render(AtlasView, { projectId });
+  const context = await screen.findByRole("region", { name: "Project context" });
+  const concerns = screen.getByRole("region", { name: "Concerns 1" });
+  expect(concerns.compareDocumentPosition(context) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  const brief = within(context).getByText("Brief").closest("details");
+  expect(brief?.open).toBe(false);
+  expect(within(context).getByRole("link", { name: "Choose or start a conversation →" }).getAttribute("href"))
+    .toBe(`/bridge?choose=conversation&project=${projectId}`);
+  expect(within(context).getByRole("button", { name: "Edit project" })).toBeTruthy();
   expect(changeAtlasProject).not.toHaveBeenCalled();
 });

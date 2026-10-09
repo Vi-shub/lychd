@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING, Any
 import pydantic_ai.models
 import pytest
 from pydantic_ai import RunContext
-from pydantic_ai.messages import ModelResponse
+from pydantic_ai.messages import ModelMessagesTypeAdapter, ModelResponse, ToolCallPart, ToolReturnPart
 from pydantic_ai.models.function import DeltaToolCall, FunctionModel
 from pydantic_ai.toolsets import FunctionToolset
 
@@ -584,7 +584,10 @@ async def test_chained_consent_resume_requires_the_current_run_owner(*, restore_
 
 @pytest.mark.asyncio
 async def test_scenario4_chained_rounds_hit_bottleneck() -> None:
-    substrate, ledger, _bus, sessions, _orch = _substrate(FunctionModel(stream_function=_always_park))
+    from lychd.agents.router import Intent
+    from lychd.agents.workflows.bridge_chat import BRIDGE_CHAT
+
+    substrate, ledger, _bus, sessions, orch = _substrate(FunctionModel(stream_function=_always_park))
     await _seed(ledger, sessions, "run_4")
 
     consent_id = await _park(substrate, "run_4")
@@ -606,6 +609,77 @@ async def test_scenario4_chained_rounds_hit_bottleneck() -> None:
     turn = await sessions.settled_turn_for_run("run_4")
     assert turn is not None
     assert "round limit" in turn.content.lower()
+    assert turn.content.startswith("The turn stopped:")
+    assert len(orch.calls) == 3
+    session = next(iter(sessions._sessions.values()))
+    history = ModelMessagesTypeAdapter.validate_python(session.message_history)
+    calls = [part for message in history for part in message.parts if isinstance(part, ToolCallPart)]
+    returns = [part for message in history for part in message.parts if isinstance(part, ToolReturnPart)]
+    assert [part.tool_call_id for part in calls] == ["c0", "c1", "c2", "c3"]
+    assert [(part.tool_call_id, part.outcome) for part in returns] == [
+        ("c0", "success"),
+        ("c1", "success"),
+        ("c2", "success"),
+        ("c3", "denied"),
+    ]
+    assert all("executed" in str(part.content) for part in returns[:3])
+    assert returns[-1].metadata == {"lychd_policy_refusal": True}
+    assert "round limit" in str(returns[-1].content)
+
+    observed: list[ToolReturnPart] = []
+
+    async def follow_up(messages: list[ModelMessage], info: AgentInfo) -> Any:
+        observed.extend(part for message in messages for part in message.parts if isinstance(part, ToolReturnPart))
+        yield {
+            0: DeltaToolCall(
+                name=info.output_tools[0].name,
+                json_args='{"answer":"history retained","fragments":[]}',
+                tool_call_id="follow-up-output",
+            )
+        }
+
+    dispatcher = substrate.dispatcher
+    assert isinstance(dispatcher, FakeDispatcher)
+    dispatcher.model = FunctionModel(stream_function=follow_up)
+    await ledger.create(
+        Intent(session_id=session.id, run_id="run_after_limit", prompt="What happened?", source="bridge"),
+        workflow_name="bridge_chat",
+        pattern_manifest=BRIDGE_CHAT.manifest.snapshot(),
+        queue_name="runs",
+        priority=70,
+    )
+    assert (await perform_run({"run_substrate": substrate}, run_id="run_after_limit"))["status"] == "done"
+    assert [(part.tool_call_id, part.outcome, part.content) for part in observed] == [
+        (part.tool_call_id, part.outcome, part.content) for part in returns
+    ]
+    assert len(orch.calls) == 3
+
+
+@pytest.mark.asyncio
+async def test_binding_drift_after_approved_round_preserves_completed_effect() -> None:
+    substrate, ledger, _bus, sessions, orch = _substrate(FunctionModel(stream_function=_always_park))
+    run_id = "run_partial_binding_drift"
+    await _seed(ledger, sessions, run_id)
+    first_consent = await _park(substrate, run_id)
+    assert (await _resume(substrate, run_id, first_consent, approved=True))["status"] == "awaiting_consent"
+    current = await ledger.get(run_id)
+    assert current is not None and current.consent_id is not None
+    assert len(orch.calls) == 1
+
+    dispatcher = substrate.dispatcher
+    assert isinstance(dispatcher, FakeDispatcher)
+    dispatcher.key = "chat:changed"
+    assert (await _resume(substrate, run_id, current.consent_id, approved=True))["status"] == "done"
+    assert len(orch.calls) == 1
+    turn = await sessions.settled_turn_for_run(run_id)
+    assert turn is not None and turn.content.startswith("The turn stopped:")
+    assert "fresh consent" in turn.content
+    session = next(iter(sessions._sessions.values()))
+    history = ModelMessagesTypeAdapter.validate_python(session.message_history)
+    returns = [part for message in history for part in message.parts if isinstance(part, ToolReturnPart)]
+    assert [(part.tool_call_id, part.outcome) for part in returns] == [("c0", "success"), ("c1", "denied")]
+    assert "executed" in str(returns[0].content)
+    assert returns[1].metadata == {"lychd_policy_refusal": True}
 
 
 # --- Scenario 5: fresh runtime reconstruction — verdict lands, seq continues

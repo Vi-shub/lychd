@@ -70,7 +70,7 @@ idempotency key. Optional material never invents profile support.
 `KinesisJob@2` owns motion stages, candidates, technical validation, and result settlement.
 Creative adoption belongs to the consuming Composition. Each concrete service or tool execution
 uses Core's Designed
-[`ServiceJobAttempt@1`](../../../adr/14-workers.md#service-job-attempts-designed) state,
+[`ServiceJobAttempt@1`](../../../adr/14-workers.md#service-job-attempts) state,
 idempotency, cancellation, reconciliation, and indeterminate-effect law. An attempt remains
 contained until the same provider/executor job identity and working set settle; cancellation
 request is never proof that capture, inference, process, or remote effect stopped.

@@ -35,6 +35,7 @@ from lychd.domain.orchestration.journal import TransitionRecord
 from lychd.domain.orchestration.manager import OrchestratorManager
 from lychd.domain.orchestration.policies import DeclaredConflictPolicy
 from lychd.domain.orchestration.schema import TransitionTrace
+from tests.runtime_guards import InertSoftActivationGuard
 
 
 def _make_manager(broker: object, registry: object, *, leases: LeaseLedger | None = None) -> OrchestratorManager:
@@ -47,6 +48,7 @@ def _make_manager(broker: object, registry: object, *, leases: LeaseLedger | Non
         arbiter=TransitionArbiter(),
         actuator=_StateTrackingActuator(registry),  # type: ignore[arg-type]
         switching=SwitchingSettings(),
+        soft_activation_guard=InertSoftActivationGuard(),
     )
 
 
@@ -555,7 +557,7 @@ class _FixedPolicy:
 
 def _acquire(leases: LeaseLedger, spec: CapabilitySpec, *, grant_id: str) -> None:
     grant = SimpleNamespace(lease=GrantLease(grant_id=grant_id, holder="run:x", issued_at=datetime.now(UTC)), spec=spec)
-    leases.acquire(grant, priority=50)  # type: ignore[arg-type]
+    leases.acquire(grant, priority=50, admission_generation=leases.admission_generation(spec.animator_name))  # type: ignore[arg-type]
 
 
 class _StateTrackingActuator:
@@ -589,6 +591,7 @@ def _swap_manager(*, policy: object, leases: LeaseLedger, switching: SwitchingSe
         arbiter=TransitionArbiter(),
         actuator=_StateTrackingActuator(registry),
         switching=switching,
+        soft_activation_guard=InertSoftActivationGuard(),
     )
     return manager, target
 
@@ -652,6 +655,7 @@ async def test_soft_swap_and_no_op_are_never_gated() -> None:
         arbiter=TransitionArbiter(),
         actuator=_StateTrackingActuator(warm_reg),
         switching=SwitchingSettings(min_priority_for_hard_swap=90),
+        soft_activation_guard=InertSoftActivationGuard(),
     )
     no_op = await warm_mgr.request_transition(warm.key, 1)
     assert no_op.action_type == "NO_OP"
@@ -677,6 +681,7 @@ async def test_soft_swap_and_no_op_are_never_gated() -> None:
         arbiter=TransitionArbiter(),
         actuator=_StateTrackingActuator(soft_reg),
         switching=SwitchingSettings(min_priority_for_hard_swap=90),
+        soft_activation_guard=InertSoftActivationGuard(),
     )
     soft = await soft_mgr.request_transition(target.key, 1)
     assert soft.action_type == "SOFT_SWAP"
@@ -725,6 +730,7 @@ async def test_static_warming_runtime_uses_convergence_only_path() -> None:
         arbiter=TransitionArbiter(),
         actuator=_StateTrackingActuator(registry),
         switching=SwitchingSettings(),
+        soft_activation_guard=InertSoftActivationGuard(),
     )
     wait_entered = asyncio.Event()
     release_wait = asyncio.Event()
@@ -788,6 +794,7 @@ async def test_soft_swap_drains_same_animator_leases_before_activation() -> None
         arbiter=TransitionArbiter(),
         actuator=_StateTrackingActuator(registry),
         switching=SwitchingSettings(drain_timeout_s=5.0),
+        soft_activation_guard=InertSoftActivationGuard(),
     )
 
     task = asyncio.create_task(manager.request_transition(target.key, 100))
@@ -822,6 +829,7 @@ def _swap_manager_with_broker(broker: object, *, leases: LeaseLedger, switching:
         arbiter=TransitionArbiter(),
         actuator=_StateTrackingActuator(registry),
         switching=switching,
+        soft_activation_guard=InertSoftActivationGuard(),
     )
     return manager, target
 
@@ -1222,6 +1230,7 @@ async def test_noop_recheck_rejects_orphaned_closed_admission() -> None:
         arbiter=TransitionArbiter(),
         actuator=_StateTrackingActuator(registry),
         switching=SwitchingSettings(),
+        soft_activation_guard=InertSoftActivationGuard(),
     )
 
     with pytest.raises(RuntimeError, match="admission remains closed"):

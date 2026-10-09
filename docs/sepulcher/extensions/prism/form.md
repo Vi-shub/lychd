@@ -47,7 +47,7 @@ geometry nor a reconstructed mesh.
 `FormJob@2` owns spatial stages, candidate facets, technical validation, and result settlement.
 Creative adoption and engine use belong to their consuming Compositions. Each concrete service or
 tool execution uses Core's Designed
-[`ServiceJobAttempt@1`](../../../adr/14-workers.md#service-job-attempts-designed) state,
+[`ServiceJobAttempt@1`](../../../adr/14-workers.md#service-job-attempts) state,
 idempotency, cancellation, reconciliation, and indeterminate-effect law. The parent Run remains
 nonterminal and fenced while the same attempt is indeterminate; neither job nor effect is replayed
 under a new identity.

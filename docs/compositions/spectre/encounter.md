@@ -53,6 +53,6 @@ In the reference journey, the Habitat admits required features and records optio
 
 A network-disabled synthetic fixture admits seated, separate bounded room-scale, and companion-screen Encounters, with a static or head-and-hands Avatar. Prove required-feature refusal, optional downgrade, focus loss, recenter/space change, participant exit, consent revocation, visible exit request, abrupt loss, new-epoch recovery, export, and deletion. It proves no hardware compatibility, universal comfort, content quality, multiplayer, physical safety, or delivery.
 
-`spectre.virtual_reality` revision `2` replaces Designed revision `1` for Lich encounters: `spectre.enter_encounter@2`/`SpectreEncounter@2` consume Avatar's corrected `ProjectionBinding@2`. Habitat admission and `VRHabitat@1` stay unchanged. No registry or Run used revision `1`; historical references retain meaning without executable migration.
+`spectre.virtual_reality` revision `2` replaces revision `1` for Lich encounters: `spectre.enter_encounter@2`/`SpectreEncounter@2` consume Avatar's corrected `ProjectionBinding@2`. Habitat admission and `VRHabitat@1` stay unchanged. No registry or Run used revision `1`; historical references retain meaning without executable migration.
 
 Return to [Spectre](index.md).

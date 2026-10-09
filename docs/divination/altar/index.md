@@ -42,19 +42,23 @@ identity in view when changing instruments.
 | --- | --- |
 | What are we trying to accomplish or care for, what needs judgment, and what comes next? | [Atlas](./atlas.md) |
 | What was offered, what judgment is pending, and what settled? | [Bridge](./bridge.md) |
-| Which events were retained, and where does the evidence run out? | [Orb](./orb.md) |
+| Which Runs are before us, what evidence is arriving, and where does capture run out? | [Orb](./orb.md) |
 | Which stations and paths does this exact Scroll permit? | [Loom](./loom.md) |
 | What was observed about readiness or a physical transition? | [Nexus](./nexus.md) |
 
 These are the Altar's five instruments. Atlas keeps a Project across conversations and Runs;
 it can also begin without either. Circle is the Invocation-shaped pinnacle within Bridge,
-not a separate instrument. Its current material form is the thin per-turn Run strip. A
+not a separate instrument. Its current material form is a compact per-turn Run disclosure with
+supplied status, complete identity, evidence and declared-score links, and eligible cancellation. A
 composed Circle workspace is not delivered.
 
 At a Bridge result, keep its Run identity and choose **Look into the Orb**. The leaf guides show
 how to account for capture and gaps, compare the pinned score in Loom, and follow exact physical
 transition correlations into Nexus. Carrying the same Run through those views keeps each
 observation attached to the work that raised your question.
+Open `/orb` for the parallel Run field: a paged catalogue and at most three bounded live lenses
+share one canvas. Zoom or explicit detail controls unfold supplied Run, station, occurrence, and
+record identities; deeper subworkflow structure remains unavailable without its owner's identity.
 
 Nexus inspection changes no lifecycle state. **Preview** is nonbinding; **Request transition**
 performs a real maximum-priority mutation. Read the [Nexus guide](./nexus.md) before making that
@@ -73,18 +77,18 @@ contracts belong to the Frontend Covenant; interface choices preserve retained s
 
 ## Presentation direction
 
-The next presentation pass follows a quiet observatory: a readable undertaking, conversation,
+The presentation follows a quiet observatory: a readable undertaking, conversation,
 account, board, or score is each page's focal point. Secondary identity and history are disclosed
 when useful. Uncertainty, consent, capture limits, and physical consequences stay beside the
 choices they qualify. [Frontend's reading hierarchy](../../adr/15-frontend.md#reading-hierarchy-and-visual-direction)
-owns the shared design; each instrument's **Reading direction** describes its intended
-composition and a practical acceptance case.
+owns the shared design; each instrument's **Reading direction** distinguishes its current
+composition, further targets, and a practical acceptance case.
 
 Follow [Atlas's concerns and citations](atlas.md#reading-direction),
 [Bridge's conversation and recovery](bridge.md#reading-direction),
-[Orb's evidence lanes](orb.md#reading-direction), [Nexus's preview and observations](nexus.md#reading-direction),
-or [Loom's declared score](loom.md#reading-direction). These are implementation targets. Current
-controls remain those described in the operating sections and [State of
+[Orb's parallel evidence field](orb.md#reading-direction), [Nexus's preview and observations](nexus.md#reading-direction),
+or [Loom's declared score](loom.md#reading-direction). Current controls and the boundaries of
+graph expansion remain those described in the operating sections and [State of
 Work](../../state-of-the-work.md#altar-and-observability).
 
 Artwork supports the entrance rather than repeating behind work on every instrument. The existing

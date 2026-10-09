@@ -13,19 +13,17 @@ independent of taxonomy and place.
 
 ## Contract and map
 
-This is a designed contract. No models, migrations, runtime, or fixtures are delivered
-here. [Composition portfolio delivery](../../state-of-the-work.md#composition-portfolio-delivery)
-owns delivery status. [Persistence law](../../adr/06-persistence.md) and
-[workflow law](../../adr/28-workflow.md) govern implementation.
+The record and Pattern catalogue follows [persistence law](../../adr/06-persistence.md) and
+[workflow law](../../adr/28-workflow.md).
 
-| Pattern | Durable records |
+| Work and Pattern | Durable records |
 | --- | --- |
-| [`cultivator.record_culture@1`](cultures.md) | `CultivatorCulture@1`, `CultivatorObservation@1`, `CultivatorGrowingProfile@1` |
-| [`cultivator.assess_space@1`](growing-space.md) | `CultivatorGrowingSpace@1`, `CultivatorPlacement@1`, `CultivatorEnvironmentNeed@1` |
-| [`cultivator.review_cycle@1`](lifecycle.md) | `CultivatorCycle@1` |
-| [`cultivator.plan_tending@1`](tending.md) | `CultivatorTendingPlan@1`, `CultivatorSupplyNeed@1` |
-| [`cultivator.record_work@1`](tending.md#execution-and-results) | `CultivatorWorkEvent@1`, `CultivatorWorkResult@1` |
-| [`cultivator.record_harvest@1`](harvest.md) | `CultivatorHarvestReceipt@1` |
+| [Identify the culture and record observations](cultures.md)<br>`cultivator.record_culture@1` | `CultivatorCulture@1`, `CultivatorObservation@1`, `CultivatorGrowingProfile@1` |
+| [Assess its growing space and placement](growing-space.md)<br>`cultivator.assess_space@1` | `CultivatorGrowingSpace@1`, `CultivatorPlacement@1`, `CultivatorEnvironmentNeed@1` |
+| [Review its changing cycle](lifecycle.md)<br>`cultivator.review_cycle@1` | `CultivatorCycle@1` |
+| [Plan tending and request supplies](tending.md)<br>`cultivator.plan_tending@1` | `CultivatorTendingPlan@1`, `CultivatorSupplyNeed@1` |
+| [Record work and its result](tending.md#execution-and-results)<br>`cultivator.record_work@1` | `CultivatorWorkEvent@1`, `CultivatorWorkResult@1` |
+| [Confirm a collected harvest](harvest.md)<br>`cultivator.record_harvest@1` | `CultivatorHarvestReceipt@1` |
 
 These six Patterns are independently invocable. Enter through a culture's identity, its growing
 space or lifecycle, the tending work due, or a collected harvest.
@@ -65,11 +63,11 @@ to retention and owner contracts. Closing a record does not remove a plant or di
 
 ## First proof
 
-A designed falsifying fixture should preserve an ornamental plant through repotting
+The acceptance fixture must preserve a synthetic ornamental plant through repotting
 and movement; split a seed batch into bed cohorts; refuse watering on unknown sensor
 or reserve evidence; reconcile repeated partial harvest, duplicate import, and a
 correction; exercise a perennial or fungi profile without universal stages; and recover
 lost action acknowledgment after restart. Export must leave care active; deletion must close
-affected schedules and settle or hand off custody. This fixture is a proof target, not delivered evidence.
+affected schedules and settle or hand off custody.
 
 Return to [Compositions](../index.md).

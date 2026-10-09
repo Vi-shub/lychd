@@ -9,7 +9,18 @@ One sentence in the eventual script may depend on a quotation, a calculation, an
 
 ## Freeze the evidence
 
-Admit named snapshots, retaining source identity, revision/digest, relevant span, known author/publisher, classification, rights posture, audience, purpose, disclosures, and retention. A live URL can locate the source; it cannot be the frozen evidence. The editorial brief pins question, audience, target, scope, tone, exclusions, review standard, and freshness. Changed questions or sources produce forward revisions.
+A live URL helps locate a source. Freeze the evidence as a named snapshot before a claim depends
+on it, keeping three things together:
+
+- **What was read:** source identity, revision/digest, relevant span, and known author
+  or publisher. Another reader must be able to find the material that supported the claim.
+- **How it may be used:** classification, rights posture, audience, purpose, disclosures, and
+  retention. Custody of a snapshot does not settle every future use.
+- **What this work asks of it:** an editorial brief fixing the question, audience, target, scope,
+  tone, exclusions, review standard, and freshness.
+
+A changed question or changed source creates a forward revision. Keep each script tied to the
+revision it relied on under the declared retention policy.
 
 ## Build the claim ledger
 

@@ -116,6 +116,31 @@ The Host Reactor records exact outcomes: `.declined.json` proves no effect,
 systemd unit may remain active while the probe sees it absent; reconcile that mismatch before
 retrying.
 
+## Recover an interrupted soft activation
+
+The Vessel writes `runtime-guard/pending.json` beneath the Crypt before runtime-native model
+activation. An unfinished record blocks startup before any Run queue connects, under both
+actuator profiles. Restarting the Vessel, changing configuration, or observing a warm model does
+not clear it. The directory is owner-only `0700`, provisioned by `lychd init` and mounted
+read-write by the generated Vessel binding. Existing installations need the updated initialization
+and binding before using this path; startup refuses missing or unsafe storage.
+
+For recovery, keep the Vessel and the record's target Animator stopped through the ordinary
+host lifecycle procedure. Read the exact `activation_id` from that owner-only record, then invoke
+the bounded host helper:
+
+```bash
+lychd reactor recover-soft ACTIVATION_ID
+```
+
+Replace `ACTIVATION_ID` with its exact 32-character value. This hidden host operation starts and
+stops nothing: it validates the record against current declarations, attests the Scribe-owned
+loaded topology, and proves the Vessel and affected runtime stopped without main/control processes
+or pending systemd work before clearing that exact record. Changed configuration, corrupt records,
+unknown ownership, live or uncertain runtime state, and persistence errors refuse release. Preserve
+the record and reconcile the reported discrepancy; deleting it by hand is not verified recovery.
+Host Reactor `.contained`/`.processing` records retain their separate recovery boundary.
+
 ## Tune With Intent
 
 - Raise `min_priority_for_hard_swap` to resist disruptive swaps.

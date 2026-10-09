@@ -41,8 +41,18 @@ one local Answer remains responsible for what it binds.
 
 ## What Bridge can show
 
-The current Run strip relates a turn to its Run, exact Pattern revision, status, consent, and Orb
-link. Circle is the conceptual pinnacle inside Bridge, not a separate Altar instrument. No composed
+The compact **Circle** beside a reply shows supplied Run status and activity, with **Look into
+the Orb** and an explicit **Cancel Run** for an eligible nonterminal projection. Expand **Circle**
+to read the full Run identity, supplied Pattern revision and delegated-job identity. **View declared
+score** opens Loom only when its supplied path matches that exact Pattern revision. These are
+navigation hints; Loom still verifies the Run's pinned manifest before offering a contextual return.
+
+Older retained replies may lack Run status or a declared score. Circle identifies those omissions
+and offers the Run evidence link without inventing the missing metadata. A mismatched Run projection
+is reported and cannot supply status or actions for another Run. Consent remains beside its own
+request and decision controls.
+
+Circle is the conceptual pinnacle inside Bridge, not a separate Altar instrument. No composed
 Circle workspace, active-Spell map, Context/authority inspector, participant-attribution view, or
 cross-instrument focus mode is delivered.
 

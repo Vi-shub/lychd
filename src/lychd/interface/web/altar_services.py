@@ -53,6 +53,7 @@ if TYPE_CHECKING:
     from lychd.domain.cortex.engine import RunQueue
     from lychd.domain.cortex.ledger import RunLedger
     from lychd.domain.delegation.ports import DelegatedAgentRuntime
+    from lychd.domain.orchestration.containment import SoftActivationGuard
     from lychd.domain.web.atlas import AtlasStorePort
     from lychd.domain.web.fragments import FragmentRegistry
     from lychd.domain.web.sessions import SessionStorePort
@@ -189,6 +190,7 @@ def build_altar_services(
     profile: str | None = None,
     settings: Settings | None = None,
     systemctl_bin: str | None = None,
+    soft_activation_guard: SoftActivationGuard | None = None,
 ) -> AltarServices:
     """Assemble `AltarServices` at the application composition boundary.
 
@@ -225,6 +227,11 @@ def build_altar_services(
     bus = InProcessEventBus(ledger=ledger)
     dispatcher = Dispatcher(registry=registry, leases=leases, events=bus)
     switching = settings.orchestration.switching
+    if soft_activation_guard is None:
+        from lychd.system.constants import PATH_RUNTIME_GUARD_DIR
+        from lychd.system.services.runtime_guard import FileSoftActivationGuard
+
+        soft_activation_guard = FileSoftActivationGuard(PATH_RUNTIME_GUARD_DIR)
     worker_broker = GhoulBroker()
     orchestrator = OrchestratorManager(
         worker_broker,
@@ -238,6 +245,7 @@ def build_altar_services(
             systemctl_bin=systemctl_bin,
         ),
         switching=switching,
+        soft_activation_guard=soft_activation_guard,
     )
     context_orchestrator = ContextOrchestrator(registry=registry)
     fragments = build_fragment_registry()

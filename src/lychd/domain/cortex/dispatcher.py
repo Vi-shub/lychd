@@ -8,7 +8,7 @@ from lychd.domain.animation.capabilities import CapabilityPhase, CapabilitySpec,
 from lychd.domain.animation.errors import CapabilityNotWarm, CapabilityUnavailable, HardwareTransitionRequired
 from lychd.domain.animation.protocols import CapabilityRegistry, require_capability_record
 from lychd.domain.animation.schemas.capability_family import CapabilityFamily
-from lychd.domain.cortex.leases import AnimatorAdmission, LeaseAdmissionClosed
+from lychd.domain.cortex.leases import AnimatorAdmission, LeaseAdmissionChanged, LeaseAdmissionClosed
 from lychd.lib.asyncio import complete_under_cancellation
 
 if TYPE_CHECKING:
@@ -74,13 +74,14 @@ class Dispatcher:
             require_modalities=require_modalities,
             requires_tools=requires_tools,
         )
+        admission_generation = self._leases.admission_generation(spec.animator_name)
         grant = await self._grant_for_spec(spec, holder=f"run:{run_id}")
         resources = AsyncExitStack()
         acquired = False
         try:
             if grant.model is not None:
                 await resources.enter_async_context(grant.model)
-            self._acquire_or_park(grant, priority=priority)
+            self._acquire_or_park(grant, priority=priority, admission_generation=admission_generation)
             acquired = True
             if self._events is not None:
                 from lychd.domain.cortex.execution_context import current_occurrence_id
@@ -133,17 +134,16 @@ class Dispatcher:
                 "portal egress admission is not configured",
             )
 
-    def _acquire_or_park(self, grant: CapabilityGrant, *, priority: int) -> None:
+    def _acquire_or_park(self, grant: CapabilityGrant, *, priority: int, admission_generation: int) -> None:
         """Atomically register a grant or convert a concurrent drain into stasis.
 
-        ``issue_grant`` is async, so admission may close after the phase preflight but
-        before the loop-confined ledger registration.  Only that typed, expected race
-        becomes ``HardwareTransitionRequired``; duplicate-id and other ledger defects
-        continue to fail loudly.
+        Grant issue and provider entry may yield through a complete drain and
+        reopen. Both closed admission and an intervening generation change require
+        fresh dispatch; duplicate-id and other ledger defects still fail loudly.
         """
         try:
-            self._leases.acquire(grant, priority=priority)
-        except LeaseAdmissionClosed as exc:
+            self._leases.acquire(grant, priority=priority, admission_generation=admission_generation)
+        except (LeaseAdmissionClosed, LeaseAdmissionChanged) as exc:
             raise self._transition_required(grant.spec) from exc
 
     def _transition_required(self, spec: CapabilitySpec) -> HardwareTransitionRequired:

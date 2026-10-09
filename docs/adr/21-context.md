@@ -59,7 +59,7 @@ retained assembly or the input against which its budget was checked. Immutable B
 Context preserves its declared semantic order. Exact append-only transcript groups may extend a
 reusable prefix for a compatible connector while all earlier wire serialization remains
 byte-identical; rewritten summaries and replacement
-[Execution Projection](28-workflow.md#execution-projections-for-procedural-agent-placements-designed)
+[Execution Projection](28-workflow.md#execution-projections-for-procedural-agent-placements)
 values do not preserve that identity. Cache remains a connector/provider optimization, never a
 Context source, authority, or receipt; Context does not reorder or pad admitted input merely to
 obtain cache eligibility.
@@ -195,7 +195,7 @@ end-to-end lineage, transformation receipts, semantic Privacy Agent, secret-free
 projection, Disclosure Plan, Cut Verification, pseudonym-map vault, sanitized Context branch, and
 trusted Egress Gate remain undelivered.
 
-## Typed Codex material projections (Designed)
+## Typed Codex material projections
 
 Layer 2 will accept only explicit, attributed material references selected for one Run and Spell
 placement. Each contribution binds an immutable artifact or contained workspace-relative source,
@@ -238,10 +238,19 @@ with its own capability grant, typed result, budget, lineage, and explicit omiss
 inherits its sources' privacy and instruction non-authority and cannot replace canonical source or
 history truth.
 
-## Execution Projection input (Designed)
+An Agent may propose when and what to retain, compress, or omit in response to task progress as
+well as budget pressure. These proposals remain subject to the derived-material and
+[Execution Projection](28-workflow.md#execution-projections-for-procedural-agent-placements)
+contracts; Context continues to enforce protected inputs, attribution, and assembly limits.
+[Context Language Models](https://arxiv.org/html/2609.37725v1) reports benefits from model-directed
+context editing in its tested settings. That evidence motivates adaptive proposals within these
+boundaries; it establishes neither universal performance gains nor LychD delivery, and does not
+require adopting the paper's separate approximate suffix-cache reuse mechanism.
+
+## Execution Projection input
 
 At one explicitly declared procedural Agent placement, a Composition-owned and Pattern-pinned
-[Execution Projection](28-workflow.md#execution-projections-for-procedural-agent-placements-designed)
+[Execution Projection](28-workflow.md#execution-projections-for-procedural-agent-placements)
 may replace settled message history for that model call. Context receives the exact bounded,
 attributed projection and fresh admitted observation projections from their owners; it preserves
 their lineage, classification, revisions, declared omissions, and required/optional status, then

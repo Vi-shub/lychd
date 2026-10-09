@@ -20,9 +20,15 @@ acceptable; their judgments preserve reasons and uncertainty, with human decisio
 required. Criteria can change, but a changed Rubric belongs to a new comparison. It does not
 retrospectively turn a failed result into a pass.
 
-[Leviticus](https://bible.usccb.org/bible/leviticus/0) provides a gentle echo through ordered
-practice, distinctions, and obligations. Here the concern is how declared commitments remain
-present in the way a candidate is made and judged.
+**The measure must answer to the purpose.** Counting fewer conflicts can reward a design that
+silently discards one side. No silent loss therefore remains a condition; speed and convenience
+are judged among candidates that preserve the observations. The Tree's
+[persistence and acknowledgment](genesis.md#relations-within-relations) meet here: Hod must be
+able to question what Netzach is being rewarded for continuing.
+
+[Leviticus](https://bible.usccb.org/bible/leviticus/0) brings ordered practice, distinctions,
+and obligations to the chapter's literary thread. Declared commitments must remain present
+in the way a candidate is made and judged.
 
 [Drift's Trial and Rubric contracts](../../sepulcher/extensions/drift/trials.md#pin-the-trial)
 own the practical evaluation terms. Canon names this interpretive chapter; it adds no runtime

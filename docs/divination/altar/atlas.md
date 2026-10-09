@@ -5,15 +5,22 @@ icon: material/map-outline
 
 # :material-map-outline: Atlas
 
-Atlas maps what deserves attention: a question, an idea taking shape, an application, or continuing
-care. Concerns give that map its substance: what they mean, how they break down, where they are
-addressed, and what supports a judgment. A Concern need not begin inside a Project or come from a
-Covenant. [Independent Concerns and their relations](#concerns-before-a-project-designed) are the
-designed direction.
+Keep an undertaking in view across conversations and Runs. **Atlas** records its brief,
+concerns, judgments, and proposed next step. A software release, a record, and the continuing
+care of a home all fit; none needs an existing conversation, Pattern, or Run to begin.
 
-The current surface begins with a Project. It keeps a brief, concerns, judgments, and a proposed
-next step across conversations and Runs. A software release, a record, and the continuing care
-of a home all fit. You can begin before there is a conversation, a Pattern, or a Run.
+The current surface gathers this material in a **Project**. Its concerns name what deserves
+attention, and its judgments retain your reasons for accepting, disputing, or questioning the
+work. The guide below follows that Project from its first brief to a later review.
+
+The wider map begins with a question or an idea before it has a Project. It asks what each Concern
+means, how it breaks down, where it is addressed, and what supports a judgment. A Concern need
+not come from a Covenant. [Independent Concerns and their relations](#concerns-before-a-project)
+remain the designed direction.
+
+[Owned Technology Map](technology-map.md) explores a candidate undertaking across devices,
+software, firmware, and services: prefer more openness, retain exact evidence and unknowns, and
+distinguish understanding from the ability to modify, replace, or recover a component.
 
 ## Put an undertaking on the map
 
@@ -48,12 +55,18 @@ Changing the brief or a concern makes earlier assessments **need review**. The e
 and its original requirements remain readable. Record a fresh assessment after examining the new
 basis. Atlas does not silently reinterpret what an older assessment meant.
 
+On a stale latest assessment, **Compare with judged basis** shows the brief, concern and criteria
+as judged beside their current values. This is a read-only comparison; a new judgment still needs
+an explicit assessment save.
+
 Use **Find a concern** and the **Assessment** filter to reach a question or judgment in a longer
 project. Assessment forms open beside the concern and its history. Cited activity opens in a new
 tab so you can inspect it while keeping your draft. The board's filters apply to its loaded page;
 unassessed concerns, assessments needing review, and current insufficient or disputed judgments
 have separate counts and filters. Stale judgments count as needing review rather than as current
 judgments. These are separate observations, not a complete measure of project health.
+Inside the project, the four count controls select those same assessment groups. **Clear concern filters**
+restores the full concern list and returns focus to **Find a concern**.
 
 Decisions retain a statement and reason. When a decision changes, record a replacement that
 supersedes it. The earlier decision stays under **Earlier decisions**.
@@ -105,6 +118,10 @@ and remaining boundary.
 
 ## Reading direction
 
+The current Project view puts concerns before secondary context. Wide screens keep the brief
+and proposed next step beside them; narrow screens follow the concern list with that context.
+The brief starts collapsed when concerns exist, while continuation links remain available.
+
 The planned composition gives Concerns their own entrance and one readable detail. Meaning,
 decomposition, where each part is addressed, criteria, judgment, original basis, attribution, and
 cited references belong together; older assessments and decisions can unfold beneath them.
@@ -125,7 +142,7 @@ server contract; hiding rows cannot create that support. This composition and it
 are targets under [Frontend](../../adr/15-frontend.md#reading-hierarchy-and-visual-direction), not
 additional delivered controls.
 
-## Concerns before a Project (Designed)
+## Concerns before a Project
 
 Begin with “Can someone trust this answer?” even if the surrounding idea has no name. Break that
 Concern down into “Can its sources be inspected?”, “Is uncertainty visible?”, and “Can a mistake
@@ -159,6 +176,6 @@ third visibly unaddressed. Inspect the source of a suggested child, distinguish 
 an adopted rule, and associate the questions with a Project later. Change a part used by an
 assessment and verify that its original basis survives while the affected judgment needs review.
 
-[Frontend](../../adr/15-frontend.md#independent-concerns-decomposition-and-addressing-designed)
+[Frontend](../../adr/15-frontend.md#independent-concerns-decomposition-and-addressing)
 owns this contract. [State of Work](../../state-of-the-work.md#atlas-projects) records the current
 Project-bound surface and the missing independent records, decomposition, addressing, and seeding.

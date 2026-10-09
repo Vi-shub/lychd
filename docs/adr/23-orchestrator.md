@@ -89,9 +89,9 @@ The actual rite is:
 7. Require target WARM, and after hard swap every evictee stopped.
 8. Reopen only under the restoration law.
 
-Pre-effect drain timeout/cancellation reopens gates. Cancellation during the direct systemd
-actuator's topology, pending-job, or pre-world observations is also verified no effect: no runtime
-transaction has been submitted, so retain that cancellation classification and reopen the gates.
+Pre-effect drain timeout/cancellation reopens gates. Operational failure or cancellation during the
+direct systemd actuator's topology, pending-job, or pre-world observations is also verified no effect:
+no runtime transaction has been submitted, so retain the cause and classification and reopen the gates.
 Once submission begins, cancellation must settle and classify the transaction and, where needed,
 restore the exact prior world before reopening. The waiting run has no lease. Hardware Stasis
 is live; Graph and Snapshots own durable sleep. The process-local bounded TransitionJournal is for
@@ -135,7 +135,18 @@ observation-only transition the owner of that effect; fresh readiness still gove
 Invoking adapter activation crosses the uncertainty boundary before the call begins, including a
 call that returns `accepted=false`: that boolean is not an authoritative no-effect receipt. Soft
 activation has no sufficient prior model state for a trustworthy inverse, so failure after that
-boundary leaves its claim and admission gates closed for operator recovery.
+boundary leaves its claim and admission gates closed for operator recovery. Before invoking a soft
+activation, the Vessel durably arms an owner-only record in the Crypt's `runtime-guard` directory.
+Only observed target WARM permits clearing that exact record. An interrupted or uncertain attempt,
+including an incomplete record write, fences a fresh Vessel before queues or services are published;
+changing configuration or restarting the process cannot release it. Observation-only convergence
+does not arm a record. Persistence failure prevents activation and fails closed.
+
+The guard is mounted read-write into the Vessel under both actuator profiles, separately from the
+Host Reactor's read-only journal. Recovery is an explicit host operation: with lifecycle and guard
+exclusion held, attest the owned topology and prove the Vessel and the recorded Animator service
+stopped before clearing the exact pending record. Unknown identity, changed topology, pending jobs,
+or uncertain service state refuse recovery. No readiness probe alone releases containment.
 
 ### Host Mutation Port and Privilege Boundary
 
@@ -160,7 +171,9 @@ not a signed remote protocol.
 
 Unclaimed publication may be retracted after claim deadline. Claimed cancellation/timeout does not
 prove systemd stopped; wait for terminal classification. Exact desired state wins even after a bad
-client return; exact prior state is restored; otherwise one typed compensation must prove exact
+client return. Cancellation retains a host-owned decline or exact-restoration receipt and may reopen
+admission on that proof; completion alone does not prove restoration. For an ordinary failed
+transaction, exact prior state is restored; otherwise one typed compensation must prove exact
 restoration. Once compensation starts, repeated caller cancellation cannot abandon it; the inverse
 finishes before cancellation is propagated and admission can reopen. Rejected/contained or
 unresolved compensation fails closed. Direct containment latches

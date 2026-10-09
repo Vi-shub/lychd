@@ -6,25 +6,13 @@ icon: material/autorenew
 # :material-autorenew: Transmutation
 
 A purpose acquires form, the form meets a world it cannot dictate, and the encounter changes
-what can be made next. **Transmutation** follows that whole passage. **Ouroboros** names its
-return: consequence becomes a distinction carried into another act of creation.
+what can be made next. **Transmutation** follows that passage through a particular undertaking.
+**Ouroboros** names its return: consequence becomes a distinction carried into another act of
+creation.
 
-Beside [Transcendence](../transcendence/index.md), which unfolds the Great Work's horizon,
-these chapters follow the transformation of a particular undertaking. Their questions can be
-practiced through ordinary development and review; the autonomous operating designs they link
-remain subject to the delivery boundaries in [State of Work](../../state-of-the-work.md).
-
-## Tree of Life
-
-The Tree brings purpose, possibility, understanding, restraint, generosity, integration,
-persistence, acknowledgment, connection, and manifestation into relation. The author's
-whiteboard workflow preceded this comparison. The sefirotic reading deepens that independently
-developed design by asking what each contribution needs from another.
-
-[Genesis](genesis.md#tree-of-life) develops this reading and its question of symmetry,
-including the named sefirot, pillars, Adam Kadmon, and source distinctions.
-The five chapters below follow the undertaking through those
-relations. They are not five sefirot or a fixed roster of Agents.
+These chapters can accompany ordinary development and review. Begin with an idea taking shape
+in Genesis, follow what happens when it is tried, and ask what the next attempt should inherit.
+[Transcendence](../transcendence/index.md) opens the wider horizon of the Great Work.
 
 ## Five chapters of the return
 
@@ -36,8 +24,9 @@ relations. They are not five sefirot or a fixed roster of Agents.
 | [Revelation](revelation.md) | What did the encounter disclose? | Findings, uncertainty, diagnoses, and proposed corrections. |
 | [Distillation](distillation.md) | What should the next creation inherit? | A lesson with its conditions, source, and a proposed next use. |
 
-This is a reading order. **Canon enters before creation and testing**, and informs how results
-are interpreted. Criteria cannot be chosen after seeing a result merely to make it pass.
+This is a reading order. **Canon supplies the criteria before creation and testing.** The reader
+returns to examine that measure after Trial; the work cannot choose its definition of success
+after seeing the result.
 
 ```mermaid
 flowchart TB
@@ -51,20 +40,39 @@ flowchart TB
     D -. "Propose revised criteria for later trials" .-> C
 ```
 
-The arrows show dependencies of meaning and evidence. [Weaver's Ouroboros](../../sepulcher/extensions/weaver/ouroboros.md#why-the-whole-is-not-one-dag)
-keeps the operational distinction between a recurring method and separately admitted acts.
-This cycle is not itself one executable DAG or a hidden coordinator.
+The arrows follow meaning and evidence between separately admitted acts.
+[Weaver's Ouroboros](../../sepulcher/extensions/weaver/ouroboros.md#why-the-whole-is-not-one-dag)
+explains how a recurring method differs from its execution: this cycle is no single executable
+DAG or hidden coordinator.
 
-The chapter names carry a light literary thread through the
+The names carry a literary thread through the
 [Pentateuch](https://bible.usccb.org/bible/thepentateuch/0): beginnings, departure, ordered
 practice, an accounting of the journey, and remembrance before a new undertaking. Each chapter
-acknowledges its source; the engineering correspondence is the Hexanomicon's own composition.
+acknowledges its source. The engineering correspondence is the Hexanomicon's composition.
+
+## Tree of Life
+
+What does a possibility need from understanding? When should persistence receive support, and
+when should it yield? The Tree makes these relations visible throughout the cycle.
+[Genesis](genesis.md#tree-of-life) develops its ten sefirot, pillars, Adam Kadmon, and the
+question of symmetry. The author's whiteboard workflow preceded this comparison; the Tree
+deepens that design by revealing what one contribution asks of another.
+
+The five chapters follow an undertaking through those relations. They are neither five sefirot
+nor a fixed roster of Agents. A capacity introduced in Genesis may be needed again wherever
+the work encounters a new question.
 
 ## From meaning to method
 
-[SDLC](../../adr/16-sdlc.md#the-agentic-graph-of-creation) owns the architectural
-passage from candidate through verification to an owned effect.
-[Weaver's Creation](../../sepulcher/extensions/weaver/creation.md) applies the creative method to
-software. [Drift](../../sepulcher/extensions/drift/workflow-improvement.md) connects declared
-criteria with observed results and findings; [Soulforge](../../sepulcher/extensions/soulforge/discernment-training.md)
-receives a separately justified training hypothesis when the lesson calls for one.
+To put this movement into software work, enter
+[Weaver's Creation](../../sepulcher/extensions/weaver/creation.md).
+[SDLC](../../adr/16-sdlc.md#the-agentic-graph-of-creation) governs the passage from candidate
+through verification to an owned effect. [Drift](../../sepulcher/extensions/drift/workflow-improvement.md)
+asks what the evidence supports: it can examine a candidate, its manifested consequences, or
+the method across tasks. Its [two scales of evaluation](../../sepulcher/extensions/drift/workflow-improvement.md#evaluate-at-two-scales)
+keep those questions distinct.
+
+A lesson may improve the next question or procedure. Where it instead identifies a transferable
+skill gap, [Soulforge](../../sepulcher/extensions/soulforge/discernment-training.md) receives a
+separately justified training hypothesis. These autonomous operating designs remain subject to
+the delivery boundaries in [State of Work](../../state-of-the-work.md).

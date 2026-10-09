@@ -71,6 +71,10 @@ The following ledger retains the study reviewed **2026-08-26**. Its dated observ
 
 ## Minimum first proofs
 
+[Workbench](workbench.md) records the agent/human edit-render-listen requirements and finite
+engineering-worker plan. That trial supplies technical recipes and receipts; native application
+admission, Comfy Soulstone management, musical acceptance and Jam keep their separate proofs.
+
 The proposed offline proof chooses one baked music profile. The dated study selects MiniMax Music 3 through an immutable allowlisted ComfyUI preset as the first long-form candidate, with `audio.cpp` as the alternative family road. It also calls for a separated-source profile, isolated DawDreamer with allowlisted processors, pinned FFmpeg, librosa tempo/onset probes, and a LychD sample-accurate compiler from creative plan placements into the exact render graph.
 
 That proof may establish `assets_only` and bounded `assisted_session`. Its human return is stems, MIDI, tempo/markers, processor receipts, and mix notes—not a native DawDreamer project. Add PortAudio only for the separate armed-take proof.

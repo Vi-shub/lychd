@@ -35,9 +35,9 @@ Keeper and Cultivator can use human observations and work without Homestead. Exa
 
 ## Follow the sun without moving the Lich
 
-Beyond the household utility contract, a later Designed coordination profile may offer delay-tolerant labor to a sovereign [A2A peer](../../adr/26-a2a.md) from fresh evidence of surplus PV, battery margin, and compatible compute. The offer is coarse, expiring, and bounded by energy, time, task class, and local policy. Raw household telemetry need not travel. The destination rechecks load, forecast, thermals, reservations, and safety margin; no remote scheduler can override its local veto.
+Beyond the household utility contract, a separately admitted coordination profile may offer delay-tolerant labor to a sovereign [A2A peer](../../adr/26-a2a.md) from fresh evidence of surplus PV, battery margin, and compatible compute. The offer is coarse, expiring, and bounded by energy, time, task class, and local policy. Raw household telemetry need not travel. The destination rechecks load, forecast, thermals, reservations, and safety margin; no remote scheduler can override its local veto.
 
-Only bounded labor and admitted artifacts cross. Identity, private Graph, memory, household records, and infrastructure authority remain with the Lich. Context and Security separately admit egress. Price cannot widen those limits, and an unmeasured remote route cannot claim to be greener. This remains a designed horizon, without a delivered energy market or fleet scheduler.
+Only bounded labor and admitted artifacts cross. Identity, private Graph, memory, household records, and infrastructure authority remain with the Lich. Context and Security separately admit egress. Price cannot widen those limits, and an unmeasured remote route cannot claim to be greener. Homestead supplies the energy evidence; the coordination profile must separately establish work admission, remote settlement, and recovery.
 
 ## Return to observed state
 

@@ -25,4 +25,11 @@ Motion admission pins the accepted animation, target Form rig digest when rig-bo
 
 A `.schem` or block grid can enter a project/map asset. Live placement still requires a [Blockworld mission](../blockworld/mission.md), its epoch, lease, inventory, Sentinel, and receipts. A Suite can correlate handoffs and Runs but cannot merge member databases, Sigils, secrets, sessions, approvals, budget judgment, or release authority.
 
+An [Atelier studio](../products-and-suites.md#atelier-riffmaw-language-edition-and-broadcast)
+could propose generated material during play. Its creative acceptance and engine import do not
+prove live activation. A future hotload contract must bind the exact target-runtime state, reject
+stale outputs, distinguish acknowledged, partial, unknown, and reverted application, and preserve
+the prior usable revision for bounded recovery. A lost acknowledgement requires reconciliation
+before retry. The present import/build contract does not establish that live route.
+
 [Project](project.md) keeps custody; [Build](build.md) seals the candidate using these derivatives.

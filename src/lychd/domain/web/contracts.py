@@ -8,7 +8,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
-from lychd.domain.web.schemas import ConsentCard, NexusBoard, SwapTicket
+from lychd.domain.web.schemas import ConsentCard, LoomView, NexusBoard, SwapTicket
 
 
 class ClientContract(BaseModel):
@@ -286,6 +286,16 @@ class OrbRunSummary(ClientContract):
     bridge_path: str
 
 
+class OrbRunPage(ClientContract):
+    """A bounded newest-first Run catalogue, with explicit access to older identities."""
+
+    schema_version: Literal[1] = 1
+    snapshot_at: datetime
+    runs: list[OrbRunSummary]
+    next_cursor: str | None
+    capture: Literal["process_local", "durable_best_effort"]
+
+
 class EvidenceGap(ClientContract):
     """A sequence interval whose cause cannot be inferred from retained rows."""
 
@@ -307,6 +317,10 @@ class EvidenceItem(ClientContract):
     occurrence_id: str | None = None
     transition_request_id: str | None = None
     nexus_path: str | None = None
+    animator_name: str | None = None
+    capability_family: str | None = None
+    model_id: str | None = None
+    grant_id: str | None = None
     capture: Literal["process_local", "durable_best_effort"]
 
 
@@ -343,16 +357,33 @@ class OrbRunSnapshot(ClientContract):
     snapshot_at: datetime
     run: OrbRunSummary
     pattern: PatternReference
+    workflow: LoomView | None = None
     capture: Literal["process_local", "durable_best_effort"]
     ledger_head_seq: int
     page_end_seq: int | None
     has_more: bool
-    live_tail: Literal["not_available"] = "not_available"
+    live_tail: Literal["ledger_poll"] = "ledger_poll"
     known_omissions: list[str]
     gaps: list[EvidenceGap]
     evidence: list[EvidenceItem]
     delegated_jobs: list[DelegatedJobSummary]
     next_after_seq: int | None
+
+
+class OrbEventEnvelope(ClientContract):
+    """A bounded retained-evidence page, reset, or ledger-terminal settlement.
+
+    ``after_seq`` names the requested retained cursor; ``cursor`` advances only
+    through delivered evidence. Metadata-only updates may keep that cursor.
+    A reset invalidates the cursor and requires a fresh selected-Run snapshot.
+    """
+
+    schema_version: Literal[1] = 1
+    run_id: str
+    kind: Literal["evidence", "reset", "settled"]
+    after_seq: int = Field(ge=-1)
+    cursor: int = Field(ge=-1)
+    snapshot: OrbRunSnapshot
 
 
 class CsrfClientContract(ClientContract):

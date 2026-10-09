@@ -9,7 +9,14 @@ A game idea becomes useful evidence when another person can load the build and t
 
 ## Enter the workshop
 
-Start with the bounded change in [Project](project.md). [Assets](assets.md) admits exact visual, musical, and dialogue work without rewriting its producers. [World](world.md) assembles the scene, physics, navigation, controllers, and gameplay. [World Sound](sound.md) gives events and listeners their own sound semantics. [Playtest](playtest.md) tries an exact scenario; [Build](build.md) seals the local candidate.
+Start with the bounded change in [Project](project.md). What interaction should someone be
+able to try? [Assets](assets.md) admits the exact visual, musical, and dialogue work needed to
+make it, preserving each producer's contribution.
+
+[World](world.md) assembles the scene, physics, navigation, controllers, and gameplay.
+[World Sound](sound.md) binds sound to events and listeners within that world.
+[Playtest](playtest.md) tries an exact scenario; [Build](build.md) seals the local candidate so
+that the experience can be repeated.
 
 ## Contract
 
@@ -40,6 +47,8 @@ Foundry owns project source/design, scenes/worlds, interactive sound, resources/
 
 ## Revision continuity
 
-Designed revision `3` replaced revision `2` with role-qualified music/language inputs and `@2` successors to `game.build_playable_slice@1` and `game.import_asset_bundle@1`. Revision `4` adds the independent world-sound Pattern/record family and advances build/import to `@3` for `TimedLanguageAssetBundle@2`, preserving the frozen `@2` meanings. No Portfolio registry or Run used revisions `2` or `3`; there is no executable migration.
+??? info "Earlier designs and their exact successors"
+
+    Revision `3` replaced revision `2` with role-qualified music/language inputs and `@2` successors to `game.build_playable_slice@1` and `game.import_asset_bundle@1`. Revision `4` adds the independent world-sound Pattern/record family and advances build/import to `@3` for `TimedLanguageAssetBundle@2`, preserving the frozen `@2` meanings. No Portfolio registry or Run used revisions `2` or `3`; there is no executable migration.
 
 [Composition Portfolio](../index.md) · [Workflow](../../adr/28-workflow.md)

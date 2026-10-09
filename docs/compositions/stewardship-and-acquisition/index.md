@@ -11,12 +11,12 @@ physical assets, stores, and resources. Manual records work without connected de
 
 | Composition | Outcome |
 | --- | --- |
-| [Health](../health/index.md) | An attributable health profile, bounded clinical review, diagnostic proposal, care proposal, or qualified handoff. |
-| [Wellbeing](../wellbeing/index.md) | An editable eating or fitness plan, honest infeasibility, or a confirmed check-in. |
-| [Homestead](../homestead/index.md) | A place or stores ledger, household provision, bounded work order, or safely refused effect. |
-| [Keeper](../keeper/index.md) | An attributable animal or colony history, territory assessment, feeding plan, or settled care record. |
-| [Cultivator](../cultivator/index.md) | An attributable growing culture, space or cycle assessment, tending plan, or confirmed harvest. |
-| [Scavenger](../scavenger/index.md) | An evidence-bound acquisition campaign, shortlist, bargain, commitment, parcel outcome, or diligence packet. |
+| [Health](../health/index.md) | A reviewed clinical history, one bounded health question, and proposals for human review or qualified handoff. |
+| [Wellbeing](../wellbeing/index.md) | Food and ordinary movement that fit one adult’s life, including an honest “this plan cannot fit.” |
+| [Homestead](../homestead/index.md) | An account of the household’s stores, supplies, resources, and maintenance, including work safely refused. |
+| [Keeper](../keeper/index.md) | An animal or colony’s history through housing, feeding, changing needs, and recorded care. |
+| [Cultivator](../cultivator/index.md) | A plant or cultivated fungus’s history through placement, tending, growth, and harvest. |
+| [Scavenger](../scavenger/index.md) | A researched shortlist, seller negotiation, approved acquisition, or account of what arrived. |
 
 The [household handoff](../products-and-suites.md#homestead-keeper-and-cultivator) follows care
 needs, supplies, and shared equipment through their separate owners.

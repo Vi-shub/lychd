@@ -21,7 +21,7 @@ user's home. Shared XDG parents are never recursively owned by LychD.
 | Forge | `XDG_CACHE_HOME` or `~/.cache/` | `~/.cache/lychd/` | disposable assembly staging |
 
 The Codex contains `lychd.toml`, `.lychd-lifecycle.json`, and `runes/` including the Animator,
-Soulstone, and Portal anchors. The Crypt contains `triggers/inbox` and `triggers/journal`,
+Soulstone, and Portal anchors. The Crypt contains the Vessel's `runtime-guard`, `triggers/inbox` and `triggers/journal`,
 `postgres/init_db.sh`, `postgres/pg_hba_v1.conf`, `postgres/data`, `snapshots`, `lab`, `core`, and `extensions`.
 `postgres/data` may be an ordinary directory, external mount, or LychD-created Btrfs subvolume.
 The Forge contains `assembly`. [Configuration (12)](12-configuration.md) owns what these paths
@@ -87,7 +87,7 @@ for proven absence before generic retirement. It never invokes `sudo`.
 
 ## Host and container geography
 
-The Vessel uses identical host/container targets: Codex is read-only; `lab` is read-write; `core`
+The Vessel uses identical host/container targets: Codex is read-only; `lab` and `runtime-guard` are read-write; `core`
 and `extensions` are read-only; and when selected, Reactor inbox is read-write and journal is
 read-only. PostgreSQL data belongs to its PostgreSQL unit; there is no blanket Crypt mount.
 `~/work/` is an explicit read-write Outland mount and never gains Three-Domain lifecycle authority.

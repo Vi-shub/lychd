@@ -224,7 +224,13 @@ lease, including caller cancellation and refusal during admission; provider-prof
 forward this lifecycle to their transport. A cached, model-free Agent owns no grant client.
 
 Drain truth is absence of ledger leases on an Animator. Admission closes before drain waits, so
-new work cannot enter an eviction set. A run waiting for its remedy owns no lease. `expires_at` is
+new work cannot enter an eviction set. A completed drain and reopen also invalidates grant
+preparation that began before that drain. Dispatcher captures the Animator's process-local
+admission generation before asynchronous grant issue or provider entry; the ledger checks that
+generation and open admission together before registering the lease. A changed generation returns
+the same handle-free hardware-wait signal after provider cleanup, without publishing a dispatch
+event. Unrelated Animators retain their own admission generations.
+A run waiting for its remedy owns no lease. `expires_at` is
 recorded but unenforced: there is no renewal or distributed stale-grant fence. Grants contain
 trusted live objects and may not enter Graph state, persistence, or delegated processes.
 
@@ -237,7 +243,7 @@ an Orchestrator-visible exact reservation and fence. Live work uses its domain-o
 session record; no common
 `SessionAttempt` is accepted yet. A process-local lease alone cannot
 prevent duplicate remote effects or fence local residency. [Workers
-(14)](14-workers.md#service-job-attempts-designed) owns that Designed handoff.
+(14)](14-workers.md#service-job-attempts) owns that Designed handoff.
 
 ## Durable Content and ArtifactRef
 
