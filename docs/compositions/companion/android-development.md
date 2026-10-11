@@ -65,6 +65,9 @@ provide a durable request lookup. Cancellation, background invalidation, new ses
 fence stale responses. Explicit presentation-context replacement also clears the local projection,
 including history, draft and review state. Disposal does not settle the original external outcome.
 There are no automatic retries.
+Caller cancellation propagates through transport and local interaction while an unacknowledged
+submission remains unknown. The transport's own 15-second deadline is a bounded request failure;
+it does not turn a cancelled caller into a successful return.
 
 Drafts are limited to 100,000 characters and 256 KiB of UTF-8, responses to 512 KiB, session
 history to 128 turns and each HTTP action to 15 seconds. The fixture caps its memory holdings and

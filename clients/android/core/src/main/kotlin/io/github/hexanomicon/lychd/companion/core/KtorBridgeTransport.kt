@@ -28,6 +28,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.json.Json
@@ -145,6 +147,8 @@ class KtorBridgeTransport internal constructor(private val engine: HttpClientEng
                 }
             }
         } catch (error: TimeoutCancellationException) {
+            // A caller's deadline remains cancellation; only our own deadline is a transport failure.
+            currentCoroutineContext().ensureActive()
             throw BridgeTransportException("The local request timed out.", submission)
         } catch (error: CancellationException) {
             throw error

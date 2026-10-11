@@ -1103,7 +1103,9 @@ interaction state, and Android foreground AudioRecord/Media3 capture and replay.
 presentation policy gates views and direct actions, defaults to unavailable and fences context
 replacement. The Android assembly delegates transient mechanics to a controller with injected
 audio ports. Focused JVM tests verify malformed/bounded responses, lost acknowledgements,
-denied offers, stale callbacks, WAV bounds and file custody. The fixture
+denied offers, stale callbacks, WAV bounds and file custody. Real Ktor fixture tests distinguish
+caller cancellation from the transport's own deadline, keep unacknowledged submissions unknown,
+and refuse redirect/replay or late-response restoration after context clearing. The fixture
 performs no host work; these client mechanics do not deliver a Portfolio Composition.
 The debug APK builds with the pinned Gradle toolchain and passes Android lint; that compile
 evidence is separate from the outstanding handset probe.
