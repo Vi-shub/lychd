@@ -46,6 +46,7 @@ def test_builtin_registry_has_the_exact_ordered_boot_inventory() -> None:
     assert [(workflow.manifest.key, workflow.manifest.revision) for workflow in registry.all()] == [
         ("bridge_chat", "1"),
         ("bridge_chat", "2"),
+        ("bridge_chat", "3"),
         ("delegated_rite", "1"),
     ]
 

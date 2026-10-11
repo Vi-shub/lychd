@@ -106,6 +106,24 @@ response. The character governor and usage limit are therefore independent bound
 cross-provider token equivalence or a universal pre-request fence. Pydantic AI's separate request
 count ceiling remains in force.
 
+### Explicit Archive projection
+
+The opt-in `bridge_chat@3` public-note profile resolves an exact durable Archive recall receipt
+into a transient, attributed data message. Recalled bytes never enter the Stable Floor's
+instruction blocks, the caller's prompt, Graph checkpoints, or the SDK's retained source messages.
+A request-scoped model adapter adds the projection only to outbound model input and resolves the
+same receipt under current authority before each request, stream, and supported pre-count.
+It must preserve the wrapped model's token-count limitations. Context reserves the complete
+projection within its character bound; the provider request bound includes those same bytes.
+
+This revision has no model tools, consent continuation, or settled-history replay. Its final
+answer and normal turn messages remain retained and may quote or reflect sources; revoking a
+source prevents future recall but cannot erase that prior influence. Missing, changed, archived,
+superseded, or revoked receipt material refuses the casting rather than silently searching again.
+An empty successful receipt remains a visible miss, distinct from service failure. Other Bridge
+revisions do not receive this projection. This narrow local profile does not implement the
+general Privacy Cut or remote disclosure admission below.
+
 ## Stable history
 
 Completed messages group by LychD `run_id`. Legacy messages begin a new group at a user request

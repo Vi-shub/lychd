@@ -6,16 +6,50 @@ from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any
 
 from pydantic_ai.exceptions import UsageLimitExceeded
+from pydantic_ai.models import Model
+from pydantic_ai.models.openai import OpenAIResponsesModel
 from pydantic_ai.models.wrapper import WrapperModel
+from pydantic_ai.usage import UsageLimits
+
+from lychd.domain.cortex.context import ContextBudgetExceededError
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
     from pydantic_ai import RunContext
     from pydantic_ai.messages import ModelMessage, ModelResponse
-    from pydantic_ai.models import Model, ModelRequestParameters, StreamedResponse
+    from pydantic_ai.models import ModelRequestParameters, StreamedResponse
     from pydantic_ai.settings import ModelSettings
     from pydantic_ai.usage import RequestUsage
+
+
+def limit_model_requests(
+    model: Model | None,
+    *,
+    context_window: int | None,
+    output_reserve: int,
+    counter_model: Model | None = None,
+) -> tuple[Model | None, UsageLimits | None]:
+    """Bind request capacity while preserving the actual provider's counter support.
+
+    A transient projection adapter supplies its underlying provider as
+    ``counter_model`` so its forwarding method cannot invent token counting.
+    """
+    if context_window is None:
+        return model, None
+    if output_reserve >= context_window:
+        msg = (
+            f"Output reserve {output_reserve} leaves no input budget inside the {context_window}-token context window."
+        )
+        raise ContextBudgetExceededError(msg)
+    counter = counter_model if counter_model is not None else model
+    count_before_request = counter is not None and type(counter).count_tokens is not Model.count_tokens
+    if isinstance(counter, OpenAIResponsesModel) and type(counter).count_tokens is OpenAIResponsesModel.count_tokens:
+        count_before_request = counter.profile.get("openai_supports_input_token_counting", True)
+    limits = UsageLimits(count_tokens_before_request=count_before_request)
+    if model is None:
+        return None, limits
+    return ContextWindowModel(model, input_tokens_limit=context_window - output_reserve), limits
 
 
 class ContextWindowModel(WrapperModel):

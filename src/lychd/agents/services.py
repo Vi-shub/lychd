@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from lychd.agents.factory import AgentForge
     from lychd.domain.animation.capabilities import CapabilityGrant
     from lychd.domain.animation.schemas.capability_family import CapabilityFamily
+    from lychd.domain.archive import ArchiveService, ArchiveSubject
     from lychd.domain.codex.schemas import ConsentDecision
     from lychd.domain.cortex.context import ContextOrchestrator
     from lychd.domain.cortex.events import RunEventBus
@@ -105,6 +106,8 @@ class WorkflowServices:
     forge: AgentForge
     sigil_provider: Callable[[], Sigil]
     delegates: DelegatedAgentCoordinatorPort | None = None
+    archive: ArchiveService | None = None
+    archive_subject_provider: Callable[[], ArchiveSubject] | None = None
 
 
 def default_sigil() -> Sigil:

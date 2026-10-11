@@ -4,15 +4,41 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
+from uuid import UUID
 
 import pytest
 from pydantic import ValidationError
 
+from lychd.agents.workflows import BRIDGE_CHAT, BRIDGE_CHAT_ARCHIVE, BRIDGE_CHAT_BOUND, builtin_workflow_registry
 from lychd.config.settings import BridgeCastingSettings, Settings, SettingsSnapshot, WeaverSettings
+from lychd.domain.archive import ArchiveProfile, ArchiveSubject
 
 
 def test_absent_bridge_selection_preserves_legacy_configuration() -> None:
     assert WeaverSettings().bridge is None
+
+
+def test_archive_selection_requires_the_exact_revision_and_retains_legacy_routes() -> None:
+    profile = ArchiveProfile(
+        namespace_id=UUID("9d340d97-7a12-47ed-af2b-c4742ed690f6"),
+        owner_subject=ArchiveSubject(identity="local-notes-owner"),
+        policy_revision="local-notes-policy@1",
+    )
+    with pytest.raises(ValidationError, match="requires archive"):
+        BridgeCastingSettings(revision="3", capability_key="desk:chat:assistant")
+    with pytest.raises(ValidationError, match="revision 2 does not accept"):
+        BridgeCastingSettings(revision="2", capability_key="desk:chat:assistant", archive=profile)
+    selection = BridgeCastingSettings(revision="3", capability_key="desk:chat:assistant", archive=profile)
+    settings = Settings(weaver=WeaverSettings(bridge=selection))
+    snapshot = SettingsSnapshot.capture(settings)
+    selection.archive = profile.model_copy(update={"policy_revision": "changed@2"})
+    restored = snapshot.materialize()
+    assert restored.weaver.bridge is not None
+    assert restored.weaver.bridge.archive == profile
+    registry = builtin_workflow_registry(weaver=restored.weaver)
+    assert registry.default is BRIDGE_CHAT_ARCHIVE
+    assert registry.get_revision("bridge_chat", "1") is BRIDGE_CHAT
+    assert registry.get_revision("bridge_chat", "2") is BRIDGE_CHAT_BOUND
 
 
 @pytest.mark.parametrize(

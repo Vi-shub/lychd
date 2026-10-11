@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, Any, Literal, Protocol, cast
 
 import structlog
 
+from lychd.domain.archive.contracts import MAX_QUERY_CHARS
 from lychd.domain.cortex.admission import RunAdmissionCoordinator
 from lychd.domain.cortex.cancellation import RunCancellationCoordinator
 from lychd.domain.cortex.priority import saq_wire_priority, validate_priority
@@ -32,6 +33,7 @@ from lychd.lib.asyncio import complete_under_cancellation
 if TYPE_CHECKING:
     from lychd.agents.router import Intent
     from lychd.agents.workflows.base import Workflow
+    from lychd.domain.archive import ArchiveProfile
     from lychd.domain.cortex.events import RunEventBus
     from lychd.domain.cortex.ledger import RunLedger
     from lychd.domain.cortex.runs import RunRecord
@@ -385,6 +387,7 @@ class RunEngine:
         "_release_context",
         "_terminal_repairs",
         "admissions",
+        "bridge_archive",
         "bridge_capability_key",
         "bus",
         "cancellations",
@@ -412,12 +415,14 @@ class RunEngine:
         consents: ConsentAuthority | None = None,
         release_context: Callable[[str], None] | None = None,
         bridge_capability_key: str | None = None,
+        bridge_archive: ArchiveProfile | None = None,
     ) -> None:
         """Bind the already-constructed run collaborators."""
         self.ledger = ledger
         self.bus = bus
         self.workflows = workflows
         self.bridge_capability_key = bridge_capability_key
+        self.bridge_archive = bridge_archive
         self.queue_router = queue_router
         self.queues = queues
         self.admissions = admissions or RunAdmissionCoordinator()
@@ -448,8 +453,8 @@ class RunEngine:
         the same session. Terminal ledger truth releases the fence naturally; no
         process-local active marker becomes recovery authority.
         """
-        if intent.admitted_capability_key is not None:
-            msg = "Capability binding is server-owned admission metadata, not caller Intent."
+        if intent.admitted_capability_key is not None or intent.admitted_archive is not None:
+            msg = "Capability and Archive bindings are server-owned admission metadata, not caller Intent."
             raise ValueError(msg)
         if exclusive_session:
             session_key = ("exclusive_session", intent.session_id)
@@ -572,13 +577,27 @@ class RunEngine:
         return await self._publish_admission(run)
 
     def _bind_workflow_intent(self, intent: Intent, workflow: Workflow) -> Intent:
-        """Stamp configured Bridge binding only for a fresh revision 2 admission."""
-        if workflow.manifest.key != "bridge_chat" or workflow.manifest.revision != "2":
+        """Stamp selected bindings only for a fresh explicitly configured admission."""
+        if workflow.manifest.key != "bridge_chat" or workflow.manifest.revision not in {"2", "3"}:
             return intent
         if not self.bridge_capability_key or not self.bridge_capability_key.strip():
-            msg = "bridge_chat@2 requires a configured exact capability key before admission."
+            msg = "Configured Bridge requires an exact capability key before admission."
             raise ValueError(msg)
-        return intent.model_copy(update={"admitted_capability_key": self.bridge_capability_key})
+        archive = None
+        if workflow.manifest.revision == "3":
+            if self.bridge_archive is None:
+                msg = "bridge_chat@3 requires its configured Archive binding before admission."
+                raise ValueError(msg)
+            if not intent.prompt.strip() or len(intent.prompt) > MAX_QUERY_CHARS or "\x00" in intent.prompt:
+                msg = "The Archive answer profile requires a nonblank question of at most 2000 characters without NUL."
+                raise ValueError(msg)
+            archive = self.bridge_archive
+        return intent.model_copy(
+            update={
+                "admitted_capability_key": self.bridge_capability_key,
+                "admitted_archive": archive,
+            }
+        )
 
     async def _publish_admission(self, run: RunRecord) -> RunHandle:
         """Open the live projection and publish one already-durable admission."""

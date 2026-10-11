@@ -109,8 +109,12 @@ class ContextOrchestrator:
         continuation: list[Any] | None = None,
         grant: CapabilityGrant | None = None,
         grant_epoch: str | int = 0,
+        transient_chars: int = 0,
     ) -> AssembledContext:
         """Assemble and retain the six-layer floor without borrowing mutable messages."""
+        if transient_chars < 0:
+            msg = "Transient Context reservation cannot be negative."
+            raise ValueError(msg)
         environment_key, environment_block = self._environment_block(
             session_id=session_id,
             grant=grant,
@@ -130,7 +134,9 @@ class ContextOrchestrator:
             effective_char_cap = min(effective_char_cap, context_window * 3)
         current_chain = deepcopy(continuation or [])
         continuation_chars = self._history_cost(current_chain)
-        fixed_chars = sum(len(block.text) for block in stable_blocks) + len(query) + continuation_chars
+        fixed_chars = (
+            sum(len(block.text) for block in stable_blocks) + len(query) + continuation_chars + transient_chars
+        )
         if fixed_chars > effective_char_cap:
             msg = (
                 f"Stable floor, query, and required continuation require {fixed_chars} characters, "

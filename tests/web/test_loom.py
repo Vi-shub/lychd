@@ -32,6 +32,7 @@ def test_catalogue_lists_registered_workflow(
     ] == [
         ("bridge_chat", "1", True, True, None),
         ("bridge_chat", "2", False, False, None),
+        ("bridge_chat", "3", False, False, None),
         ("delegated_rite", "1", True, False, 1),
     ]
     entry = catalogue[0]

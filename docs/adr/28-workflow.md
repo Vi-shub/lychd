@@ -178,7 +178,8 @@ canonical namespace.
 ## Current material
 
 Fixed source registry retains bridge_chat@1 (Bridge conversation, context, Agent turn, optional consent
-Gate, reply), adds bridge_chat@2 with an admission-pinned exact capability key, and retains
+Gate, reply), adds bridge_chat@2 with an admission-pinned exact capability key and bridge_chat@3
+with that key plus an explicit public-note Archive profile, and retains
 delegated_rite@1 (exact `/delegate` command token, reference job, Durable Stasis,
 result/reply). The latter proves no external coding-agent/Tomb plane. One boot-composed catalogue
 is shared by admission, workers, Bridge, Loom, and Orb. It freezes after construction, rejects
@@ -193,6 +194,16 @@ Suite publication, scheduler, editor, or durable Pattern store. The `bridge_chat
 `delegated_rite@1` are the explicit pre-Portfolio exception: new application Patterns require a
 Composition owner, while a Suite may publish only its coordination Pattern. State separately owns
 v1 adapter, delegation, stasis, and Loom.
+
+The opt-in `bridge_chat@3` revision is a read-only public-note answer profile within that retained
+lineage. Admission pins the exact local chat capability and Archive profile, namespace, subject,
+and policy revision before queue publication. Its score recalls once, resolves the exact retained
+receipt for inference, and settles an attributed answer. It admits no model tools, consent Gate,
+or settled-history replay. A restarted casting keeps its admitted bindings and receipt; changed
+current authority or source eligibility refuses continuation. The receipt's identifiers and
+digests may enter Graph state, while recalled bytes remain transient Context data. Revisions 1
+and 2 keep their existing manifests and recovery contracts. State of Work separately records
+whether the new revision's runtime and PostgreSQL acceptance have passed.
 
 ## Pattern identity
 
@@ -291,7 +302,8 @@ imports code named by configuration, scans packages for subclasses, or guesses a
 from a similar label. Placement-specific Agent and Context assembly occurs after resolution so a
 Reader may receive an exact `structure` or `verbatim` projection without acquiring Writer tools,
 while a Writer must separately satisfy its declared effect and authority contract. The current
-source delivers the fixed v2 registry and a bounded `[weaver.bridge]` selector for `bridge_chat@2`.
+source delivers the fixed v2 registry and a bounded `[weaver.bridge]` selector for `bridge_chat@2`
+or the public-note `bridge_chat@3` profile.
 Its exact capability key is server-admitted Run intent, copied into typed Graph state; a missing key refuses admission or checkpoint decoding,
 and an unavailable target never falls back to another runtime. The worker binds the revision's
 state validator to persisted Run intent; the Graph runner checks fresh and restored state before

@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from lychd.domain.archive import ArchiveProfile
+
 __all__ = ["Intent"]
 
 
@@ -30,3 +32,4 @@ class Intent(BaseModel):
     # Server-owned admission metadata. submit rejects this from callers; only the
     # admission path and RunRecord.to_intent may populate it for durable execution.
     admitted_capability_key: str | None = Field(default=None, min_length=1)
+    admitted_archive: ArchiveProfile | None = None

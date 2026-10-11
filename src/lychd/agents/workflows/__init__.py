@@ -12,6 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 
+from lychd.agents.workflows.archive_chat import BRIDGE_CHAT_ARCHIVE
 from lychd.agents.workflows.base import Trigger, Workflow, pattern_snapshot_is_valid
 from lychd.agents.workflows.bridge_chat import BRIDGE_CHAT, BRIDGE_CHAT_BOUND
 from lychd.agents.workflows.delegated_rite import DELEGATED_RITE
@@ -22,6 +23,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     "BRIDGE_CHAT",
+    "BRIDGE_CHAT_ARCHIVE",
     "BRIDGE_CHAT_BOUND",
     "DELEGATED_RITE",
     "BuiltinWorkflowRegistry",
@@ -231,10 +233,12 @@ class BuiltinWorkflowRegistry:
 
 
 def builtin_workflow_registry(*, weaver: WeaverSettings | None = None) -> BuiltinWorkflowRegistry:
-    """Select the active Bridge revision while retaining both executable revisions."""
+    """Select the active Bridge revision while retaining prior executable revisions."""
     bridge = BRIDGE_CHAT_BOUND if weaver is not None and weaver.bridge is not None else BRIDGE_CHAT
+    if weaver is not None and weaver.bridge is not None and weaver.bridge.revision == "3":
+        bridge = BRIDGE_CHAT_ARCHIVE
     return BuiltinWorkflowRegistry(
-        workflows=(BRIDGE_CHAT, BRIDGE_CHAT_BOUND, DELEGATED_RITE),
+        workflows=(BRIDGE_CHAT, BRIDGE_CHAT_BOUND, BRIDGE_CHAT_ARCHIVE, DELEGATED_RITE),
         active_revisions=(
             (bridge.name, bridge.manifest.revision),
             (DELEGATED_RITE.name, DELEGATED_RITE.manifest.revision),

@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from lychd.agents.factory import AgentForge
     from lychd.agents.services import GrantPort, WorkflowServices
     from lychd.agents.workflows import WorkflowRegistry
+    from lychd.domain.archive import ArchiveService, ArchiveSubject
     from lychd.domain.cortex.context import ContextOrchestrator
     from lychd.domain.cortex.engine import RunQueue
     from lychd.domain.cortex.events import RunEventBus
@@ -82,6 +83,8 @@ class RunSubstrate:
     # Optional until a concrete sandboxed runtime is composed. Delegation-bearing
     # workflows fail closed when this port is absent; no adapter is fabricated here.
     delegates: DelegatedAgentCoordinatorPort | None = None
+    archive: ArchiveService | None = None
+    archive_subject_resolver: Callable[[Sigil], ArchiveSubject] | None = None
 
     def build_services(self, *, sigil: Sigil | None = None) -> WorkflowServices:
         """Assemble run services with the persisted caller identity.
@@ -93,6 +96,7 @@ class RunSubstrate:
         from lychd.agents.services import WorkflowServices
 
         sigil_provider = self.sigil_provider if sigil is None else lambda: sigil
+        subject_resolver = self.archive_subject_resolver
 
         return WorkflowServices(
             dispatcher=self.dispatcher,
@@ -105,6 +109,10 @@ class RunSubstrate:
             forge=self.forge,
             sigil_provider=sigil_provider,
             delegates=self.delegates,
+            archive=self.archive,
+            archive_subject_provider=(
+                (lambda: subject_resolver(sigil_provider())) if subject_resolver is not None else None
+            ),
         )
 
 

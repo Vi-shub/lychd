@@ -20,11 +20,10 @@ from pydantic_ai.messages import (
     ToolReturnPart,
 )
 from pydantic_ai.models import Model
-from pydantic_ai.models.openai import OpenAIResponsesModel
 from pydantic_ai.usage import UsageLimits
 from pydantic_graph import BaseNode, End, Graph, GraphRunContext
 
-from lychd.agents.context_limits import ContextWindowModel
+from lychd.agents.context_limits import limit_model_requests
 from lychd.agents.deps import LychDDeps
 from lychd.agents.outputs import Bottleneck, BridgeReply
 from lychd.agents.services import WorkflowServices
@@ -40,7 +39,6 @@ from lychd.agents.workflows.nodes import (
     park_on_consent,
     pump_agent_events,
 )
-from lychd.domain.cortex.context import ContextBudgetExceededError
 from lychd.domain.cortex.graph import build_serial_graph
 from lychd.domain.cortex.graph_runner import HardwareResumeBudget
 from lychd.domain.cortex.priority import PRIORITY_DEFAULT
@@ -155,22 +153,8 @@ def _agent_deps(ctx: GraphRunContext[BridgeChatState, WorkflowServices], grant: 
 def _request_policy(context_window: int | None, grant: Any) -> tuple[Model | None, UsageLimits | None]:
     """Bind per-request context capacity while preserving aggregate usage accounting."""
     model = cast("Model | None", grant.model)
-    if context_window is None:
-        return model, None
     output_reserve = grant.spec.generation_profile.max_tokens or THE_FIRST_ONE_SPEC.max_tokens or 0
-    if output_reserve >= context_window:
-        msg = (
-            f"Output reserve {output_reserve} leaves no input budget inside the {context_window}-token context window."
-        )
-        raise ContextBudgetExceededError(msg)
-    count_before_request = model is not None and type(model).count_tokens is not Model.count_tokens
-    if isinstance(model, OpenAIResponsesModel) and type(model).count_tokens is OpenAIResponsesModel.count_tokens:
-        # Only the SDK counter depends on this endpoint; custom counters can work locally.
-        count_before_request = model.profile.get("openai_supports_input_token_counting", True)
-    limits = UsageLimits(count_tokens_before_request=count_before_request)
-    if model is None:
-        return None, limits
-    return ContextWindowModel(model, input_tokens_limit=context_window - output_reserve), limits
+    return limit_model_requests(model, context_window=context_window, output_reserve=output_reserve)
 
 
 async def settle_turn(

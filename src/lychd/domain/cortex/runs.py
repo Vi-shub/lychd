@@ -18,6 +18,8 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal
 
+from lychd.domain.archive import ArchiveProfile  # runtime annotation for retained RunRecord serialization
+
 if TYPE_CHECKING:
     from lychd.agents.router import Intent
     from lychd.domain.cortex.events import RunChannel
@@ -171,6 +173,7 @@ class RunRecord:
     sigil_scopes: frozenset[str] = field(default_factory=frozenset)
     requested_priority: int | None = None
     admitted_capability_key: str | None = None
+    admitted_archive: ArchiveProfile | None = None
     attempt: int = 0
     enqueue_seq: int = 0
     error: str | None = None
@@ -196,6 +199,7 @@ class RunRecord:
             sigil_scopes=self.sigil_scopes,
             priority=self.priority,
             admitted_capability_key=self.admitted_capability_key,
+            admitted_archive=self.admitted_archive,
         )
 
 

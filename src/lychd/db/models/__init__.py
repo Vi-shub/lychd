@@ -4,6 +4,7 @@ Importing this package registers every model on ``orm_registry.metadata`` so
 alembic autogenerate and ``target_metadata`` see the full schema.
 """
 
+from lychd.db.models.archive import ArchiveIntake, ArchiveNamespace, ArchiveNote, ArchiveRecall
 from lychd.db.models.atlas import AtlasProjectRecord, AtlasRequestRecord
 from lychd.db.models.blockworld import BlockworldPlacementAction, BlockworldPlacementMission
 from lychd.db.models.checkpoint import RunCheckpoint
@@ -19,6 +20,10 @@ from lychd.db.models.soulstone import SoulstoneRecord
 from lychd.db.models.step import Step
 
 __all__ = [
+    "ArchiveIntake",
+    "ArchiveNamespace",
+    "ArchiveNote",
+    "ArchiveRecall",
     "AtlasProjectRecord",
     "AtlasRequestRecord",
     "BlockworldPlacementAction",

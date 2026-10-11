@@ -30,6 +30,23 @@ migrations.
 
 ### Schema admission
 
+The Archive `local-public-notes@1` profile retains its namespace binding, immutable attributed
+note revisions, exact intake replay bindings, lifecycle versions, and text-free recall receipts in
+separate PostgreSQL tables. All operations serialize on the namespace row, including recall and
+receipt resolution, so promotion, correction and revocation share one decision order. The query
+filters namespace and promoted lifecycle before lexical matching or content projection. Explicit
+transaction-local statement and lock timeouts are five and two seconds respectively; a timeout
+aborts the operation rather than becoming an empty result. Current authorization is rechecked
+after transaction cleanup before response disclosure; refusing that response cannot undo a
+committed mutation, whose retained replay identity and lifecycle version govern recovery. Explicit
+revocation clears controlled text while retaining the minimal source identity and digest needed
+to prevent replay. Existing Karma rows are neither migrated nor recalled by this profile.
+
+The schema migration is transactional and linear. Downgrade takes exclusive table locks and
+refuses while notes, replay bindings, receipts, or namespace bindings remain; it never interprets
+rollback as permission to erase Archive history. Reconstruction uses retained rows and freshly
+injected current authority, never process-local cache or a previous authorization receipt.
+
 Core owns the schema-admission seam across native and extension models. Every admitted model
 derives from Core's `UUIDBase`; an extension explicitly calls `register_model(MyModel)` during
 initialization; Core aggregates those references before Alembic derives migration order. Runtime

@@ -992,7 +992,7 @@ forced-collection qualification and complete production-browser acceptance remai
 **State:** Designed
 
 **Proved now:** The Portfolio publishes Native Reference Composition contracts and examples; the
-boot catalogue contains only the Core `bridge_chat` lineage (revisions 1 and 2) and `delegated_rite@1`.
+boot catalogue contains only the Core `bridge_chat` lineage (revisions 1, 2 and 3) and `delegated_rite@1`.
 The accepted designs include [Health](./compositions/health/index.md) for attributable personal
 clinical records and bounded diagnostic and care proposals,
 [Keeper](./compositions/keeper/index.md) for animal and colony care,
@@ -1381,17 +1381,35 @@ required-modality fields in the Run ledger. A bare `ArtifactRef` grants neither 
 
 ### Archive intake and semantic memory {#karma-semantic-memory}
 
-**State:** Designed
+**State:** Partial
 
-**Proved now:** Memory law defines authoritative Archive records, lineage, lifecycle, derived
-representations, namespaces, and correction boundaries.
+**Proved now:** The opt-in `local-public-notes@1` profile admits explicit public notes to one
+configured PostgreSQL namespace. Exact request and source revisions are idempotent; explicit
+promotion, supersession, archival and revocation enforce lifecycle versions. Revocation clears
+controlled text and its search index while retaining minimal anti-reingestion identity. Bounded
+lexical recall writes text-free receipts and rechecks current subject, namespace, policy and
+selected revisions before returning source bytes. Transaction timeouts bound database work.
 
-**Do not expect yet:** There is no `CandidateArchivePort`, intake adapter, runtime wiring,
-PostgreSQL Archive adapter, semantic ingestion, embedding or retrieval, curation, promotion, RAG,
-or training loop.
+`bridge_chat@3` pins the exact local chat capability and Archive profile at admission. Its
+read-only answer uses an attributed transient source message, reserves its Context budget, and
+revalidates the receipt before dispatch, each model request and settlement. It exposes no tools
+and replays no settled history. PostgreSQL tests cover real HTTP controllers, Run admission and
+worker execution, typed checkpoint reconstruction, stale-source refusal, migration lineage and
+the actual restricted runtime database role. Earlier Bridge manifests remain retained unchanged.
+
+**Boundary — Not yet:** This is lexical RAG for explicit same-host public notes, without semantic
+embeddings, general `CandidateArchivePort`, automatic conversation retention, extraction, Curator,
+GraphRAG, shared namespaces, remote IAM, private-material egress or training. There is no Archive
+browser editor. Ordinary revision 3 execution uses live Graph persistence; separately proved typed
+checkpoint reconstruction does not establish automatic recovery after worker death. The model and
+resource seams in the vertical receipt are controlled fixtures, not a live GPU/model qualification.
+Generated answers can quote sources; later revocation does not erase earlier output or influence.
 
 **Evidence**
 
+- **Source:** [Archive contracts and service](https://github.com/hexanomicon/lychd/tree/main/src/lychd/domain/archive), [PostgreSQL adapter](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/archive.py), [migration](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/migrations/versions/0012_archive_public_notes.py), [Archive API](https://github.com/hexanomicon/lychd/blob/main/src/lychd/interface/web/archive.py), [transient projection](https://github.com/hexanomicon/lychd/blob/main/src/lychd/agents/archive_context.py), and [public-note workflow](https://github.com/hexanomicon/lychd/blob/main/src/lychd/agents/workflows/archive_chat.py)
+- **Verification:** [Domain tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/test_archive.py), [PostgreSQL lifecycle](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_pg.py), [migrations](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_migrations_pg.py), [runtime role](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_runtime_pg.py), [worker and typed continuation](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_vertical_pg.py), and [projection tests](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_archive_context.py)
+- **Topic:** [Public-note answers](./divination/altar/bridge.md#public-note-answers)
 - **Law:** [Memory](./adr/27-memory.md)
 
 ### Mirror identity {#mirror-identity}

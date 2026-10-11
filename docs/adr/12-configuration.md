@@ -54,6 +54,13 @@ This is capability identity pinning, not an executable/declaration generation fi
 general portable Resolution Lock. No configurable pool, arbitrary Pattern, AgentSpec, or Context
 profile selector ships through this section.
 
+An explicit `revision = "3"` selects the read-only Archive answer profile and additionally
+requires an `archive` binding with exact `local-public-notes@1` profile, namespace UUID, trusted
+local subject, and policy revision. It is valid only with PostgreSQL and the same-host bootstrap
+custody profile. The whole binding is retained at Run admission; changed settings cannot rewrite
+an admitted casting. This selector grants no remote identity, namespace access, ingestion, or
+embedding capability. Intake and promotion remain separate explicit Archive operations.
+
 ## Runes: location, provenance, semantics
 
 A Rune is one validated top-level TOML instance in the Codex `runes/` tree, not a runtime object

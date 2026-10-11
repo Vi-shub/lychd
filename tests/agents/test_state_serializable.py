@@ -13,6 +13,7 @@ from __future__ import annotations
 from dataclasses import replace
 from types import SimpleNamespace
 from typing import Any
+from uuid import uuid4
 
 import pydantic_ai.models
 import pytest
@@ -22,7 +23,13 @@ from pydantic_core import to_jsonable_python
 from pydantic_graph import BaseNode, End
 
 from lychd.agents.router import Intent
-from lychd.agents.workflows import BRIDGE_CHAT, BRIDGE_CHAT_BOUND, DELEGATED_RITE, builtin_workflow_registry
+from lychd.agents.workflows import (
+    BRIDGE_CHAT,
+    BRIDGE_CHAT_ARCHIVE,
+    BRIDGE_CHAT_BOUND,
+    DELEGATED_RITE,
+    builtin_workflow_registry,
+)
 from lychd.agents.workflows.base import (
     Gate,
     PatternEdge,
@@ -34,6 +41,7 @@ from lychd.agents.workflows.base import (
 )
 from lychd.agents.workflows.bridge_chat import BridgeChatState
 from lychd.agents.workflows.nodes import ConsentToolBinding
+from lychd.domain.archive import ArchiveProfile, ArchiveSubject
 from lychd.domain.cortex.graph import build_serial_graph
 from lychd.domain.cortex.runs import RunRecord, RunStatus
 from lychd.domain.cortex.stasis import DurableStasisPhylactery, InMemoryStasisStore, LiveStasisPhylactery
@@ -51,6 +59,17 @@ def test_every_workflow_state_round_trips() -> None:
         intent = _intent()
         if workflow is BRIDGE_CHAT_BOUND:
             intent = intent.model_copy(update={"admitted_capability_key": "chat:offline"})
+        if workflow is BRIDGE_CHAT_ARCHIVE:
+            intent = intent.model_copy(
+                update={
+                    "admitted_capability_key": "chat:offline",
+                    "admitted_archive": ArchiveProfile(
+                        namespace_id=uuid4(),
+                        owner_subject=ArchiveSubject(identity="fixture"),
+                        policy_revision="fixture@1",
+                    ),
+                }
+            )
         state = workflow.make_state(intent)
         # A live handle typed into State would break schema generation.
         state.model_json_schema()

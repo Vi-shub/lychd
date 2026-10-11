@@ -18,6 +18,48 @@
         "title": "AltarStatus",
         "type": "object"
       },
+      "ArchiveLifecycleIntent": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_version": {
+            "minimum": 1.0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "expected_version"
+        ],
+        "title": "ArchiveLifecycleIntent",
+        "type": "object"
+      },
+      "ArchiveResolveIntent": {
+        "additionalProperties": false,
+        "properties": {
+          "receipt_digest": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "receipt_digest"
+        ],
+        "title": "ArchiveResolveIntent",
+        "type": "object"
+      },
+      "ArchiveSubject": {
+        "additionalProperties": false,
+        "properties": {
+          "identity": {
+            "maxLength": 160,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "identity"
+        ],
+        "title": "ArchiveSubject",
+        "type": "object"
+      },
       "AtlasAssessment": {
         "additionalProperties": false,
         "properties": {
@@ -1280,6 +1322,16 @@
         "title": "FrameworkError",
         "type": "object"
       },
+      "Lifecycle": {
+        "enum": [
+          "candidate",
+          "promoted",
+          "archived",
+          "revoked"
+        ],
+        "title": "Lifecycle",
+        "type": "string"
+      },
       "LoomEdgeView": {
         "properties": {
           "key": {
@@ -1708,6 +1760,117 @@
         "title": "NexusSnapshot",
         "type": "object"
       },
+      "NoteProposal": {
+        "additionalProperties": false,
+        "properties": {
+          "classification": {
+            "const": "public",
+            "default": "public",
+            "type": "string"
+          },
+          "namespace_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "producer": {
+            "maxLength": 160,
+            "minLength": 1,
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "source_digest": {
+            "type": "string"
+          },
+          "source_key": {
+            "maxLength": 160,
+            "minLength": 1,
+            "type": "string"
+          },
+          "source_revision": {
+            "maxLength": 160,
+            "minLength": 1,
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 16000,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "namespace_id",
+          "observed_at",
+          "producer",
+          "request_id",
+          "source_digest",
+          "source_key",
+          "source_revision",
+          "text"
+        ],
+        "title": "NoteProposal",
+        "type": "object"
+      },
+      "NoteRecord": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lifecycle": {
+            "$ref": "#/components/schemas/Lifecycle"
+          },
+          "namespace_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "producer": {
+            "maxLength": 160,
+            "minLength": 1,
+            "type": "string"
+          },
+          "reference": {
+            "$ref": "#/components/schemas/RecordRef"
+          },
+          "source_digest": {
+            "type": "string"
+          },
+          "source_key": {
+            "maxLength": 160,
+            "minLength": 1,
+            "type": "string"
+          },
+          "source_revision": {
+            "maxLength": 160,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "created_at",
+          "lifecycle",
+          "namespace_id",
+          "observed_at",
+          "producer",
+          "reference",
+          "source_digest",
+          "source_key",
+          "source_revision"
+        ],
+        "title": "NoteRecord",
+        "type": "object"
+      },
       "OrbEventEnvelope": {
         "additionalProperties": false,
         "properties": {
@@ -2005,6 +2168,293 @@
           "revision"
         ],
         "title": "PatternReference",
+        "type": "object"
+      },
+      "RecallItem": {
+        "additionalProperties": false,
+        "properties": {
+          "selection": {
+            "$ref": "#/components/schemas/RecallSelection"
+          },
+          "text": {
+            "maxLength": 16000,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "selection",
+          "text"
+        ],
+        "title": "RecallItem",
+        "type": "object"
+      },
+      "RecallProjection": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/RecallItem"
+                },
+                {}
+              ]
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/RecallReceipt"
+          }
+        },
+        "required": [
+          "items",
+          "receipt"
+        ],
+        "title": "RecallProjection",
+        "type": "object"
+      },
+      "RecallReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "char_budget": {
+            "maximum": 32000.0,
+            "minimum": 1.0,
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "max_results": {
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "type": "integer"
+          },
+          "min_score": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "namespace_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "omitted_for_budget": {
+            "maximum": 20.0,
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "policy_revision": {
+            "maxLength": 160,
+            "minLength": 1,
+            "type": "string"
+          },
+          "profile": {
+            "const": "local-public-notes@1",
+            "default": "local-public-notes@1",
+            "type": "string"
+          },
+          "purpose": {
+            "maxLength": 160,
+            "minLength": 1,
+            "type": "string"
+          },
+          "query_digest": {
+            "type": "string"
+          },
+          "receipt_digest": {
+            "type": "string"
+          },
+          "receipt_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "request_digest": {
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "retrieval_policy": {
+            "const": "postgres-simple-lexical@1",
+            "default": "postgres-simple-lexical@1",
+            "type": "string"
+          },
+          "run_id": {
+            "oneOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "schema_version": {
+            "const": 1,
+            "default": 1,
+            "type": "integer"
+          },
+          "selected": {
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/RecallSelection"
+                },
+                {}
+              ]
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/ArchiveSubject"
+          }
+        },
+        "required": [
+          "char_budget",
+          "created_at",
+          "max_results",
+          "min_score",
+          "namespace_id",
+          "omitted_for_budget",
+          "policy_revision",
+          "purpose",
+          "query_digest",
+          "receipt_digest",
+          "receipt_id",
+          "request_digest",
+          "request_id",
+          "run_id",
+          "selected",
+          "subject"
+        ],
+        "title": "RecallReceipt",
+        "type": "object"
+      },
+      "RecallRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "char_budget": {
+            "default": 8000,
+            "maximum": 32000.0,
+            "minimum": 1.0,
+            "type": "integer"
+          },
+          "max_results": {
+            "default": 5,
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "type": "integer"
+          },
+          "min_score": {
+            "default": 0.0,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "namespace_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "query": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "run_id": {
+            "oneOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "namespace_id",
+          "query",
+          "request_id"
+        ],
+        "title": "RecallRequest",
+        "type": "object"
+      },
+      "RecallSelection": {
+        "additionalProperties": false,
+        "properties": {
+          "projected_chars": {
+            "maximum": 16000.0,
+            "minimum": 1.0,
+            "type": "integer"
+          },
+          "projection_digest": {
+            "type": "string"
+          },
+          "reference": {
+            "$ref": "#/components/schemas/RecordRef"
+          },
+          "score": {
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "source_digest": {
+            "type": "string"
+          },
+          "source_key": {
+            "maxLength": 160,
+            "minLength": 1,
+            "type": "string"
+          },
+          "source_revision": {
+            "maxLength": 160,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "projected_chars",
+          "projection_digest",
+          "reference",
+          "score",
+          "source_digest",
+          "source_key",
+          "source_revision"
+        ],
+        "title": "RecallSelection",
+        "type": "object"
+      },
+      "RecordRef": {
+        "additionalProperties": false,
+        "properties": {
+          "lifecycle_version": {
+            "minimum": 1.0,
+            "type": "integer"
+          },
+          "record_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "revision_digest": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "lifecycle_version",
+          "record_id",
+          "revision_digest"
+        ],
+        "title": "RecordRef",
         "type": "object"
       },
       "ReviewFact": {
@@ -2743,6 +3193,462 @@
           }
         },
         "summary": "Status"
+      }
+    },
+    "/api/v1/archive/notes": {
+      "post": {
+        "deprecated": false,
+        "operationId": "admitArchiveNote",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NoteProposal"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteRecord"
+                }
+              }
+            },
+            "description": "Document created, URL follows",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "detail": "Bad Request",
+                      "extra": {},
+                      "status_code": 400
+                    }
+                  ],
+                  "properties": {
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    },
+                    "status_code": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Bad request syntax or unsupported method"
+          }
+        },
+        "summary": "Admit"
+      }
+    },
+    "/api/v1/archive/notes/{record_id}/archive": {
+      "post": {
+        "deprecated": false,
+        "operationId": "archiveNote",
+        "parameters": [
+          {
+            "deprecated": false,
+            "in": "path",
+            "name": "record_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArchiveLifecycleIntent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteRecord"
+                }
+              }
+            },
+            "description": "Document created, URL follows",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "detail": "Bad Request",
+                      "extra": {},
+                      "status_code": 400
+                    }
+                  ],
+                  "properties": {
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    },
+                    "status_code": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Bad request syntax or unsupported method"
+          }
+        },
+        "summary": "Archive"
+      }
+    },
+    "/api/v1/archive/notes/{record_id}/promote": {
+      "post": {
+        "deprecated": false,
+        "operationId": "promoteArchiveNote",
+        "parameters": [
+          {
+            "deprecated": false,
+            "in": "path",
+            "name": "record_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArchiveLifecycleIntent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteRecord"
+                }
+              }
+            },
+            "description": "Document created, URL follows",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "detail": "Bad Request",
+                      "extra": {},
+                      "status_code": 400
+                    }
+                  ],
+                  "properties": {
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    },
+                    "status_code": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Bad request syntax or unsupported method"
+          }
+        },
+        "summary": "Promote"
+      }
+    },
+    "/api/v1/archive/notes/{record_id}/revoke": {
+      "post": {
+        "deprecated": false,
+        "operationId": "revokeArchiveNote",
+        "parameters": [
+          {
+            "deprecated": false,
+            "in": "path",
+            "name": "record_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArchiveLifecycleIntent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteRecord"
+                }
+              }
+            },
+            "description": "Document created, URL follows",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "detail": "Bad Request",
+                      "extra": {},
+                      "status_code": 400
+                    }
+                  ],
+                  "properties": {
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    },
+                    "status_code": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Bad request syntax or unsupported method"
+          }
+        },
+        "summary": "Revoke"
+      }
+    },
+    "/api/v1/archive/recalls": {
+      "post": {
+        "deprecated": false,
+        "operationId": "recallArchiveNotes",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecallRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecallReceipt"
+                }
+              }
+            },
+            "description": "Document created, URL follows",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "detail": "Bad Request",
+                      "extra": {},
+                      "status_code": 400
+                    }
+                  ],
+                  "properties": {
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    },
+                    "status_code": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Bad request syntax or unsupported method"
+          }
+        },
+        "summary": "Recall"
+      }
+    },
+    "/api/v1/archive/recalls/{receipt_id}/resolve": {
+      "post": {
+        "deprecated": false,
+        "operationId": "resolveArchiveRecall",
+        "parameters": [
+          {
+            "deprecated": false,
+            "in": "path",
+            "name": "receipt_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArchiveResolveIntent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecallProjection"
+                }
+              }
+            },
+            "description": "Document created, URL follows",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "detail": "Bad Request",
+                      "extra": {},
+                      "status_code": 400
+                    }
+                  ],
+                  "properties": {
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    },
+                    "status_code": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Bad request syntax or unsupported method"
+          }
+        },
+        "summary": "Resolve"
       }
     },
     "/api/v1/atlas/projects": {

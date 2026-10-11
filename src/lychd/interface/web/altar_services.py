@@ -43,14 +43,16 @@ from lychd.system.services.queues import protect_run_queues
 from lychd.system.services.runtime import build_runtime_actuator
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
+    from collections.abc import Callable, Mapping, Sequence
 
     from lychd.agents.workflows import WorkflowRegistry
     from lychd.config.runes.registry import RuneRegistry
     from lychd.config.settings.root import Settings
     from lychd.domain.animation.extension import RegisteredPortalDefinition, RegisteredSoulstoneDefinition
     from lychd.domain.animation.services.adapters.contracts import PortalDefinition, SoulstoneRuntimeAdapter
+    from lychd.domain.archive import ArchiveProfile, ArchiveService, ArchiveSubject
     from lychd.domain.codex.ledger import ConsentLedger
+    from lychd.domain.codex.sigil import Sigil
     from lychd.domain.cortex.engine import RunQueue
     from lychd.domain.cortex.ledger import RunLedger
     from lychd.domain.delegation.ports import DelegatedAgentRuntime
@@ -84,6 +86,7 @@ class AltarServices:
     ledger: RunLedger
     bus: InProcessEventBus
     substrate: RunSubstrate
+    archive: ArchiveService | None = None
     delegates: DelegatedAgentCoordinator | None
     delegated_runtime_catalog: tuple[RegisteredDelegatedRuntime, ...]
 
@@ -196,6 +199,27 @@ def _build_delegation_coordinator(
     )
 
 
+def _build_archive(
+    profile: str,
+    binding: ArchiveProfile | None,
+) -> tuple[ArchiveService | None, Callable[[Sigil], ArchiveSubject] | None]:
+    """Compose only the explicit PostgreSQL same-host public-note profile."""
+    if binding is None:
+        return None, None
+    if profile != "postgres":
+        msg = "The public-note Archive profile requires PostgreSQL persistence."
+        raise ValueError(msg)
+    from lychd.db.archive import DbArchiveStore
+    from lychd.db.engine import get_session_factory
+    from lychd.domain.archive import ArchiveService
+    from lychd.interface.web.archive_access import LocalArchivePolicy
+
+    policy = LocalArchivePolicy(profile=binding, caller=default_sigil())
+    return ArchiveService(
+        profile=binding, store=DbArchiveStore(get_session_factory()), authorizer=policy
+    ), policy.subject_for
+
+
 def build_altar_services(
     *,
     queues: Mapping[str, RunQueue],
@@ -229,6 +253,9 @@ def build_altar_services(
         raise ValueError(msg)
     if profile is None:
         profile = settings.server.database.profile
+    archive, archive_subject_resolver = _build_archive(
+        profile, bridge_casting.archive if bridge_casting is not None else None
+    )
     queues = protect_run_queues(queues)
     routing = {
         source: RouteRule(queue=rule.queue, priority=rule.priority)
@@ -313,6 +340,8 @@ def build_altar_services(
         cancellations=cancellations,
         stasis_store=stasis_store,
         delegates=delegates,
+        archive=archive,
+        archive_subject_resolver=archive_subject_resolver,
     )
     run_engine = RunEngine(
         ledger=ledger,
@@ -326,6 +355,7 @@ def build_altar_services(
         consents=consents,
         release_context=context_orchestrator.release,
         bridge_capability_key=bridge_casting.capability_key if bridge_casting is not None else None,
+        bridge_archive=bridge_casting.archive if bridge_casting is not None else None,
     )
     return AltarServices(
         registry=registry,
@@ -344,6 +374,7 @@ def build_altar_services(
         ledger=ledger,
         bus=bus,
         substrate=substrate,
+        archive=archive,
         delegates=delegates,
         delegated_runtime_catalog=tuple(delegated_runtime_catalog),
     )

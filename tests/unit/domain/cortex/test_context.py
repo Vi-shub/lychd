@@ -277,6 +277,31 @@ def test_context_detaches_input_history_and_required_continuation() -> None:
     assert assembled.model_history() == [*expected_history, *expected_continuation]
 
 
+def test_transient_projection_is_reserved_without_entering_instructions_or_history() -> None:
+    context = ContextOrchestrator(registry=cast("Any", _Registry()))
+    baseline = context.assemble(run_id="baseline", session_id="s", query="query")
+    fixed = (
+        sum(len(block.text) for block in baseline.blocks if block.layer <= 4)
+        + len("query")
+        + len(json.dumps(baseline.continuation))
+    )
+    context.char_cap = fixed + 100
+    assembled = context.assemble(
+        run_id="run",
+        session_id="s",
+        query="query",
+        transient_chars=100,
+        history=_exchange("old", "old question", "old answer"),
+    )
+    assert assembled.state_window == []
+    assert assembled.floor_text() == baseline.floor_text()
+    assert assembled.query == "query"
+    with pytest.raises(ContextBudgetExceededError):
+        context.assemble(run_id="overflow", session_id="s", query="query", transient_chars=101)
+    with pytest.raises(ValueError, match="negative"):
+        context.assemble(run_id="negative", session_id="s", query="query", transient_chars=-1)
+
+
 def test_context_detaches_every_cached_projection_and_model_history() -> None:
     history = _exchange("settled", "old", "old reply")
     continuation = _exchange("current", "current", "tool call")

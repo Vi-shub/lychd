@@ -140,6 +140,22 @@ no Ward session, remote authentication, delegation or deployed revocation servic
 authorizers in tests establish consultation and refusal behavior only; they do not prove
 credential-backed authority or containment against hostile same-UID code.
 
+## Trusted local Archive profile
+
+The opt-in `local-public-notes@1` Archive profile admits one explicitly configured namespace and
+public notes only. Trusted host composition supplies a stable local subject and a mandatory current
+authorizer. Every operation binds the actual subject, retained owner, namespace, purpose, action,
+policy revision, and exact proposed or retained object digest. Public classification, ownership,
+loopback arrival, or a Sigil scope bag does not supply a permissive fallback. The authorizer is
+consulted before protected reads, after awaited preparation under the serialized namespace
+boundary, and immediately before handing a retained projection to a consumer. Old receipts are
+evidence, not reusable grants; restart injects a current authorizer again.
+
+This is an explicit trusted-host composition profile, not credential enrollment, remote Principal
+resolution, a Ward session, cross-namespace sharing, or isolation from trusted same-process code.
+An unconfigured profile has no Archive authority. The separate read-only Bridge revision can
+consume authorized notes but grants no model tool or effect authority.
+
 ## Thresholds and delivery
 
 [Veil](40-proxy.md) owns hostile ingress and trusted-proxy canonicalization; [Tether](39-vpn.md)

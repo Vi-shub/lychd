@@ -75,10 +75,11 @@ evidence-freshness indicator.
 
 ## What the next turn remembers
 
-Bridge carries forward recent, complete, settled turns. It selects the newest whole turns that
+Bridge revisions 1 and 2 carry forward recent, complete, settled turns. They select the newest whole turns that
 fit the configured turn and character budgets. A visible user row can precede settlement; it
 becomes part of this retained history only with the settled agent turn. Full-session replay and
-Archive retrieval are outside this history path.
+Archive retrieval are outside this history path. The opt-in public-note revision below answers
+each question independently and does not replay those earlier turns.
 
 ??? info "How Bridge retains and restores a turn"
 
@@ -102,6 +103,84 @@ Archive retrieval are outside this history path.
     across multiple processes. The existing consent round is supported; general multi-approval
     flows and notifications remain unavailable. The [Bridge delivery
     record](../../state-of-the-work.md#bridge-surface) gives the current scope.
+
+## Public-note answers {#public-note-answers}
+
+Use this opt-in profile for questions about explicitly retained **public** notes on the same host.
+It requires the PostgreSQL binding and migrations from [Summoning](../../summoning.md), an exact
+local chat capability, and the existing loopback Altar access boundary. It does not automatically
+read your files or save conversations as memory. The [delivery record](../../state-of-the-work.md#karma-semantic-memory)
+separates the tested application path from live host and model qualification.
+
+Select revision 3 in the Weaver configuration, using the exact capability key observed in
+[Nexus](nexus.md). This example's capability is a placeholder; namespace and owner identify one
+new public-note collection and must remain stable once material is retained.
+
+```toml
+[weaver.bridge]
+revision = "3"
+capability_key = "replace-with-the-exact-local-chat-capability"
+
+[weaver.bridge.archive]
+profile = "local-public-notes@1"
+namespace_id = "9d340d97-7a12-47ed-af2b-c4742ed690f6"
+policy_revision = "local-notes-policy@1"
+
+[weaver.bridge.archive.owner_subject]
+identity = "local-notes-owner"
+```
+
+Configuration binds the trusted local caller to that owner; the API cannot supply another subject.
+Changing the namespace's owner or policy revision does not migrate existing notes. Follow the
+normal [configuration lifecycle](../../sepulcher/extensions/weaver/index.md#choose-a-bridge-capability)
+when changing the selected revision. An already admitted Run keeps its original profile and
+capability; changed current authority can refuse its continuation.
+
+There is no note editor in Altar yet. The authenticated API exposes these explicit operations,
+under the same access and CSRF requirements as other Altar writes:
+
+| POST path | Body and result |
+| --- | --- |
+| `/api/v1/archive/notes` | Submit the proposal below; retain the returned `reference.record_id` and `reference.lifecycle_version`. Intake creates a candidate, which recall excludes. |
+| `/api/v1/archive/notes/{record_id}/promote` | `{"expected_version": 1}` for a fresh candidate; makes it eligible and archives a prior promoted revision of the same source. |
+| `/api/v1/archive/notes/{record_id}/archive` | Supply the current `expected_version`; removes a promoted note from recall while retaining its text. |
+| `/api/v1/archive/notes/{record_id}/revoke` | Supply the current `expected_version`; removes controlled text and retains a tombstone preventing reingestion of that source revision. |
+| `/api/v1/archive/recalls` | Supply `namespace_id`, a new UUID `request_id`, and `query`; returns a receipt with selected source references, scores and omissions. |
+| `/api/v1/archive/recalls/{receipt_id}/resolve` | Supply `{"receipt_digest": "the-returned-digest"}`; returns the exact selected text only while current authority and source lifecycle still permit it. |
+
+For example, this proposal's digest binds its exact UTF-8 text, including punctuation. Use a new
+request identity for new material; an identical retry reuses the original request identity.
+
+```json
+{
+  "namespace_id": "9d340d97-7a12-47ed-af2b-c4742ed690f6",
+  "request_id": "fe6444d6-4267-44e6-afca-c592f3340f31",
+  "source_key": "observatory-hours",
+  "source_revision": "1",
+  "source_digest": "5ed3a3ecd485ad5b2d58439f0d3ca781979499c5e5d230fa6cd4cd5c7997179f",
+  "text": "Example note: the test observatory closes at 21:00 UTC.",
+  "producer": "operator-public-note",
+  "observed_at": "2026-10-11T00:00:00Z",
+  "classification": "public"
+}
+```
+
+After explicit promotion, offer `observatory` in Bridge to exercise lexical matching against the
+example. Retrieval uses PostgreSQL `simple` word matching, not semantic similarity or synonym
+expansion. A question is bounded to 2,000 characters; a note to 16,000. Bridge recall selects at
+most five notes within an 8,000-character text budget, omitting whole notes that do not fit. The
+receipt reports those omissions; database failure is never reported as an empty match.
+
+The answer profile has no model tools and does not replay prior answers. Each request receives
+the exact selected notes as attributed data, with room reserved in Context. The source envelope
+is transient; receipts retain identifiers and digests. The model is instructed to cite source keys
+and revisions, but its generated claims still need judgment.
+
+To correct a note, submit a new `source_revision` and explicitly promote it. Prior receipts then
+refuse the superseded revision. Revocation also prevents future resolution, including before a
+pending answer settles, but cannot erase output already generated or streamed. A timeout after a
+mutation may leave it committed: retry exact intake with its original identity; a stale lifecycle
+version refuses rather than repeating the transition.
 
 ## Two crossings still being designed
 

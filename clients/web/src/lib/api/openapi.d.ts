@@ -21,6 +21,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/archive/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Admit */
+        post: operations["admitArchiveNote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/archive/notes/{record_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive */
+        post: operations["archiveNote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/archive/notes/{record_id}/promote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Promote */
+        post: operations["promoteArchiveNote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/archive/notes/{record_id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke */
+        post: operations["revokeArchiveNote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/archive/recalls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Recall */
+        post: operations["recallArchiveNotes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/archive/recalls/{receipt_id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolve */
+        post: operations["resolveArchiveRecall"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/atlas/projects": {
         parameters: {
             query?: never;
@@ -491,6 +593,18 @@ export interface components {
             csrf: components["schemas"]["CsrfClientContract"];
             pending_consents: number;
         };
+        /** ArchiveLifecycleIntent */
+        ArchiveLifecycleIntent: {
+            expected_version: number;
+        };
+        /** ArchiveResolveIntent */
+        ArchiveResolveIntent: {
+            receipt_digest: string;
+        };
+        /** ArchiveSubject */
+        ArchiveSubject: {
+            identity: string;
+        };
         /** AtlasAssessment */
         AtlasAssessment: {
             author: string;
@@ -790,6 +904,11 @@ export interface components {
             } | unknown[] | null;
             status_code: number;
         };
+        /**
+         * Lifecycle
+         * @enum {string}
+         */
+        Lifecycle: "candidate" | "promoted" | "archived" | "revoked";
         /** LoomEdgeView */
         LoomEdgeView: {
             key: string;
@@ -893,6 +1012,40 @@ export interface components {
             snapshot_at: string;
             transitions: components["schemas"]["TransitionRecordView"][];
         };
+        /** NoteProposal */
+        NoteProposal: {
+            /**
+             * @default public
+             * @constant
+             */
+            classification: "public";
+            /** Format: uuid */
+            namespace_id: string;
+            /** Format: date-time */
+            observed_at: string;
+            producer: string;
+            /** Format: uuid */
+            request_id: string;
+            source_digest: string;
+            source_key: string;
+            source_revision: string;
+            text: string;
+        };
+        /** NoteRecord */
+        NoteRecord: {
+            /** Format: date-time */
+            created_at: string;
+            lifecycle: components["schemas"]["Lifecycle"];
+            /** Format: uuid */
+            namespace_id: string;
+            /** Format: date-time */
+            observed_at: string;
+            producer: string;
+            reference: components["schemas"]["RecordRef"];
+            source_digest: string;
+            source_key: string;
+            source_revision: string;
+        };
         /** OrbEventEnvelope */
         OrbEventEnvelope: {
             after_seq: number;
@@ -969,6 +1122,86 @@ export interface components {
             loom_path: string | null;
             pattern_id: string;
             revision: string;
+        };
+        /** RecallItem */
+        RecallItem: {
+            selection: components["schemas"]["RecallSelection"];
+            text: string;
+        };
+        /** RecallProjection */
+        RecallProjection: {
+            items: (components["schemas"]["RecallItem"] | unknown)[];
+            receipt: components["schemas"]["RecallReceipt"];
+        };
+        /** RecallReceipt */
+        RecallReceipt: {
+            char_budget: number;
+            /** Format: date-time */
+            created_at: string;
+            max_results: number;
+            min_score: number;
+            /** Format: uuid */
+            namespace_id: string;
+            omitted_for_budget: number;
+            policy_revision: string;
+            /**
+             * @default local-public-notes@1
+             * @constant
+             */
+            profile: "local-public-notes@1";
+            purpose: string;
+            query_digest: string;
+            receipt_digest: string;
+            /** Format: uuid */
+            receipt_id: string;
+            request_digest: string;
+            /** Format: uuid */
+            request_id: string;
+            /**
+             * @default postgres-simple-lexical@1
+             * @constant
+             */
+            retrieval_policy: "postgres-simple-lexical@1";
+            run_id: string | null;
+            /**
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+            selected: (components["schemas"]["RecallSelection"] | unknown)[];
+            subject: components["schemas"]["ArchiveSubject"];
+        };
+        /** RecallRequest */
+        RecallRequest: {
+            /** @default 8000 */
+            char_budget: number;
+            /** @default 5 */
+            max_results: number;
+            /** @default 0 */
+            min_score: number;
+            /** Format: uuid */
+            namespace_id: string;
+            query: string;
+            /** Format: uuid */
+            request_id: string;
+            run_id?: string | null;
+        };
+        /** RecallSelection */
+        RecallSelection: {
+            projected_chars: number;
+            projection_digest: string;
+            reference: components["schemas"]["RecordRef"];
+            score: number;
+            source_digest: string;
+            source_key: string;
+            source_revision: string;
+        };
+        /** RecordRef */
+        RecordRef: {
+            lifecycle_version: number;
+            /** Format: uuid */
+            record_id: string;
+            revision_digest: string;
         };
         /** ReviewFact */
         ReviewFact: {
@@ -1161,6 +1394,248 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AltarStatus"];
+                };
+            };
+        };
+    };
+    admitArchiveNote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NoteProposal"];
+            };
+        };
+        responses: {
+            /** @description Document created, URL follows */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteRecord"];
+                };
+            };
+            /** @description Bad request syntax or unsupported method */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                        extra?: null | {
+                            [key: string]: unknown;
+                        } | unknown[];
+                        status_code: number;
+                    };
+                };
+            };
+        };
+    };
+    archiveNote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                record_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArchiveLifecycleIntent"];
+            };
+        };
+        responses: {
+            /** @description Document created, URL follows */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteRecord"];
+                };
+            };
+            /** @description Bad request syntax or unsupported method */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                        extra?: null | {
+                            [key: string]: unknown;
+                        } | unknown[];
+                        status_code: number;
+                    };
+                };
+            };
+        };
+    };
+    promoteArchiveNote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                record_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArchiveLifecycleIntent"];
+            };
+        };
+        responses: {
+            /** @description Document created, URL follows */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteRecord"];
+                };
+            };
+            /** @description Bad request syntax or unsupported method */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                        extra?: null | {
+                            [key: string]: unknown;
+                        } | unknown[];
+                        status_code: number;
+                    };
+                };
+            };
+        };
+    };
+    revokeArchiveNote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                record_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArchiveLifecycleIntent"];
+            };
+        };
+        responses: {
+            /** @description Document created, URL follows */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteRecord"];
+                };
+            };
+            /** @description Bad request syntax or unsupported method */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                        extra?: null | {
+                            [key: string]: unknown;
+                        } | unknown[];
+                        status_code: number;
+                    };
+                };
+            };
+        };
+    };
+    recallArchiveNotes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecallRequest"];
+            };
+        };
+        responses: {
+            /** @description Document created, URL follows */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecallReceipt"];
+                };
+            };
+            /** @description Bad request syntax or unsupported method */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                        extra?: null | {
+                            [key: string]: unknown;
+                        } | unknown[];
+                        status_code: number;
+                    };
+                };
+            };
+        };
+    };
+    resolveArchiveRecall: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                receipt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArchiveResolveIntent"];
+            };
+        };
+        responses: {
+            /** @description Document created, URL follows */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecallProjection"];
+                };
+            };
+            /** @description Bad request syntax or unsupported method */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                        extra?: null | {
+                            [key: string]: unknown;
+                        } | unknown[];
+                        status_code: number;
+                    };
                 };
             };
         };
