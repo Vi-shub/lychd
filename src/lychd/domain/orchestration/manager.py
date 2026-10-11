@@ -481,6 +481,8 @@ class OrchestratorManager:
         Loading model B can unload model A from the same process. Once activation
         is invoked, failure keeps both gates closed because no exact inverse exists.
         A durable write-ahead guard also fences a replacement Vessel until recovery.
+        Arming does not retire invocation budgets; expiry afterward retains that
+        guard and both gates without invoking the adapter.
         """
         target_animator = self._target_animator(target_capability_key)
         self._publish(trace, "draining")
@@ -491,7 +493,7 @@ class OrchestratorManager:
             def mark_activation() -> None:
                 nonlocal activation_invoked, activation_record
                 self._publish(trace, "actuating")
-                admission.admit()
+                admission.check()
                 activation_record = SoftActivationRecord(
                     target_animator=target_animator,
                     target_capability_key=target_capability_key,
@@ -501,6 +503,13 @@ class OrchestratorManager:
                     self._soft_activation_guard.arm(activation_record)
                 except Exception:
                     self._contain("soft activation guard could not durably fence the attempt")
+                    raise
+                try:
+                    # Synchronous guard writes may consume either original budget
+                    # before a timer runs. Admit only at the invocation boundary.
+                    admission.admit()
+                except (TransitionAdmissionExpired, ActivationTimeout):
+                    self._contain("soft activation guard retained after the invocation deadline expired")
                     raise
                 activation_invoked = True
 

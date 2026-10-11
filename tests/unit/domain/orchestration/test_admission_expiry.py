@@ -7,7 +7,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 from types import SimpleNamespace
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
@@ -20,7 +20,13 @@ from lychd.domain.orchestration.actuator import RuntimeCancellationNoEffectError
 from lychd.domain.orchestration.arbiter import TransitionAdmissionExpired, TransitionAdmissionWaitExpired
 from lychd.domain.orchestration.journal import TransitionRecord
 from lychd.domain.orchestration.schema import TransitionTrace
+from lychd.system.services.runtime_guard import FileSoftActivationGuard
 from tests.capability_workflows import CapabilityScenario, build_capability_scenario
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from lychd.domain.orchestration.containment import SoftActivationRecord
 
 
 @dataclass
@@ -98,6 +104,98 @@ async def test_final_guard_follows_synchronous_actuating_observer(
     assert scenario.manager.containment_reason is None
     assert not scenario.broker.paused
     assert trace.phase == "declined_no_effect"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("owner_budget", [5.0, 10.0, 20.0, None])
+async def test_durable_soft_guard_cannot_retire_or_overrun_invocation_cutoffs(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, owner_budget: float | None
+) -> None:
+    directory = tmp_path / "runtime-guard"
+    directory.mkdir(mode=0o700)
+    guard = FileSoftActivationGuard(directory)
+    scenario = build_capability_scenario(
+        models={"router": ("small", "large")}, active={"router"}, soft_activation_guard=guard
+    )
+    scenario.manager._switching = SwitchingSettings(planning_timeout_s=100, drain_timeout_s=100, warmup_timeout_s=10)
+    clock = _clock(monkeypatch)
+    start = clock.now
+    original_arm = guard.arm
+
+    def delayed_arm(record: SoftActivationRecord) -> None:
+        original_arm(record)
+        # Real write-ahead custody exists, but synchronous fsync may consume the
+        # remaining budget before the event loop can deliver its timer callback.
+        clock.now = start + 10
+
+    monkeypatch.setattr(guard, "arm", delayed_arm)
+    error = TransitionAdmissionExpired if owner_budget == 5 else ActivationTimeout
+    with pytest.raises(error):
+        await scenario.manager.request_transition(
+            "router:chat:large", 50, admission_deadline=None if owner_budget is None else start + owner_budget
+        )
+    assert scenario.world.activations == []
+    assert scenario.world.loaded["router"] == "small"
+    assert scenario.actuator.intents == []
+    assert scenario.manager.containment_reason is not None
+    assert scenario.broker.paused
+    assert scenario.leases.admission("router") is AnimatorAdmission.DRAINING
+    assert scenario.leases.active() == []
+    pending = guard.pending()
+    assert pending is not None
+    assert pending.target_capability_key == "router:chat:large"
+    fresh_guard = FileSoftActivationGuard(directory)
+    assert fresh_guard.pending() == pending
+    with pytest.raises(RuntimePreconditionError, match="recovery"):
+        fresh_guard.assert_clear()
+    with pytest.raises(RuntimeError, match="containment is active"):
+        await scenario.manager.request_transition("router:chat:large", 50)
+    assert fresh_guard.pending() == pending
+
+
+@pytest.mark.asyncio
+async def test_follower_cutoff_uses_invocation_after_durable_guard(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    scenario = _scenario(soft=True)
+    clock = _clock(monkeypatch)
+    start = clock.now
+    entered, release = asyncio.Event(), asyncio.Event()
+
+    async def block(_name: str) -> None:
+        entered.set()
+        await release.wait()
+
+    guard = scenario.manager._soft_activation_guard
+    original_arm = guard.arm
+
+    def delayed_arm(record: SoftActivationRecord) -> None:
+        original_arm(record)
+        clock.now = start + 6
+
+    monkeypatch.setattr(guard, "arm", delayed_arm)
+    scenario.world.before_probe = block
+    target = "router:chat:large"
+    owner = asyncio.create_task(scenario.manager.request_transition(target, 50, admission_deadline=start + 20))
+    await entered.wait()
+    follower = asyncio.create_task(scenario.manager.request_transition(target, 50, admission_deadline=start + 5))
+    try:
+        await _turns()
+        release.set()
+        results = await asyncio.gather(owner, follower, return_exceptions=True)
+        assert not isinstance(results[0], BaseException)
+        assert type(results[1]) is TransitionAdmissionWaitExpired
+        assert scenario.world.activations == [target]
+        assert scenario.manager.containment_reason is None
+        assert not scenario.broker.paused
+        assert scenario.leases.admission("router") is AnimatorAdmission.OPEN
+        guard.assert_clear()
+    finally:
+        release.set()
+        for task in (owner, follower):
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(owner, follower, return_exceptions=True)
 
 
 @pytest.mark.asyncio

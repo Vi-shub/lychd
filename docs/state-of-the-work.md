@@ -754,6 +754,10 @@ safety budgets. Coalesced followers cannot tighten the owner's cutoff or cancel 
 Planning, drain, and convergence reject success after their actual cutoffs, including delayed
 timer delivery when no admission timeout was requested. Repeated cancellation settles required
 probe cleanup, and an already-selected deadline retains its cause through that cleanup.
+The soft activation path rechecks both cutoffs after the durable guard write, immediately before
+invoking the runtime. If persistence consumed the deadline, no activation occurs; the exact guard
+and closed gates remain for explicit recovery. Deterministic tests exercise a real guard file,
+fresh-instance startup refusal, and independently expiring coalesced followers.
 
 **Boundary — Not yet:** Dynamic shared-capacity admission, durable multi-process orchestration,
 general repair, and a maintained real model/GPU transition receipt are absent. After a soft
@@ -1003,6 +1007,13 @@ claimed action without repeating its invocation. Matching response and event evi
 receipt, mission cursor, and placement budget together in that fixture. PostgreSQL models, a store,
 and migration `0011` have passed disposable PostgreSQL transaction, recovery and migration-cycle
 tests, including comparison with the ORM schema.
+A further PostgreSQL vertical connects those stores to actual Run admission, worker execution,
+native HTTP Consent review, and serialized checkpoints. Fresh adapters resolve acknowledged and
+lost-acknowledgement outcomes without repeating the world command; an injected SQL failure proves
+receipt/cursor/budget rollback, and racing reconciliation returns one settled receipt. Current
+authority and world-epoch changes refuse execution after an earlier approval. This uses an inert
+world and captured queue in one process; it does not establish broker delivery or automatic
+recovery of an orphaned running worker after process death.
 
 Companion has a pure Kotlin/JVM model for memory-only client interaction: expiring text drafts,
 exact review before a separate submit request, reconnect without replay, observed presentation
@@ -1048,7 +1059,7 @@ physical devices or every Android version allowed by the declared minimum SDK.
 **Evidence**
 
 - **Source:** [Blockworld workflow](https://github.com/hexanomicon/lychd/blob/main/src/lychd/compositions/blockworld/workflow.py), [placement custody](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/blockworld.py), [placement migration](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/migrations/versions/0011_blockworld_placement.py), [Workflow registry](https://github.com/hexanomicon/lychd/blob/main/src/lychd/agents/workflows/__init__.py), [client interaction model](https://github.com/hexanomicon/lychd/blob/main/clients/android/interaction/src/main/kotlin/org/lychd/companion/interaction/Interaction.kt), [Android screen](https://github.com/hexanomicon/lychd/blob/main/clients/android/offline/src/main/kotlin/org/lychd/companion/CompanionScreen.kt), and [Activity state](https://github.com/hexanomicon/lychd/blob/main/clients/android/offline/src/main/kotlin/org/lychd/companion/OfflineDraftViewModel.kt)
-- **Verification:** [Portable placement workflow tests](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_blockworld_placement_vertical.py), [PostgreSQL placement tests](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_db_blockworld_pg.py), [Workflow routing tests](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_router.py), [client interaction tests](https://github.com/hexanomicon/lychd/blob/main/clients/android/interaction/src/test/kotlin/org/lychd/companion/interaction/InteractionTest.kt), [ViewModel tests](https://github.com/hexanomicon/lychd/blob/main/clients/android/offline/src/test/kotlin/org/lychd/companion/OfflineDraftViewModelTest.kt), [Activity tests](https://github.com/hexanomicon/lychd/blob/main/clients/android/offline/src/androidTest/kotlin/org/lychd/companion/CompanionScreenTest.kt), [production-lifecycle tests](https://github.com/hexanomicon/lychd/blob/main/clients/android/offline/src/androidTest/kotlin/org/lychd/companion/CompanionLifecycleTest.kt), and [client check commands](https://github.com/hexanomicon/lychd/blob/main/clients/android/README.md)
+- **Verification:** [Portable placement workflow tests](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_blockworld_placement_vertical.py), [PostgreSQL placement tests](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_db_blockworld_pg.py), [PostgreSQL worker and review vertical](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_blockworld_postgres_vertical.py), [Workflow routing tests](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_router.py), [client interaction tests](https://github.com/hexanomicon/lychd/blob/main/clients/android/interaction/src/test/kotlin/org/lychd/companion/interaction/InteractionTest.kt), [ViewModel tests](https://github.com/hexanomicon/lychd/blob/main/clients/android/offline/src/test/kotlin/org/lychd/companion/OfflineDraftViewModelTest.kt), [Activity tests](https://github.com/hexanomicon/lychd/blob/main/clients/android/offline/src/androidTest/kotlin/org/lychd/companion/CompanionScreenTest.kt), [production-lifecycle tests](https://github.com/hexanomicon/lychd/blob/main/clients/android/offline/src/androidTest/kotlin/org/lychd/companion/CompanionLifecycleTest.kt), and [client check commands](https://github.com/hexanomicon/lychd/blob/main/clients/android/README.md)
 - **Topic:** [Composition Portfolio](./compositions/index.md)
 - **Law:** [Workflow](./adr/28-workflow.md)
 
