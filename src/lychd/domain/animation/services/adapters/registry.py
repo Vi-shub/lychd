@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from types import MappingProxyType
 from typing import TYPE_CHECKING
 
 from lychd.domain.animation.capabilities import (
@@ -12,6 +13,7 @@ from lychd.domain.animation.capabilities import (
     CapabilityState,
     SourceKind,
 )
+from lychd.domain.animation.extension import RegisteredPortalDefinition, RegisteredSoulstoneDefinition
 from lychd.domain.animation.schemas import (
     ConcurrencyIntent,
     GenerationProfile,
@@ -30,7 +32,7 @@ from lychd.domain.animation.services.adapters.contracts import (
 from lychd.domain.animation.services.adapters.runtimes.generic import GenericRuntimeAdapter
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Mapping, Sequence
 
 
 def _declaration_provenance(declaration: SoulstoneConfig | PortalConfig) -> str:
@@ -73,31 +75,69 @@ class RuntimeAdapterRegistry:
         adapters: Sequence[SoulstoneRuntimeAdapter] | None = None,
         *,
         portal_definitions: Sequence[PortalDefinition] | None = None,
+        soulstone_registrations: Sequence[RegisteredSoulstoneDefinition] = (),
+        portal_registrations: Sequence[RegisteredPortalDefinition] = (),
     ) -> None:
-        """Initialize active runtime adapters and exact Portal definitions."""
+        """Capture one immutable membership snapshot; raw injections are unattributed."""
         self._fallback: SoulstoneRuntimeAdapter = GenericRuntimeAdapter()
-        self._adapters: dict[str, SoulstoneRuntimeAdapter] = {}
-        for adapter in adapters or ():
-            runtime = adapter.runtime
-            existing = self._adapters.get(runtime)
+        runtime_members: dict[str, tuple[SoulstoneRuntimeAdapter, str | None, type[SoulstoneConfig] | None]] = {}
+        for adapter, owner, schema in [
+            *((adapter, None, None) for adapter in adapters or ()),
+            *(
+                (item.definition.runtime_adapter, item.registrant_id, item.definition.rune_schema)
+                for item in soulstone_registrations
+            ),
+        ]:
+            existing = runtime_members.get(adapter.runtime)
             if existing is not None:
                 msg = (
-                    f"Soulstone runtime {runtime!r} already has adapter "
-                    f"{type(existing).__name__}; refusing {type(adapter).__name__}."
+                    f"Soulstone runtime {adapter.runtime!r} already has adapter "
+                    f"{type(existing[0]).__name__} from {existing[1]!r}; refusing "
+                    f"{type(adapter).__name__} from {owner!r}."
                 )
                 raise ValueError(msg)
-            self._adapters[runtime] = adapter
-        self._portal_definitions: dict[type[PortalConfig], PortalDefinition] = {}
-        for definition in portal_definitions or ():
-            existing = self._portal_definitions.get(definition.rune_schema)
-            if existing is not None:
-                msg = f"Portal schema {definition.rune_schema.__name__} already has a runtime definition."
+            runtime_members[adapter.runtime] = (adapter, owner, schema)
+        self._adapters: Mapping[str, tuple[SoulstoneRuntimeAdapter, str | None, type[SoulstoneConfig] | None]] = (
+            MappingProxyType(runtime_members)
+        )
+        portal_members: dict[type[PortalConfig], tuple[PortalDefinition, str | None]] = {}
+        for definition, owner in [
+            *((definition, None) for definition in portal_definitions or ()),
+            *((item.definition, item.registrant_id) for item in portal_registrations),
+        ]:
+            existing_portal = portal_members.get(definition.rune_schema)
+            if existing_portal is not None:
+                msg = (
+                    f"Portal schema {definition.rune_schema.__name__} already has a runtime definition "
+                    f"from {existing_portal[1]!r}; refusing definition from {owner!r}."
+                )
                 raise ValueError(msg)
-            self._portal_definitions[definition.rune_schema] = definition
+            portal_members[definition.rune_schema] = (definition, owner)
+        self._portal_definitions: Mapping[type[PortalConfig], tuple[PortalDefinition, str | None]] = MappingProxyType(
+            portal_members
+        )
 
     def _adapter_for(self, soulstone: SoulstoneConfig) -> SoulstoneRuntimeAdapter:
-        """Return the adapter that owns the exact declared Soulstone runtime key."""
-        return self._adapters.get(soulstone.runtime, self._fallback)
+        """Return the exact registered owner, preserving raw adapter compatibility."""
+        entry = self._adapters.get(soulstone.runtime)
+        if entry is None:
+            return self._fallback
+        adapter, owner, schema = entry
+        if schema is not None and type(soulstone) is not schema:
+            msg = (
+                f"Soulstone runtime {soulstone.runtime!r} from {owner!r} owns schema "
+                f"{schema.__name__}; refusing {_declaration_provenance(soulstone)}."
+            )
+            raise ValueError(msg)
+        return adapter
+
+    def registrant_id_for(self, rune: SoulstoneConfig | PortalConfig) -> str | None:
+        """Resolve host-assigned provenance without trusting a contributed capability."""
+        if isinstance(rune, PortalConfig):
+            portal = self._portal_definitions.get(type(rune))
+            return portal[1] if portal is not None else None
+        entry = self._adapters.get(rune.runtime)
+        return entry[1] if entry is not None else None
 
     def plan(self, soulstone: SoulstoneConfig) -> RuntimePlan:
         """Build a host-facing runtime plan for a Soulstone."""
@@ -111,7 +151,11 @@ class RuntimeAdapterRegistry:
         else:
             runtime = self._adapter_for(rune).build_runtime(rune)
         if runtime is not None:
-            _require_runtime_identity(rune, runtime)
+            try:
+                _require_runtime_identity(rune, runtime)
+            except ValueError as exc:
+                msg = f"Registrant {self.registrant_id_for(rune)!r}: {exc}"
+                raise ValueError(msg) from exc
         return runtime
 
     def build_capability_specs(
@@ -123,10 +167,11 @@ class RuntimeAdapterRegistry:
         if isinstance(rune, PortalConfig):
             if type(rune) not in self._portal_definitions:
                 return []
-            return self._build_portal_capability_specs(rune)
-
-        adapter = self._adapter_for(rune)
-        return adapter.build_capability_specs(animator)
+            specs = self._build_portal_capability_specs(rune)
+        else:
+            specs = self._adapter_for(rune).build_capability_specs(animator)
+        owner = self.registrant_id_for(rune)
+        return [spec.model_copy(update={"registrant_id": owner}) for spec in specs]
 
     async def probe_capability_states(
         self,
@@ -174,8 +219,8 @@ class RuntimeAdapterRegistry:
 
     def _build_portal_runtime(self, portal: PortalConfig) -> RuntimeAnimator | None:
         """Resolve a Portal only through its exact registered schema owner."""
-        definition = self._portal_definitions.get(type(portal))
-        return definition.factory(portal) if definition is not None else None
+        entry = self._portal_definitions.get(type(portal))
+        return entry[0].factory(portal) if entry is not None else None
 
     def _build_portal_capability_specs(self, portal: PortalConfig) -> list[CapabilitySpec]:
         """Synthesize capability specs from a Portal's declared ``[[models]]``.
@@ -221,7 +266,8 @@ class RuntimeAdapterRegistry:
         connector = animator.connector
         rune = animator.rune
         if isinstance(rune, PortalConfig) and rune.probe:
-            definition = self._portal_definitions.get(type(rune))
+            entry = self._portal_definitions.get(type(rune))
+            definition = entry[0] if entry is not None else None
             if definition is None or definition.probe is None:
                 msg = (
                     f"Portal {rune.name!r} requests live probing, but schema "

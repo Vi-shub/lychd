@@ -25,8 +25,9 @@ def test_read_only_credentials_are_not_data_mounts(relative: str) -> None:
 
 @pytest.mark.parametrize("source", ["/run/user/1000/podman/podman.sock", "/etc/shadow", "/proc/1/root", "/dev/kvm"])
 def test_host_control_filesystems_are_not_data_mounts(source: str) -> None:
+    canonical_source = Path(source).resolve(strict=False)
     with pytest.raises(ValueError, match="protected host authority"):
-        validate_soulstone_data_mount(Path(source), ["ro"], stone_name="model")
+        validate_soulstone_data_mount(canonical_source, ["ro"], stone_name="model")
 
 
 def test_external_auth_socket_and_ancestor_are_protected(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

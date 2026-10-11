@@ -7,7 +7,7 @@ icon: material/controller-classic-outline
 
 The candidate loads. Now make the player perform the declared interaction and inspect what the engine reports. `game.playtest_candidate@1` runs that bounded scenario against the exact build; screenshots support, but never replace, structured observations.
 
-`PlaytestSession@1` owns the bounded live process. A trusted/Tomb driver may implement it directly; an independently resident, queued, or remote harness may expose `SessionGrant`. World keeps finite `EngineToolJob@1`. The scenario's `ControllerAdapter` exposes only admitted inputs, without shell, editor, debug console, arbitrary RPC, anti-cheat bypass, public-server access, or deceptive player authority.
+`PlaytestSession@1` owns the bounded live process. A trusted/Tomb driver may implement it directly; an independently resident, queued, or remote harness may expose `SessionGrant`. [World](world.md#godot-is-the-first-engine-profile) keeps finite `EngineToolJob@1`. The scenario's `ControllerAdapter` exposes only admitted inputs, without shell, editor, debug console, arbitrary RPC, anti-cheat bypass, public-server access, or deceptive player authority.
 
 ## Pin the attempt
 

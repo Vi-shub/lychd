@@ -34,28 +34,30 @@ offers the same identities and entry points without requiring canvas gestures.
 
 ## Establish the account you are reading
 
-Confirm the **Run id**, canonical status, and capture class in the header. The Run owns ledger
+Confirm the **Run id**, **Latest fetched Run status**, and capture class in the header. The Run owns ledger
 status. The Orb shows the bounded trace its sources can supply and cannot replace Run, consent,
 grant, effect, or artifact truth.
 
 **[Oculus](../../sepulcher/extensions/oculus.md)** names the body’s evidence service; **Orb** is
-its Altar surface. Native durable Oculus storage is
-not delivered. Current evidence is available through this running Vessel and is labeled
-`process local` or `durable best effort`.
+its Altar surface. Native durable Oculus storage is not delivered. Current evidence is available
+through this running Vessel and is labeled `process local` or `durable best effort`.
+`process local` evidence disappears when the Vessel process ends. With `durable best effort`,
+PostgreSQL retains structural records, but failed writes and omitted token deltas can leave
+sequence gaps.
 
 Then read the coverage strip:
 
 | Label | Boundary |
 | --- | --- |
-| **snapshot** | The snapshot being inspected. |
+| **Read at** | Response assembly time. Run status, evidence and jobs are read separately; this is not an atomic historical state. |
 | **retained through** | The retained ledger head. |
 | **loaded through** | How far this page has loaded. |
 | **live updates** | `ledger poll`: updates come from retained evidence, subject to its capture limits. |
 
 **Refresh** requests a new bounded snapshot. The first page contains up to 100 evidence records;
-**Load more retained evidence** requests another page while more remain. A visible `#start–end`
-gap means an unknown or omitted interval. The Orb does not infer why those sequence numbers are
-absent.
+**Load more retained evidence** requests another page while more remain. If that read fails,
+the evidence already loaded stays visible; use **Retry loading retained evidence** to retry the
+same page read.
 
 The live feed reads newly retained structural records and metadata in bounded batches. It resumes
 from its delivered cursor on reconnect, replaces a reset account through a fresh snapshot, and
@@ -66,12 +68,37 @@ remains separately pageable. Refresh or a transport connection never changes the
 
 ## Locate the event
 
-Select a row to open **Selected event**. Its stable review URL is
-`/orb/{run_id}?event={event_id}`. The inspector shows recorded sequence, kind, subject, phase,
-occurrence, and capture class.
+## Locate the event
 
-If the linked event lies beyond the loaded page, load more. If it is no longer retained, the Orb
-says so. To investigate a wait, inspect its recorded status, phase, subject, occurrence, and
+Use **Browse loaded evidence** to choose a **Recorded subject**. **Station observations** contain
+NODE records; **Capability dispatches** contain DISPATCH records. A station and a capability with
+the same name remain separate. Counts describe loaded records, not complete subject membership.
+**Show all loaded evidence** restores the account. Filtering leaves reported gaps visible;
+sequence jumps between filtered rows do not imply missing evidence.
+
+For a station, choose a **Station attempt** to read records with that exact supplied correlation.
+**No recorded attempt** keeps unassigned records visible. The raw `occurrence_id` field means
+station-attempt correlation here, not a scheduled trigger Occurrence. Repeated attempts remain
+separate, and an ID recorded under multiple station subjects is flagged without merging them.
+
+Select a row to open **Selected historical evidence**. Its stable review URL is
+`/orb/{run_id}?event={event_id}`. The inspector shows recorded sequence, producer timestamp, kind,
+subject, phase, station-attempt correlation, and capture class. Its historical observation leaves
+the header's latest fetched canonical Run status unchanged.
+
+**Previous loaded record** and **Next loaded record** follow Run sequence across all loaded
+records, including when timestamps repeat or move backward. Stepping outside a subject or attempt
+filter restores the full account. The controls stop at the loaded boundaries; load another page
+explicitly to continue. Sequence and timestamps establish neither elapsed work nor causality.
+
+The subject and attempt selectors and record buttons use native keyboard controls. Opening a
+record focuses the inspector; **Close** returns to its row when available, or to **Ordered
+evidence** if filtering removed the opener. Changing a filter retains the selected record and
+labels it when outside that filter. Refresh preserves the selected identity without moving the
+reader's focus; if the record cannot be found at that read, the requested identity stays in the URL.
+
+If the linked event lies beyond the loaded page, load more. If it is absent after the retained pages are exhausted, the Orb
+reports that it was not found at this read. To investigate a wait, inspect its recorded status, phase, subject, station attempt, and
 transition correlation. These observations may leave the cause unknown; the Orb has no
 **Why waiting?** analysis. Follow [Stasis and return](../../sepulcher/extensions/weaver/stasis-and-return.md)
 for the recorded wait's owner and return boundary, or

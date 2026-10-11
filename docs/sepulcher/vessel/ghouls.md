@@ -26,8 +26,9 @@ the live task and subscribers even when the broker retains its job.
 
 `RunEngine.submit` selects the workflow and queue. In one transaction, `RunLedger` mints the Run
 id and commits `QUEUED`, the Pattern, Intent, queue, priority, authority, and exact initial
-delivery. That delivery remains `HELD` until caller-owned retention succeeds. Release precedes
-opening the live channel and publishing `run:<run_id>:<enqueue_seq>`.
+delivery. When caller-owned retention is required, delivery remains `HELD` until retention
+succeeds, then releases to `PENDING`; otherwise admission creates `PENDING` directly. The live
+channel opens and `run:<run_id>:<enqueue_seq>` publishes only after any required release.
 
 Each failure keeps its own boundary:
 
@@ -41,7 +42,7 @@ Each failure keeps its own boundary:
 PostgreSQL admission and broker publication are separate commits. Only `perform_run` executes the
 Graph: it claims exact `(run_id, enqueue_seq)` through `QUEUED → RUNNING`. A stale or duplicate
 delivery returns `skipped`. A missing workflow, changed Pattern, or missing resume checkpoint
-fails the claim; execution never starts the Intent over to fill the gap.
+refuses execution after claim; execution never starts the Intent over to fill the gap.
 
 SAQ `timeout=0` disables its generic wall clock. Graph, provider, and Orchestrator deadlines still
 apply, and the live invocation refreshes a 120-second Run-job heartbeat. Workflow jobs have zero
@@ -55,27 +56,30 @@ survive restart. A consent or delegated wait commits checkpoint and exact owner 
 delivery in the same transaction; publication may follow. [Stasis and return](../extensions/weaver/stasis-and-return.md)
 explains those thresholds.
 
-The worker's terminal sequence is:
+For worker-owned `DONE` or `FAILED` settlement, the sequence is:
 
 ```text
-commit DONE / FAILED / CANCELLED and exact delivery settlement
+commit DONE / FAILED and exact delivery settlement
 → release context
 → delete stasis best-effort
-→ durably drain one terminal Step event
+→ publish the terminal event and drain its ordered Step writer chain
 → close the live channel
 ```
 
-Cleanup cannot revise committed status. If child containment fails transiently, the worker retries
-it; continuing uncertainty leaves the Run nonterminal for recovery. It cannot claim `FAILED`
-while correlated authority may still act.
+Cleanup or evidence failure cannot revise committed status. If child containment fails transiently,
+the worker retries it; continuing uncertainty leaves the Run nonterminal for recovery. It cannot
+claim `FAILED` while correlated authority may still act.
 Before that containment, the Ghoul verifies its exact delivery generation under the same per-Run
 guard used by claims and park commits. A late failure cannot cancel the next Ghoul's effects or
 undo a durable wait whose commit acknowledgement was lost.
 
 Cancellation elects one writer, commits `CANCELLING`, and fences claims and delivery rotation.
-Broker and delegate containment must acknowledge before the elected generation commits
-`CANCELLED`. Uncertain containment preserves `CANCELLING`; completion that already won makes a
-new cancellation a no-op.
+Broker, delegate, and pending Consent containment must acknowledge before the elected generation
+commits `CANCELLED`. A worker observing its exact `CANCELLING` generation releases volatile Context
+for containment acknowledgement while retaining its checkpoint. After `CANCELLED` commits, the
+engine handles terminal evidence and channel closure before best-effort Context and checkpoint
+cleanup; evidence failure still runs that cleanup. Uncertain containment preserves `CANCELLING`;
+completion that already won makes a new cancellation a no-op.
 
 `RunEvent` has bounded process-local replay. Non-token events copy to `step` best-effort; token
 deltas are live-only. The evidence class is `durable_best_effort`, not a transactional event outbox.
@@ -87,9 +91,10 @@ A new process judges committed Run, delivery, checkpoint, Consent, and delegated
 state-by-state return: unsupported active work becomes `FAILED / ghoul lost`, exact durable
 waits may return, and missing or ambiguous required truth aborts PostgreSQL startup.
 
-Before deleting residual stasis, startup repairs missing or mismatched terminal evidence from
-canonical terminal Runs. Lifespan-owned relays continue delivery, consent, and delegated-owner
-repair. They retain every degraded page while scanning forward, so a blocked owner is not lost
+Startup repairs missing terminal evidence from canonical terminal Runs. Mismatched terminal
+evidence aborts required PostgreSQL startup; it is not overwritten. Cancellation cleanup may still
+remove its checkpoint when evidence fails. Lifespan-owned relays continue delivery, consent, and
+delegated-owner repair. They retain every degraded page while scanning forward, so a blocked owner is not lost
 behind a keyset cursor. Consent lookup and re-admission have one ten-second deadline per owner;
 timeout preserves the wait or committed pending delivery and lets other owners progress.
 There is no same-boot worker-failure custody watchdog, public failed-Run

@@ -35,7 +35,7 @@ load a model without a systemd transaction; reclaiming a conflicting physical ru
 the serialized target switch. Callers never invoke a runtime control API as a side route around
 the Dispatcher.
 
-Repository tests cover llama.cpp planning, discovery, capability derivation, and load/unload
-control. A real engine/GPU/model result remains
+Repository tests cover llama.cpp planning, discovery, capability derivation, and model loading.
+Model unloading is not a separate adapter operation; Orchestrator shuts down whole runtimes. A real engine/GPU/model result remains
 [operator validation](../../../state-of-the-work.md#llamacpp-integration). ExLlamaV3 uses a
 separate dynamic contract described in [ExLlamaV3 through TabbyAPI](./engines/exllamav3.md).

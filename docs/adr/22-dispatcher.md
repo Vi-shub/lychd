@@ -247,13 +247,18 @@ prevent duplicate remote effects or fence local residency. [Workers
 
 ## Durable Content and ArtifactRef
 
-Runs and checkpoints name content with `ArtifactRef`, never embedded bytes: identity, `sha256:`
-digest, media type, byte size, and `public`/`internal`/`private`/`restricted` classification.
-Media type projects to input modality and can inform matching.
+The Designed content path requires Runs and checkpoints to name content with `ArtifactRef`, never
+embedded bytes: identity, `sha256:` digest, media type, byte size, and
+`public`/`internal`/`private`/`restricted` classification. Media-type projection to input modality
+for matching remains Designed.
 
-This is a durable metadata shape, not blob custody or provider materialization. Bridge remains
-text-only and neither supplies referenced modalities nor materializes authorized bytes. Blob
-authorization, retention, and provider conversion remain separate work.
+Current code defines this immutable metadata shape and carries references in delegated-job
+requests and results. Ordinary `Intent` and Bridge admission remain text-only; they neither carry
+artifact references through the Run ledger nor infer required modalities from media types.
+Dispatcher filters explicitly supplied modality requirements. A separate, unregistered
+[trusted-local custody adapter](06-persistence.md#reliquary-custody-designed) provides bounded
+retention under an injected current authorizer. Bridge artifact admission, credential-backed
+authority, and provider materialization remain separate work.
 
 ## Policy boundary
 

@@ -97,13 +97,17 @@ class InventoryReport:
 
 @dataclass(frozen=True)
 class OwnedUnit:
-    """One exact runtime unit derived from the Scribe authority receipt."""
+    """Exact receipt-owned unit with activity and independent observed load state.
+
+    Unobserved load state remains unknown; it does not attest successful loading.
+    """
 
     name: str
     sources: tuple[str, ...]
     state: ObservationState = ObservationState.UNKNOWN
     unit_file_state: str = "unknown"
     detail: str = ""
+    load_state: str = "unknown"
 
 
 @dataclass(frozen=True)

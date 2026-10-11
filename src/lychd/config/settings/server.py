@@ -50,7 +50,7 @@ class DatabaseSettings(SettingsSection):
     phoenix_password_secret: str = "lychd_phoenix_db_password"  # noqa: S105
     phoenix_password: SecretStr | None = Field(default=None, min_length=1, exclude=True, repr=False, frozen=True)
     profile: Literal["memory", "postgres"] = "postgres"
-    """Persistence backend: Postgres for normal operation; memory only for focused tests."""
+    """Persistence backend: Postgres for normal operation; memory for focused tests and the isolated developer fixture."""
     echo: bool = False
     """Log every SQL statement; useful for diagnosis but noisy and unsuitable for normal operation."""
     echo_pool: bool | str = False

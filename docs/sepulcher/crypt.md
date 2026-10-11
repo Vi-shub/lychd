@@ -33,7 +33,7 @@ Each chamber has one owner:
 | `triggers/journal/` | Terminal Reactor receipts | Vessel read-only when the Host Reactor is selected |
 | `postgres/data/` | Phylactery storage | PostgreSQL unit only |
 | `snapshots/` | Reserved recovery-snapshot shelf | No whole-body snapshot rite is delivered yet |
-| `lab/` | Operator workspace | Read-write only when explicitly admitted |
+| `lab/` | Operator workspace | Vessel read-write |
 | `extensions/` | Private Extension source | Runtime read-only |
 | `core/` | Reserved Core source | Runtime read-only |
 
@@ -56,16 +56,16 @@ checkpoint protocol; [Layout](../adr/13-layout.md) owns present creation and del
 
 ## The Spheres
 
-The **Lab** is LychD's internal workbench. The **Outlands** are operator-selected external
-workspaces mounted beneath `~/work/` inside the Vessel. A read-only Outland may serve as a
-reference library; that does not make it a new trust domain.
+The **Lab** is LychD's internal workbench. The **Outlands** are the accepted design for
+operator-selected external workspaces beneath `~/work/` inside the Vessel. Native Vessel
+generation currently has no Outland mount selector. In that design, a read-only Outland may serve
+as a reference library; that does not make it a new trust domain.
 
-The Vessel receives only declared mounts:
+The trusted Vessel receives these mounts:
 
-- the Lab when the active task needs it;
-- selected Outlands with explicit read-only or read-write policy;
+- the Codex read-only and the Lab read-write, independent of the active task;
 - private Extensions and reserved Core source read-only; and
-- no blanket mount of the Crypt, Codex, PostgreSQL data, binding sites, or model shelves.
+- no blanket mount of the Crypt, PostgreSQL data, binding sites, or model shelves.
 
 Unsafe hand-work does not become safe because its files are in the Lab. Trusted orchestration
 remains in the Vessel; the future Tomb must receive only task-scoped workspace and artifact paths.

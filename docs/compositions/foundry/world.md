@@ -39,13 +39,13 @@ design and admitted catalogue
 
 `game.assemble_world@1`, `game.bake_world@1`, and `game.validate_world@1` are semantic Spells inside the principal Pattern. The compiler checks identities, references, bounds/cardinality, units/axes, placements, physics/navigation, resource ceilings, and target support. Unsupported facets return `WorldFindingSet@1` rather than disappear. A successful `WorldBakeReceipt@1` preserves source/result digests, compiler/profile, transforms, generated collision/navigation/lighting/LOD, warnings, validation, and loss.
 
-Engine `.tscn`/`.scn`, resources, import caches, navmeshes, lightmaps, and shader caches remain derivatives. They do not replace the plan, source assets, Form assembly, or Kinesis clips.
+Engine `.tscn`/`.scn` files and resources emitted by the world compiler, along with import caches, navmeshes, lightmaps, and shader caches, remain derivatives. They do not replace the plan, [project source](project.md), source assets, Form assembly, or Kinesis clips.
 
 ## Godot is the first engine profile
 
 The dated first candidate is [Godot](https://github.com/godotengine/godot): an MIT engine with command-line import, headless execution, export, and scene/navigation/animation facilities for the proposed 2D/3D slices. `EngineToolJob@1` bounds each finite inspect, import, assemble, bake, validate, test, or export by exact root, operation, inputs, profile, limits, outputs, findings, cancellation, and receipt. [Playtest](playtest.md) separately owns the live `PlaytestSession@1`.
 
-A Worker delivers the job to a trusted executor or Tomb through a pinned ToolProfile. Independent residency, queue, lifecycle, or remote work may justify an Animator `JobGrant`; direct Godot is no Soulstone. Editor ports, debug consoles, generic RPC, arbitrary CLI arguments, and project scripts cannot be the stable contract.
+A [Worker](../../adr/14-workers.md#service-job-attempts) delivers the job to a trusted executor or Tomb through a pinned ToolProfile. Independent residency, queue, lifecycle, or remote work may justify an Animator `JobGrant`; direct Godot is no Soulstone. Editor ports, debug consoles, generic RPC, arbitrary CLI arguments, and project scripts cannot be the stable contract.
 
 `EngineProfile@1` pins engine binary/build digest, export-template digest, platform/renderer, GPU/display/audio mode, physics backend/tick/substeps/threading, navigation settings per agent, importers/plug-ins/revisions/licences, locale/timezone/random streams, network policy, CPU/GPU/RAM/disk/time ceilings, and trusted-fixture versus Tomb posture.
 
@@ -71,4 +71,4 @@ Actors begin with project-owned deterministic state machines, behavior trees, na
 
 ## The neighboring worlds
 
-[Shadow](../../sepulcher/extensions/shadow/) owns counterfactual branch lineage and promotion. [Blockworld](../blockworld/) owns persistent-server missions/effects. Foundry owns the local project candidate: offline `.schem` or grid import grants no live placement. Signing, upload, rollout/rollback, public players, and remote-copy receipts require a future distribution owner.
+[Shadow](../../sepulcher/extensions/shadow/) owns counterfactual branch lineage and prepares Promotion Requests. [Blockworld](../blockworld/) owns persistent-server missions/effects. Foundry owns the local project candidate: offline `.schem` or grid import grants no live placement. Signing, upload, rollout/rollback, public players, and remote-copy receipts require a future distribution owner.

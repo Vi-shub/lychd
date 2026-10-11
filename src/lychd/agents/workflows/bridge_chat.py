@@ -20,6 +20,7 @@ from pydantic_ai.messages import (
     ToolReturnPart,
 )
 from pydantic_ai.models import Model
+from pydantic_ai.models.openai import OpenAIResponsesModel
 from pydantic_ai.usage import UsageLimits
 from pydantic_graph import BaseNode, End, Graph, GraphRunContext
 
@@ -162,9 +163,11 @@ def _request_policy(context_window: int | None, grant: Any) -> tuple[Model | Non
             f"Output reserve {output_reserve} leaves no input budget inside the {context_window}-token context window."
         )
         raise ContextBudgetExceededError(msg)
-    limits = UsageLimits(
-        count_tokens_before_request=model is not None and type(model).count_tokens is not Model.count_tokens,
-    )
+    count_before_request = model is not None and type(model).count_tokens is not Model.count_tokens
+    if isinstance(model, OpenAIResponsesModel) and type(model).count_tokens is OpenAIResponsesModel.count_tokens:
+        # Only the SDK counter depends on this endpoint; custom counters can work locally.
+        count_before_request = model.profile.get("openai_supports_input_token_counting", True)
+    limits = UsageLimits(count_tokens_before_request=count_before_request)
     if model is None:
         return None, limits
     return ContextWindowModel(model, input_tokens_limit=context_window - output_reserve), limits

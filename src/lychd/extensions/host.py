@@ -18,6 +18,7 @@ from lychd.extensions.manager import ExtensionManager
 if TYPE_CHECKING:
     from lychd.config.runes.base import RuneConfig
     from lychd.config.settings.root import Settings
+    from lychd.domain.animation.extension import RegisteredPortalDefinition, RegisteredSoulstoneDefinition
     from lychd.domain.animation.services.adapters.contracts import (
         PortalDefinition,
         SoulstoneRuntimeAdapter,
@@ -41,6 +42,16 @@ class AssembledExtensions:
     @property
     def rune_schemas(self) -> tuple[type[RuneConfig], ...]:
         return self.context.runes.rune_schemas
+
+    @property
+    def soulstone_registrations(self) -> tuple[RegisteredSoulstoneDefinition, ...]:
+        """Selected Soulstone definitions with host-assigned provenance."""
+        return self.context.soulstones.registrations
+
+    @property
+    def portal_registrations(self) -> tuple[RegisteredPortalDefinition, ...]:
+        """Selected Portal definitions with host-assigned provenance."""
+        return self.context.portals.registrations
 
     @property
     def runtime_adapters(self) -> tuple[SoulstoneRuntimeAdapter, ...]:

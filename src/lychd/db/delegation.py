@@ -24,6 +24,7 @@ from lychd.domain.delegation.services import (
     DelegatedAgentIdempotencyConflictError,
     IllegalDelegatedAgentTransitionError,
     UnknownDelegatedAgentJobError,
+    validate_acceptance_failure_result,
 )
 
 if TYPE_CHECKING:
@@ -162,6 +163,26 @@ class DbDelegatedAgentJobStore:
                 raise IllegalDelegatedAgentTransitionError(msg)
             row.status = status.value
             await self._append(session, row, DelegatedAgentEventKind.STATUS_CHANGED, status)
+            return await self._view(session, row), True
+
+    async def settle_acceptance_failure(
+        self,
+        job_id: str,
+        result: DelegatedAgentResult,
+    ) -> tuple[DelegatedAgentJob, bool]:
+        """Lock the latest row and settle only an unaccepted PREPARING job."""
+        result = validate_acceptance_failure_result(job_id, result)
+        async with self._session_factory() as session, session.begin():
+            row = await self._require_locked(session, job_id)
+            current = DelegatedAgentJobStatus(row.status)
+            if current is DelegatedAgentJobStatus.RUNNING or current in TERMINAL_DELEGATED_AGENT_STATUSES:
+                return await self._view(session, row), False
+            if current is not DelegatedAgentJobStatus.PREPARING:
+                msg = f"Cannot settle acceptance failure for {job_id} from {current}."
+                raise IllegalDelegatedAgentTransitionError(msg)
+            row.status = DelegatedAgentJobStatus.LOST.value
+            row.result = result.model_dump(mode="json")
+            await self._append(session, row, DelegatedAgentEventKind.RESULT_ADOPTED, DelegatedAgentJobStatus.LOST)
             return await self._view(session, row), True
 
     async def adopt(

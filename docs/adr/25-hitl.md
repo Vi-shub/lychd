@@ -121,8 +121,49 @@ bound evidence; reversible and irreversible outcomes; policy provenance/expiry/h
 approve/deny/revise/inspect alternatives. These are records, not model assurances; no workflow
 produced diff, screenshot, test, or simulation artifact merely because a card exists.
 
-Loopback bootstrap is fixed magus:* with no caller authentication. runs:approve is meaningful only
-at documented same-host scope, not remote-consent evidence.
+Loopback bootstrap requires the [dedicated local credential](09-security.md) before assigning
+the fixed `magus:*` Sigil. `runs:approve` is meaningful only at the documented same-host scope;
+it does not establish remote identity or the [Ward](38-iam.md)'s effect-time authorization.
+
+### Required review for native actions (Designed)
+
+A native application may require review of an action it has already prepared. Its Consent retains
+an immutable binding to the owning Composition, native action, exact preparation, review profile
+and revision, producer and revision, admitted audience, and review content. Requiredness remains
+explicit even when the binding cannot be decoded. Missing, unsupported, or changed binding refuses
+judgment and issuance; it cannot turn the request into an ordinary consent. Existing consents
+without this requirement retain their current behavior. Adding this contract does not migrate
+parked work or establish compatibility between application revisions.
+
+The Composition produces its typed review from the frozen command and trusted admission records.
+The authenticated reviewer reaches the same owner projection through snapshots, event streams,
+and direct verdict responses. Before a stream event invokes that projection, its Consent must belong
+to the event's Run. A mismatch invokes no producer and discloses no review. The owner checks current
+permission to disclose the complete review and, separately, to judge that action. `runs:approve`
+alone does not supply either object authority.
+If required facts cannot be disclosed, the review remains unavailable and no verdict is admitted.
+Generic arguments remain censored; private checkpoints, arbitrary metadata, and model-written
+explanations cannot replace the required facts. Shared event history retains the Consent reference,
+without caching one reviewer's disclosure for another.
+
+A native verdict carries the exact review-binding digest presented by the client. Before settling
+either approval or denial, or re-admitting a retry, the server checks that binding and the reviewer's
+current eligibility again. The conditional verdict update preserves the binding and the first
+settled decision. A client that omits or changes the digest cannot settle this native request;
+older clients remain compatible with ordinary consents. The digest identifies the review being
+judged. It does not prove that a human read it or authorize the later effect.
+
+This client compatibility does not admit mixed server versions. Before native actions are admitted,
+[Evolution](18-evolution.md#promote-across-the-temporal-boundary) must stop and replace every Consent
+writer that predates the binding; an older pending-only update cannot enforce it.
+
+The native action owner compares the retained preparation and review binding again before issuance
+and performs the current authority checks required above. [Blockworld's Sentinel](../compositions/blockworld/sentinel.md)
+defines the placement review; [Continuity](../compositions/blockworld/continuity.md) owns its atomic
+preparation and action recovery. [Persistence](06-persistence.md#native-consent-bindings-designed)
+owns schema compatibility. These requirements remain **Designed**: storage and transport alone do
+not supply the owned preparation transaction, current authorizer, or complete client review.
+[State of Work](../state-of-the-work.md#graph-stasis-consent) owns the delivered boundary.
 
 ## Codex preauthorization
 

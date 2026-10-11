@@ -117,11 +117,11 @@ non-exportable; Loom, logs, and external receipts receive only its opaque id or 
 keyed `EvidenceDigest@1` projection. Plain canonical hashes are not broadly visible evidence or an
 anonymization claim.
 
-Spellweaver rejects a Scroll when a remote edge can bypass classification, Cut, byte-time egress,
-budget reservation, durable submission, quarantine, or explicit adoption. It also rejects A2A
-without task/peer/durable-return law, coding delegation without containment/workspace/artifact law,
-and Portal fallback that can silently change provider or payload. Loom may show these declared
-boundaries; it cannot prove that an occurrence crossed them correctly.
+Spellweaver rejects a Scroll when a remote edge can bypass classification, byte-time egress,
+budget reservation, quarantine, explicit adoption, or a required Privacy Cut or durable submission.
+It also rejects A2A without task/peer/durable-return law, coding delegation without
+containment/workspace/artifact law, and Portal fallback that can silently change provider or payload.
+Loom may show these declared boundaries; it cannot prove that an occurrence crossed them correctly.
 
 ## Failure stays on the score
 

@@ -5,7 +5,7 @@ from typing import Any
 from uuid import UUID
 
 from advanced_alchemy.base import UUIDAuditBase
-from sqlalchemy import CheckConstraint, ForeignKey, Index, String
+from sqlalchemy import Boolean, CheckConstraint, ForeignKey, Index, String, false
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -17,6 +17,11 @@ class Consent(UUIDAuditBase):
     __table_args__ = (
         Index("ix_consent_run_status", "run_id", "status"),
         CheckConstraint(
+            "(NOT native_review_required AND native_binding IS NULL) OR "
+            "(native_review_required AND native_binding IS NOT NULL AND jsonb_typeof(native_binding) = 'object')",
+            name="native_binding_requirement",
+        ),
+        CheckConstraint(
             "status = 'pending' OR (decided_by IS NOT NULL AND decided_at IS NOT NULL)",
             name="decision_receipt",
         ),
@@ -26,6 +31,8 @@ class Consent(UUIDAuditBase):
     tool_name: Mapped[str] = mapped_column(String(200))
     tool_call_id: Mapped[str] = mapped_column(String(100))  # pydantic-ai deferred id
     payload: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)  # tool args, censored
+    native_review_required: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    native_binding: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True), nullable=True)
     status: Mapped[str] = mapped_column(
         String(10),
         default="pending",

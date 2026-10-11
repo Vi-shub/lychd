@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from lychd.domain.codex.sigil import Sigil
 from lychd.domain.cortex.events import RunEvent
 from lychd.domain.web.fragments import build_fragment_registry
 
@@ -29,7 +30,9 @@ async def test_project_fragment_returns_closed_descriptor(
             "params": {"title": "T", "body": "hello", "severity": "info"},
         }
     )
-    envelope = await projector.project(_event("fragment", payload))
+    envelope = await projector.project(
+        _event("fragment", payload), reviewer=Sigil(name="reader", scopes=frozenset({"altar:read"}))
+    )
 
     assert envelope.payload["kind"] == "genui.vision_summary"
     assert envelope.payload["schema_version"] == 1
@@ -43,6 +46,7 @@ async def test_project_fragment_unknown_key_is_visible_descriptor(
 ) -> None:
     envelope = await projector.project(
         _event("fragment", json.dumps({"fragment": "nope", "params": {}})),
+        reviewer=Sigil(name="reader", scopes=frozenset({"altar:read"})),
     )
     assert envelope.payload["kind"] == "genui.unknown"
 
@@ -66,7 +70,9 @@ async def test_project_fragment_malformed_payload_is_inert(
     projector: EventProjector,
     payload: str,
 ) -> None:
-    envelope = await projector.project(_event("fragment", payload))
+    envelope = await projector.project(
+        _event("fragment", payload), reviewer=Sigil(name="reader", scopes=frozenset({"altar:read"}))
+    )
 
     assert envelope.payload == {"kind": "genui.unknown", "schema_version": 1, "props": {}, "actions": []}
 

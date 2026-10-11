@@ -49,7 +49,7 @@ anonymous workflow tensors.
 ### Technical settlement
 
 `ImageJob@2` owns the requested operation, candidate set, technical validation, and result
-settlement. Creative adoption belongs to Atelier or another consuming Composition; successful
+settlement. Creative adoption belongs to [Atelier](../../../compositions/atelier/index.md) or another consuming Composition; successful
 custody and probes never accept the image on that owner's behalf. Each concrete execution uses Core's Designed
 [`ServiceJobAttempt@1`](../../../adr/14-workers.md#service-job-attempts) mechanics;
 `INDETERMINATE` remains contained and nonterminal rather than a successful or failed image result.

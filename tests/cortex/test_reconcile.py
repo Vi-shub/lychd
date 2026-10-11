@@ -219,7 +219,7 @@ class _OrphanQueue:
 async def _seed_awaiting_consent(ledger: InMemoryRunLedger, run_id: str, consent_id: str) -> None:
     intent = Intent(session_id="s", run_id=run_id, prompt="p", source="bridge")
     await ledger.create(intent, workflow_name="bridge_chat", queue_name="runs", priority=50)
-    assert await ledger.try_claim_run(run_id, enqueue_seq=0)
+    assert (await ledger.try_claim_run(run_id, enqueue_seq=0)).acknowledged
     await ledger.park_consent(run_id, consent_id)
 
 

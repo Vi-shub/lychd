@@ -21,7 +21,14 @@ from advanced_alchemy.repository import SQLAlchemyAsyncRepository
 from advanced_alchemy.service import SQLAlchemyAsyncRepositoryService
 
 from lychd.db.models import CodexPreauthorization, Consent
-from lychd.domain.codex.schemas import ConsentView, censor, constraints_admit
+from lychd.domain.codex.schemas import (
+    ConsentView,
+    NativeConsentBinding,
+    censor,
+    constraints_admit,
+    decode_native_binding,
+    require_native_binding,
+)
 
 if TYPE_CHECKING:
     from lychd.domain.codex.runes import CodexPreauthRune
@@ -102,6 +109,8 @@ def row_to_view(row: Consent) -> ConsentView:
         decided_by=row.decided_by,
         decided_at=row.decided_at,
         preauth_slug=row.preauth_slug,
+        native_review_required=bool(row.native_review_required) or row.native_binding is not None,
+        native_binding=decode_native_binding(row.native_binding) if row.native_review_required else None,
     )
 
 
@@ -120,32 +129,53 @@ class PreauthService(SQLAlchemyAsyncRepositoryService[CodexPreauthorization]):
         tool_name: str,
         payload: dict[str, Any],
         auto_commit: bool = True,
+        policy_id: UUID | None = None,
     ) -> CodexPreauthorization | None:
         """Find and atomically consume the first preauthorization admitting this call.
 
-        Candidate filtering (fnmatch on sigil/tool, expiry, fail-closed constraints)
-        is Python-side; the consume is a single guarded ``UPDATE … WHERE enabled AND
-        source_present AND (max_uses IS NULL OR uses < max_uses) RETURNING`` so a race
-        can neither consume removed authority nor overdraw.
+        Initial matching in priority/slug order selects candidate identities. Each
+        candidate is locked and refreshed before rechecking its current policy.
+        The guarded UPDATE checks database wall-time expiry and the remaining budget
+        after the lock wait. With ``auto_commit=False``, the caller owns transaction
+        completion for consumed and refused candidates alike.
         """
-        from sqlalchemy import func, or_, update
+        from sqlalchemy import func, or_, select, update
 
         now = datetime.now(UTC)
         rows = sorted(
             await self.get_many(
                 CodexPreauthorization.enabled.is_(True),
                 CodexPreauthorization.source_present.is_(True),
+                *([CodexPreauthorization.id == policy_id] if policy_id is not None else []),
             ),
             key=lambda row: (-row.priority, row.slug),
         )
-        for row in rows:
-            if not fnmatchcase(sigil.name, row.sigil_pattern):
-                continue
-            if not fnmatchcase(tool_name, row.tool_pattern):
-                continue
-            if row.expires_at is not None and row.expires_at <= now:
-                continue
-            if not constraints_admit(dict(row.constraints or {}), payload):
+        candidate_ids = [
+            row.id
+            for row in rows
+            if fnmatchcase(sigil.name, row.sigil_pattern)
+            and fnmatchcase(tool_name, row.tool_pattern)
+            and (row.expires_at is None or row.expires_at > now)
+            and constraints_admit(dict(row.constraints or {}), payload)
+        ]
+        for candidate_id in candidate_ids:
+            row = await self.repository.session.scalar(
+                select(CodexPreauthorization)
+                .where(CodexPreauthorization.id == candidate_id)
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
+            if (
+                row is None
+                or not row.enabled
+                or not row.source_present
+                or not fnmatchcase(sigil.name, row.sigil_pattern)
+                or not fnmatchcase(tool_name, row.tool_pattern)
+                or (row.expires_at is not None and row.expires_at <= datetime.now(UTC))
+                or not constraints_admit(dict(row.constraints or {}), payload)
+            ):
+                if auto_commit:
+                    await self.repository.session.commit()
                 continue
             result = await self.repository.session.execute(
                 update(CodexPreauthorization)
@@ -155,7 +185,7 @@ class PreauthService(SQLAlchemyAsyncRepositoryService[CodexPreauthorization]):
                     CodexPreauthorization.source_present.is_(True),
                     or_(
                         CodexPreauthorization.expires_at.is_(None),
-                        CodexPreauthorization.expires_at > func.now(),
+                        CodexPreauthorization.expires_at > func.clock_timestamp(),
                     ),
                     or_(
                         CodexPreauthorization.max_uses.is_(None),
@@ -255,9 +285,15 @@ class ConsentService(SQLAlchemyAsyncRepositoryService[Consent]):
         call_ids: tuple[str, ...],
         payload: dict[str, Any],
         preauth: CodexPreauthorization | None,
+        native_binding: NativeConsentBinding | None = None,
         auto_commit: bool = True,
     ) -> Consent:
         """Persist a consent row: auto-granted when a preauth consumed it, else pending."""
+        if native_binding is not None and (
+            type(native_binding) is not NativeConsentBinding or decode_native_binding(native_binding) is None
+        ):
+            message = "Invalid native Consent binding."
+            raise ValueError(message)
         stored: dict[str, Any] = {"args": censor(payload), "call_ids": list(call_ids)}
         granted = preauth is not None
         if preauth is not None:
@@ -273,32 +309,68 @@ class ConsentService(SQLAlchemyAsyncRepositoryService[Consent]):
                 decided_at=datetime.now(UTC) if granted else None,
                 preauth_slug=preauth.slug if preauth is not None else None,
                 expires_at=preauth.expires_at if preauth is not None else None,
+                native_review_required=native_binding is not None,
+                native_binding=native_binding.document() if native_binding is not None else None,
             ),
             auto_commit=auto_commit,
         )
 
-    async def _decide(self, consent_id: str, *, status: str, decided_by: str) -> ConsentView | None:
-        from sqlalchemy import update
+    async def _decide(
+        self,
+        consent_id: str,
+        *,
+        status: str,
+        decided_by: str,
+        expected_native_binding: NativeConsentBinding | None = None,
+    ) -> ConsentView | None:
+        from sqlalchemy import and_, update
 
         row_id = UUID(consent_id)
+        binding_predicate = (
+            and_(
+                Consent.native_binding == expected_native_binding.document(),
+                # JSONB equates 1 and 1.0; strict schema decoding does not.
+                Consent.native_binding["schema_version"].astext == "1",
+            )
+            if expected_native_binding is not None
+            else Consent.native_binding.is_(None)
+        )
         await self.repository.session.execute(
             update(Consent)
-            .where(Consent.id == row_id, Consent.status == "pending")
+            .where(
+                Consent.id == row_id,
+                Consent.status == "pending",
+                Consent.native_review_required.is_(expected_native_binding is not None),
+                binding_predicate,
+            )
             .values(status=status, decided_by=decided_by, decided_at=datetime.now(UTC))
             .returning(Consent.id)
             .execution_options(synchronize_session=False)
         )
         await self.repository.session.commit()
         row = await self.get_one_or_none(id=row_id)
-        return row_to_view(row) if row is not None else None
+        if row is None:
+            return None
+        await self.repository.session.refresh(row)
+        view = row_to_view(row)
+        require_native_binding(view, expected_native_binding)
+        return view
 
-    async def grant(self, consent_id: str, *, decided_by: str) -> ConsentView | None:
+    async def grant(
+        self, consent_id: str, *, decided_by: str, expected_native_binding: NativeConsentBinding | None = None
+    ) -> ConsentView | None:
         """Idempotently mark a pending consent granted."""
-        return await self._decide(consent_id, status="granted", decided_by=decided_by)
+        return await self._decide(
+            consent_id, status="granted", decided_by=decided_by, expected_native_binding=expected_native_binding
+        )
 
-    async def deny(self, consent_id: str, *, decided_by: str) -> ConsentView | None:
+    async def deny(
+        self, consent_id: str, *, decided_by: str, expected_native_binding: NativeConsentBinding | None = None
+    ) -> ConsentView | None:
         """Idempotently mark a pending consent denied."""
-        return await self._decide(consent_id, status="denied", decided_by=decided_by)
+        return await self._decide(
+            consent_id, status="denied", decided_by=decided_by, expected_native_binding=expected_native_binding
+        )
 
     async def get_view(self, consent_id: str) -> ConsentView | None:
         """Return the read-model for one consent row, or None."""

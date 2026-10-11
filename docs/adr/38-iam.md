@@ -116,6 +116,30 @@ Extensions cannot remove Ward from a protected route, create a universal Sigil, 
 peer-declared scope directly into local power. Audit retains the admitted evidence and decision
 generations without exposing credential secrets.
 
+## Trusted local custody {#trusted-local-custody}
+
+The Designed [Reliquary profile](06-persistence.md#reliquary-custody-designed)
+`same-host-trusted-bootstrap@1` accepts a subject only from trusted host composition. It requires
+a mandatory injected current authorizer for import, quarantine inspection, admission, read, hold,
+hold release, and deletion. Each decision names the actual subject, store and object, complete
+record binding, trusted owner, action and purpose. The query also carries the typed subject of
+that action: the import proposal, proposed hold UUID and reason, exact retained hold and digest
+for release, admission evidence, or deletion request and hold-release basis. A policy must be
+able to distinguish two holds on the same artifact; an action label and opaque digest alone do
+not identify what it is allowing. There is no permissive fallback from Sigil name, scope bag,
+ownership alone, network location, or caller identity headers.
+
+The protected operation completes any awaited preparation before its final authorization check.
+Under its serialized operation boundary, it checks authority immediately before admission or
+tombstone publication and before handing bytes to a consumer. Prior receipts are audit evidence,
+not reusable grants. Revocation or a changed decision during preparation must prevent disclosure
+or the protected mutation.
+
+This is a local composition seam, not a second IAM service. It enrolls no credential and supplies
+no Ward session, remote authentication, delegation or deployed revocation service. Substituted
+authorizers in tests establish consultation and refusal behavior only; they do not prove
+credential-backed authority or containment against hostile same-UID code.
+
 ## Thresholds and delivery
 
 [Veil](40-proxy.md) owns hostile ingress and trusted-proxy canonicalization; [Tether](39-vpn.md)

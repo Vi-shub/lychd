@@ -12,7 +12,7 @@ shelf, host socket, or credential authority from being local.
 ## Explicit Local Substrate
 
 `devices` passes named hardware into the container. `volumes` maps exact host paths to exact
-container paths. Model artifacts must be reachable through a declared global, Rune, or
+container paths. Model artifacts must be reachable through a declared Rune or
 adapter-contributed mount; there is no implicit host `model_root`.
 
 Every contributed mount passes one protected-root gate. Both endpoints must be absolute. Host

@@ -14,9 +14,10 @@ link liveness; a capability becomes `WARM` only when the validated live `/models
 contains its exact declared model id. Malformed inventory or a missing id becomes `ERROR`.
 Focused tests cover current planning and connector behavior.
 
-The adapter owns runtime defaults and translation of typed Rune fields into launch arguments.
-Intentional engine-specific changes belong in the runtime's typed overrides or an explicit
-operator-owned `exec`; they do not become Core-wide generation law.
+vLLM framework arguments come from the operator-owned `exec` list, which the adapter passes
+through verbatim. Image, devices, mounts, ports, and environment remain typed Soulstone and
+Quadlet fields. Keep the command's served model id and endpoint consistent with the Rune;
+these declarations do not synthesize vLLM flags.
 
 The exact model, quantization, GPU topology, image digest, arguments, readiness, inference, and
 shutdown still require an operator receipt. The current delivery boundary is recorded under

@@ -36,9 +36,13 @@ admission. An uncertain mutation remains contained for operator recovery.
 
 ## Inspect and Request
 
+Retrieve the dedicated local credential with `lychd access` as described in
+[The Awakening](../../summoning.md#the-awakening). Each command below uses `--user magus` so curl
+prompts for the password. Enter it at that prompt; keep it out of URLs and command arguments.
+
 ```bash
-curl -s http://localhost:7134/orchestrator/queues | jq
-curl -s http://localhost:7134/orchestrator/status | jq '.mutation_containment'
+curl --user magus -fsS http://localhost:7134/orchestrator/queues | jq
+curl --user magus -fsS http://localhost:7134/orchestrator/status | jq '.mutation_containment'
 ```
 
 The queues response exposes `depth`, `active`, `paused`, and each lease's `capability_key`,
@@ -48,14 +52,15 @@ transitions remain fenced.
 List the exact registered keys before requesting a transition:
 
 ```bash
-curl -fsS http://localhost:7134/orchestrator/status \
+curl --user magus -fsS http://localhost:7134/orchestrator/status \
   | jq -r '.all_capabilities[].capability_key'
 ```
 
 Copy an eligible local key from that observation. The example below uses Summoning's
 `atelier:chat:first-model`; replace it if your declaration differs. Read-only endpoints require
 `altar:read`; activation requires `orchestrator:transition`. The current same-host middleware
-supplies the fixed `magus:*` scope floor, not credential-backed remote authentication.
+assigns the fixed `magus:*` scope floor after verifying the local credential. This is not remote
+authentication.
 
 Production POSTs also require a matching CSRF cookie and header. Obtain their exact names from the
 Altar status response, retain the cookie from that same GET, then submit:
@@ -64,12 +69,12 @@ Altar status response, retain the cookie from that same GET, then submit:
 LYCHD_URL=http://localhost:7134
 LYCHD_CAPABILITY=atelier:chat:first-model
 LYCHD_COOKIE_JAR=$(mktemp)
-LYCHD_STATUS=$(curl -fsS -c "$LYCHD_COOKIE_JAR" "$LYCHD_URL/api/v1/altar/status")
+LYCHD_STATUS=$(curl --user magus -fsS -c "$LYCHD_COOKIE_JAR" "$LYCHD_URL/api/v1/altar/status")
 LYCHD_COOKIE_NAME=$(printf '%s' "$LYCHD_STATUS" | jq -r '.csrf.cookie_name')
 LYCHD_HEADER_NAME=$(printf '%s' "$LYCHD_STATUS" | jq -r '.csrf.header_name')
 LYCHD_CSRF=$(awk -v name="$LYCHD_COOKIE_NAME" '$6 == name {print $7}' "$LYCHD_COOKIE_JAR")
 
-test -n "$LYCHD_CSRF" && curl -sS -i -X POST -G \
+test -n "$LYCHD_CSRF" && curl --user magus -sS -i -X POST -G \
   -b "$LYCHD_COOKIE_JAR" -H "$LYCHD_HEADER_NAME: $LYCHD_CSRF" \
   --data-urlencode "target=$LYCHD_CAPABILITY" --data-urlencode "priority=70" \
   "$LYCHD_URL/orchestrator/activate"
@@ -82,8 +87,11 @@ reason to disable the guard or expose the endpoint remotely.
 
 - **202**: the completed transition plan, after target readiness convergence or a confirmed warm,
   open no-op. This endpoint waits for the transition before returning.
+- **400**: invalid `admission_timeout_s`.
 - **409**: a hard swap was declined because priority was below
-  `min_priority_for_hard_swap`; the response carries the plan and threshold.
+  `min_priority_for_hard_swap`, or an admission window expired. Priority refusal carries the
+  plan and threshold; admission expiry carries `code` and readable `detail`, as described in
+  [Limit admission time](#limit-admission-time).
 
 After **202**, inspect the selected capability in Nexus or `/orchestrator/status` again, including
 `mutation_containment`, before making a later decision. Readiness can change after the response;
@@ -91,6 +99,38 @@ any subsequent containment reason keeps later transitions fenced.
 
 Priority is **higher = hotter**. This endpoint is an explicit operational surface, not a side door
 for an Agent or extension to bypass ordinary dispatch.
+
+## Limit admission time
+
+When a transition would no longer be useful after a short wait, add
+`--data-urlencode "admission_timeout_s=10"` to the activation command. This optional query value
+counts seconds from entry to the activation handler. It must be finite and nonnegative; `0`
+declines immediately. Omission adds no caller-owned admission cutoff.
+
+The cutoff covers queueing, planning, lease drain, and observation before activation. It ends
+when Orchestrator invokes the actuator or adapter, or confirms readiness on a path that needs no
+activation. An already-warming capability must become honestly ready within that admission
+window. Once admission succeeds, the request continues waiting for settlement; its response may
+arrive after the cutoff. Planning, drain, and convergence retain their separate safety budgets. When a local safety
+deadline comes first, its existing failure classification is preserved.
+
+Requests for the same capability at the same priority join one in-flight transition. The first
+request owns its admission cutoff. A follower can limit its own wait for admission without
+cancelling that owner. A nonexpired follower joining already-admitted work waits for settlement.
+An untimed request can therefore inherit a timed owner's refusal, while a timed follower cannot
+shorten an untimed owner's budget. Different priorities remain separate requests.
+
+Admission refusal returns **409** with readable `detail` and one of these codes:
+
+| `code` | Meaning |
+| --- | --- |
+| `transition_admission_expired` | The request arrived expired, or the transition owner's admission window ended. |
+| `transition_admission_wait_expired` | Only this follower's wait ended; the shared transition may continue. |
+
+Invalid admission durations return **400**. A refused request cannot use its admission cutoff
+to abandon required cleanup, and disconnecting does not prove that physical work stopped.
+Inspect current status before retrying. This request option is separate from Codex switching
+settings and does not set a deadline for the whole operation.
 
 ## Switching Settings
 
@@ -161,8 +201,9 @@ remain partial, including soft-load recovery and real-host proof.
 
 `[server.jobs]` fixes two in-process queues: `runs` uses `interactive_concurrency = 2`; `rites`
 uses `background_concurrency = 4`. These settings bound tasks, not CPU, memory, admission, or
-preemption. The optional SAQ diagnostic UI is disabled by default; enabling it starts no second
-server. `admin_ui_path` defaults to `/saq`; exposing it requires an explicit access policy.
+preemption. The raw SAQ administrative UI is disabled; setting `admin_ui_enabled = true` is
+refused during startup. Inspect queues through the curated Altar projection and the authenticated
+endpoints above.
 
 `[orchestration.routing]` maps Intent source to queue and doctrine priority:
 

@@ -47,19 +47,21 @@ is not a Scroll.
 
 ## Pin the dialect and execution lifecycle
 
-The official external [Comfy API v2](https://docs.comfy.org/api-reference/v2/overview) is currently
-beta 0.1.x, exposed by cloud and serverless services. Self-hosting that v2 API currently requires a
+The official external [Comfy API v2](https://docs.comfy.org/api-reference/v2/overview) is exposed
+by cloud and serverless services. Self-hosting that v2 API currently requires a
 separately pinned `comfy-api-proxy` alongside ordinary ComfyUI; its default loopback arrangement
 connects proxy port 8189 to ComfyUI port 8188. A deployment choosing that dialect therefore pins
 both services. The [classic server](https://docs.comfy.org/development/comfyui-server/comms_routes),
 including `/prompt`, `/history`, `/queue`, `/interrupt`, and WebSocket communication, remains a
 distinct dialect.
 
-Pin authentication and the exact behavior of the chosen route. For
-[v2 submission](https://docs.comfy.org/api-reference/v2/jobs/submit-a-workflow-for-execution),
-creation is durable until expiry, and a single-use `Idempotency-Key` rejects duplicate submission
-rather than replaying a response. An ambiguous submit therefore requires lookup before deciding
-recovery; blind retry is inadmissible.
+Pin authentication, retention, and restart recovery for the chosen route. The
+[v2 submission](https://docs.comfy.org/api-reference/v2/jobs/submit-a-workflow-for-execution)
+contract uses a single-use `Idempotency-Key` that rejects duplicates rather than replaying a
+response. The self-hosted proxy needs persistent
+[`--state-dir` storage](https://github.com/Comfy-Org/comfy-api-proxy/blob/main/docs/batch-workloads.md#persistence---state-dir)
+for its records; this does not preserve ComfyUI queue/history or output bytes across restart.
+An ambiguous submit requires lookup before deciding recovery; blind retry is inadmissible.
 
 An admitted adapter must supply upload, submit, queue, progress, history, output, interruption,
 cancellation-request, and reconciliation facts. Core alone owns `ServiceJobAttempt@1`; the domain

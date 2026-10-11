@@ -43,8 +43,9 @@ populate them. Most present selection follows directories: `unit` and `slow` are
 only a few integration tests carry `integration`. Consequently `M=unit` collects nothing today;
 select the directory instead.
 
-Ordinary `make test` and `make check` exclude `container`. `make test-containers` admits that
-profile with its separate dependencies and a working Docker-compatible daemon. Host and external
+By default, `make test` and `make check` exclude `container`. An explicit marker expression
+replaces that exclusion. `make test-containers` admits that profile with its separate dependencies
+and a working Docker-compatible daemon. Host and external
 systems stay opt-in and need named receipts. Network and provider dependence enter a deterministic
 test only when its declared integration boundary requires them.
 

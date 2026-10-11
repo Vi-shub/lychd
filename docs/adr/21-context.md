@@ -108,8 +108,10 @@ count ceiling remains in force.
 
 ## Stable history
 
-Completed messages group by LychD `run_id`; legacy messages fall back to request boundaries. A
-consent pause holds the current logical-turn suffix apart from settled history. Resume re-bounds
+Completed messages group by LychD `run_id`. Legacy messages begin a new group at a user request
+without tool-return or retry parts. A request carrying those continuations stays with its exchange,
+even if it also contains user-prompt content; trimming never separates a tool return from its call.
+A consent pause holds the current logical-turn suffix apart from settled history. Resume re-bounds
 settled history under the new grant and provides its required continuation unchanged. Thus an old
 provider's live objects and assumptions do not cross the park. ADR 25 owns consent record and
 verdict order; this ADR owns only field shape and budget after re-entry.

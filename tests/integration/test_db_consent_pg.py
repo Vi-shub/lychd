@@ -28,12 +28,20 @@ from lychd.db.models import CodexPreauthorization, Consent, Run, Session
 from lychd.db.sessions import DbBridgeSessionStore
 from lychd.domain.codex.ledger import CodexConsentLedger
 from lychd.domain.codex.runes import CodexPreauthRune
-from lychd.domain.codex.schemas import CENSORED_VALUE
-from lychd.domain.codex.services import PREAUTH_DIGEST_PAYLOAD_KEY, ConsentService, PreauthService
+from lychd.domain.codex.schemas import CENSORED_VALUE, ConsentBindingConflict
+from lychd.domain.codex.services import (
+    PREAUTH_DIGEST_PAYLOAD_KEY,
+    ConsentService,
+    PreauthService,
+    preauth_authorization_digest,
+)
 from lychd.domain.codex.sigil import Sigil
+from tests.codex.test_native_consent import binding
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
+
+    from lychd.domain.codex.schemas import ConsentDecision
 
 pytestmark = [pytest.mark.integration, pytest.mark.container]
 
@@ -587,6 +595,395 @@ async def test_consume_update_rechecks_expiry_with_database_time(
     assert uses == 0
 
 
+async def _wait_for_preauth_expiry(session: AsyncSession, expiry: datetime) -> None:
+    """Cross a near expiry without changing the policy or either clock."""
+    async with asyncio.timeout(4):
+        before = await session.execute(select(func.transaction_timestamp(), func.clock_timestamp()))
+        transaction_before, wall_before = before.one()
+        assert isinstance(transaction_before, datetime)
+        assert isinstance(wall_before, datetime)
+        assert transaction_before <= wall_before < expiry
+        delay = (expiry - wall_before).total_seconds() + 0.02
+        assert 0 < delay <= 3.02
+        await session.execute(select(func.pg_sleep(delay)))
+        after = await session.execute(select(func.transaction_timestamp(), func.clock_timestamp()))
+        transaction_after, wall_after = after.one()
+        assert isinstance(transaction_after, datetime)
+        assert isinstance(wall_after, datetime)
+        assert transaction_after == transaction_before
+        assert transaction_after < expiry <= wall_after
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("with_fallback", [False, True], ids=["pending", "lower-priority-fallback"])
+async def test_legacy_park_rechecks_unchanged_expiry_after_candidate_await(
+    pg_factory: async_sessionmaker[AsyncSession],
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    with_fallback: bool,
+) -> None:
+    run_id = await _run_id(pg_factory)
+    async with pg_factory() as session:
+        expiry = await session.scalar(select(func.clock_timestamp() + timedelta(seconds=3)))
+        assert isinstance(expiry, datetime)
+        expiring = _preauth_row("a-expiring", priority=80, expires_at=expiry, max_uses=1)
+        session.add(expiring)
+        if with_fallback:
+            session.add(_preauth_row("z-valid", priority=10, max_uses=1))
+        await session.flush()
+        original_digest = preauth_authorization_digest(expiring)
+        await session.commit()
+
+    original_get_many = PreauthService.get_many
+    candidate_reads = 0
+
+    async def delay_candidates(service: PreauthService, *filters: Any, **kwargs: Any) -> list[CodexPreauthorization]:
+        nonlocal candidate_reads
+        rows = cast("list[CodexPreauthorization]", await original_get_many(service, *filters, **kwargs))
+        candidate_reads += 1
+        assert {row.slug for row in rows} == ({"a-expiring", "z-valid"} if with_fallback else {"a-expiring"})
+        await _wait_for_preauth_expiry(service.repository.session, expiry)
+        return rows
+
+    ledger = CodexConsentLedger(session_factory=pg_factory)
+    with monkeypatch.context() as delay:
+        delay.setattr(PreauthService, "get_many", delay_candidates)
+        decision = await ledger.park(
+            run_id=run_id,
+            tool_name="request_coven_swap",
+            tool_call_id="delayed-legacy-park",
+            call_ids=("delayed-legacy-park",),
+            args={},
+            sigil=Sigil(name="magus", scopes=frozenset({"*"})),
+        )
+    assert candidate_reads == 1
+
+    async with pg_factory() as session:
+        policies = {row.slug: row for row in (await session.scalars(select(CodexPreauthorization))).all()}
+        consents = (await session.scalars(select(Consent))).all()
+    expired = policies["a-expiring"]
+    assert (expired.expires_at, expired.uses, expired.enabled, expired.source_present) == (expiry, 0, True, True)
+    assert preauth_authorization_digest(expired) == original_digest
+    assert len(consents) == 1
+    consent = consents[0]
+    assert (str(consent.id), str(consent.run_id), consent.tool_call_id) == (
+        decision.consent_id,
+        run_id,
+        "delayed-legacy-park",
+    )
+    if with_fallback:
+        assert policies["z-valid"].uses == 1
+        assert (decision.status, decision.preauth_slug) == ("granted", "z-valid")
+        assert (consent.status, consent.preauth_slug, consent.decided_by) == ("granted", "z-valid", "codex:preauth")
+        assert consent.decided_at is not None
+        assert consent.payload[PREAUTH_DIGEST_PAYLOAD_KEY] == preauth_authorization_digest(policies["z-valid"])
+        assert await ledger.verdict(decision.consent_id) is True
+    else:
+        assert (decision.status, decision.preauth_slug) == ("pending", None)
+        assert (consent.status, consent.preauth_slug, consent.decided_by, consent.decided_at) == (
+            "pending",
+            None,
+            None,
+            None,
+        )
+        assert PREAUTH_DIGEST_PAYLOAD_KEY not in consent.payload
+        assert await ledger.verdict(decision.consent_id) is None
+
+
+@pytest.mark.asyncio
+async def test_preauth_verdict_rechecks_unchanged_expiry_after_policy_await(
+    pg_factory: async_sessionmaker[AsyncSession],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    async with pg_factory() as session:
+        expiry = await session.scalar(select(func.clock_timestamp() + timedelta(seconds=3)))
+        assert isinstance(expiry, datetime)
+    ledger, consent_id = await _park_with_preauth(pg_factory, slug="expiry-during-verdict", expires_at=expiry)
+    assert await ledger.verdict(consent_id) is True
+    async with pg_factory() as session:
+        consent_before = await session.get(Consent, UUID(consent_id))
+        assert consent_before is not None
+        stored_digest = consent_before.payload[PREAUTH_DIGEST_PAYLOAD_KEY]
+        policy_before = await session.scalar(
+            select(CodexPreauthorization).where(CodexPreauthorization.slug == "expiry-during-verdict")
+        )
+        assert policy_before is not None
+        assert (policy_before.uses, policy_before.expires_at) == (1, expiry)
+        assert preauth_authorization_digest(policy_before) == stored_digest
+
+    original_scalar = AsyncSession.scalar
+    policy_reads = 0
+
+    async def delay_policy(session: AsyncSession, statement: Any, *args: Any, **kwargs: Any) -> Any:
+        nonlocal policy_reads
+        result = await original_scalar(session, statement, *args, **kwargs)
+        if isinstance(result, CodexPreauthorization):
+            policy_reads += 1
+            assert (result.slug, result.expires_at) == ("expiry-during-verdict", expiry)
+            assert preauth_authorization_digest(result) == stored_digest
+            await _wait_for_preauth_expiry(session, expiry)
+        return result
+
+    with monkeypatch.context() as delay:
+        delay.setattr(AsyncSession, "scalar", delay_policy)
+        verdict = await ledger.verdict(consent_id)
+    assert policy_reads == 1
+    assert verdict is False
+
+    async with pg_factory() as session:
+        policy_after = await session.scalar(
+            select(CodexPreauthorization).where(CodexPreauthorization.slug == "expiry-during-verdict")
+        )
+        consent_after = await session.get(Consent, UUID(consent_id))
+        consent_count = await session.scalar(select(func.count()).select_from(Consent))
+    assert policy_after is not None
+    assert (policy_after.uses, policy_after.expires_at, policy_after.enabled, policy_after.source_present) == (
+        1,
+        expiry,
+        True,
+        True,
+    )
+    assert preauth_authorization_digest(policy_after) == stored_digest
+    assert consent_count == 1
+    assert consent_after is not None
+    assert (consent_after.status, consent_after.decided_by) == ("granted", "codex:preauth")
+    assert consent_after.decided_at == consent_before.decided_at
+    assert consent_after.expires_at == consent_before.expires_at == expiry
+    assert consent_after.preauth_slug == consent_before.preauth_slug == "expiry-during-verdict"
+    assert consent_after.payload == consent_before.payload
+
+
+async def _park_across_unchanged_preauth_lock(
+    pg_factory: async_sessionmaker[AsyncSession],
+    ledger: CodexConsentLedger,
+    run_id: str,
+    consumer_started: asyncio.Future[tuple[int, datetime]],
+    expiry: datetime,
+    original_digest: str,
+) -> ConsentDecision:
+    async with pg_factory() as blocker, pg_factory() as observer:
+        locked = await blocker.scalar(
+            select(CodexPreauthorization).where(CodexPreauthorization.slug == "unchanged-lock").with_for_update()
+        )
+        assert locked is not None
+        assert preauth_authorization_digest(locked) == original_digest
+        blocker_pid = await blocker.scalar(select(func.pg_backend_pid()))
+        assert isinstance(blocker_pid, int)
+        park = asyncio.create_task(
+            ledger.park(
+                run_id=run_id,
+                tool_name="request_coven_swap",
+                tool_call_id="unchanged-lock-call",
+                call_ids=("unchanged-lock-call",),
+                args={},
+                sigil=Sigil(name="magus", scopes=frozenset({"*"})),
+            )
+        )
+        try:
+            async with asyncio.timeout(1):
+                consumer_pid, consumer_transaction = await consumer_started
+                assert consumer_pid != blocker_pid
+                while True:
+                    observation = await observer.execute(
+                        select(func.pg_blocking_pids(consumer_pid), func.clock_timestamp())
+                    )
+                    blocking_pids, observed_at = observation.one()
+                    assert isinstance(blocking_pids, list)
+                    assert isinstance(observed_at, datetime)
+                    assert consumer_transaction <= observed_at < expiry
+                    assert not park.done()
+                    if blocker_pid in blocking_pids:
+                        break
+                    await asyncio.sleep(0.01)
+            await _wait_for_preauth_expiry(observer, expiry)
+            release_at = await observer.scalar(select(func.clock_timestamp()))
+            assert isinstance(release_at, datetime)
+            assert consumer_transaction < expiry <= release_at
+            assert preauth_authorization_digest(locked) == original_digest
+            assert not blocker.dirty
+            assert not park.done()
+            await blocker.commit()
+            async with asyncio.timeout(2):
+                decision = await park
+        finally:
+            if not park.done():
+                park.cancel()
+            async with asyncio.timeout(2):
+                await blocker.rollback()
+                await asyncio.gather(park, return_exceptions=True)
+    return decision
+
+
+@pytest.mark.asyncio
+async def test_legacy_park_rechecks_expiry_after_observed_unchanged_row_lock(
+    pg_factory: async_sessionmaker[AsyncSession],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    run_id = await _run_id(pg_factory)
+    async with pg_factory() as session:
+        expiry = await session.scalar(select(func.clock_timestamp() + timedelta(seconds=3)))
+        assert isinstance(expiry, datetime)
+        policy = _preauth_row("unchanged-lock", expires_at=expiry, max_uses=1)
+        session.add(policy)
+        await session.flush()
+        original_digest = preauth_authorization_digest(policy)
+        await session.commit()
+
+    original_get_many = PreauthService.get_many
+    candidate_reads = 0
+    consumer_started: asyncio.Future[tuple[int, datetime]] = asyncio.get_running_loop().create_future()
+
+    async def observe_consumer(service: PreauthService, *filters: Any, **kwargs: Any) -> list[CodexPreauthorization]:
+        nonlocal candidate_reads
+        rows = cast("list[CodexPreauthorization]", await original_get_many(service, *filters, **kwargs))
+        candidate_reads += 1
+        assert [row.slug for row in rows] == ["unchanged-lock"]
+        clocks = await service.repository.session.execute(
+            select(func.pg_backend_pid(), func.transaction_timestamp(), func.clock_timestamp())
+        )
+        consumer_pid, transaction_start, wall_now = clocks.one()
+        assert isinstance(consumer_pid, int)
+        assert isinstance(transaction_start, datetime)
+        assert isinstance(wall_now, datetime)
+        assert transaction_start <= wall_now < expiry
+        consumer_started.set_result((consumer_pid, transaction_start))
+        return rows
+
+    ledger = CodexConsentLedger(session_factory=pg_factory)
+    with monkeypatch.context() as observe:
+        observe.setattr(PreauthService, "get_many", observe_consumer)
+        decision = await _park_across_unchanged_preauth_lock(
+            pg_factory, ledger, run_id, consumer_started, expiry, original_digest
+        )
+    assert candidate_reads == 1
+    assert (decision.status, decision.preauth_slug) == ("pending", None)
+    async with pg_factory() as session:
+        current = await session.scalar(
+            select(CodexPreauthorization).where(CodexPreauthorization.slug == "unchanged-lock")
+        )
+        consents = (await session.scalars(select(Consent))).all()
+    assert current is not None
+    assert (current.uses, current.expires_at, current.enabled, current.source_present) == (0, expiry, True, True)
+    assert preauth_authorization_digest(current) == original_digest
+    assert len(consents) == 1
+    consent = consents[0]
+    assert (str(consent.id), str(consent.run_id), consent.tool_call_id) == (
+        decision.consent_id,
+        run_id,
+        "unchanged-lock-call",
+    )
+    assert (consent.status, consent.preauth_slug, consent.decided_by, consent.decided_at) == (
+        "pending",
+        None,
+        None,
+        None,
+    )
+    assert PREAUTH_DIGEST_PAYLOAD_KEY not in consent.payload
+    assert await ledger.verdict(decision.consent_id) is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("changed_field", ["tool", "constraints"])
+async def test_legacy_park_rechecks_current_match_after_candidate_await(
+    pg_factory: async_sessionmaker[AsyncSession],
+    monkeypatch: pytest.MonkeyPatch,
+    changed_field: str,
+) -> None:
+    run_id = await _run_id(pg_factory)
+    matching_constraints = {"args": {"mode": ["safe"]}}
+    async with pg_factory() as session:
+        session.add(_preauth_row("changed-candidate", constraints=matching_constraints, max_uses=1))
+        await session.commit()
+    new_tool = "different_tool" if changed_field == "tool" else "request_coven_swap"
+    new_constraints = {"args": {"mode": ["other"]}} if changed_field == "constraints" else matching_constraints
+    original_get_many = PreauthService.get_many
+    candidate_reads = 0
+
+    async def change_after_read(service: PreauthService, *filters: Any, **kwargs: Any) -> list[CodexPreauthorization]:
+        nonlocal candidate_reads
+        rows = cast("list[CodexPreauthorization]", await original_get_many(service, *filters, **kwargs))
+        candidate_reads += 1
+        assert len(rows) == 1
+        cached = rows[0]
+        assert (cached.slug, cached.tool_pattern, cached.constraints) == (
+            "changed-candidate",
+            "request_coven_swap",
+            matching_constraints,
+        )
+        async with asyncio.timeout(2), pg_factory() as change_session:
+            assert (
+                await PreauthService(session=change_session).sync_from_runes(
+                    [
+                        _rune(
+                            "changed-candidate",
+                            sigil_pattern="magus",
+                            tool_pattern=new_tool,
+                            constraints=new_constraints,
+                            max_uses=1,
+                        )
+                    ]
+                )
+                == 1
+            )
+            current = await change_session.scalar(
+                select(CodexPreauthorization).where(CodexPreauthorization.slug == "changed-candidate")
+            )
+            assert current is not None
+            assert (current.id, current.tool_pattern, current.constraints, current.uses) == (
+                cached.id,
+                new_tool,
+                new_constraints,
+                0,
+            )
+        assert (cached.tool_pattern, cached.constraints) == ("request_coven_swap", matching_constraints)
+        return rows
+
+    ledger = CodexConsentLedger(session_factory=pg_factory)
+    with monkeypatch.context() as change:
+        change.setattr(PreauthService, "get_many", change_after_read)
+        decision = await ledger.park(
+            run_id=run_id,
+            tool_name="request_coven_swap",
+            tool_call_id="changed-candidate-call",
+            call_ids=("changed-candidate-call",),
+            args={"mode": "safe"},
+            sigil=Sigil(name="magus", scopes=frozenset({"*"})),
+        )
+    assert candidate_reads == 1
+    assert (decision.status, decision.preauth_slug) == ("pending", None)
+    async with pg_factory() as session:
+        current = await session.scalar(
+            select(CodexPreauthorization).where(CodexPreauthorization.slug == "changed-candidate")
+        )
+        consents = (await session.scalars(select(Consent))).all()
+    assert current is not None
+    assert (current.tool_pattern, current.constraints) == (new_tool, new_constraints)
+    assert (current.uses, current.expires_at, current.max_uses, current.enabled, current.source_present) == (
+        0,
+        None,
+        1,
+        True,
+        True,
+    )
+    assert len(consents) == 1
+    consent = consents[0]
+    assert (str(consent.id), str(consent.run_id), consent.tool_call_id) == (
+        decision.consent_id,
+        run_id,
+        "changed-candidate-call",
+    )
+    assert (consent.status, consent.preauth_slug, consent.decided_by, consent.decided_at) == (
+        "pending",
+        None,
+        None,
+        None,
+    )
+    assert PREAUTH_DIGEST_PAYLOAD_KEY not in consent.payload
+    assert await ledger.verdict(decision.consent_id) is None
+
+
 @pytest.mark.asyncio
 async def test_consume_update_rechecks_rune_presence_after_candidate_selection(
     pg_factory: async_sessionmaker[AsyncSession],
@@ -880,3 +1277,99 @@ async def test_archive_pending_counts_group_only_requested_sessions_in_postgres(
     assert counts == {str(session_ids[0]): 2, str(session_ids[1]): 1}
     assert await ledger.pending_count() == 5
     assert await ledger.pending_counts_for_sessions(frozenset(), run_session_id=run_session_id) == {}
+
+
+@pytest.mark.asyncio
+async def test_native_binding_round_trip_fences_and_concurrent_first_verdict(
+    pg_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    run_id = await _run_id(pg_factory)
+    expected = binding()
+    async with pg_factory() as session:
+        row = await ConsentService(session=session).request(
+            run_id=run_id,
+            tool_name="place",
+            tool_call_id="native",
+            call_ids=("native",),
+            payload={},
+            preauth=None,
+            native_binding=expected,
+        )
+        consent_id = str(row.id)
+    ledger = CodexConsentLedger(session_factory=pg_factory)
+    before = await ledger.get(consent_id)
+    assert before is not None
+    assert before.native_review_required
+    assert before.native_binding == expected
+    for wrong in (None, binding(audience_digest="d" * 64)):
+        with pytest.raises(ConsentBindingConflict):
+            await ledger.decide(consent_id, approved=True, decided_by="wrong", expected_native_binding=wrong)
+        assert await ledger.get(consent_id) == before
+    results = await asyncio.gather(
+        ledger.decide(consent_id, approved=True, decided_by="first", expected_native_binding=expected),
+        ledger.decide(consent_id, approved=False, decided_by="second", expected_native_binding=expected),
+    )
+    winner = results[0]
+    assert winner is not None
+    assert winner.status in {"granted", "denied"}
+    assert winner.decided_by == {"granted": "first", "denied": "second"}[winner.status]
+    assert winner.decided_at is not None
+    assert results[1] is not None
+    assert results[1] == winner
+    with pytest.raises(ConsentBindingConflict):
+        await ledger.decide(consent_id, approved=False, decided_by="late")
+    assert await ledger.get(consent_id) == results[0]
+
+
+@pytest.mark.asyncio
+async def test_native_request_respects_owned_transaction_rollback(pg_factory: async_sessionmaker[AsyncSession]) -> None:
+    run_id = await _run_id(pg_factory)
+    async with pg_factory() as session:
+        row = await ConsentService(session=session).request(
+            run_id=run_id,
+            tool_name="place",
+            tool_call_id="native-rollback",
+            call_ids=("native",),
+            payload={},
+            preauth=None,
+            native_binding=binding(),
+            auto_commit=False,
+        )
+        await session.flush()
+        consent_id = str(row.id)
+        await session.rollback()
+    assert await CodexConsentLedger(session_factory=pg_factory).get(consent_id) is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("approved", [False, True])
+async def test_jsonb_numeric_equivalence_cannot_settle_unsupported_native_schema(
+    pg_factory: async_sessionmaker[AsyncSession], *, approved: bool
+) -> None:
+    run_id = await _run_id(pg_factory)
+    expected = binding()
+    async with pg_factory() as session:
+        row = Consent(
+            run_id=UUID(run_id),
+            tool_name="place",
+            tool_call_id="unsupported-numeric-schema",
+            payload={},
+            status="pending",
+            native_review_required=True,
+            native_binding=expected.document() | {"schema_version": 1.0},
+        )
+        session.add(row)
+        await session.commit()
+        consent_id = str(row.id)
+    ledger = CodexConsentLedger(session_factory=pg_factory)
+    before = await ledger.get(consent_id)
+    assert before is not None
+    assert before.native_review_required
+    assert before.native_binding is None
+    with pytest.raises(ConsentBindingConflict):
+        await ledger.decide(consent_id, approved=approved, decided_by="reviewer", expected_native_binding=expected)
+    assert await ledger.get(consent_id) == before
+    async with pg_factory() as session:
+        row = await session.get(Consent, UUID(consent_id))
+        assert row is not None
+        assert (row.status, row.decided_by, row.decided_at) == ("pending", None, None)

@@ -7,6 +7,7 @@ import os
 import stat
 from pathlib import Path
 
+from lychd.system.binding_sites import BindingSites, BindingSiteState, inspect_binding_site
 from lychd.system.path_safety import path_has_symlink_component
 from lychd.system.services.layout_directory_traversal import inspect_preserved_datastore
 from lychd.system.services.lifecycle._authority import LifecycleAuthority, current_authority
@@ -132,15 +133,25 @@ def unsafe_init_target(
     )
 
 
-def inspect_init_directory(
+def inspect_init_directory(  # noqa: PLR0911 - each initialization policy has a distinct verdict
     path: Path,
     *,
     expected_mode: int | None = None,
     authority: LifecycleAuthority,
 ) -> LifecycleAction:
-    """Inspect one directory and reject an absent out-of-bound creation target."""
+    """Admit shared binding components and bound every absent creation target."""
     if path == authority.postgres_data and os.path.lexists(path):
         return _inspect_existing_datastore(path)
+    binding_sites = BindingSites(quadlet=authority.systemd_units, systemd_user=authority.systemd_user_units)
+    if path in binding_sites.initialization_paths:
+        inspection = inspect_binding_site(path, current_uid=os.getuid())
+        if inspection.state is BindingSiteState.BLOCKED:
+            return LifecycleAction(
+                LifecycleDisposition.BLOCKED,
+                LifecycleResourceKind.DIRECTORY,
+                str(path),
+                inspection.detail,
+            )
     action = inspect_directory(path, expected_mode=expected_mode)
     if action.disposition is not LifecycleDisposition.WOULD_CREATE:
         return action

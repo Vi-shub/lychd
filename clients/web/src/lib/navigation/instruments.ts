@@ -3,6 +3,10 @@
  * Parsing preserves bounded identity hints only. Destination readers must still
  * validate Run ownership and the entire pinned Pattern before offering a return.
  */
+export type OrbDestination = "/orb" | `/orb/${string}`;
+export type BridgeDestination = "/bridge" | `/bridge/${string}`;
+export interface AltarNavigation { bridgePath: BridgeDestination }
+export const altarNavigationContext = Symbol("altar-navigation");
 
 /** Navigation hints are bounded identities, never admission or evidence authority. */
 export function navigationId(value?: string | null): string | null {
@@ -41,6 +45,11 @@ export function selectedOrbHref(pathname: string, search: string, base = "/orb")
   const ids = pathIds(pathname, base, 1);
   const id = ids?.[0];
   return id ? orbReturnHref(id, search) : null;
+}
+
+export function selectedBridgeHref(pathname: string, base = "/bridge"): `/bridge/${string}` | null {
+  const session = pathIds(pathname, base, 1)?.[0];
+  return session ? `/bridge/${encodeURIComponent(session)}` : null;
 }
 
 /** Carry review context; this syntactic check does not establish manifest equality. */

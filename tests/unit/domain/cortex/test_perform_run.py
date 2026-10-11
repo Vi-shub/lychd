@@ -26,7 +26,7 @@ from lychd.agents.the_first_one import default_forge
 from lychd.agents.workflows import BRIDGE_CHAT, DELEGATED_RITE, BuiltinWorkflowRegistry, builtin_workflow_registry
 from lychd.domain.cortex.context import ContextOrchestrator
 from lychd.domain.cortex.events import InProcessEventBus, RunEventKind
-from lychd.domain.cortex.ledger import ConsentAdmissionEvidence, InMemoryRunLedger
+from lychd.domain.cortex.ledger import ConsentAdmissionEvidence, InMemoryRunLedger, RunClaimAttempt
 from lychd.domain.cortex.runs import RunDeliveryState, RunStatus
 from lychd.domain.cortex.stasis import InMemoryStasisStore
 from lychd.domain.cortex.substrate import RunSubstrate
@@ -297,7 +297,7 @@ async def test_durable_delivery_mode_overrides_broker_payload(
     durable_resume = delivery_mode == "resume"
     enqueue_seq = 0
     if durable_resume:
-        assert await ledger.try_claim_run("mode-authority", enqueue_seq=0)
+        assert (await ledger.try_claim_run("mode-authority", enqueue_seq=0)).acknowledged
         await ledger.park_consent("mode-authority", "consent-mode-authority")
         admitted = await ledger.try_admit_consent(
             "mode-authority",
@@ -418,7 +418,7 @@ async def test_cancellation_during_committed_claim_settles_failed(
     committed = asyncio.Event()
     release = asyncio.Event()
 
-    async def delayed_claim(run_id: str, *, enqueue_seq: int) -> bool:
+    async def delayed_claim(run_id: str, *, enqueue_seq: int) -> RunClaimAttempt:
         claimed = await original_claim(run_id, enqueue_seq=enqueue_seq)
         committed.set()
         await release.wait()
@@ -546,18 +546,23 @@ async def test_cancellation_after_terminal_commit_still_emits_done(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("grouped", [False, True])
 async def test_cancellation_during_terminal_cleanup_is_preserved(
     monkeypatch: pytest.MonkeyPatch,
+    *,
+    grouped: bool,
 ) -> None:
     """Best-effort cleanup completes, then the worker still propagates cancellation."""
     import lychd.ghouls.runs as runs_mod
 
     substrate, ledger, sessions = _substrate(dispatcher=FakeDispatcher(model=TestModel()))
     await _seed_run(ledger, sessions, "cleanup-cancel")
+    await substrate.stasis_store.replace("cleanup-cancel", [])
     channel = substrate.bus.open("cleanup-cancel")
     cleanup_entered = asyncio.Event()
     cleanup_release = asyncio.Event()
     original_delete = substrate.stasis_store.delete
+    group = _cancellation_group(nested=True)
 
     class _ImmediateRunner:
         def __init__(self, **_kwargs: Any) -> None:
@@ -568,7 +573,12 @@ async def test_cancellation_during_terminal_cleanup_is_preserved(
 
     async def delayed_delete(run_id: str) -> None:
         cleanup_entered.set()
-        await cleanup_release.wait()
+        try:
+            await cleanup_release.wait()
+        except asyncio.CancelledError:
+            if grouped:
+                raise group from None
+            raise
         await original_delete(run_id)
 
     monkeypatch.setattr(runs_mod, "GraphRunner", _ImmediateRunner)
@@ -578,8 +588,10 @@ async def test_cancellation_during_terminal_cleanup_is_preserved(
 
     task.cancel()
     cleanup_release.set()
-    with pytest.raises(asyncio.CancelledError):
+    with pytest.raises(BaseExceptionGroup if grouped else asyncio.CancelledError) as caught:
         await task
+    if grouped:
+        assert caught.value is group
 
     run = await ledger.get("cleanup-cancel")
     assert run is not None
@@ -628,15 +640,21 @@ async def test_cleanup_failure_cannot_hide_committed_failed_terminal(
 
 
 @pytest.mark.asyncio
-async def test_api_abort_cancellation_wins_over_worker_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.parametrize("grouped", [False, True])
+async def test_api_abort_cancellation_wins_over_worker_failure(
+    monkeypatch: pytest.MonkeyPatch, *, grouped: bool
+) -> None:
     """An abort-triggered CancelledError waits for durable CANCELLED, never writes FAILED."""
     import lychd.ghouls.runs as runs_mod
     from lychd.domain.cortex.engine import QueueRouter, RouteRule, RunEngine
 
     substrate, ledger, sessions = _substrate(dispatcher=FakeDispatcher(model=TestModel()))
     await _seed_run(ledger, sessions, "api-cancel")
+    await substrate.stasis_store.replace("api-cancel", [])
+    substrate.context._cache["api-cancel"] = object()
     channel = substrate.bus.open("api-cancel")
     entered = asyncio.Event()
+    group = _cancellation_group()
 
     class _BlockingRunner:
         def __init__(self, **_kwargs: Any) -> None:
@@ -644,7 +662,12 @@ async def test_api_abort_cancellation_wins_over_worker_failure(monkeypatch: pyte
 
         async def run_graph(self, *_args: Any, **_kwargs: Any) -> None:
             entered.set()
-            await asyncio.Event().wait()
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                if grouped:
+                    raise group from None
+                raise
 
     class _AbortQueue:
         worker: asyncio.Task[dict[str, Any]] | None = None
@@ -659,9 +682,15 @@ async def test_api_abort_cancellation_wins_over_worker_failure(monkeypatch: pyte
             _ = (job, error, ttl)
             assert self.worker is not None
             self.worker.cancel()
-            # Reproduce the dangerous window: the worker handles CancelledError
-            # before RunEngine can return from abort and commit CANCELLED.
-            await asyncio.sleep(0)
+            # The worker must acknowledge abort before the API commits CANCELLED.
+            with pytest.raises(BaseExceptionGroup if grouped else asyncio.CancelledError):
+                await self.worker
+            current = await ledger.get("api-cancel")
+            assert current is not None
+            assert current.status is RunStatus.CANCELLING
+            assert "api-cancel" not in substrate.context._cache
+            assert await substrate.stasis_store.exists("api-cancel")
+            assert not any(event.kind is RunEventKind.DONE for event in channel._replay)
 
     monkeypatch.setattr(runs_mod, "GraphRunner", _BlockingRunner)
     queue = _AbortQueue()
@@ -680,8 +709,10 @@ async def test_api_abort_cancellation_wins_over_worker_failure(monkeypatch: pyte
     await entered.wait()
 
     await engine.cancel("api-cancel")
-    with pytest.raises(asyncio.CancelledError):
+    with pytest.raises(BaseExceptionGroup if grouped else asyncio.CancelledError) as caught:
         await worker
+    if grouped:
+        assert caught.value is group
 
     run = await ledger.get("api-cancel")
     assert run is not None
@@ -739,8 +770,7 @@ async def test_old_park_hop_cannot_fail_resume_that_already_claimed(
                     str(kwargs["run_id"]),
                     enqueue_seq=int(kwargs["enqueue_seq"]),
                 )
-                is True
-            )
+            ).acknowledged is True
             msg = "broker reply lost after resume claim"
             raise RuntimeError(msg)
 
@@ -1147,7 +1177,7 @@ async def test_delivery_flush_rotates_terminal_broker_record_without_changing_mo
     resume = delivery_mode == "resume"
     enqueue_seq = 0
     if resume:
-        assert await ledger.try_claim_run("terminal-job", enqueue_seq=0)
+        assert (await ledger.try_claim_run("terminal-job", enqueue_seq=0)).acknowledged
         await ledger.park_consent("terminal-job", "consent-terminal-job")
         admitted = await ledger.try_admit_consent(
             "terminal-job",
@@ -1391,7 +1421,10 @@ async def test_reconcile_runs_fails_orphaned_running() -> None:
 
 
 @pytest.mark.asyncio
-async def test_cancelled_old_park_hop_does_not_contain_successor(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.parametrize("grouped", [False, True])
+async def test_cancelled_old_park_hop_does_not_contain_successor(
+    monkeypatch: pytest.MonkeyPatch, *, grouped: bool
+) -> None:
     """A cancelled publication caller has no authority over its claimed successor."""
     import lychd.ghouls.runs as runs_mod
     from lychd.domain.cortex.runs import RunParked
@@ -1399,6 +1432,7 @@ async def test_cancelled_old_park_hop_does_not_contain_successor(monkeypatch: py
     substrate, ledger, sessions = _substrate(dispatcher=FakeDispatcher(model=TestModel()))
     await _seed_run(ledger, sessions, "cancelled-old-hop")
     claimed = asyncio.Event()
+    group = _cancellation_group()
     swept: list[str] = []
 
     class _Consents:
@@ -1429,9 +1463,16 @@ async def test_cancelled_old_park_hop_does_not_contain_successor(monkeypatch: py
     class _ClaimThenBlockQueue(_ProbeQueue):
         async def enqueue(self, job_or_func: str, /, **kwargs: Any) -> Any:
             _ = job_or_func
-            assert await ledger.try_claim_run(str(kwargs["run_id"]), enqueue_seq=int(kwargs["enqueue_seq"]))
+            assert (
+                await ledger.try_claim_run(str(kwargs["run_id"]), enqueue_seq=int(kwargs["enqueue_seq"]))
+            ).acknowledged
             claimed.set()
-            await asyncio.Event().wait()
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                if grouped:
+                    raise group from None
+                raise
 
     substrate.consents = _Consents()
     substrate.queues = {"runs": _ClaimThenBlockQueue()}
@@ -1439,8 +1480,10 @@ async def test_cancelled_old_park_hop_does_not_contain_successor(monkeypatch: py
     worker = asyncio.create_task(perform_run({"run_substrate": substrate}, run_id="cancelled-old-hop", enqueue_seq=0))
     await asyncio.wait_for(claimed.wait(), timeout=1)
     worker.cancel()
-    with pytest.raises(asyncio.CancelledError):
+    with pytest.raises(BaseExceptionGroup if grouped else asyncio.CancelledError) as caught:
         await worker
+    if grouped:
+        assert caught.value is group
     current = await ledger.get("cancelled-old-hop")
     assert current is not None
     assert current.status is RunStatus.RUNNING
@@ -1456,7 +1499,7 @@ async def test_failure_guard_excludes_claims_until_children_are_contained(monkey
 
     substrate, ledger, sessions = _substrate(dispatcher=FakeDispatcher(model=TestModel()))
     await _seed_run(ledger, sessions, "contained-claim")
-    assert await ledger.try_claim_run("contained-claim", enqueue_seq=0)
+    assert (await ledger.try_claim_run("contained-claim", enqueue_seq=0)).acknowledged
     run = await ledger.get("contained-claim")
     assert run is not None
     containing = asyncio.Event()
@@ -1469,7 +1512,7 @@ async def test_failure_guard_excludes_claims_until_children_are_contained(monkey
         await release.wait()
         return []
 
-    async def observe_claim(run_id: str, *, enqueue_seq: int) -> bool:
+    async def observe_claim(run_id: str, *, enqueue_seq: int) -> RunClaimAttempt:
         attempted.set()
         return await original_claim(run_id, enqueue_seq=enqueue_seq)
 
@@ -1487,7 +1530,7 @@ async def test_failure_guard_excludes_claims_until_children_are_contained(monkey
     assert current.status is RunStatus.RUNNING
     release.set()
     assert await failing
-    assert not await claiming
+    assert (await claiming).claimed is False
     assert attempted.is_set()
     assert not substrate.claims._guards
 
@@ -1540,3 +1583,270 @@ async def test_pre_execution_refusal_contains_children_before_terminal(missing: 
     child = await delegates.get(job.job_id)
     assert child is not None
     assert child.status is DelegatedAgentJobStatus.CANCELLED
+
+
+def _cancellation_group(*, nested: bool = False, ordinary: bool = True) -> BaseExceptionGroup[BaseException]:
+    members: list[BaseException] = [asyncio.CancelledError("worker interrupted")]
+    if ordinary:
+        members.append(RuntimeError("grant cleanup failed"))
+    group = BaseExceptionGroup("grant exit", members)
+    return BaseExceptionGroup("nested grant exit", [group]) if nested else group
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("shape", ["ordinary", "pure", "nested-pure", "mixed", "nested-mixed"])
+async def test_graph_exception_group_preserves_worker_settlement(
+    monkeypatch: pytest.MonkeyPatch,
+    shape: str,
+) -> None:
+    """Real Bridge/GraphRunner grant exits settle without splitting their exception tree."""
+    from collections.abc import AsyncGenerator
+    from contextlib import asynccontextmanager
+
+    import lychd.ghouls.runs as runs_mod
+
+    group = (
+        ExceptionGroup("ordinary cleanup", [RuntimeError("grant cleanup failed")])
+        if shape == "ordinary"
+        else _cancellation_group(nested=shape.startswith("nested"), ordinary="mixed" in shape)
+    )
+    dispatcher = FakeDispatcher(model=TestModel(custom_output_args={"answer": "risen", "fragments": []}, call_tools=[]))
+    substrate, ledger, sessions = _substrate(dispatcher=dispatcher)
+    await _seed_run(ledger, sessions, "group-worker")
+    channel = substrate.bus.open("group-worker")
+    original_lease = dispatcher.lease_grant
+    original_run_graph = runs_mod.GraphRunner[Any].run_graph
+    boundary_errors: list[BaseExceptionGroup[BaseException]] = []
+    contained: list[str] = []
+
+    @asynccontextmanager
+    async def failing_exit(**kwargs: Any) -> AsyncGenerator[Any]:
+        async with original_lease(**kwargs) as grant:
+            yield grant
+        assert substrate.context.get("group-worker") is not None
+        assert await substrate.stasis_store.exists("group-worker")
+        raise group
+
+    async def observe_graph(self: Any, *args: Any, **kwargs: Any) -> Any:
+        try:
+            return await original_run_graph(self, *args, **kwargs)
+        except BaseExceptionGroup as exc:
+            boundary_errors.append(exc)
+            raise
+
+    class _Consents:
+        async def cancel_pending_for_run(self, run_id: str, *, decided_by: str) -> int:
+            assert decided_by == "cortex:worker-failure-containment"
+            current = await ledger.get(run_id)
+            assert current is not None
+            assert current.status is RunStatus.RUNNING
+            assert substrate.context.get(run_id) is not None
+            assert await substrate.stasis_store.exists(run_id)
+            contained.append(run_id)
+            return 0
+
+    substrate.consents = _Consents()
+    monkeypatch.setattr(dispatcher, "lease_grant", failing_exit)
+    monkeypatch.setattr(runs_mod.GraphRunner, "run_graph", observe_graph)
+    with pytest.raises(BaseExceptionGroup) as caught:
+        await perform_run({"run_substrate": substrate}, run_id="group-worker")
+
+    assert len(boundary_errors) == 1
+    assert caught.value is boundary_errors[0]
+    current = await ledger.get("group-worker")
+    delivery = await ledger.get_delivery("group-worker", enqueue_seq=0)
+    assert current is not None
+    assert current.status is RunStatus.FAILED
+    assert current.enqueue_seq == 0
+    assert current.error == (str(caught.value) if shape == "ordinary" else "run worker cancelled")
+    assert delivery is not None
+    assert delivery.state is RunDeliveryState.SETTLED
+    assert contained == ["group-worker"]
+    assert substrate.context.get("group-worker") is None
+    assert not await substrate.stasis_store.exists("group-worker")
+    assert [event.data for event in channel._replay if event.kind is RunEventKind.DONE] == ["failed"]
+    assert channel.closed
+    session = await sessions.get_session(current.session_id)
+    assert session is not None
+    assert len([turn for turn in session.turns if turn.state == "failed"]) == int(shape == "ordinary")
+
+
+class _WorkerFatal(BaseException):
+    pass
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("fatal_type", [KeyboardInterrupt, SystemExit, _WorkerFatal])
+@pytest.mark.parametrize("with_cancellation", [False, True])
+async def test_fatal_exception_group_does_not_acquire_cancellation_authority(
+    monkeypatch: pytest.MonkeyPatch,
+    fatal_type: type[BaseException],
+    *,
+    with_cancellation: bool,
+) -> None:
+    """Fatal leaves retain passthrough even beside a nested cancellation subtree."""
+    import lychd.ghouls.runs as runs_mod
+
+    members: list[BaseException] = [BaseExceptionGroup("fatal", [fatal_type("stop")])]
+    if with_cancellation:
+        members.append(_cancellation_group(nested=True))
+    group = BaseExceptionGroup("outside worker cancellation law", members)
+    substrate, ledger, sessions = _substrate(dispatcher=FakeDispatcher(model=TestModel()))
+    await _seed_run(ledger, sessions, "fatal-group")
+    await substrate.stasis_store.replace("fatal-group", [])
+    context = object()
+    substrate.context._cache["fatal-group"] = context
+    channel = substrate.bus.open("fatal-group")
+
+    class _RaisingRunner:
+        def __init__(self, **_kwargs: Any) -> None:
+            pass
+
+        async def run_graph(self, *_args: Any, **_kwargs: Any) -> None:
+            raise group
+
+    async def refuse_containment(*_args: Any, **_kwargs: Any) -> list[BaseException]:
+        pytest.fail("a fatal group must not contain this claim")
+
+    monkeypatch.setattr(runs_mod, "GraphRunner", _RaisingRunner)
+    monkeypatch.setattr(runs_mod, "_contain_failed_run_effects", refuse_containment)
+    with pytest.raises(BaseExceptionGroup) as caught:
+        await perform_run({"run_substrate": substrate}, run_id="fatal-group")
+    assert caught.value is group
+    current = await ledger.get("fatal-group")
+    delivery = await ledger.get_delivery("fatal-group", enqueue_seq=0)
+    assert current is not None
+    assert current.status is RunStatus.RUNNING
+    assert current.enqueue_seq == 0
+    assert current.error is None
+    assert delivery is not None
+    assert delivery.state is RunDeliveryState.CLAIMED
+    assert substrate.context._cache["fatal-group"] is context
+    assert await substrate.stasis_store.exists("fatal-group")
+    assert not any(event.kind is RunEventKind.DONE for event in channel._replay)
+    assert not channel.closed
+    await substrate.bus.wait_persisted("fatal-group")
+
+
+@pytest.mark.asyncio
+async def test_cancellation_group_retains_nonterminal_truth_when_containment_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Failed containment wins exception precedence, retaining the original group as context."""
+    import lychd.ghouls.runs as runs_mod
+
+    group = _cancellation_group(nested=True)
+    substrate, ledger, sessions = _substrate(dispatcher=FakeDispatcher(model=TestModel()))
+    await _seed_run(ledger, sessions, "group-containment")
+    await substrate.stasis_store.replace("group-containment", [])
+    context = object()
+    substrate.context._cache["group-containment"] = context
+    channel = substrate.bus.open("group-containment")
+    containment_failure = RuntimeError("consent store unavailable")
+    attempts: list[str] = []
+
+    class _RaisingRunner:
+        def __init__(self, **_kwargs: Any) -> None:
+            pass
+
+        async def run_graph(self, *_args: Any, **_kwargs: Any) -> None:
+            raise group
+
+    class _Consents:
+        async def cancel_pending_for_run(self, run_id: str, *, decided_by: str) -> int:
+            assert decided_by == "cortex:worker-failure-containment"
+            attempts.append(run_id)
+            raise containment_failure
+
+    substrate.consents = _Consents()
+    monkeypatch.setattr(runs_mod, "GraphRunner", _RaisingRunner)
+    monkeypatch.setattr(runs_mod, "FAILURE_CONTAINMENT_RETRY_S", 0)
+    with pytest.raises(RuntimeError, match="Failure containment failed") as caught:
+        await perform_run({"run_substrate": substrate}, run_id="group-containment")
+    assert caught.value.__context__ is group
+    assert caught.value.__cause__ is containment_failure
+    assert attempts == ["group-containment"] * runs_mod.FAILURE_CONTAINMENT_ATTEMPTS
+    current = await ledger.get("group-containment")
+    delivery = await ledger.get_delivery("group-containment", enqueue_seq=0)
+    assert current is not None
+    assert current.status is RunStatus.RUNNING
+    assert current.enqueue_seq == 0
+    assert current.error is None
+    assert delivery is not None
+    assert delivery.state is RunDeliveryState.CLAIMED
+    assert substrate.context._cache["group-containment"] is context
+    assert await substrate.stasis_store.exists("group-containment")
+    assert not any(event.kind is RunEventKind.DONE for event in channel._replay)
+    assert not channel.closed
+    await substrate.bus.wait_persisted("group-containment")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("fatal_cleanup", [False, True])
+async def test_completed_failed_claim_only_settles_proved_eligible_winner(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    fatal_cleanup: bool,
+) -> None:
+    import lychd.ghouls.runs as runs_mod
+
+    substrate, ledger, sessions = _substrate(dispatcher=FakeDispatcher(model=TestModel()))
+    await _seed_run(ledger, sessions, "failed-claim-outcome")
+    channel = substrate.bus.open("failed-claim-outcome")
+    await substrate.stasis_store.replace("failed-claim-outcome", [])
+    original_claim = ledger.try_claim_run
+    original_observe = ledger.observe_claim
+    body = RuntimeError("commit acknowledgement lost")
+    prior = ValueError("prior transport cause")
+    body.__cause__ = prior
+    cleanup = BaseExceptionGroup("fatal cleanup", [KeyboardInterrupt("stop")]) if fatal_cleanup else None
+    observations = 0
+
+    async def failed_attempt(run_id: str, *, enqueue_seq: int) -> RunClaimAttempt:
+        completed = await original_claim(run_id, enqueue_seq=enqueue_seq)
+        assert completed.acknowledged is True
+        return replace(completed, acknowledged=None, failure=body, cleanup_failure=cleanup)
+
+    async def observe(run_id: str, *, enqueue_seq: int) -> Any:
+        nonlocal observations
+        observations += 1
+        return await original_observe(run_id, enqueue_seq=enqueue_seq)
+
+    def forbidden_graph(**_kwargs: Any) -> Any:
+        pytest.fail("An interrupted claim must never enter Graph")
+
+    monkeypatch.setattr(ledger, "try_claim_run", failed_attempt)
+    monkeypatch.setattr(ledger, "observe_claim", observe)
+    monkeypatch.setattr(runs_mod, "GraphRunner", forbidden_graph)
+    with pytest.raises(BaseExceptionGroup if fatal_cleanup else RuntimeError) as caught:
+        await perform_run({"run_substrate": substrate}, run_id="failed-claim-outcome")
+    assert caught.value is (cleanup if fatal_cleanup else body)
+    assert body.__cause__ is prior
+    assert observations == (0 if fatal_cleanup else 1)
+    current = await ledger.get("failed-claim-outcome")
+    assert current is not None
+    assert current.status is (RunStatus.RUNNING if fatal_cleanup else RunStatus.FAILED)
+    assert await substrate.stasis_store.exists("failed-claim-outcome") is fatal_cleanup
+    assert channel.closed is not fatal_cleanup
+    assert not substrate.claims._guards
+
+
+@pytest.mark.asyncio
+async def test_workflow_binder_receives_persisted_common_services_once() -> None:
+    model = TestModel(custom_output_args={"answer": "bound", "fragments": []}, call_tools=[])
+    substrate, ledger, sessions = _substrate(dispatcher=FakeDispatcher(model=model))
+    from lychd.agents.services import WorkflowServices
+
+    seen: list[WorkflowServices] = []
+
+    def bind(common: WorkflowServices) -> WorkflowServices:
+        seen.append(common)
+        return common
+
+    workflow = replace(BRIDGE_CHAT, bind_deps=bind)
+    substrate.workflows = BuiltinWorkflowRegistry(workflows=(workflow,))
+    await _seed_run(ledger, sessions, "bound_run")
+    result = await perform_run({"run_substrate": substrate}, run_id="bound_run")
+    assert result["status"] == "done"
+    assert len(seen) == 1
+    assert seen[0].sigil_provider().name == "magus"

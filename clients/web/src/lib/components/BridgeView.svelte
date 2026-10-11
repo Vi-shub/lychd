@@ -47,7 +47,11 @@
     const id = page.url.searchParams.get("run");
     return id && /^[a-zA-Z0-9_-]{1,128}$/.test(id) ? id : null;
   });
-  let focusedElement: HTMLElement | undefined;
+  let focusNavigation: {
+    sessionId: string | undefined;
+    run: string | null;
+    handled: boolean;
+  } | undefined;
 
   function setPrompt(text: string) {
     if (selected) work.setDraft(selected.id, text);
@@ -59,6 +63,7 @@
   let loading = $state(true);
   let creatingSession = $state(false);
   let error = $state("");
+  let readError = $state("");
   let thread: HTMLDivElement | undefined;
   let loadVersion = 0;
   let sessionsRequest: AbortController | null = null;
@@ -123,7 +128,12 @@
     window.dispatchEvent(new CustomEvent("altar:omen", { detail: { text, fault } }));
   }
 
-  async function load(id?: string) {
+  function retryRead() {
+    if (loading || !readError || snapshot || destroyed) return;
+    void load(sessionId, true);
+  }
+
+  async function load(id?: string, preserveReadError = false) {
     const version = ++loadVersion;
     sessionsRequest?.abort();
     sessionsRequest = null;
@@ -137,6 +147,7 @@
       id !== undefined && activeSessionIdentity !== null && activeSessionIdentity !== id;
     loading = true;
     error = "";
+    if (!preserveReadError) readError = "";
     if (requestedIdentityChanged) {
       snapshot = null;
       releasedRunFocus = null;
@@ -148,7 +159,7 @@
       if (destroyed || version !== loadVersion) return;
       const nextSessionIdentity = next.session?.id ?? null;
       if (nextSessionIdentity && (work.settlements.get(nextSessionIdentity) ?? 0) !== (settlementsAtRequest.get(nextSessionIdentity) ?? 0)) {
-        await load(id);
+        await load(id, preserveReadError);
         return;
       }
       activeSessionIdentity = nextSessionIdentity;
@@ -187,6 +198,7 @@
         clearRefreshTimer(runId);
       }
       snapshot = next;
+      readError = "";
       consentAuthorityVersion++;
       liveTurns = merged.liveTurns;
       for (const active of next.active_runs) {
@@ -204,7 +216,10 @@
       }
       window.dispatchEvent(new CustomEvent("altar:attention", { detail: next.pending_count }));
     } catch (cause) {
-      if (version === loadVersion) error = cause instanceof Error ? cause.message : "The Bridge stayed dark.";
+      if (version === loadVersion) {
+        error = cause instanceof Error ? cause.message : "The Bridge stayed dark.";
+        if (!snapshot) readError = error;
+      }
     } finally {
       if (version === loadVersion) loading = false;
     }
@@ -276,18 +291,23 @@
 
   $effect(() => {
     const id = selected?.id;
+    const routeSessionId = sessionId;
     const run = focusRun;
     const ready = !loading;
     renderVersion;
-    if (!id || !run || !ready || !readingFocusedRun) {
-      focusedElement = undefined;
-      return;
+    if (!focusNavigation || focusNavigation.sessionId !== routeSessionId || focusNavigation.run !== run) {
+      focusNavigation = { sessionId: routeSessionId, run, handled: false };
+      if (!run) stickToTail = true;
     }
+    const navigation = focusNavigation;
+    if (!id || !run || !ready || navigation.handled) return;
     void tick().then(() => {
-      if (destroyed || selected?.id !== id || focusRun !== run || !readingFocusedRun) return;
+      if (destroyed || selected?.id !== id || sessionId !== routeSessionId || focusRun !== run ||
+          loading || focusNavigation !== navigation || navigation.handled) return;
+      // A Run hint belongs to this navigation, even when its turn is unavailable.
+      navigation.handled = true;
       const target = thread?.querySelector<HTMLElement>(`[data-run-id="${run}"]`);
-      if (!target || target === focusedElement) return;
-      focusedElement = target;
+      if (!target) return;
       stickToTail = false;
       target.focus({ preventScroll: true });
       target.scrollIntoView?.({ block: "center" });
@@ -836,7 +856,12 @@
       role="region"
       tabindex="0"
     >
-      {#if loading}
+      {#if readError && !snapshot}
+        <div class="turn__fault" role="alert">{readError}</div>
+        <button class="rune-btn" type="button" disabled={loading} aria-busy={loading} onclick={retryRead}>
+          {loading ? "Reading…" : "Retry read"}
+        </button>
+      {:else if loading && !selected}
         <p class="bridge-loading" role="status">Loading conversation…</p>
         <div class="mist" aria-hidden="true"></div><div class="mist" aria-hidden="true"></div>
       {:else if error && !selected}
@@ -866,7 +891,7 @@
             <p>Offer a question, an idea, or a piece of work.</p>
           </div>
         {/if}
-        {#each selected.turns ?? [] as turn (turn)}
+        {#each selected.turns ?? [] as turn (turn.run_id ? JSON.stringify([selected.id, turn.role, turn.run_id]) : turn)}
           <article
             class:turn--user={turn.role === "user"}
             class:turn--agent={turn.role === "agent"}

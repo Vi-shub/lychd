@@ -171,13 +171,14 @@ The repository contains one authoritative LychD system and separately tooled del
 `src/lychd/**` is the Python distribution and domain source. Native first-party Composition truth
 enters `src/lychd/compositions/<identity>/**`; a Portfolio page alone remains design, not delivery.
 
-`clients/<target>/**` contains complete client project roots. A client may own presentation,
+A delivery client keeps its complete project root under `clients/<target>/**`. It may own presentation,
 platform integration, connection mechanics, and bounded local interaction state, but its separate
 toolchain does not grant it Composition records, policy, effect authority, or finish judgment. The
 web project lives at `clients/web/**`; `clients/android/**` is the reserved Android project root.
-Each project keeps the source layout native to its toolchain, including `clients/web/src/**` and
-Android's `clients/android/app/src/main/**`. Repeated inner `src` names express separate build
-ownership rather than one mixed repository source tree.
+Each project keeps the source layout native to its toolchain. The current web source lives at
+`clients/web/src/**`; when Android implementation begins, its application module will use
+`clients/android/app/src/main/**`. Repeated inner `src` names express separate build ownership
+rather than one mixed repository source tree.
 
 ## Consequences
 

@@ -10,8 +10,10 @@ No database server, container, endpoint, or model weights are exercised.
 # pyright: reportPrivateUsage=false
 from __future__ import annotations
 
+import asyncio
 import json
-from dataclasses import replace
+from contextlib import asynccontextmanager, suppress
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
@@ -40,9 +42,10 @@ from lychd.domain.animation.schemas import SoulstoneConfig
 from lychd.domain.animation.services.adapters.surfaces import SoulstoneAnimator
 from lychd.domain.cortex.context import ContextOrchestrator
 from lychd.domain.cortex.dispatcher import Dispatcher
+from lychd.domain.cortex.engine import RunEngine
 from lychd.domain.cortex.events import RunEventKind
 from lychd.domain.cortex.ledger import DbRunLedger, _intent_payload
-from lychd.domain.cortex.runs import RunStatus
+from lychd.domain.cortex.runs import RunDeliveryState, RunStatus
 from lychd.domain.cortex.stasis import DurableStasisPhylactery, InMemoryStasisStore
 from lychd.ghouls.runs import perform_run
 from tests.agents.fakes import FakeDispatcher
@@ -55,7 +58,7 @@ from tests.capability_workflows import (
 from tests.integration.test_offline_recovery_workflow import _Boot, _boot
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import AsyncGenerator, Sequence
     from pathlib import Path
 
     from pydantic_ai.toolsets import AbstractToolset
@@ -222,6 +225,206 @@ async def test_consent_resume_reacquires_the_exact_binding_after_configuration_r
     events = await restored.ledger.list_events(handle.run_id)
     dispatches = [event.data for event in events if event.kind is RunEventKind.DISPATCH]
     assert dispatches == (["z:chat:shared"] if corruption else ["z:chat:shared", "z:chat:shared"])
+
+
+@dataclass
+class _WorkerAbort:
+    """Acknowledge the inert broker abort only after its actual worker has exited."""
+
+    worker: asyncio.Task[dict[str, Any]]
+    fail_ack: bool
+    entered: asyncio.Event = field(default_factory=asyncio.Event)
+    release: asyncio.Event = field(default_factory=asyncio.Event)
+
+    async def __call__(self, job: Any, error: str, /, ttl: float = 5) -> None:
+        _ = (error, ttl)
+        if not self.worker.done():
+            self.worker.cancel()
+        with suppress(asyncio.CancelledError):
+            await self.worker
+        self.entered.set()
+        await self.release.wait()
+        if self.fail_ack:
+            msg = "inert broker lost abort acknowledgement"
+            raise ConnectionError(msg)
+        job.status = "aborted"
+
+
+async def _reach_boundary(task: asyncio.Task[Any], event: asyncio.Event) -> None:
+    """Observe an explicit pause or surface early task failure without a timing guess."""
+    boundary = asyncio.create_task(event.wait())
+    try:
+        await asyncio.wait((task, boundary), return_when=asyncio.FIRST_COMPLETED)
+        if task.done():
+            await task
+        assert event.is_set()
+    finally:
+        boundary.cancel()
+        with suppress(asyncio.CancelledError):
+            await boundary
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("after_lease", [False, True], ids=["checkpoint-transition", "active-lease"])
+@pytest.mark.parametrize("lose_ack", [False, True], ids=["acknowledged", "lost-acknowledgement"])
+async def test_reconstructed_consent_cancel_retains_checkpoint_until_terminal_commit(  # noqa: PLR0915
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    after_lease: bool,
+    lose_ack: bool,
+) -> None:
+    """A real resumed worker must exit before abort acknowledgement without deleting recovery truth."""
+    executed: list[str] = []
+    rounds: list[bool] = []
+    first = _boot(executed=executed, model_rounds=rounds)
+    _select(first, "z:chat:shared")
+    initial_scenario = _attach_real_dispatcher(first)
+    session = await first.sessions.create_session()
+    handle = await first.engine.submit(Intent(session_id=session.id, prompt="Record the reviewed note."))
+    run_id = handle.run_id
+    await perform_run({"run_substrate": first.substrate}, run_id=run_id, enqueue_seq=0)
+    parked = await first.ledger.get(run_id)
+    assert parked is not None
+    assert parked.status is RunStatus.AWAITING_CONSENT
+    assert parked.consent_id is not None
+    assert initial_scenario.leases.active() == []
+    assert executed == []
+    assert rounds == [False]
+    image = tmp_path / "consent-cancellation.json"
+    await first.image(image, run_id=run_id)
+
+    restored = _boot(executed=executed, model_rounds=rounds, image_path=image)
+    _select(restored, None)
+    scenario = _attach_real_dispatcher(restored)
+    engine = RunEngine(
+        ledger=restored.ledger,
+        bus=restored.bus,
+        workflows=restored.substrate.workflows,
+        queue_router=restored.engine.queue_router,
+        queues=restored.substrate.queues,
+        cancellations=restored.substrate.cancellations,
+        stasis_store=restored.checkpoints,
+        consents=restored.consents,
+        release_context=restored.substrate.context.release,
+    )
+    document = await restored.checkpoints.load(run_id)
+    assert document is not None
+    cursor_id = next(snapshot["id"] for snapshot in document if snapshot["status"] == "created")
+    entered = asyncio.Event()
+    release = asyncio.Event()
+    if after_lease:
+        lease_grant = restored.substrate.dispatcher.lease_grant
+
+        @asynccontextmanager
+        async def pause_with_lease(**kwargs: Any) -> AsyncGenerator[Any]:
+            async with lease_grant(**kwargs) as grant:
+                entered.set()
+                await release.wait()
+                yield grant
+
+        monkeypatch.setattr(restored.substrate.dispatcher, "lease_grant", pause_with_lease)
+    else:
+        replace_checkpoint = restored.checkpoints.replace
+
+        async def pause_before_running(checkpoint_run_id: str, snapshots: list[Any]) -> None:
+            if snapshots[-1]["id"] == cursor_id and snapshots[-1]["status"] == "running":
+                entered.set()
+                await release.wait()
+            await replace_checkpoint(checkpoint_run_id, snapshots)
+
+        monkeypatch.setattr(restored.checkpoints, "replace", pause_before_running)
+
+    deletion_statuses: list[RunStatus] = []
+    delete_checkpoint = restored.checkpoints.delete
+
+    async def record_delete(checkpoint_run_id: str) -> None:
+        current = await restored.ledger.get(checkpoint_run_id)
+        assert current is not None
+        deletion_statuses.append(current.status)
+        await delete_checkpoint(checkpoint_run_id)
+
+    monkeypatch.setattr(restored.checkpoints, "delete", record_delete)
+    await restored.consents.decide(parked.consent_id, approved=True, decided_by="magus")
+    await engine.resume_consent(parked.consent_id)
+    worker = asyncio.create_task(
+        perform_run({"run_substrate": restored.substrate}, run_id=run_id, enqueue_seq=1, resume=False)
+    )
+    abort = _WorkerAbort(worker, fail_ack=lose_ack)
+    monkeypatch.setattr(restored.queue, "abort", abort)
+    cancellation: asyncio.Task[None] | None = None
+    try:
+        await _reach_boundary(worker, entered)
+        active = await restored.ledger.get(run_id)
+        assert active is not None
+        assert active.status is RunStatus.RUNNING
+        assert active.enqueue_seq == 1
+        assert len(scenario.leases.active()) == int(after_lease)
+        snapshots = await restored.checkpoints.load(run_id)
+        assert snapshots is not None
+        assert snapshots[-1]["id"] == cursor_id
+        assert snapshots[-1]["status"] == ("running" if after_lease else "pending")
+        assert snapshots[-1]["node"]["node_id"] == "AwaitConsent"
+        assert snapshots[-1]["state"]["pending_consent_id"] == parked.consent_id
+        assert snapshots[-1]["state"]["capability_key"] == "z:chat:shared"
+
+        cancellation = asyncio.create_task(engine.cancel(run_id))
+        await _reach_boundary(cancellation, abort.entered)
+        cancelling = await restored.ledger.get(run_id)
+        assert cancelling is not None
+        assert cancelling.status is RunStatus.CANCELLING
+        assert worker.cancelled()
+        assert scenario.leases.active() == []
+        assert await restored.checkpoints.exists(run_id)
+        assert deletion_statuses == []
+        assert await restored.ledger.latest_event(run_id, RunEventKind.DONE) is None
+        abort.release.set()
+        if lose_ack:
+            with pytest.raises(RuntimeError, match="Cancellation containment failed"):
+                await cancellation
+            failed = await restored.ledger.get(run_id)
+            assert failed is not None
+            assert failed.status is RunStatus.CANCELLING
+            assert await restored.checkpoints.exists(run_id)
+            assert deletion_statuses == []
+            assert await restored.ledger.latest_event(run_id, RunEventKind.DONE) is None
+            abort.fail_ack = False
+            await engine.cancel(run_id)
+        else:
+            await cancellation
+    finally:
+        abort.release.set()
+        worker.cancel()
+        await asyncio.gather(worker, return_exceptions=True)
+        if cancellation is not None:
+            await asyncio.gather(cancellation, return_exceptions=True)
+
+    terminal = await restored.ledger.get(run_id)
+    assert terminal is not None
+    assert terminal.status is RunStatus.CANCELLED
+    assert terminal.pattern_manifest == parked.pattern_manifest
+    assert terminal.admitted_capability_key == "z:chat:shared"
+    assert terminal.consent_id == parked.consent_id
+    assert terminal.enqueue_seq == 1
+    assert terminal.started_at == active.started_at
+    assert deletion_statuses == [RunStatus.CANCELLED]
+    assert not await restored.checkpoints.exists(run_id)
+    assert restored.substrate.context.get(run_id) is None
+    assert scenario.leases.active() == []
+    assert executed == []
+    assert rounds == [False]
+    delivery = await restored.ledger.get_delivery(run_id, enqueue_seq=1)
+    assert delivery is not None
+    assert delivery.state is RunDeliveryState.SETTLED
+    events = await restored.ledger.list_events(run_id)
+    assert [event.data for event in events if event.kind is RunEventKind.DONE] == ["cancelled"]
+    assert len({event.seq for event in events}) == len(events)
+    for enqueue_seq in (0, 1):
+        stale = await perform_run({"run_substrate": restored.substrate}, run_id=run_id, enqueue_seq=enqueue_seq)
+        assert stale["status"] == "skipped"
+    attempts = len(restored.queue.attempts)
+    await engine.resume_consent(parked.consent_id)
+    assert len(restored.queue.attempts) == attempts
 
 
 @pytest.mark.parametrize("key", ["z:chat:shared", None], ids=["bound", "legacy"])

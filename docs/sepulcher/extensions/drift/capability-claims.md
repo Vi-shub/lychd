@@ -51,8 +51,9 @@ untested subjects.
 A fresh admitted claim may inform [Dispatcher](../../../adr/22-dispatcher.md#resolution) only
 after Ward, compatibility, availability, privacy, and authority have produced an eligible set.
 Dispatcher retains selection and lease ownership. Its current readiness order prefers open
-admission, then active over inactive and warm over merely active, with stable name and capability
-key tie-breakers; it does not optimize quality or price. No evaluation-driven ordering is delivered.
+admission, then non-error state, then active over inactive and warm over merely active, with stable
+name and capability key tie-breakers; it does not optimize quality or price. No evaluation-driven
+ordering is delivered.
 
 For [Toll](../toll.md), retained cost and latency evidence may inform spending policy. It neither
 authorizes payment nor supplies a budget, signature, or settlement. A cheaper local success can be

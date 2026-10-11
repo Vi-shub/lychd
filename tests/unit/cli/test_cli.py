@@ -166,8 +166,8 @@ async def test_reactor_consumer_uses_the_configured_journal_path(
         orchestration=SimpleNamespace(switching=switching),
     )
     extensions = SimpleNamespace(
-        runtime_adapters=(),
-        portal_definitions=(),
+        soulstone_registrations=(),
+        portal_registrations=(),
     )
     runes = RuneRegistry(())
     declarations = _animator_declarations()
@@ -211,8 +211,8 @@ async def test_reactor_consumer_uses_the_configured_journal_path(
 
     registry_type.assert_called_once_with(
         declarations=declarations,
-        runtime_adapters=extensions.runtime_adapters,
-        portal_definitions=extensions.portal_definitions,
+        soulstone_registrations=extensions.soulstone_registrations,
+        portal_registrations=extensions.portal_registrations,
     )
     reactor_type.assert_called_once_with(
         registry,
@@ -599,6 +599,28 @@ def test_litestar_entrypoint_ignores_ambient_foreign_app(
         (("-dr",), {}, "does not support Litestar reload mode"),
         (("-dPRsrc",), {}, "does not support Litestar reload mode"),
         ((), {"LITESTAR_RELOAD": "enabled"}, "does not support Litestar reload mode"),
+        (("--reload-paths", "."), {}, "does not support Litestar reload mode"),
+        (("--reload-paths=.",), {}, "does not support Litestar reload mode"),
+        ((), {"GRANIAN_RELOAD_PATHS": "."}, "does not support GRANIAN_RELOAD_PATHS"),
+        ((), {"GRANIAN_RELOAD_INCLUDE": "*.py"}, "does not support GRANIAN_RELOAD_INCLUDE"),
+        ((), {"GRANIAN_RELOAD_EXCLUDE": "*.tmp"}, "does not support GRANIAN_RELOAD_EXCLUDE"),
+        (("--metrics", "--metrics-address=0.0.0.0"), {}, "does not support the Granian metrics listener"),
+        (("--no-metrics", "--metrics"), {}, "does not support the Granian metrics listener"),
+        (
+            ("--metrics", "--granian-access-log-fmt", "--no-metrics"),
+            {},
+            "does not support the Granian metrics listener",
+        ),
+        (
+            ("--granian-access-log-fmt", "--no-metrics"),
+            {"GRANIAN_METRICS_ENABLED": "true"},
+            "does not support the Granian metrics listener",
+        ),
+        (
+            (),
+            {"GRANIAN_METRICS_ENABLED": "true", "GRANIAN_METRICS_ADDRESS": "0.0.0.0"},  # noqa: S104
+            "does not support the Granian metrics listener",
+        ),
     ],
 )
 def test_serve_rejects_server_policy_failures_before_delegating(
@@ -610,6 +632,7 @@ def test_serve_rejects_server_policy_failures_before_delegating(
     expected_message: str,
 ) -> None:
     delegated = mocker.patch("lychd.__main__._run_litestar")
+    application = mocker.patch("lychd.app.create_app")
     for variable, value in environment.items():
         monkeypatch.setenv(variable, value)
 
@@ -618,6 +641,123 @@ def test_serve_rejects_server_policy_failures_before_delegating(
     assert result.exit_code != 0
     assert expected_message in result.output
     delegated.assert_not_called()
+    application.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("arguments", "metrics_environment"),
+    [
+        (("--no-metrics",), "true"),
+        (("--metrics", "--no-metrics"), "true"),
+        (("--metrics-address=0.0.0.0",), "false"),
+        ((), " f "),
+    ],
+)
+def test_serve_delegates_disabled_metrics_configuration(
+    runner: CliRunner,
+    mocker: MockerFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    arguments: tuple[str, ...],
+    metrics_environment: str,
+) -> None:
+    delegated = mocker.patch("lychd.__main__._run_litestar")
+    monkeypatch.setenv("GRANIAN_METRICS_ENABLED", metrics_environment)
+    monkeypatch.setenv("GRANIAN_METRICS_ADDRESS", "0.0.0.0")  # noqa: S104 - inactive exporter setting under test
+
+    result = runner.invoke(cli, ["serve", *arguments])
+
+    assert result.exit_code == 0
+    delegated.assert_called_once_with(("run", *arguments), prog_name="lychd serve")
+
+
+@pytest.mark.parametrize("previous_metrics", [None, "true"])
+@pytest.mark.parametrize("delegate_fails", [False, True])
+def test_serve_preserves_listener_policy_through_litestar_dotenv_loading(
+    runner: CliRunner,
+    mocker: MockerFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    previous_metrics: str | None,
+    *,
+    delegate_fails: bool,
+) -> None:
+    """Real late dotenv loading cannot change admitted native listener authority."""
+    import sys
+
+    from litestar import Litestar
+    from litestar.cli.main import litestar_group
+    from litestar_granian import GranianPlugin
+    from litestar_granian.cli import run_command
+
+    import __main__
+    from lychd.interface.server_policy import evaluate_server_runtime_policy
+
+    alternate_listener_keys = (
+        "LITESTAR_FILE_DESCRIPTOR",
+        "GRANIAN_FILE_DESCRIPTOR",
+        "LITESTAR_UNIX_DOMAIN_SOCKET",
+        "GRANIAN_UDS",
+    )
+    socket_path = tmp_path / "listener.sock"
+    (tmp_path / ".env").write_text(
+        "GRANIAN_METRICS_ENABLED=true\nGRANIAN_METRICS_ADDRESS=0.0.0.0\nLYCHD_TEST_DOTENV_LOADED=yes\n"
+        "LITESTAR_FILE_DESCRIPTOR=9\nGRANIAN_FILE_DESCRIPTOR=9\n"
+        f"LITESTAR_UNIX_DOMAIN_SOCKET={socket_path}\nGRANIAN_UDS={socket_path}\n",
+    )
+    monkeypatch.chdir(tmp_path)
+    # Match python -c discovery while retaining the real dotenv loader and parser.
+    monkeypatch.delattr(__main__, "__file__", raising=False)
+    monkeypatch.setattr(sys, "path", list(sys.path))
+    monkeypatch.setattr(litestar_group, "_prepare_done", False)
+    mocker.patch.dict("litestar.cli.main.litestar_group.commands")
+    mocker.patch.dict(os.environ, {}, clear=True)
+    if previous_metrics is not None:
+        os.environ["GRANIAN_METRICS_ENABLED"] = previous_metrics
+        for variable in alternate_listener_keys:
+            os.environ[variable] = ""
+    mocker.patch(
+        "lychd.config.settings.root.get_settings",
+        return_value=SimpleNamespace(server=SimpleNamespace(port=8000)),
+    )
+    observed: dict[str, object] = {}
+
+    def isolated_application() -> Litestar:
+        evaluate_server_runtime_policy(environment=os.environ, default_listener_port=8000)
+        observed["factory_metrics"] = os.environ.get("GRANIAN_METRICS_ENABLED")
+        observed["factory_alternates"] = {variable: os.environ.get(variable) for variable in alternate_listener_keys}
+        observed["dotenv_loaded"] = os.environ.get("LYCHD_TEST_DOTENV_LOADED")
+        return Litestar(plugins=[GranianPlugin()])
+
+    def capture_server_options(**options: object) -> None:
+        observed["parsed_metrics"] = options["metrics_enabled"]
+        observed["metrics_address"] = options["metrics_address"]
+        observed["fd"] = options["fd"]
+        observed["uds"] = options["uds"]
+        if delegate_fails:
+            msg = "inert server callback failure"
+            raise RuntimeError(msg)
+
+    application = mocker.patch("lychd.app.create_app", side_effect=isolated_application)
+    mocker.patch.object(run_command, "callback", capture_server_options)
+
+    result = runner.invoke(cli, ["serve", *(["--no-metrics"] if previous_metrics else [])])
+
+    assert result.exit_code == (1 if delegate_fails else 0), result.output
+    application.assert_called_once_with()
+    assert observed == {
+        "factory_metrics": "false",
+        "factory_alternates": dict.fromkeys(alternate_listener_keys, ""),
+        "dotenv_loaded": "yes",
+        "parsed_metrics": False,
+        "metrics_address": "0.0.0.0",  # noqa: S104 - inactive exporter setting under test
+        "fd": None,
+        "uds": None,
+    }
+    assert os.environ.get("GRANIAN_METRICS_ENABLED") == previous_metrics
+    for variable in alternate_listener_keys:
+        assert os.environ.get(variable) == ("" if previous_metrics is not None else None)
+    assert "LITESTAR_HOST" not in os.environ
+    assert "LITESTAR_PORT" not in os.environ
 
 
 def test_database_waits_before_delegating(runner: CliRunner, mocker: MockerFixture) -> None:

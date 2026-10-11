@@ -254,7 +254,7 @@ class ContextOrchestrator:
         return [message for group in selected for message in group]
 
     def _history_groups(self, history: list[Any]) -> list[list[Any]]:
-        """Group messages by Pydantic run id, with a safe legacy request boundary."""
+        """Group messages by run id, using user prompts as legacy turn boundaries."""
         groups: list[list[Any]] = []
         current: list[Any] = []
         current_run_id: str | None = None
@@ -262,12 +262,18 @@ class ContextOrchestrator:
             payload = cast("dict[str, Any]", message) if isinstance(message, dict) else {}
             run_id = payload.get("run_id")
             typed_run_id = str(run_id) if run_id else None
-            is_request = payload.get("kind") == "request" or payload.get("role") == "user"
+            # Tool results stay with their initiating prompt, even when a resume adds user text.
+            parts = [cast("dict[str, Any]", part) for part in payload.get("parts", []) if isinstance(part, dict)]
+            is_user_request = payload.get("role") == "user" or (
+                payload.get("kind") == "request"
+                and any(part.get("part_kind") == "user-prompt" for part in parts)
+                and not any(part.get("part_kind") in {"tool-return", "retry-prompt"} for part in parts)
+            )
             boundary = bool(
                 current
                 and (
                     (typed_run_id is not None and typed_run_id != current_run_id)
-                    or (typed_run_id is None and is_request)
+                    or (typed_run_id is None and is_user_request)
                 )
             )
             if boundary:

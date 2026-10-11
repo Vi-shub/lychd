@@ -47,9 +47,9 @@ The [supported host policy](adr/08-containers.md#supported-host-policy) requires
 open-source Linux host stack under operator control. macOS and Windows are unsupported hosting
 platforms, including deployments in Linux guests on those hosts.
 
-Before writing configuration, establish Linux, rootless Podman **5.4 or newer**, a responding
-systemd user manager, NVIDIA CDI, Git, and uv. Do not prefix LychD, Podman, or `systemctl --user`
-commands with `sudo`.
+Before writing configuration, establish Linux with cgroup v2, rootless Podman **5.4 or newer**,
+an effective Quadlet user generator **5.4 or newer**, a responding systemd user manager, NVIDIA
+CDI, Git, and uv. Do not prefix LychD, Podman, or `systemctl --user` commands with `sudo`.
 
 ```bash
 uname -s
@@ -71,8 +71,10 @@ loginctl enable-linger "$USER"
 loginctl show-user "$USER" --property=Linger
 ```
 
-Require `Linger=yes` before proceeding. An absent device, older Podman, or failed host probe needs
-repair through the distribution or NVIDIA documentation before this rite can continue.
+Require `Linger=yes` before proceeding. The initialization report below also checks cgroup v2
+and the effective Quadlet user generator; the Podman CLI version alone cannot establish those
+requirements. An absent device, older Podman or Quadlet, or failed required host probe needs repair
+through the distribution or NVIDIA documentation before this rite can continue.
 
 Name the four paths that the remaining commands will use:
 
@@ -126,7 +128,7 @@ podman image inspect localhost/lychd:dev --format '{{.Id}}'
 
 Help exposes `init`, `bind`, `start`, `stop`, `status` (with exact alias `st`), `logs`, `access`, and `del`.
 There is no public `run` verb. Image inspection must return an ID. If construction fails, start
-with the first failed step and the supported Python range `>=3.12,<3.15`; a different package or
+with the first failed step and the supported Python range `>=3.12,<3.16`; a different package or
 image would abandon the source agreement this movement establishes.
 
 ## The Inscription — create configuration and data homes {#the-inscription}
@@ -135,8 +137,9 @@ image would abandon the source agreement this movement establishes.
 fresh-host procedure. Existing active Runes or custom extensions change the installation being tested and need
 their own acceptance plan.
 
-Preview the inscription. Continue to the effect only when the plan ends with
-`Initialization plan is safe`:
+Preview the inscription. Resolve required `HOST` failures in its readiness report before
+continuing. The plan must also end with `Initialization plan is safe`; that message establishes
+layout safety and does not establish host readiness:
 
 ```bash
 uv run --extra postgres-binary lychd init --dry-run

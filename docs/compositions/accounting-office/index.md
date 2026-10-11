@@ -117,7 +117,7 @@ A missing completion record leaves the affected allocation unresolved. An invoic
 
 Asset/subscription inventory here concerns accounting value, rights, and renewal obligations. Physical warehouse custody, stock counting, and IoT remain with their actual owner. Accounting Office consumes exact settled count/valuation evidence and records its accounting interpretation. A Suite becomes necessary only when a promised result must coordinate several owners' live Invocations; [Choosing a Home](../choosing-a-home.md) retains that routing test.
 
-Cash strategy and tactics produce scenarios with assumptions, liquidity constraints, and uncertainty. A Broker client handoff is separate: a report provides neither trading agency nor payment authority. An external accountant or filing system remains an unmanaged external precondition unless an exact admitted integration says otherwise. No foreign reference lends credentials, lifecycle control, or settlement authority.
+Cash strategy and tactics produce scenarios with assumptions, liquidity constraints, and uncertainty. Any proposed [Broker](../broker/index.md) client handoff must fit its admitted insurance-service scope; a report provides neither trading agency nor payment authority. An external accountant or filing system remains an unmanaged external precondition unless an exact admitted integration says otherwise. No foreign reference lends credentials, lifecycle control, or settlement authority.
 
 ## Fixtures that can defeat the proposal
 

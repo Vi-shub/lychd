@@ -354,9 +354,11 @@ class Transmuter:
     def _normalize_contribution(
         contribution: QuadletContribution,
     ) -> QuadletContribution:
-        """Detach returned extension values from contributor-owned references."""
+        """Revalidate returned container fields and detach contributor-owned references."""
         return QuadletContribution(
-            containers=tuple(container.model_copy(deep=True) for container in contribution.containers),
+            containers=tuple(
+                QuadletContainer.model_validate(container.model_dump()) for container in contribution.containers
+            ),
             pod_ports=tuple(contribution.pod_ports),
         )
 

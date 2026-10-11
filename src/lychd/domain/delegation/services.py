@@ -201,6 +201,25 @@ class InMemoryDelegatedAgentJobStore:
             row.append(DelegatedAgentEventKind.STATUS_CHANGED)
             return row.view(), True
 
+    async def settle_acceptance_failure(
+        self,
+        job_id: str,
+        result: DelegatedAgentResult,
+    ) -> tuple[DelegatedAgentJob, bool]:
+        """Preserve a committed winner or atomically settle uncertain PREPARING."""
+        result = validate_acceptance_failure_result(job_id, result)
+        async with self._lock:
+            row = self._require(job_id)
+            if row.status is DelegatedAgentJobStatus.RUNNING or row.status in TERMINAL_DELEGATED_AGENT_STATUSES:
+                return row.view(), False
+            if row.status is not DelegatedAgentJobStatus.PREPARING:
+                msg = f"Cannot settle acceptance failure for {job_id} from {row.status}."
+                raise IllegalDelegatedAgentTransitionError(msg)
+            row.result = result
+            row.status = DelegatedAgentJobStatus.LOST
+            row.append(DelegatedAgentEventKind.RESULT_ADOPTED)
+            return row.view(), True
+
     async def adopt(self, job_id: str, result: DelegatedAgentResult) -> tuple[DelegatedAgentJob, bool]:
         """Adopt the first terminal result; duplicate or late results are inert."""
         async with self._lock:
@@ -266,12 +285,13 @@ class DelegatedAgentCoordinator:
 
         Cancellation before ``runtime.start`` returns leaves the external outcome
         indeterminate and settles ``LOST``. Once start returns, runtime acceptance
-        is established: the ``RUNNING`` transition finishes despite repeated caller
-        cancellation, then the cancellation propagates. An unclassified exception
-        from start also settles ``LOST``; only failures before invoking the runtime
-        establish ``FAILED`` without an adapter-specific rejection receipt.
-        Diagnostic projection respects the result bound without replacing the
-        original exception re-raised after settlement.
+        is established: finish the original ``RUNNING`` write despite cancellation.
+        If it fails, one locked conditional settlement preserves committed RUNNING
+        or terminal truth, or adopts LOST only from PREPARING. Newly adopted LOST
+        propagates the write error; known disposition precedes caller cancellation.
+        A failed settlement remains unresolved and retains the initiating error.
+        An unclassified start exception also settles ``LOST``; only failures before
+        invoking the runtime establish ``FAILED`` without a rejection receipt.
         """
         async with self._locked(f"request:{request.request_id}"):
             existing = await self._store.get_by_request(request.request_id)
@@ -327,15 +347,30 @@ class DelegatedAgentCoordinator:
                     await complete_under_cancellation(failure_settlement)
                     raise
                 raise
-            running_transition = asyncio.create_task(
-                self._store.transition(ref.job_id, DelegatedAgentJobStatus.RUNNING)
-            )
+            acceptance = asyncio.create_task(self._record_acceptance(ref.job_id))
             try:
-                await asyncio.shield(running_transition)
-            except asyncio.CancelledError:
-                await complete_under_cancellation(running_transition)
-                raise
+                write_error, adopted_lost = await asyncio.shield(acceptance)
+            except asyncio.CancelledError as interruption:
+                write_error, _adopted_lost = await complete_under_cancellation(acceptance)
+                raise interruption from write_error
+            if adopted_lost and write_error is not None:
+                raise write_error
             return job.ref
+
+    async def _record_acceptance(self, job_id: str) -> tuple[Exception | None, bool]:
+        """Finish one write and, on failure, resolve it under the store's job lock."""
+        try:
+            await self._store.transition(job_id, DelegatedAgentJobStatus.RUNNING)
+        except Exception as write_error:  # noqa: BLE001 - any ordinary write failure requires locked disposition
+            error = bound_result_text(str(write_error) or type(write_error).__name__, result_field="error")
+            result = DelegatedAgentResult(job_id=job_id, status=DelegatedAgentJobStatus.LOST, error=error)
+            try:
+                _job, adopted_lost = await self._store.settle_acceptance_failure(job_id, result)
+            except BaseException as settlement_error:
+                # Keep the initiating write even if caller interruption becomes context.
+                raise settlement_error from write_error
+            return write_error, adopted_lost
+        return None, False
 
     async def get(self, job_id: str) -> DelegatedAgentJob | None:
         return await self._store.get(job_id)
@@ -490,3 +525,15 @@ def _validate_ref(request: DelegatedAgentRequest, ref: DelegatedAgentJobRef) -> 
     if observed != expected:
         msg = "Delegated runtime returned a job reference that does not match its request identity."
         raise ValueError(msg)
+
+
+def validate_acceptance_failure_result(job_id: str, result: DelegatedAgentResult) -> DelegatedAgentResult:
+    """Revalidate the LOST shape and identity before either store can mutate it."""
+    result = DelegatedAgentResult.model_validate(result.model_dump())
+    if result.job_id != job_id:
+        msg = f"Result for job {result.job_id!r} cannot settle tracked job {job_id!r}."
+        raise ValueError(msg)
+    if result.status is not DelegatedAgentJobStatus.LOST:
+        msg = "Acceptance failure settlement requires a LOST result."
+        raise ValueError(msg)
+    return result

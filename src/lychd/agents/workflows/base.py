@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from pydantic_graph import BaseNode, Graph
 
     from lychd.agents.router import Intent
+    from lychd.agents.services import WorkflowServices
 
 # Optional caller-owned emphasis; the static Loom does not infer active stations.
 HIGHLIGHT_CSS = "fill:#39ff8a33,stroke:#39ff8a,stroke-width:2px"
@@ -278,6 +279,7 @@ class Workflow:
     # An executable revision may require checkpoint values to match its durable
     # admission. The worker binds the Intent; the runner checks each loaded state.
     validate_state: Callable[[Intent, BaseModel], None] | None = None
+    bind_deps: Callable[[WorkflowServices], Any] | None = None
     # Derive checkpoint policy once from the graph's Gate and delegated stations.
     durable: bool = field(init=False)
 

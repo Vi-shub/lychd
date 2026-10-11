@@ -39,9 +39,11 @@ A complete change can cross several evidence boundaries. Keep their results sepa
 | Python umbrella | Non-mutating lint, format, strict typing, and ordinary tests. Applying formatting requires an explicit command. |
 | Disposable PostgreSQL | Explicit database and lifecycle receipts against the selected container profile. |
 | Altar check and build | Generated OpenAPI agreement, client checks, and the compiled static projection under `src/lychd/public/`. |
+| Companion interaction | Kotlin/JVM compilation and client-local state traces under the pinned Gradle harness; no Android device or native service qualification. |
+| Companion Android | Application compilation, lint and ViewModel checks; separate instrumented Activity checks establish behavior only on the selected emulator or device. |
 | Documentation build | The published Hexanomicon can be generated from its maintained source and navigation. |
 
-The Python umbrella does not silently run frontend work. Both frontend gates regenerate the API
+The Python umbrella does not silently run frontend or Android work. Both frontend gates regenerate the API
 contract; the build also changes the tracked static projection, which belongs in review with the
 source that produced it. A generated diff guard catches disagreement.
 
@@ -57,8 +59,16 @@ a green core check does not bind release archives or prove installation on a hos
 single client vocabulary. Bun, a second lock/runtime, Tailwind, or another styling compiler must
 meet that Covenant's reopening gate before admission. The client currently uses strict
 TypeScript, `svelte-check`, and Vitest/jsdom, with native CSS inspected directly. Editor
-configuration routes Markdown through `markdownlint`, and TOML, YAML, and JSON through Prettier;
-editor assistance is not another CI receipt.
+configuration selects `markdownlint` for Markdown and Red Hat YAML for YAML and Docker Compose.
+TOML and JSON have no repository-selected formatter; editor assistance is not another CI receipt.
+
+The Companion client keeps its Gradle wrapper, Kotlin and Android plugins, strict dependency
+locks, and artifact verification under the Android client root. JDK 17 runs both the SDK-free
+interaction checks and the opt-in application build. The
+[client README](https://github.com/hexanomicon/lychd/blob/main/clients/android/README.md) owns exact
+setup and commands. Wrapper and dependency changes carry their pins and checksums. A passing
+interaction test does not establish device behavior; application and device checks do not establish
+native Companion authority or qualify every declared Android version.
 
 ## Consequences
 

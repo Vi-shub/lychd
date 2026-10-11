@@ -13,6 +13,14 @@ Pin Pattern and adapter revisions, `managed` or `attached` mode, bot UUID, world
 
 An exact `BlockGrid@1` digest can express desired blocks. A Sponge `.schem` must first pass its pinned parser, offset and `DataVersion` policy, unsupported-state handling, and canonical-grid normalization. A closed procedural blueprint must pass its admitted interpreter. Neither a preview nor an offline round trip proves placement: Sentinel resolves each bounded effect against the current epoch, lease, inventory, capabilities, and mission policy.
 
+## Prepare one placement
+
+The first revision `2` placement profile consumes an already admitted one-placement blueprint mission. Blockworld's placement operation resolves trusted mission, blueprint, lease, and authority records before accepting the proposed step. Caller arguments cannot create admission. It validates the exact target, full block state, one-item inventory change, and expected cursor against those records and [Sentinel](sentinel.md)'s action contract, then freezes the command before Consent admission or checkpoint encoding. This operation adds no movement, equipment change, digging, or replanning to the placement.
+
+The placement profile validates the original wire values against its closed command grammar before coercion or encoding; booleans cannot stand in for integer coordinates, cursors, or epochs. Serialization and re-entry preserve that validated command.
+
+The same native action identity follows that command through preparation, judgment, issuance, and reconciliation. A changed security-relevant command requires a new preparation and Consent. Fresh corroborating evidence may support the unchanged command without rewriting it. An exact bounded Codex preauthorization may settle the call when its admitted effect policy permits; otherwise that policy determines live judgment or refusal. Neither path removes the checks immediately before issuance.
+
 ## What the inhabitant carries
 
 | Record | Meaning that survives the turn |

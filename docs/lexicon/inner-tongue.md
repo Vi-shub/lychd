@@ -95,7 +95,7 @@ and invalid data.
 
 ### Emotion and Will { #emotion-and-will }
 
-**E-motion**: a bounded life being moved within its own present
+[**E-motion**](../divination/transcendence/illumination.md#affect-value-and-viable-choice): a bounded life being moved within its own present
 [Flux](../sepulcher/lich/spirit/flux.md). Affect gives possibilities weight through disposition,
 salience, attraction, and aversion. Emotion is that situated weight becoming movement.
 **Feeling** is Cognizance of the movement as locally occurring: _I am moved_.

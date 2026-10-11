@@ -76,6 +76,77 @@ An expired planning budget cancels and settles the probe, invalidates interrupte
 and declines before effect. Cohort followers receive the same failure; a later request may retry
 with fresh observations. No lease or claim gate closes until planning succeeds.
 
+### Optional admission expiry
+
+A direct `POST /orchestrator/activate` request may supply `admission_timeout_s`. It is a
+finite, nonnegative duration, converted once at handler entry to an absolute cutoff in the owning
+event loop's monotonic clock. The internal manager input is an optional finite
+`admission_deadline` in that same clock. Neither queueing, replanning nor joining a cohort renews
+it. Zero is a valid already-expired request. Invalid durations or a nonfinite computed cutoff
+receive HTTP 400; an already-expired request declines before trace, cohort or probe mutation.
+Omission creates no caller-owned admission cutoff.
+
+Admission means this transition invokes its hard actuator or soft adapter activation, or confirms
+honest readiness on an observation-only path. Both the warm/open fast path and the post-arbitration
+NO_OP path require that confirmation. Static and already-WARMING waits remain subject to admission
+expiry until readiness is confirmed. The final invocation check follows synchronous observer
+publication, with no intervening callback or await before invocation. A refused soft invocation
+does not acquire the uncertainty of an activation it never called.
+
+A timely invocation or readiness confirmation retires admission expiry. Later observer delivery,
+HTTP completion or physical settlement may cross the old cutoff without replacing the result.
+Admission expiry promises neither a response by the cutoff nor physical host submission by that
+time. After invocation, existing explicit cancellation, readiness, compensation and containment
+law continues to govern the effect.
+
+The capability/priority cohort retains one owner. A follower's earlier expiry ends only its own
+wait; it cannot cancel the owner, inherit ownership or reopen gates. Owner expiry fixes the cohort
+refusal, delivered after required cleanup and gate handling. An omitted-option caller, including
+an internal caller, can join a timed owner and inherit that refusal. A timed follower can join an
+untimed owner without tightening the owner's budgets. Cohorts are not partitioned by deadline.
+A nonexpired follower joining already-admitted work joins its settlement. For a follower already
+waiting before admission, compare its cutoff with the actual admission boundary; delayed timer
+delivery does not admit a follower whose cutoff was reached first.
+
+HTTP admission refusal carries `code` and readable `detail`, with HTTP 409. The code is
+`transition_admission_expired` for owner or already-expired entry refusal, and
+`transition_admission_wait_expired` when only a follower's wait expires. Successful TransitionPlan
+responses and existing priority-threshold refusal responses retain their contracts. These codes
+create no public request lookup or durable deadline identity.
+
+### Local budgets and deadline precedence
+
+Admission expiry neither replaces nor restarts a local safety budget. Preflight and replan each
+retain their own complete-set planning budget. A drain wait retains the cutoff created by
+LeaseLedger after queue claims have paused and an uncleared lease set requires waiting; an
+already-clear set creates no drain timeout. Soft convergence starts its warm-up budget after
+drain and the verifying publication. Hard readiness starts after actuator settlement and the
+verifying publication. Each convergence budget retains one cutoff for its complete operation,
+including the hard transition's evictee-cold observations. Queue waiting creates none of these
+phase budgets.
+
+The earliest applicable original cutoff wins. A local planning, drain or convergence budget wins
+an exact tie with owner admission expiry. Expiry means `now >= cutoff`: timers wake the decision
+machinery, while successful phase completion and admission check the clock before retiring their
+cutoffs. Completed phases retire their budgets; cleanup cannot renew them. Strict enforcement
+also applies when admission expiry is omitted. This preserves budget starts, durations and error
+categories while closing delayed-callback races that could previously accept late success.
+
+While admission remains pending, fix the winning deadline cause and its nominal cutoff before
+cancellation begins required settlement. A winning local budget retains its existing failure
+classification; an earlier owner
+admission cutoff produces admission refusal. For an already-joined, unadmitted follower, an
+earlier follower cutoff ends its own wait; an earlier or equal winning cohort cutoff delivers the
+settled cohort failure. Once a deadline outcome is selected, callback ordering, cleanup duration,
+later publication or subsequent cancellation cannot replace the cohort's recorded cause.
+Repeated cancellation cannot interrupt required cleanup. Cancellation or disconnection of an
+outer caller's await may prevent delivery to that caller without rewriting the cohort outcome.
+An ordinary failure or explicit cancellation that initiated cleanup retains its existing
+classification even if a cutoff passes during cleanup. Keep these decisions in control state,
+not projection traces. This rule does not establish a general timestamp ordering among arbitrary
+exceptions or change cancellation after timely admission.
+
+
 ### Drain, change, and observe
 
 The actual rite is:

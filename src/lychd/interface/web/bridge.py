@@ -10,7 +10,13 @@ from uuid import NAMESPACE_URL, uuid5
 from litestar import Controller, Request, get, post
 from litestar.datastructures import State
 from litestar.di import NamedDependency
-from litestar.exceptions import NotFoundException, ValidationException
+from litestar.exceptions import (
+    ClientException,
+    NotFoundException,
+    PermissionDeniedException,
+    ServiceUnavailableException,
+    ValidationException,
+)
 from litestar.openapi.datastructures import ResponseSpec
 from litestar.params import FromPath, QueryParameter
 from litestar.response import ServerSentEvent, ServerSentEventMessage
@@ -20,10 +26,16 @@ from lychd.agents.router import Intent
 from lychd.agents.workflows import WorkflowRegistry, resolve_pinned_workflow
 from lychd.domain.codex.guards import requires_scopes
 from lychd.domain.codex.ledger import ConsentLedger
+from lychd.domain.codex.schemas import ConsentBindingConflict, NativeConsentBinding, require_native_binding
 from lychd.domain.cortex.engine import RunEngine
 from lychd.domain.cortex.events import InProcessEventBus, RunEvent, RunEventKind
 from lychd.domain.cortex.ledger import RunAdmissionConflictError
 from lychd.domain.cortex.runs import TERMINAL_STATUSES, RunRecord
+from lychd.domain.web.consent_reviews import (
+    ConsentReviewFailureError,
+    ConsentReviewForbiddenError,
+    ConsentReviewUnavailableError,
+)
 from lychd.domain.web.contracts import (
     BridgeSnapshot,
     BridgeTurnView,
@@ -90,6 +102,7 @@ async def _terminal_stream(
     run_id: str,
     *,
     cursor: int,
+    reviewer: Sigil,
 ) -> AsyncIterator[ServerSentEventMessage]:
     boundary = max(cursor, 0)
     reset_event = RunEvent(
@@ -99,12 +112,33 @@ async def _terminal_stream(
         kind=RunEventKind.RESYNC,
         data="snapshot_required",
     )
-    envelope = await projector.project(reset_event)
+    envelope = await projector.project(reset_event, reviewer=reviewer)
     yield ServerSentEventMessage(
         event=envelope.kind,
         data=envelope.model_dump_json(),
         id=str(envelope.seq),
     )
+
+
+async def _reviewed_binding(
+    projector: EventProjector, view: ConsentView, *, reviewer: Sigil, digest: str | None
+) -> NativeConsentBinding | None:
+    """Refuse stale clients and current owner ineligibility before any verdict."""
+    expected_binding = view.native_binding
+    if view.native_review_required:
+        if expected_binding is None or digest != expected_binding.digest:
+            raise ClientException(status_code=409, detail="Native review binding is unavailable or changed.")
+        try:
+            await projector.native_review(view, reviewer=reviewer, purpose="decide")
+        except ConsentReviewForbiddenError as exc:
+            raise PermissionDeniedException(detail="Native review judgment is forbidden.") from exc
+        except ConsentReviewUnavailableError as exc:
+            raise ClientException(status_code=409, detail="Native review is unavailable.") from exc
+        except ConsentReviewFailureError as exc:
+            raise ServiceUnavailableException(detail="Native review is temporarily unavailable.") from exc
+    elif digest is not None:
+        raise ClientException(status_code=409, detail="Legacy Consent does not accept a native review binding.")
+    return expected_binding
 
 
 class BridgeController(Controller):
@@ -115,6 +149,7 @@ class BridgeController(Controller):
     @get("", name="bridge:snapshot", operation_id="getBridgeSnapshot", guards=[requires_scopes("altar:read")])
     async def snapshot(
         self,
+        request: Request[Any, Any, Any],
         bridge_sessions: NamedDependency[SessionStorePort],
         consents: NamedDependency[ConsentLedger],
         run_bus: NamedDependency[InProcessEventBus],
@@ -134,6 +169,7 @@ class BridgeController(Controller):
             projector,
             workflows,
             state,
+            reviewer=cast("Sigil", request.user),
         )
 
     @get(
@@ -145,6 +181,7 @@ class BridgeController(Controller):
     )
     async def session_snapshot(
         self,
+        request: Request[Any, Any, Any],
         session_id: FromPath[str],
         bridge_sessions: NamedDependency[SessionStorePort],
         consents: NamedDependency[ConsentLedger],
@@ -166,6 +203,7 @@ class BridgeController(Controller):
             projector,
             workflows,
             state,
+            reviewer=cast("Sigil", request.user),
         )
 
     @get(
@@ -278,6 +316,7 @@ class BridgeController(Controller):
     )
     async def run_snapshot(
         self,
+        request: Request[Any, Any, Any],
         run_id: FromPath[str],
         bridge_sessions: NamedDependency[SessionStorePort],
         run_bus: NamedDependency[InProcessEventBus],
@@ -297,6 +336,7 @@ class BridgeController(Controller):
             projector,
             workflows,
             state,
+            reviewer=cast("Sigil", request.user),
         )
 
     @post(
@@ -309,6 +349,7 @@ class BridgeController(Controller):
     )
     async def cancel_run(
         self,
+        request: Request[Any, Any, Any],
         run_id: FromPath[str],
         bridge_sessions: NamedDependency[SessionStorePort],
         run_engine: NamedDependency[RunEngine],
@@ -332,6 +373,7 @@ class BridgeController(Controller):
             projector,
             workflows,
             state,
+            reviewer=cast("Sigil", request.user),
         )
 
     async def _run_projection(
@@ -342,6 +384,8 @@ class BridgeController(Controller):
         projector: EventProjector,
         workflows: WorkflowRegistry,
         state: State,
+        *,
+        reviewer: Sigil,
     ) -> RunProjectionSnapshot:
         """Project Run evidence, preferring retained terminal replies over live deltas."""
         manifest = run.pattern_manifest
@@ -406,7 +450,7 @@ class BridgeController(Controller):
         delegated_profile = delegated_job.ref.profile if delegated_job is not None else None
         delegated_status = delegated_job.status.value if delegated_job is not None else None
         if live is not None:
-            fragments = [(await projector.project(fragment)).payload for fragment in live.fragments]
+            fragments = [(await projector.project(fragment, reviewer=reviewer)).payload for fragment in live.fragments]
             cursor, content, activity = (
                 live.cursor,
                 live.content,
@@ -483,6 +527,7 @@ class BridgeController(Controller):
         state: State,
     ) -> ServerSentEvent:
         """Stream versioned JSON envelopes with replay and terminal synthesis."""
+        reviewer = cast("Sigil", request.user)
         from_seq = _parse_last_event_id(request.headers.get("Last-Event-ID"))
         run = await state.services.ledger.get(run_id)
         if run is None:
@@ -493,6 +538,7 @@ class BridgeController(Controller):
                     projector,
                     run_id,
                     cursor=(await state.services.ledger.next_seq(run_id)) - 1,
+                    reviewer=reviewer,
                 ),
                 bus=run_bus,
                 run_id=run_id,
@@ -515,7 +561,7 @@ class BridgeController(Controller):
                         return
                     finally:
                         pending = None
-                    envelope = await projector.project(event)
+                    envelope = await projector.project(event, reviewer=reviewer)
                     yield ServerSentEventMessage(
                         event=envelope.kind,
                         data=envelope.model_dump_json(),
@@ -539,7 +585,7 @@ class BridgeController(Controller):
         name="bridge:consent",
         operation_id="decideBridgeConsent",
         guards=[requires_scopes("runs:approve")],
-        responses={HTTP_404_NOT_FOUND: ResponseSpec(FrameworkError, generate_examples=False)},
+        responses={code: ResponseSpec(FrameworkError, generate_examples=False) for code in (403, 404, 409, 503)},
     )
     async def consent(
         self,
@@ -554,17 +600,28 @@ class BridgeController(Controller):
         view = await consents.get(consent_id)
         if view is None:
             raise NotFoundException(detail="Unknown consent.")
-        if view.status == "pending":
-            approved = data.verdict == "approve"
-            sigil = cast("Sigil", request.user)
-            await consents.decide(consent_id, approved=approved, decided_by=sigil.name)
-            # A concurrent first verdict may differ from this request. Re-read the
-            # authority row; retries must repair admission using that settled truth.
-            view = await consents.get(consent_id) or view
+        reviewer = cast("Sigil", request.user)
+        expected_binding = await _reviewed_binding(
+            projector, view, reviewer=reviewer, digest=data.review_binding_digest
+        )
+        try:
+            # Even settled retries check exact identity before repairing admission.
+            settled = await consents.decide(
+                consent_id,
+                approved=data.verdict == "approve",
+                decided_by=reviewer.name,
+                expected_native_binding=expected_binding,
+            )
+            if settled is None:
+                raise NotFoundException(detail="Unknown consent.")
+            view = await consents.get(consent_id) or settled
+            require_native_binding(view, expected_binding)
+        except ConsentBindingConflict as exc:
+            raise ClientException(status_code=409, detail="Consent binding changed or is unavailable.") from exc
         if view.status != "pending":
             await run_engine.resume_consent(consent_id)
         return ConsentDecisionResult(
-            consent=projector.consent_card_view(view),
+            consent=await projector.consent_card_view(view, reviewer=reviewer),
             pending_count=await consents.pending_count(),
         )
 
@@ -606,6 +663,8 @@ class BridgeController(Controller):
         projector: EventProjector,
         workflows: WorkflowRegistry,
         state: State,
+        *,
+        reviewer: Sigil,
     ) -> BridgeSnapshot:
         ledger = cast("RunLedger", state.services.ledger)
         session_runs = await ledger.list_for_session(session.id) if session is not None else []
@@ -627,10 +686,12 @@ class BridgeController(Controller):
                 projector,
                 workflows,
                 state,
+                reviewer=reviewer,
             ),
-            pending_consents=self._pending_cards(
+            pending_consents=await self._pending_cards(
                 pending_views,
                 projector,
+                reviewer=reviewer,
             ),
             pending_count=await consents.pending_count(),
         )
@@ -644,6 +705,8 @@ class BridgeController(Controller):
         projector: EventProjector,
         workflows: WorkflowRegistry,
         state: State,
+        *,
+        reviewer: Sigil,
     ) -> list[RunProjectionSnapshot]:
         """Project selected-session Runs not already represented by a settled turn."""
         if session is None:
@@ -662,13 +725,16 @@ class BridgeController(Controller):
                 projector,
                 workflows,
                 state,
+                reviewer=reviewer,
             )
             for run in visible
         ]
 
     @staticmethod
-    def _pending_cards(
+    async def _pending_cards(
         pending_views: list[ConsentView],
         projector: EventProjector,
+        *,
+        reviewer: Sigil,
     ) -> list[ConsentCard]:
-        return [projector.consent_card_view(view) for view in pending_views]
+        return [await projector.consent_card_view(view, reviewer=reviewer) for view in pending_views]

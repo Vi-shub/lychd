@@ -111,6 +111,73 @@ Doctrine priority is 0–100, higher first. PostgreSQL SAQ dequeues lower values
 enqueue edge writes `100 - priority` exactly once. Priority does not preempt an active Ghoul.
 Both configured routing rules and explicit `Intent.priority` overrides validate the same range.
 
+### Failed claim acknowledgements
+
+Within Topology-A, one per-Run guard remains held from the authoritative unclaimed
+prestate through the claim attempt and any failed-acknowledgement resolution. An
+outer `QUEUED` read is only a fast rejection; it supplies no ownership proof.
+PostgreSQL establishes the prestate in the same transaction that will claim the
+Run, under [Persistence's exact row order](06-persistence.md#atomic-claims-and-checkpoints).
+The memory adapter checks and mutates without an intervening await.
+
+Both adapters apply these prestate rules:
+
+| Current prestate | Outcome |
+| --- | --- |
+| Run absent | Acknowledged skip; no attempt. |
+| Well-formed Run with another sequence or a known non-`QUEUED` status | Acknowledged skip; an old delivery is not required. |
+| Exact `QUEUED` Run with exact `HELD` delivery | Acknowledged skip; admission has not released it. |
+| Exact `QUEUED` Run with exact `PENDING` or `PUBLISHED` delivery | Establish the unclaimed prestate and enter one claim attempt. |
+| Malformed Run status, or exact `QUEUED` Run with missing, malformed, or inconsistent delivery authority, including `CLAIMED` or `SETTLED` | Fail before mutation; no observer or settlement. |
+
+The last rule deliberately makes corrupt delivery authority an invariant failure.
+It grants no terminal, containment, or checkpoint-deletion authority.
+
+The ledger returns one immutable, invocation-local outcome: acknowledged win,
+acknowledged skip, failure before mutation, or failure after entering the attempt.
+It records entry into the attempt immediately before the first mutation or mutating
+await, after proving the prestate and before any write can occur. The complete
+outcome covers the operation, commit, and session exit, retaining original body
+and cleanup errors. Callers inspect its explicit fields; there is no Boolean
+compatibility facade, mutable receipt, durable token, or ownership registry.
+The worker directly awaits this boundary inside its existing shielded claim task.
+
+Recovery requires the attempt fact and an eligible interruption. Each retained
+body and cleanup error must independently be an ordinary exception, including an
+ordinary exception group, a direct cancellation, or a whole cancellation group
+admitted by the terminal-settlement rule. A fatal leaf in either error forbids
+observation, containment, settlement, and Graph execution. A later cleanup error
+has outward precedence, retaining the original body error and its existing causal
+chain; otherwise the original body error propagates. Groups remain unsplit.
+
+Only after the original mutating coroutine has completed with its failed outcome
+may the worker invoke the exceptional observer. Under the uninterrupted guard,
+its fresh transaction must resolve the exact Run and delivery together:
+
+| Authoritative observation | Permitted result |
+| --- | --- |
+| Same sequence, `RUNNING` Run and `CLAIMED` delivery | This guarded attempt won. |
+| Exact cancellation or terminal authority | Relinquish to its existing owner. |
+| Same sequence, `QUEUED` Run and `PENDING` or `PUBLISHED` delivery after the prior transaction is fenced | This attempt did not acquire durable ownership. |
+| Successor, park, inconsistent or missing proof, failed observation, or expired observation budget | Unresolved; preserve that state and acquire no authority over it. |
+
+A proved interrupted winner never enters Graph. Release the observation guard
+before invoking `_settle_interrupted_claim`, which rechecks the exact generation
+and may reacquire the guard for containment. Only the owner of the terminal commit
+emits terminal evidence. Loss or unresolved proof permits no containment, terminal
+write, checkpoint deletion, or later unguarded adoption.
+
+Caller cancellation continues waiting for the shielded claim task's actual
+outcome. A claim-operation failure retains precedence over caller cancellation;
+successful settlement or relinquishment propagates the elected original
+interruption without replacing its causal chain. A resolution failure propagates
+with the elected interruption retained in its causal chain and grants no ownership.
+Settlement-helper failure retains the existing outward precedence and context rules.
+
+The observer's deadline does not bound the original claim operation. This contract
+never abandons a live mutating coroutine or releases its guard while it could issue
+another claim command. It provides no cross-process attribution or automatic retry.
+
 ## Events, settlement, and waits
 
 `perform_run` alone drives Graph execution and publishes semantic lifecycle events. Replay and each
@@ -138,6 +205,12 @@ before committing failure.
 Terminal Run state commits before contextual release and best-effort stasis deletion. The channel
 accepts one terminal `DONE`, rejects later events, then closes after subscribers drain or grace
 expires. Cleanup failure cannot conceal terminal truth.
+
+A cancellation exception group, including nested groups with ordinary failures, follows the same
+exact-claim settlement and cancellation-election rules. Successful settlement or relinquishment
+propagates the original unsplit group. If settlement itself fails, that failure propagates with
+the original interruption as context; unresolved containment retains nonterminal truth. Groups
+containing other process-control exceptions remain outside this cancellation rule.
 
 Within Topology-A, claims, durable park commits, and worker failure containment share a per-Run
 process-local guard. Failure re-reads the exact sequence and active status before touching child
@@ -202,9 +275,9 @@ settle that delivery. Failed, timed-out, or cancelled containment leaves honest,
 with authority to fence a pre-boot SAQ job. Only after terminal truth does the engine persist
 terminal evidence, close the channel, and best-effort delete stasis. Re-reading an already
 `CANCELLED` Run repeats the child/consent sweep before repairing evidence and cleanup debt.
-A Ghoul observing its exact generation in `CANCELLING` releases execution resources so the broker
-can acknowledge containment. An interruption before that commit waits only for the local election
-or leader failure, then re-reads durable truth; it never waits for full API settlement, which may
+A Ghoul observing its exact generation in `CANCELLING` releases volatile execution resources so
+the broker can acknowledge containment, retaining its durable checkpoint until terminal commitment.
+An interruption before that commit waits only for the local election or leader failure, then re-reads durable truth; it never waits for full API settlement, which may
 itself need that worker to exit. If election failed, the worker may attempt its exact-generation
 `FAILED` transition. Completion may win before election and makes cancellation an idempotent
 no-op. This coordination is valid only in the one-process topology.
@@ -377,7 +450,9 @@ Delegated work is neither Tomb execution nor a broker retry. The coordinator has
 bounded hop. The selectable `reference` adapter is deterministic and effect-free; it may rebuild
 its process-local result projection from the persisted request before restart-time refresh or
 cancellation, retains that projection across a failed store adoption, and retires it only after
-authoritative terminal settlement. Effectful runtimes cannot use that seam: they require lookup by
+authoritative terminal settlement. If its generated reply exceeds the result text limit, the
+reference adapter retains a bounded `FAILED` result that can still be reconstructed for
+cancellation. Effectful runtimes cannot use that seam: they require lookup by
 durable provider/executor identity and must never replay submission. Database shapes, a migration,
 and a PostgreSQL adapter exist, but no real provider launch, Coffin supervisor, effectful child,
 cross-process pickup, or durable artifact custody is proved. [State of
@@ -386,12 +461,25 @@ Work](../state-of-the-work.md#delegated-agent-execution) owns the Partial claim.
 `LOST` is terminal for result adoption and ordinary polling, but it is not evidence that an external
 process stopped. Parent cancellation must still call the owning runtime's containment operation and
 may record `LOST → CANCELLED` only after that operation returns.
+An unclassified exception raised by `runtime.start` records `LOST`, never proof that the job failed
+or stopped. Start-error diagnostics are bounded to the result contract, with an explicit truncation
+marker when necessary; an oversized diagnostic cannot prevent settlement. Exact-request replay
+retains the original job; late success is inert, and explicit cancellation still calls its owning
+runtime. A failure before that invocation may record `FAILED`. An effectful adapter additionally
+needs a proved definitely-rejected outcome and durable provider/executor lookup before its
+reconciliation contract can be admitted.
 
-Once `runtime.start` has been invoked, an unclassified exception records `LOST`, never proof that
-the job failed or stopped. Exact-request replay retains the original job; late success is inert,
-and explicit cancellation still calls its owning runtime. A failure before that invocation may
-record `FAILED`. An effectful adapter additionally needs a proved definitely-rejected outcome and
-durable provider/executor lookup before its reconciliation contract can be admitted.
+Once start returns, the coordinator finishes one acceptance write despite repeated caller
+cancellation. If that write raises an ordinary exception, observation and conditional settlement
+share the store's
+authoritative mutation lock. A committed `RUNNING` row or an existing terminal remains unchanged;
+only a row still `PREPARING` under that lock may settle `LOST`. A prior snapshot of `PREPARING`
+does not authorize settlement. This operation neither repeats submission nor retries the
+acceptance write. Preserved `RUNNING` or terminal truth returns the original job reference;
+newly recorded `LOST` propagates the original write failure. Caller cancellation propagates
+after a known disposition. Failed locking, observation, or settlement remains an explicit
+unresolved failure with the initiating write failure or interruption retained as context.
+These rules neither reopen `LOST` nor replace owning-runtime containment.
 
 There is no Rite registry or Rite handler. The former no-effect `perform_rite` placeholder has been
 removed, and background work on `rites` is ordinary `perform_run` execution. Any future registry

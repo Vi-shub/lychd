@@ -273,3 +273,33 @@ async def test_pending_views_are_scoped_to_named_runs() -> None:
 
     assert [view.id for view in views] == [visible.consent_id]
     assert await ledger.pending_count() == 2
+
+
+@pytest.mark.asyncio
+async def test_selected_policy_id_filters_the_candidate_query() -> None:
+    from types import SimpleNamespace
+    from typing import Any, cast
+    from unittest.mock import AsyncMock
+    from uuid import UUID
+
+    from sqlalchemy.dialects import postgresql
+
+    from lychd.domain.codex.services import PreauthService
+
+    selected = UUID("00000000-0000-0000-0000-000000000043")
+    service = SimpleNamespace(get_many=AsyncMock(return_value=[]))
+    result = await PreauthService.match_and_consume(
+        cast("Any", service),
+        sigil=_sigil(),
+        tool_name="blockworld.place_block",
+        payload={},
+        policy_id=selected,
+        auto_commit=False,
+    )
+    assert result is None
+    predicates = service.get_many.call_args.args
+    assert any(
+        "codex_preauthorization.id =" in str(predicate.compile(dialect=postgresql.dialect()))
+        and selected in predicate.compile().params.values()
+        for predicate in predicates
+    )

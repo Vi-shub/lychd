@@ -13,14 +13,20 @@ icon: material/headphones
 ## Status
 
 Audio admission is **Partial**. The current v1 compatibility spine can carry immutable audio
-`ArtifactRef` metadata, project audio media types to the `audio` modality, and declare `stt` and
-`tts` capability families. Those labels prove schema only, not a working transcription or
-synthesis call.
+`ArtifactRef` metadata, express audio input through `modalities_in`, and declare `stt` and `tts`
+capability families. Media-type projection to input modality remains Designed. Those labels prove
+schema only, not a working transcription or synthesis call.
 
-It cannot capture, upload, store, authorize, materialize, transcode, or play audio bytes. Bridge
-does not forward audio modality into dispatch. No speech timeline, streaming transport, working
-STT/TTS adapter, Echo package, or Audio Coven ships. [State of
-Work](../state-of-the-work.md#audio-admission) owns this boundary.
+A pure Echo inspector also checks supplied bytes against an exact artifact reference and the
+bounded PCM subset below. The separate explicit local Reliquary adapter can retain supplied WAV
+bytes in quarantine. A trusted Echo consumer reruns the inspector, requires separate admission,
+and reads under current authority. These unregistered helpers supply no capture or speech path.
+
+LychD cannot capture, upload, transcode, transport, or play audio bytes. Bridge does not forward
+audio modality into dispatch. No credential-backed audio admission, speech timeline, streaming
+transport, working STT/TTS adapter, selectable Echo extension, or Audio Coven ships. [State of
+Work](../state-of-the-work.md#audio-admission) owns this boundary and the
+[local custody limits](../state-of-the-work.md#artifact-reference-contract).
 
 ## Decision
 
@@ -103,6 +109,26 @@ log—only references and bounded timeline state do. Decoders and transcoders tr
 format, duration, channels, sample rate, decompression, parser resources, and metadata are bounded
 before provider use.
 
+### Bounded PCM inspection
+
+Echo's first local material-inspection contract accepts supplied immutable bytes and an existing
+`ArtifactRef`. It checks the exact byte length and SHA-256 digest against that reference; it neither
+retrieves the artifact nor establishes custody or permission to use it.
+
+This first subset is deliberately exact: `audio/wav`, a 44-byte RIFF/WAVE header with a 16-byte
+PCM `fmt ` chunk immediately followed by one `data` chunk, signed 16-bit little-endian samples,
+one channel, and 16,000 frames per second. The RIFF length, data length, byte rate, block alignment,
+and sample width must agree with the actual bytes. Accept 1 through 480,000 complete frames
+(up to 30 seconds) and no more than 1 MiB in the supplied artifact. Refuse ancillary chunks,
+extended headers, compression, trailing bytes, truncation, empty data, and other WAV variants;
+there is no implicit conversion or resampling.
+
+A successful inspection returns immutable source and PCM facts. It establishes only that these
+bytes match this reference and this structural subset. Silence is valid PCM; inspection proves
+neither speech, origin, consent, semantic eligibility, model compatibility, nor an executed
+transcription. Construction of a facts record alone does not prove inspection. This boundary
+starts after a caller has obtained bytes; it does not bound an upstream upload or retrieval.
+
 ## Record, send, account
 
 ```text
@@ -115,6 +141,14 @@ A transcript retains source, available time regions, provider and revision, lang
 and uncertainty; it interprets a recording rather than replacing it. Synthesized audio is a new
 artifact. “Generated” says bytes were produced, not that a client received, buffered, played, or
 completed them.
+
+When speech is required, the admitted Pattern's finish policy declares the required result,
+the evidence needed to settle it, and any explicitly configured accepted fallback. Failure or
+missing evidence at that required boundary produces partial or non-completion under the pinned
+score unless an explicitly admitted fallback is fulfilled. Preserved text does not fulfill a
+required speech obligation; text-only completion is permitted only when that fallback was
+explicitly admitted. An observed playback completion establishes the reported playback boundary,
+not that the person heard or understood the response.
 
 The Pattern supplies exact interface/operation, material facts, classification, priority, and
 authority. The [Dispatcher](22-dispatcher.md) chooses an exact Ear, Voice, or Mind profile; current
@@ -151,6 +185,10 @@ guessing from a live socket.
 
 Cancellation names its scope: stopping playback need not erase an artifact, revoking capture stops
 new input, and cancelling an Invocation settles every admitted provider and transport attempt.
+Closing local result adoption or a transport connection does not prove that provider execution
+stopped. After submission, retain execution ownership until completion or an owned stop and
+reconciliation proves settlement; uncertain execution cannot authorize a retry or release a
+compute reservation. Late output may settle execution while remaining ineligible for adoption.
 A future [Companion](../compositions/companion/index.md) client can own physical capture, playback,
 route selection, and low-level device state; a private Tether still supplies transport, not
 application authority, classification, or consent.
@@ -197,6 +235,8 @@ Echo distinguishes generation, delivery, and playback and lets independent Ears,
 and Listeners compose. The cost is sensitive custody, storage/retention pressure, and timing,
 cancellation, and egress races.
 
-It cannot move beyond its schema seam until evidence proves visible capture consent, custody,
-hostile-audio limits, modality forwarding, local and Portal policy, STT/TTS conversion, transcript
-provenance, delivery/playback receipts, interruption, retention/deletion, and disconnect recovery.
+Bounded material inspection can be accepted through actual byte-parsing and refusal tests without
+claiming a speech runtime. Usable record-and-send execution additionally requires evidence for
+visible capture consent, custody, hostile-audio limits at acquisition and decoding, modality
+forwarding, local and Portal policy, STT/TTS conversion, transcript provenance, delivery/playback
+receipts, interruption, retention/deletion, and disconnect recovery.

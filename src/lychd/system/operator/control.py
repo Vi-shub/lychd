@@ -68,7 +68,7 @@ class OperatorControlService:
         action: OperatorAction,
         target: OperatorTarget,
     ) -> ControlResult:
-        """Hold the lifecycle lock across authority selection and physical effect."""
+        """Refuse unknown selected-unit state and hold the lock through physical effect."""
         planned = self._inventory.owned_units()
         authority = self.authority(planned)
         if authority is VesselAuthority.UNKNOWN:
@@ -94,6 +94,20 @@ class OperatorControlService:
             raise OperatorAuthorityError(message)
 
         units = self._targets.direct_actuation_units(action.value, target, catalog=planned)
+        unknown_units = tuple(
+            unit.name for unit in planned.units if unit.name in units and unit.state is ObservationState.UNKNOWN
+        )
+        if unknown_units:
+            message = f"Cannot prove runtime state for selected units: {', '.join(unknown_units)}; no action was taken."
+            logger.warning(
+                "operator_actuation_refused",
+                action=action.value,
+                target=target.value,
+                authority=authority.value,
+                units=units,
+                reason=message,
+            )
+            raise OperatorAuthorityError(message)
         current = self._inventory.owned_units()
         if (
             current.warning

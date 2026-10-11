@@ -3,16 +3,22 @@
 White-box cache assertions prove active-run ownership and release bounds.
 """
 
+import json
 from copy import deepcopy
 from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
 from pydantic_ai.messages import (
+    ModelMessage,
     ModelMessagesTypeAdapter,
     ModelRequest,
     ModelResponse,
+    RetryPromptPart,
     TextPart,
+    ToolCallPart,
+    ToolReturnPart,
+    UserPromptPart,
 )
 
 from lychd.domain.animation.capabilities import CapabilityGrant
@@ -51,6 +57,35 @@ def _exchange(run_id: str, prompt: str, answer: str) -> list[Any]:
     return list(ModelMessagesTypeAdapter.dump_python(messages, mode="json"))
 
 
+def _legacy_messages(messages: list[ModelMessage]) -> list[Any]:
+    history = json.loads(ModelMessagesTypeAdapter.dump_json(messages))
+    for message in history:
+        message.pop("run_id", None)
+    return history
+
+
+def _tool_exchange() -> list[ModelMessage]:
+    return [
+        ModelRequest.user_text_prompt("look up the answer"),
+        ModelResponse(parts=[ToolCallPart("lookup", {"query": "answer"}, tool_call_id="call-1")]),
+        ModelRequest(parts=[ToolReturnPart("lookup", "found", tool_call_id="call-1")]),
+        ModelResponse(parts=[TextPart("the answer")]),
+    ]
+
+
+def _assert_complete_tool_pairs(history: list[Any]) -> None:
+    pending: set[str] = set()
+    for message in ModelMessagesTypeAdapter.validate_python(history):
+        for part in message.parts:
+            if isinstance(part, ToolCallPart):
+                assert part.tool_call_id not in pending
+                pending.add(part.tool_call_id)
+            elif isinstance(part, ToolReturnPart) or (isinstance(part, RetryPromptPart) and part.tool_name is not None):
+                assert part.tool_call_id in pending, f"orphan tool result: {part.tool_call_id}"
+                pending.remove(part.tool_call_id)
+    assert not pending, f"unanswered tool calls: {pending}"
+
+
 def _environment(assembled: Any) -> Any:
     return next(block for block in assembled.blocks if block.layer == 3)
 
@@ -77,6 +112,126 @@ def test_context_keeps_newest_complete_message_group() -> None:
     )
 
     assert assembled.state_window == second
+
+
+def test_default_context_window_keeps_twenty_complete_legacy_exchanges() -> None:
+    history = _legacy_messages(_tool_exchange())
+    for index in range(19):
+        history.extend(
+            _legacy_messages(
+                [ModelRequest.user_text_prompt(f"question {index}"), ModelResponse(parts=[TextPart("answer")])],
+            ),
+        )
+    context = ContextOrchestrator(registry=cast("Any", _Registry()))
+
+    assembled = context.assemble(run_id="current", session_id="session", query="next", history=history)
+
+    _assert_complete_tool_pairs(assembled.model_history())
+    assert len(assembled.state_window) == 42
+    assert assembled.state_window == history
+
+
+@pytest.mark.parametrize("turn_window", [1, 2])
+def test_legacy_tool_rounds_and_retries_remain_one_exchange(turn_window: int) -> None:
+    old = _exchange("old", "old question", "old answer")
+    messages = _tool_exchange()
+    messages[2:] = [
+        ModelRequest(parts=[RetryPromptPart("try again", tool_name="lookup", tool_call_id="call-1")]),
+        ModelResponse(parts=[ToolCallPart("lookup", {"query": "again"}, tool_call_id="call-2")]),
+        ModelRequest(parts=[ToolReturnPart("lookup", "unavailable", tool_call_id="call-2", outcome="failed")]),
+        ModelResponse(parts=[TextPart("invalid answer")]),
+        ModelRequest(parts=[RetryPromptPart("answer must match the schema")]),
+        ModelResponse(parts=[TextPart("valid answer")]),
+    ]
+    latest = _legacy_messages(messages)
+    context = ContextOrchestrator(registry=cast("Any", _Registry()), turn_window=turn_window)
+
+    assembled = context.assemble(run_id="current", session_id="session", query="next", history=[*old, *latest])
+
+    _assert_complete_tool_pairs(assembled.model_history())
+    assert assembled.state_window == ([*old, *latest] if turn_window == 2 else latest)
+
+
+@pytest.mark.parametrize("tool_retry", [False, True])
+def test_legacy_user_prompt_with_tool_result_remains_a_continuation(*, tool_retry: bool) -> None:
+    messages = _tool_exchange()
+    result = (
+        RetryPromptPart("try again", tool_name="lookup", tool_call_id="call-1")
+        if tool_retry
+        else ToolReturnPart("lookup", "found", tool_call_id="call-1")
+    )
+    messages[2] = ModelRequest(parts=[result, UserPromptPart("continue with this result")])
+    history = _legacy_messages(messages)
+    context = ContextOrchestrator(registry=cast("Any", _Registry()), turn_window=1)
+
+    assembled = context.assemble(run_id="current", session_id="session", query="next", history=history)
+
+    _assert_complete_tool_pairs(assembled.model_history())
+    assert assembled.state_window == history
+
+
+@pytest.mark.parametrize("has_newer_exchange", [False, True])
+@pytest.mark.parametrize("tool_exchange_fits", [False, True])
+def test_grant_budget_keeps_or_drops_whole_legacy_tool_exchange(
+    *,
+    has_newer_exchange: bool,
+    tool_exchange_fits: bool,
+) -> None:
+    tool_history = _legacy_messages(_tool_exchange())
+    newer = _exchange("newer", "new question", "new answer") if has_newer_exchange else []
+    context = ContextOrchestrator(registry=cast("Any", _Registry()))
+    floor = context.assemble(run_id="current", session_id="session", query="next", grant=_grant())
+    fixed_cost = sum(len(block.text) for block in floor.blocks if block.layer < 5) + len("next") + len("[]")
+    # A tail-only allowance reproduces the bug: the tool return fits, but its call does not.
+    allowed_tool = tool_history if tool_exchange_fits else tool_history[2:]
+    history_cost = len(json.dumps(allowed_tool, sort_keys=True, separators=(",", ":")))
+    if newer:
+        history_cost += len(json.dumps(newer, sort_keys=True, separators=(",", ":")))
+    token_window = (fixed_cost + history_cost + (2 if tool_exchange_fits else 0)) // 3
+
+    assembled = context.assemble(
+        run_id="current",
+        session_id="session",
+        query="next",
+        history=[*tool_history, *newer],
+        grant=_grant(generation_window=token_window),
+    )
+
+    _assert_complete_tool_pairs(assembled.model_history())
+    assert assembled.state_window == ([*tool_history, *newer] if tool_exchange_fits else newer)
+
+
+@pytest.mark.parametrize("legacy_is_latest", [False, True])
+def test_mixed_legacy_and_identified_exchanges_keep_the_latest_group(*, legacy_is_latest: bool) -> None:
+    legacy = _legacy_messages(_tool_exchange())
+    identified = _exchange("identified", "new question", "new answer")
+    history = [*identified, *legacy] if legacy_is_latest else [*legacy, *identified]
+    context = ContextOrchestrator(registry=cast("Any", _Registry()), turn_window=1)
+
+    assembled = context.assemble(run_id="current", session_id="session", query="next", history=history)
+
+    _assert_complete_tool_pairs(assembled.model_history())
+    assert assembled.state_window == (legacy if legacy_is_latest else identified)
+
+
+def test_explicit_run_identity_keeps_multiple_user_requests_together() -> None:
+    previous = _exchange("old", "old question", "old answer")
+    latest = [*_exchange("latest", "first request", "first answer"), *_exchange("latest", "follow-up", "answer")]
+    context = ContextOrchestrator(registry=cast("Any", _Registry()), turn_window=1)
+
+    assembled = context.assemble(run_id="current", session_id="session", query="next", history=[*previous, *latest])
+
+    assert assembled.state_window == latest
+
+
+def test_legacy_role_messages_keep_user_boundaries() -> None:
+    old = [{"role": "user", "content": "old question"}, {"role": "assistant", "content": "old answer"}]
+    latest = [{"role": "user", "content": "new question"}, {"role": "assistant", "content": "new answer"}]
+    context = ContextOrchestrator(registry=cast("Any", _Registry()), turn_window=1)
+
+    assembled = context.assemble(run_id="current", session_id="session", query="next", history=[*old, *latest])
+
+    assert assembled.state_window == latest
 
 
 @pytest.mark.parametrize("turn_window", [0, -1])

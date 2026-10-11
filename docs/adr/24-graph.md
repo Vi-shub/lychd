@@ -135,12 +135,15 @@ The `node_id` field belongs to the checkpoint envelope; node constructors cannot
 Constructor fields are checked before writing and after reading, so serialization cannot silently
 replace a node value with envelope metadata or retain fields the decoder cannot restore.
 
-GraphRunner can create/resume snapshots but cannot decide their deletion. Terminal order is fixed:
+GraphRunner can create/resume snapshots but cannot decide their deletion. Durable checkpoint
+deletion requires committed DONE, FAILED, or CANCELLED Run truth. A worker that owns terminal
+settlement releases run-scoped context and attempts checkpoint deletion before publishing its
+terminal event and draining its Step evidence.
 
-1. Commit DONE, FAILED, or CANCELLED to Run ledger.
-2. Release run-scoped context.
-3. Delete durable checkpoint.
-4. Publish the single terminal event from committed status, durably drain its Step evidence, then close the live channel.
+API cancellation follows [Workers](14-workers.md#cancel-and-contain): a worker observing
+`CANCELLING` releases volatile execution resources for containment acknowledgement while retaining
+its checkpoint. After `CANCELLED` commits, the engine handles terminal evidence and channel closure
+before best-effort resource cleanup; failed evidence persistence does not prevent that cleanup.
 
 Cleanup is best-effort. Failed deletion retains checkpoint for reconciliation; committed terminal
 truth remains authority. Repository evidence proves adapter and memory-profile recovery, not a real

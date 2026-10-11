@@ -157,6 +157,8 @@ precedence over the existing `LYCHD_DB_PASSWORD` / `LYCHD_APP_SECRET_KEY` enviro
 then their `*_FILE` paths, then `/run/secrets/<declared-name>`. TOML credential values are rejected.
 An absent default mount leaves the credential unset so host `init` and caged `bind` can run before
 provisioning; database/web assembly and uncaged preflight reject unset credentials without I/O.
+Uncaged preflight checks the bootstrap database password, runtime database password, local HTTP
+access password, and application signing key separately against that captured generation.
 Explicit file overrides must be readable and nonempty at Settings construction. Nested settings
 models perform validation only; explicitly supplied section instances are complete overrides.
 Bind preflight requires the Codex secret file to be Magus-owned with

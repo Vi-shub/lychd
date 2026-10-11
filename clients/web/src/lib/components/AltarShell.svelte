@@ -1,13 +1,23 @@
 <script lang="ts">
   import { page } from "$app/state";
   import { asset, resolve } from "$app/paths";
-  import { onMount } from "svelte";
+  import { onMount, setContext } from "svelte";
+  import { altarNavigationContext, selectedBridgeHref, type AltarNavigation } from "$lib/navigation/instruments";
 
   import { getAltarStatus } from "$lib/api/client";
 
   let { children } = $props();
   let pending = $state<number | null>(null);
   let omens = $state<Array<{ id: number; text: string; fault: boolean }>>([]);
+  const navigation = $state<AltarNavigation>({ bridgePath: "/bridge" });
+  setContext(altarNavigationContext, navigation);
+
+  // Retain the explicit session across instrument lifetimes.
+  $effect(() => {
+    const selectedSession = selectedBridgeHref(page.url.pathname, resolve("/bridge"));
+    if (selectedSession) navigation.bridgePath = selectedSession;
+  });
+
   let nextOmen = 0;
   let attentionVersion = 0;
   let attentionInFlight = false;
@@ -160,7 +170,7 @@
   <nav class="instruments" aria-label="Instruments">
     {#each instruments as instrument (instrument.slug)}
       <a
-        href={resolve(`/${instrument.slug}`)}
+        href={resolve(instrument.slug === "bridge" ? navigation.bridgePath : `/${instrument.slug}`)}
         aria-current={page.url.pathname.startsWith(`/${instrument.slug}`) ? "page" : undefined}
       >
         <span>{instrument.label}</span>

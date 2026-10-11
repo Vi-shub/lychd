@@ -12,8 +12,12 @@ from lychd.interface.server_policy import ServerRuntimePolicyError, evaluate_ser
 
 _POLICY_ENVIRONMENT_KEYS = (
     "GRANIAN_HOST",
+    "GRANIAN_METRICS_ENABLED",
     "GRANIAN_PORT",
     "GRANIAN_RELOAD",
+    "GRANIAN_RELOAD_PATHS",
+    "GRANIAN_RELOAD_INCLUDE",
+    "GRANIAN_RELOAD_EXCLUDE",
     "GRANIAN_WORKERS",
     "LITESTAR_WEB_CONCURRENCY",
     "LITESTAR_HOST",
@@ -176,6 +180,105 @@ def test_native_short_clusters_agree_with_the_delegated_click_parser(
 def test_native_short_grammar_refuses_unknown_prefixes() -> None:
     with pytest.raises(ServerRuntimePolicyError, match="does not support short option -z"):
         evaluate_server_runtime_policy(environment={}, server_arguments=("-zH127.0.0.1",))
+
+
+@pytest.mark.parametrize(
+    ("arguments", "metrics_environment"),
+    [
+        (("--metrics", "--metrics-address=0.0.0.0"), ""),
+        (("--no-metrics", "--metrics"), "false"),
+        (("--metrics", "--no-metrics"), "true"),
+        (("--no-metrics",), "true"),
+        (("--metrics", "--granian-access-log-fmt", "--no-metrics"), ""),
+        (("--granian-access-log-fmt", "--no-metrics"), "true"),
+        (("--no-metrics", "--granian-access-log-fmt", "--metrics"), "true"),
+        (("--metrics-address=0.0.0.0", "--metrics-port=9191"), ""),
+        *(((), value) for value in ("1", "true", "yes", "on", "t", "y", " TRUE ")),
+        *(((), value) for value in ("", "0", "false", "no", "off", "f", "n", " FALSE ", " ")),
+    ],
+)
+def test_native_metrics_policy_agrees_with_the_delegated_click_parser(
+    monkeypatch: pytest.MonkeyPatch,
+    arguments: tuple[str, ...],
+    metrics_environment: str,
+) -> None:
+    """Only effective exporter enablement creates the unauthenticated listener."""
+    from litestar_granian.cli import run_command
+
+    _clear_policy_environment(monkeypatch)
+    environment = {
+        "GRANIAN_METRICS_ENABLED": metrics_environment,
+        "GRANIAN_METRICS_ADDRESS": "0.0.0.0",  # noqa: S104 - inert exporter setting under test
+        "GRANIAN_METRICS_PORT": "9191",
+    }
+    for variable, value in environment.items():
+        monkeypatch.setenv(variable, value)
+    with run_command.make_context("run", list(arguments)) as context:
+        metrics_enabled = context.params["metrics_enabled"]
+
+    if metrics_enabled:
+        with pytest.raises(ServerRuntimePolicyError, match="does not support the Granian metrics listener"):
+            evaluate_server_runtime_policy(environment=environment, server_arguments=arguments)
+    else:
+        policy = evaluate_server_runtime_policy(environment=environment, server_arguments=arguments)
+        assert policy.listener_host == "127.0.0.1"
+
+
+def test_native_metrics_policy_uses_only_supplied_environment_without_server_callbacks(
+    monkeypatch: pytest.MonkeyPatch,
+    mocker: MockerFixture,
+) -> None:
+    from litestar_granian.cli import run_command
+
+    monkeypatch.setenv("GRANIAN_METRICS_ENABLED", "true")
+    context_factory = mocker.patch.object(run_command, "make_context")
+    callback = mocker.patch.object(run_command, "callback")
+    path_conversion = mocker.patch("click.Path.convert")
+    application = mocker.patch("lychd.app.create_app")
+    arguments = ("--log-config", "nonexistent-server-log-config.json")
+
+    policy = evaluate_server_runtime_policy(
+        environment={"GRANIAN_METRICS_ENABLED": "false"},
+        server_arguments=arguments,
+    )
+
+    assert policy.listener_host == "127.0.0.1"
+    context_factory.assert_not_called()
+    callback.assert_not_called()
+    path_conversion.assert_not_called()
+    application.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("environment", "arguments", "parameter"),
+    [
+        ({"GRANIAN_RELOAD_PATHS": "."}, (), "reload_paths"),
+        ({"GRANIAN_RELOAD_INCLUDE": "*.py"}, (), "reload_include"),
+        ({"GRANIAN_RELOAD_EXCLUDE": "*.tmp"}, (), "reload_exclude"),
+        ({}, ("--reload-paths", "."), "reload_paths"),
+        ({}, ("--reload-paths=.",), "reload_paths"),
+    ],
+)
+def test_runtime_policy_rejects_implicit_reload_from_the_delegated_click_parser(
+    monkeypatch: pytest.MonkeyPatch,
+    environment: dict[str, str],
+    arguments: tuple[str, ...],
+    parameter: str,
+) -> None:
+    """The wrapper promotes nonempty watch selections to reload in its callback."""
+    from litestar_granian.cli import run_command
+
+    _clear_policy_environment(monkeypatch)
+    for variable, value in environment.items():
+        monkeypatch.setenv(variable, value)
+    with run_command.make_context("run", ["--no-reload", *arguments]) as context:
+        assert context.params["reload"] is False
+        assert context.params[parameter]
+
+    with pytest.raises(ServerRuntimePolicyError, match="does not support"):
+        evaluate_server_runtime_policy(environment=environment, server_arguments=arguments)
+    with pytest.raises(ServerRuntimePolicyError, match="does not support"):
+        evaluate_server_runtime_policy(environment=environment, argv=("litestar", "run", *arguments))
 
 
 @pytest.mark.parametrize(

@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING, Any
 
+import pytest
+
 from lychd.domain.codex.schemas import CENSORED_VALUE, ConsentView
 from lychd.domain.codex.sigil import Sigil
 
@@ -89,14 +91,16 @@ def test_consent_retry_replays_the_authoritative_first_verdict(
     ]
 
 
-def test_cancelled_consent_remains_distinct_from_human_refusal(projector: EventProjector) -> None:
-    card = projector.consent_card_view(
+@pytest.mark.asyncio
+async def test_cancelled_consent_remains_distinct_from_human_refusal(projector: EventProjector) -> None:
+    card = await projector.consent_card_view(
         ConsentView(
             id="consent-cancelled",
             run_id="run-cancelled",
             tool_name="request_coven_swap",
             status="cancelled",
-        )
+        ),
+        reviewer=Sigil(name="magus", scopes=frozenset({"*"})),
     )
 
     assert card.state == "cancelled"

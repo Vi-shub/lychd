@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "LychD contributors", email = "hexanomicon@proton.me" }
 ]
-requires-python = ">=3.12, <3.15"
+requires-python = ">=3.12, <3.16"
 license = "MPL-2.0"
 license-files = [
     "LICENSE",
@@ -23,6 +23,8 @@ classifiers = [
     "Environment :: No Input/Output (Daemon)",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Topic :: System :: Systems Administration",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Framework :: Pydantic",
@@ -43,10 +45,10 @@ dependencies = [
     "pgvector>=0.4.0",
     "psycopg[pool]>=3.2.13,<4",
     "pydantic>=2.10.0",
-    "pydantic-ai-slim[logfire,openai]==2.42.0", # exact agent/message/Graph adapter contract
+    "pydantic-ai-slim[logfire,openai]==2.55.0", # exact agent/message/Graph adapter contract
     "pydantic-settings[toml]>=2.10.1",
     "rich>=13.9.0",
-    "sqlalchemy>=2.0.0",
+    "sqlalchemy>=2.0.53",
     "structlog>=24.4.0",
     "tomlkit>=0.13.3",
 ]
@@ -56,7 +58,7 @@ dependencies = [
 # system libpq is unavailable. The production Vessel never installs extras and
 # explicitly rejects this distribution at image-build time.
 postgres-binary = [
-    "psycopg-binary==3.3.5",
+    "psycopg-binary==3.3.6",
 ]
 
 [project.urls]

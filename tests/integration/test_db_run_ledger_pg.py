@@ -420,10 +420,10 @@ async def test_postgres_mixed_waits_replace_only_the_current_owner(
     """Consent→delegate→consent replaces pointers while retaining both authority ledgers."""
     ledger = DbRunLedger(session_factory=pg_factory)
     run_id = await _seed(ledger)
-    assert await ledger.try_claim_run(run_id, enqueue_seq=0)
+    assert (await ledger.try_claim_run(run_id, enqueue_seq=0)).acknowledged
     first_consent = await _park_decided_consent(ledger, pg_factory, run_id, label="first")
     assert await ledger.try_admit_consent(run_id, consent_id=first_consent) == 1
-    assert await ledger.try_claim_run(run_id, enqueue_seq=1)
+    assert (await ledger.try_claim_run(run_id, enqueue_seq=1)).acknowledged
 
     jobs = DbDelegatedAgentJobStore(pg_factory)
     request = DelegatedAgentRequest(
@@ -447,7 +447,7 @@ async def test_postgres_mixed_waits_replace_only_the_current_owner(
     assert waiting.delegated_job_id == ref.job_id
     assert await ledger.try_admit_consent(run_id, consent_id=first_consent) is None
     assert await ledger.try_admit_delegate(run_id, job_id=ref.job_id) == 2
-    assert await ledger.try_claim_run(run_id, enqueue_seq=2)
+    assert (await ledger.try_claim_run(run_id, enqueue_seq=2)).acknowledged
 
     current_consent = await _park_decided_consent(ledger, pg_factory, run_id, label="current")
     waiting = await DbRunLedger(session_factory=pg_factory).get(run_id)
@@ -456,7 +456,7 @@ async def test_postgres_mixed_waits_replace_only_the_current_owner(
     assert waiting.delegated_job_id is None
     assert await ledger.try_admit_delegate(run_id, job_id=ref.job_id) is None
     assert await ledger.try_admit_consent(run_id, consent_id=current_consent) == 3
-    assert await ledger.try_claim_run(run_id, enqueue_seq=3)
+    assert (await ledger.try_claim_run(run_id, enqueue_seq=3)).acknowledged
     assert await CodexConsentLedger(session_factory=pg_factory).verdict(first_consent) is True
     retained_job = await jobs.get(ref.job_id)
     assert retained_job is not None
@@ -498,7 +498,7 @@ async def test_checkpoint_and_consent_survive_replacement_postgres_adapters(
     """Replace adapters over committed rows; this is not a process or migration receipt."""
     first_ledger = DbRunLedger(session_factory=pg_factory)
     run_id = await _seed(first_ledger)
-    assert await first_ledger.try_claim_run(run_id, enqueue_seq=0)
+    assert (await first_ledger.try_claim_run(run_id, enqueue_seq=0)).acknowledged
     first_consents = CodexConsentLedger(session_factory=pg_factory)
     consent = await first_consents.park(
         run_id=run_id,
@@ -544,8 +544,8 @@ async def test_checkpoint_and_consent_survive_replacement_postgres_adapters(
     await consents.decide(consent.consent_id, approved=approved, decided_by="magus:test")
     assert await ledger.try_admit_consent(run_id, consent_id=consent.consent_id) == 1
     assert await ledger.try_admit_consent(run_id, consent_id=consent.consent_id) is None
-    assert not await ledger.try_claim_run(run_id, enqueue_seq=0)
-    assert await ledger.try_claim_run(run_id, enqueue_seq=1)
+    assert (await ledger.try_claim_run(run_id, enqueue_seq=0)).acknowledged is False
+    assert (await ledger.try_claim_run(run_id, enqueue_seq=1)).acknowledged
     runner = GraphRunner[_ConsentCheckpointState](
         orchestrator=_NoCheckpointHardware(),
         persistence=persistence,
@@ -644,7 +644,7 @@ async def test_concurrent_run_claim_has_one_winner(pg_factory: async_sessionmake
         second.try_claim_run(run_id, enqueue_seq=0),
     )
 
-    assert sorted(results) == [False, True]
+    assert sorted(result.acknowledged for result in results) == [False, True]
     row = await first.get(run_id)
     assert row is not None
     assert row.status is RunStatus.RUNNING
@@ -711,7 +711,7 @@ async def test_claimed_failure_cannot_overwrite_new_resume_hop(
     ledger = DbRunLedger(session_factory=pg_factory)
     run_id = await _seed(ledger)
     assert await ledger.rotate_delivery(run_id, enqueue_seq=0) == 1
-    assert await ledger.try_claim_run(run_id, enqueue_seq=1) is True
+    assert (await ledger.try_claim_run(run_id, enqueue_seq=1)).acknowledged is True
 
     consent_id = await _park_decided_consent(
         ledger,
@@ -720,7 +720,7 @@ async def test_claimed_failure_cannot_overwrite_new_resume_hop(
         label="claimed-failure",
     )
     assert await ledger.try_admit_consent(run_id, consent_id=consent_id) == 2
-    assert await ledger.try_claim_run(run_id, enqueue_seq=2) is True
+    assert (await ledger.try_claim_run(run_id, enqueue_seq=2)).acknowledged is True
 
     assert await ledger.try_fail_claimed(run_id, enqueue_seq=1, error="old hop failed") is False
     running = await ledger.get(run_id)
@@ -742,7 +742,7 @@ async def test_stale_consent_delivery_cannot_claim_retried_hop(
     """Postgres admission and hop allocation are one CAS; stale jobs cannot claim."""
     ledger = DbRunLedger(session_factory=pg_factory)
     run_id = await _seed(ledger)
-    assert await ledger.try_claim_run(run_id, enqueue_seq=0) is True
+    assert (await ledger.try_claim_run(run_id, enqueue_seq=0)).acknowledged is True
     first_consent_id = await _park_decided_consent(
         ledger,
         pg_factory,
@@ -751,7 +751,7 @@ async def test_stale_consent_delivery_cannot_claim_retried_hop(
     )
 
     assert await ledger.try_admit_consent(run_id, consent_id=first_consent_id) == 1
-    assert await ledger.try_claim_run(run_id, enqueue_seq=1) is True
+    assert (await ledger.try_claim_run(run_id, enqueue_seq=1)).acknowledged is True
     second_consent_id = await _park_decided_consent(
         ledger,
         pg_factory,
@@ -760,8 +760,8 @@ async def test_stale_consent_delivery_cannot_claim_retried_hop(
     )
     assert await ledger.try_admit_consent(run_id, consent_id=second_consent_id) == 2
 
-    assert await ledger.try_claim_run(run_id, enqueue_seq=1) is False
-    assert await ledger.try_claim_run(run_id, enqueue_seq=2) is True
+    assert (await ledger.try_claim_run(run_id, enqueue_seq=1)).acknowledged is False
+    assert (await ledger.try_claim_run(run_id, enqueue_seq=2)).acknowledged is True
 
 
 @pytest.mark.asyncio
@@ -770,7 +770,7 @@ async def test_resumed_claim_preserves_original_started_at(
 ) -> None:
     ledger = DbRunLedger(session_factory=pg_factory)
     run_id = await _seed(ledger)
-    assert await ledger.try_claim_run(run_id, enqueue_seq=0) is True
+    assert (await ledger.try_claim_run(run_id, enqueue_seq=0)).acknowledged is True
     first = await ledger.get(run_id)
     assert first is not None
     assert first.started_at is not None
@@ -782,7 +782,7 @@ async def test_resumed_claim_preserves_original_started_at(
         label="started-at",
     )
     assert await ledger.try_admit_consent(run_id, consent_id=consent_id) == 1
-    assert await ledger.try_claim_run(run_id, enqueue_seq=1) is True
+    assert (await ledger.try_claim_run(run_id, enqueue_seq=1)).acknowledged is True
 
     resumed = await ledger.get(run_id)
     assert resumed is not None
@@ -795,7 +795,7 @@ async def test_historical_consent_cannot_admit_a_later_postgres_wait(
 ) -> None:
     ledger = DbRunLedger(session_factory=pg_factory)
     run_id = await _seed(ledger)
-    assert await ledger.try_claim_run(run_id, enqueue_seq=0)
+    assert (await ledger.try_claim_run(run_id, enqueue_seq=0)).acknowledged
     now = datetime.now(UTC)
     async with pg_factory() as session:
         old = Consent(
@@ -815,7 +815,7 @@ async def test_historical_consent_cannot_admit_a_later_postgres_wait(
         old_id = str(old.id)
     await ledger.park_consent(run_id, old_id)
     assert await ledger.try_admit_consent(run_id, consent_id=old_id) == 1
-    assert await ledger.try_claim_run(run_id, enqueue_seq=1)
+    assert (await ledger.try_claim_run(run_id, enqueue_seq=1)).acknowledged
 
     async with pg_factory() as session:
         current = Consent(
@@ -849,7 +849,7 @@ async def test_pending_consent_cannot_admit_a_postgres_resume(
 ) -> None:
     ledger = DbRunLedger(session_factory=pg_factory)
     run_id = await _seed(ledger)
-    assert await ledger.try_claim_run(run_id, enqueue_seq=0)
+    assert (await ledger.try_claim_run(run_id, enqueue_seq=0)).acknowledged
     now = datetime.now(UTC)
     async with pg_factory() as session:
         consent = Consent(
@@ -894,7 +894,7 @@ async def test_nonterminal_delegate_cannot_admit_a_postgres_resume(
 ) -> None:
     ledger = DbRunLedger(session_factory=pg_factory)
     run_id = await _seed(ledger)
-    assert await ledger.try_claim_run(run_id, enqueue_seq=0)
+    assert (await ledger.try_claim_run(run_id, enqueue_seq=0)).acknowledged
     job_id = "job-pending-resume"
     async with pg_factory() as session:
         session.add(
@@ -939,7 +939,7 @@ async def test_postgres_consent_resume_uses_the_explicit_park_owner(
 ) -> None:
     ledger = DbRunLedger(session_factory=pg_factory)
     run_id = await _seed(ledger)
-    assert await ledger.try_claim_run(run_id, enqueue_seq=0)
+    assert (await ledger.try_claim_run(run_id, enqueue_seq=0)).acknowledged
     now = datetime.now(UTC)
     async with pg_factory() as session:
         explicitly_parked = Consent(
@@ -1001,7 +1001,7 @@ async def test_delivery_cursor_sees_old_run_newly_admitted_for_resume(
 ) -> None:
     ledger = DbRunLedger(session_factory=pg_factory)
     old_id = await _seed(ledger)
-    assert await ledger.try_claim_run(old_id, enqueue_seq=0)
+    assert (await ledger.try_claim_run(old_id, enqueue_seq=0)).acknowledged
     consent_id = await _park_decided_consent(ledger, pg_factory, old_id, label="cursor")
 
     current_id = await _seed(ledger)

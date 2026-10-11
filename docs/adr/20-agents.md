@@ -29,7 +29,7 @@ icon: material/robot-outline
 
 ## Decision
 
-LychD uses in-process **Pydantic AI**, at lockfile-pinned `pydantic-ai-slim==2.42.0`. The
+LychD uses in-process **Pydantic AI**, at lockfile-pinned `pydantic-ai-slim==2.55.0`. The
 [State](../state-of-the-work.md#pydantic-ai-adapter) owns present cognitive adapter evidence;
 [native Graph integration](../state-of-the-work.md#pydantic-ai-v2-migration) preserves LychD's
 serial checkpoint and wait-owner contract.
@@ -123,8 +123,10 @@ use their provider resolvers; Google's OpenAI-shaped endpoint uses the Google mo
 the OpenAI transport. Generic OpenAI-compatible endpoints and local runtimes instead select
 LychD's conservative inline-schema, non-strict-tool profile. That local profile replaces resolved
 provider defaults: a local alias such as `o3` does not inherit OpenAI reasoning policy or a
-provider-derived context window. Named provider resolution remains on the provider's
-`model_profile(model_name)` contract, separate from v2's resolved-profile transformation callback.
+provider-derived context window. Selecting Responses does not also admit its optional
+input-token-counting endpoint: the generic local profile disables that endpoint. Named provider
+resolution remains on the provider's `model_profile(model_name)` contract, separate from v2's
+resolved-profile transformation callback.
 OpenRouter ids must retain their
 `provider/model` namespace. Under the pinned adapter, Google, LiteLLM, and Ollama aliases are
 Chat-only; Responses is admitted only for OpenAI, OpenRouter, or an explicitly compatible generic
@@ -184,10 +186,13 @@ independent verifier, and Security's trusted Portal Egress Gate makes the exact 
 `pump_agent_events` streams one hop: text starts and deltas become raw Oculus token events, while
 the final result supplies typed output and Pydantic AI history. The workflow serializes complete
 history and the new suffix separately for settlement or suspension. Bridge reserves the grant's
-output allowance and passes the remainder as Pydantic AI's input-usage limit. Pre-request counting
-occurs only when a model implements `count_tokens`; the delivered OpenAI-compatible models do not,
-so their provider-reported limit is post-response rather than a guaranteed preflight fence.
-ADR 21 owns the separate character governor.
+output allowance and enforces the remainder as a per-request input-usage limit. Pre-request
+counting requires a counting implementation. For the pinned OpenAI Responses counter, Bridge also
+honors the resolved profile's endpoint support; method presence alone does not establish it.
+Generic local Responses and current OpenAI Chat models therefore use reported response usage,
+which cannot guarantee a preflight fence. Named Responses providers retain their own profile
+policy, and other counting implementations retain their pre-request checks. ADR 21 owns the
+separate character governor.
 
 LychD does not yet share one `UsageLimits` object across a child-Agent tree. Future nested native
 Agents need explicit budgets. Opaque delegates receive serialized limits through their own grant;

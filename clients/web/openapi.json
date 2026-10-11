@@ -823,8 +823,41 @@
             "additionalProperties": {},
             "type": "object"
           },
+          "can_decide": {
+            "default": false,
+            "type": "boolean"
+          },
           "id": {
             "type": "string"
+          },
+          "native_review": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NativeReviewDocument"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "native_review_status": {
+            "default": "not_required",
+            "enum": [
+              "not_required",
+              "available",
+              "unavailable"
+            ],
+            "type": "string"
+          },
+          "review_binding_digest": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "run_id": {
             "type": "string"
@@ -859,6 +892,18 @@
       "ConsentDecisionIntent": {
         "additionalProperties": false,
         "properties": {
+          "review_binding_digest": {
+            "oneOf": [
+              {
+                "maxLength": 64,
+                "minLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "verdict": {
             "enum": [
               "approve",
@@ -1475,6 +1520,25 @@
         "title": "MessageIntent",
         "type": "object"
       },
+      "NativeReviewDocument": {
+        "properties": {
+          "facts": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewFact"
+            },
+            "type": "array"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "facts",
+          "title"
+        ],
+        "title": "NativeReviewDocument",
+        "type": "object"
+      },
       "NexusBoard": {
         "properties": {
           "covens": {
@@ -1546,6 +1610,16 @@
             "type": "boolean"
           },
           "reason": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "registrant_id": {
             "oneOf": [
               {
                 "type": "string"
@@ -1931,6 +2005,26 @@
           "revision"
         ],
         "title": "PatternReference",
+        "type": "object"
+      },
+      "ReviewFact": {
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "value"
+        ],
+        "title": "ReviewFact",
         "type": "object"
       },
       "RunEventEnvelope": {
@@ -3190,7 +3284,37 @@
             },
             "description": "Bad request syntax or unsupported method"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
           "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "503": {
             "content": {
               "application/json": {
                 "schema": {

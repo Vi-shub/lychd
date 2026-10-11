@@ -6,7 +6,7 @@ icon: material/connection
 # :material-connection: Audio Hardware and Host Routes
 
 A microphone route must be proved on the host before Echo can transcribe speech or Riffmaw can
-keep a take. Begin with the real desktop's device and signal evidence, connect one bounded route,
+keep a take. Begin with the actual host's device and signal evidence, connect one bounded route,
 then decide which application may arm and retain it. The same audio hardware can serve several
 owners without combining their permission or chronology.
 
@@ -19,8 +19,11 @@ law.
 
 ## Current LychD boundary
 
-The repository currently proves audio modality metadata and the `stt`/`tts` capability labels.
-Capture, recorded-byte custody, audio transport, inference, and playback remain Designed under
+The repository currently proves audio modality metadata, the `stt`/`tts` capability labels,
+and a pure inspector for canonical PCM WAV bytes. An explicit, unregistered
+[local custody seam](../../state-of-the-work.md#artifact-reference-contract) can retain supplied
+bytes and feed that inspector under separate current authority. Capture, audio transport,
+inference and playback remain Designed under
 [State's audio-admission boundary](../../state-of-the-work.md#audio-admission). Use this page to
 plan and test a host route; it supplies neither a host receipt nor an operational application path.
 
@@ -38,12 +41,13 @@ mechanics do not merge their grants, records, retention, or acceptance.
 
 ## Host receipt boundary
 
-A useful host receipt must come from the real desktop login that owns PipeWire and the audio
-devices. A restricted shell, container, or coding-agent session without `/dev/snd`, D-Bus, or the
-user PipeWire socket proves only that the session lacks access.
+For the desktop PipeWire route below, a useful host receipt must come from the real login that
+owns PipeWire and the audio devices. Other routes need evidence from their actual device-owning
+environment. A restricted shell, container, or coding-agent session without the required
+`/dev/snd`, D-Bus, or PipeWire access proves only that the session lacks access.
 
 Before promoting a route, record the OS and kernel, exact board or USB-device identity, loaded
-driver, ALSA capture/playback inventory, PipeWire/WirePlumber graph, selected sample format and
+driver, ALSA capture/playback inventory, PipeWire/WirePlumber graph where used, selected sample format and
 rate, mute and gain state, and one measured record/playback result. Planning prose or a device
 advertisement cannot substitute for that observation.
 
@@ -110,10 +114,12 @@ UMC202HD (USB) ← XLR mic ───→ PipeWire/WirePlumber ─→ Riffmaw musi
                 ← guitar/bass 6.35 mm TS ───────────→ Riffmaw instrument route
 ```
 
-For simultaneous voice and guitar, input 1 may receive an eligible XLR microphone and input 2 the
-guitar or bass. Keep `48 V` **off** for a dynamic microphone and for guitar/bass; use `INST/Hi-Z`
-for the instrument input, start at low gain, and watch the clip indicator. Which application may
-retain each channel is still decided before capture.
+For a dynamic-microphone plus TS-instrument setup, input 1 may receive the XLR microphone and
+input 2 the guitar or bass. Keep `48 V` **off** for this combination; use `INST/Hi-Z` for the
+instrument input, start at low gain, and watch the clip indicator. For other microphone and power
+combinations, follow the exact interface and microphone instructions under the
+[Riffmaw hardware boundary](../../compositions/riffmaw/hardware.md). Which application may retain
+each channel is still decided before capture.
 
 For amp simulation, monitor through Guitarix or another native Linux effect chain and turn direct
 monitoring off to avoid hearing both dry DI and processed signal. For clean practice or a

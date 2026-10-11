@@ -19,7 +19,7 @@ Brief language, structured-description language, lyrics, requested sung language
 
 Each exact music profile separately proves description understanding, lyric rendering, pronunciation, structure tags, mixed-language behavior, and instrumental mode. Neither Altar locale nor Persona language selects these fields. Optimized lyrics are another authored candidate.
 
-Singing, rap, and musical spoken word remain here. [Language Edition](../language-edition/) owns ordinary dialogue, narration, spoken replacement, captions, and timed editions. A translated song keeps Riffmaw's lyric/performance revisions while the edition keeps source alignment, captions, fit, and packaging; exact words, timing, performance, and findings cross the seam.
+Singing, rap, and musical spoken word remain here. [Language Edition](../language-edition/) owns dialogue, narration, spoken replacement, and captions within a source-aligned timed-language edition. A translated song keeps Riffmaw's lyric/performance revisions while the edition keeps source alignment, captions, fit, and packaging; exact words, timing, performance, and findings cross the seam.
 
 ## Answer and develop
 

@@ -20,6 +20,7 @@ from lychd.domain.animation.capabilities import (
     SourceKind,
 )
 from lychd.domain.animation.errors import CapabilityUnavailable
+from lychd.domain.animation.extension import RegisteredSoulstoneDefinition
 from lychd.domain.animation.lifecycle import AnimatorLifecycle
 from lychd.domain.animation.links import Link
 from lychd.domain.animation.schemas import (
@@ -30,7 +31,7 @@ from lychd.domain.animation.schemas import (
     PortalConfig,
     SoulstoneConfig,
 )
-from lychd.domain.animation.services.adapters.contracts import PortalDefinition
+from lychd.domain.animation.services.adapters.contracts import PortalDefinition, SoulstoneDefinition
 from lychd.domain.animation.services.adapters.registry import RuntimeAdapterRegistry
 from lychd.domain.animation.services.adapters.runtimes.openai_compat import OpenAICompatibleRuntimeAdapter
 from lychd.domain.animation.services.adapters.surfaces import OpenAICompatibleConnector, PortalAnimator
@@ -158,10 +159,18 @@ def test_registry_rejects_capability_outside_runtime_ownership(
 
     registry = AnimatorRegistry(
         declarations=_declarations(runes_dir, [VllmSoulstoneConfig]),
-        runtime_adapters=[ForeignCapabilityAdapter(runtime="vllm", config_type=VllmSoulstoneConfig)],
+        soulstone_registrations=[
+            RegisteredSoulstoneDefinition(
+                registrant_id="crypt:foreign",
+                definition=SoulstoneDefinition(
+                    rune_schema=VllmSoulstoneConfig,
+                    runtime_adapter=ForeignCapabilityAdapter(runtime="vllm", config_type=VllmSoulstoneConfig),
+                ),
+            )
+        ],
     )
 
-    with pytest.raises(ValueError, match=f"Capability ownership mismatch.*{detail}"):
+    with pytest.raises(ValueError, match=f"Capability ownership mismatch.*crypt:foreign.*{detail}"):
         registry.load()
 
 
@@ -183,7 +192,15 @@ def test_registry_rejects_duplicate_capability_keys_with_declaration_provenance(
 
     registry = AnimatorRegistry(
         declarations=_declarations(runes_dir, [VllmSoulstoneConfig]),
-        runtime_adapters=[DuplicatingCapabilityAdapter(runtime="vllm", config_type=VllmSoulstoneConfig)],
+        soulstone_registrations=[
+            RegisteredSoulstoneDefinition(
+                registrant_id="crypt:duplicator",
+                definition=SoulstoneDefinition(
+                    rune_schema=VllmSoulstoneConfig,
+                    runtime_adapter=DuplicatingCapabilityAdapter(runtime="vllm", config_type=VllmSoulstoneConfig),
+                ),
+            )
+        ],
     )
 
     with pytest.raises(
@@ -195,6 +212,7 @@ def test_registry_rejects_duplicate_capability_keys_with_declaration_provenance(
     message = str(exc_info.value)
     assert "animator_name='main-stone'" in message
     assert "model_id='main-model'" in message
+    assert "registrant_id='crypt:duplicator'" in message
     assert str(stone_path) in message
 
 
@@ -729,3 +747,71 @@ def test_recovery_declarations_do_not_probe_and_keep_canonical_digest(
     assert capability_config_generation(recovery) == expected
     assert recovery.list_capabilities() == probed.list_capabilities()
     assert all(recovery.get_capability_state(spec.key) is None for spec in recovery.list_capabilities())
+
+
+@pytest.mark.parametrize("owner", [None, "core", "builtin:animator/vllm", "crypt:private/vllm"])
+def test_registry_assigns_host_provenance_and_captures_membership(owner: str | None) -> None:
+    class ForgingAdapter(OpenAICompatibleRuntimeAdapter):
+        def build_capability_specs(self, animator: RuntimeAnimator) -> list[CapabilitySpec]:
+            return [
+                spec.model_copy(update={"registrant_id": "crypt:forged"})
+                for spec in super().build_capability_specs(animator)
+            ]
+
+    adapter = ForgingAdapter(runtime="vllm", config_type=VllmSoulstoneConfig)
+    registrations = (
+        [
+            RegisteredSoulstoneDefinition(
+                registrant_id=owner,
+                definition=SoulstoneDefinition(rune_schema=VllmSoulstoneConfig, runtime_adapter=adapter),
+            )
+        ]
+        if owner is not None
+        else []
+    )
+    raw_adapters = [adapter] if owner is None else []
+    stone = VllmSoulstoneConfig(name="sample", model_path="/models/sample.gguf", port=8100)
+    registry = AnimatorRegistry(
+        declarations=AnimatorDeclarations(soulstones=(stone,), portals=()),
+        runtime_adapters=raw_adapters,
+        soulstone_registrations=registrations,
+    )
+    registrations.clear()
+    raw_adapters.clear()
+    spec = registry.list_capabilities()[0]
+    assert spec.registrant_id == owner
+    assert spec.key == "sample:chat:sample"
+    assert registry.get_capability(spec.key) == spec
+
+
+def test_registered_runtime_refuses_another_schema_before_calling_adapter() -> None:
+    adapter = OpenAICompatibleRuntimeAdapter(runtime="vllm", config_type=VllmSoulstoneConfig)
+    adapters = RuntimeAdapterRegistry(
+        soulstone_registrations=[
+            RegisteredSoulstoneDefinition(
+                registrant_id="crypt:exact-owner",
+                definition=SoulstoneDefinition(rune_schema=VllmSoulstoneConfig, runtime_adapter=adapter),
+            )
+        ]
+    )
+
+    class OtherVllmConfig(VllmSoulstoneConfig):
+        path_fragment: ClassVar[Path] = Path("other-vllm")
+
+    wrong_schema = OtherVllmConfig(name="wrong", model_path="/models/main.gguf")
+    with pytest.raises(ValueError, match=r"crypt:exact-owner.*VllmSoulstoneConfig.*OtherVllmConfig"):
+        adapters.build_runtime(wrong_schema)
+
+
+def test_runtime_registration_collision_reports_both_registrants() -> None:
+    definition = SoulstoneDefinition(
+        rune_schema=VllmSoulstoneConfig,
+        runtime_adapter=OpenAICompatibleRuntimeAdapter(runtime="vllm", config_type=VllmSoulstoneConfig),
+    )
+    with pytest.raises(ValueError, match=r"builtin:animator/vllm.*crypt:collision"):
+        RuntimeAdapterRegistry(
+            soulstone_registrations=[
+                RegisteredSoulstoneDefinition(registrant_id="builtin:animator/vllm", definition=definition),
+                RegisteredSoulstoneDefinition(registrant_id="crypt:collision", definition=definition),
+            ]
+        )

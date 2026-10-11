@@ -55,6 +55,8 @@ const sendMock = vi.mocked(sendBridgeMessage);
 
 const pendingConsent: ConsentCardModel = {
   args: { target: "chat:local" },
+  can_decide: true,
+  native_review_status: "not_required",
   id: "consent-a",
   run_id: "run-a",
   state: "pending_consent",
@@ -1318,6 +1320,165 @@ describe("Bridge shell recovery and deliberate handoffs", () => {
     expect(screen.getByRole("link", { name: /Séance A.*2 awaiting consent/ }).getAttribute("href")).toBe("/bridge/session-a");
     expect(screen.queryByRole("link", { name: /Séance B/ })).toBeNull();
     expect(screen.queryByLabelText("Message")).toBeNull();
+    view.unmount();
+  });
+});
+
+
+describe("Bridge reader preservation during refresh", () => {
+  function retainedConversation() {
+    const next = snapshot("session-a", [projection()]);
+    next.session!.turns = [
+      accepted("old-run", "earlier offering").turn,
+      { ...accepted("old-run", "earlier reply").turn, role: "agent" }
+    ];
+    return next;
+  }
+
+  async function refreshFromRun(kind: "consent" | "done") {
+    if (kind === "done") vi.useFakeTimers();
+    await act(() => latestRunListener()(event("run-a", 18, kind,
+      kind === "done" ? { status: "done", turn: { content: "latest reply" } } : {}
+    )));
+    if (kind === "done") {
+      await act(() => vi.advanceTimersByTime(50));
+      vi.useRealTimers();
+    }
+    expect(getSnapshotMock).toHaveBeenCalledTimes(2);
+  }
+
+  it.each(["consent", "done"] as const)("keeps the composer and retained content through a %s refresh after Run navigation", async (kind) => {
+    mockPage.url = new SvelteURL("http://localhost/bridge/session-a?run=old-run");
+    const refresh = deferred<BridgeSnapshot>();
+    getSnapshotMock.mockResolvedValueOnce(retainedConversation()).mockReturnValueOnce(refresh.promise);
+    const view = render(BridgeView, { sessionId: "session-a" });
+    const article = (await screen.findByText("earlier reply")).closest("article");
+    await waitFor(() => expect(document.activeElement).toBe(article));
+    const composer = screen.getByLabelText<HTMLTextAreaElement>("Message");
+    composer.focus();
+    await fireEvent.input(composer, { target: { value: "next draft" } });
+
+    await refreshFromRun(kind);
+    expect(screen.getByText("earlier reply").closest("article")).toBe(article);
+    expect(document.activeElement).toBe(composer);
+    expect(composer.value).toBe("next draft");
+    expect(view.container.querySelector(".mist")).toBeNull();
+
+    const fresh = retainedConversation();
+    fresh.session!.title = "Refreshed conversation";
+    await act(() => refresh.resolve(fresh));
+    expect(await screen.findByText("Refreshed conversation", { selector: ".conversation-title" })).toBeTruthy();
+    expect(screen.getByText("earlier reply").closest("article")).toBe(article);
+    expect(document.activeElement).toBe(composer);
+    expect(composer.value).toBe("next draft");
+    view.unmount();
+  });
+
+  it.each(["consent", "done"] as const)("keeps the reader's focused turn and scroll through a %s refresh without a Run hint", async (kind) => {
+    const refresh = deferred<BridgeSnapshot>();
+    getSnapshotMock.mockResolvedValueOnce(retainedConversation()).mockReturnValueOnce(refresh.promise);
+    const view = render(BridgeView, { sessionId: "session-a" });
+    const article = (await screen.findByText("earlier reply")).closest("article")!;
+    const thread = screen.getByLabelText("Conversation");
+    Object.defineProperties(thread, { scrollHeight: { value: 1200 }, clientHeight: { value: 200 } });
+    thread.scrollTop = 150;
+    await fireEvent.scroll(thread);
+    article.focus();
+
+    await refreshFromRun(kind);
+    expect(article.isConnected).toBe(true);
+    expect(document.activeElement).toBe(article);
+    expect(thread.scrollTop).toBe(150);
+    await act(() => refresh.resolve(retainedConversation()));
+    expect(screen.getByText("earlier reply").closest("article")).toBe(article);
+    expect(document.activeElement).toBe(article);
+    expect(thread.scrollTop).toBe(150);
+    view.unmount();
+  });
+
+  it("keeps prior content, draft and focus when a same-session refresh fails", async () => {
+    mockPage.url = new SvelteURL("http://localhost/bridge/session-a?run=old-run");
+    const refresh = deferred<BridgeSnapshot>();
+    getSnapshotMock.mockResolvedValueOnce(retainedConversation()).mockReturnValueOnce(refresh.promise);
+    const view = render(BridgeView, { sessionId: "session-a" });
+    const article = (await screen.findByText("earlier reply")).closest("article");
+    await waitFor(() => expect(document.activeElement).toBe(article));
+    const composer = screen.getByLabelText<HTMLTextAreaElement>("Message");
+    composer.focus();
+    await fireEvent.input(composer, { target: { value: "draft through failure" } });
+    await refreshFromRun("consent");
+    await act(() => refresh.reject(new Error("Conversation refresh unavailable")));
+    expect(await screen.findByText("Conversation refresh unavailable")).toBeTruthy();
+    expect(screen.getByText("earlier reply").closest("article")).toBe(article);
+    expect(document.activeElement).toBe(composer);
+    expect(composer.value).toBe("draft through failure");
+    expect(view.container.querySelector(".mist")).toBeNull();
+    view.unmount();
+  });
+
+  it("preserves the composer through the consent card's recovery refresh", async () => {
+    mockPage.url = new SvelteURL("http://localhost/bridge/session-a?run=old-run");
+    const initial = retainedConversation();
+    initial.pending_consents = [pendingConsent];
+    const decision = deferred<Awaited<ReturnType<typeof decideConsent>>>();
+    const refresh = deferred<BridgeSnapshot>();
+    decideConsentMock.mockReturnValueOnce(decision.promise);
+    getSnapshotMock.mockResolvedValueOnce(initial).mockReturnValueOnce(refresh.promise);
+    const view = render(BridgeView, { sessionId: "session-a" });
+    const article = (await screen.findByText("earlier reply")).closest("article");
+    await waitFor(() => expect(document.activeElement).toBe(article));
+    await fireEvent.click(screen.getByRole("button", { name: "Consecrate" }));
+    const composer = screen.getByLabelText<HTMLTextAreaElement>("Message");
+    composer.focus();
+    await fireEvent.input(composer, { target: { value: "draft while deciding" } });
+    await act(() => decision.reject(new TypeError("Consent response lost")));
+    expect(getSnapshotMock).toHaveBeenCalledTimes(2);
+    expect(article!.isConnected).toBe(true);
+    expect(document.activeElement).toBe(composer);
+    await act(() => refresh.resolve(structuredClone(initial)));
+    expect(document.activeElement).toBe(composer);
+    expect(composer.value).toBe("draft while deciding");
+    expect((screen.getByRole("button", { name: "Refuse" }) as HTMLButtonElement).disabled).toBe(true);
+    view.unmount();
+  });
+
+  it("applies each deliberate same-session Run navigation and reports an unavailable Run", async () => {
+    mockPage.url = new SvelteURL("http://localhost/bridge/session-a?run=old-run");
+    getSnapshotMock.mockResolvedValueOnce(retainedConversation());
+    const view = render(BridgeView, { sessionId: "session-a" });
+    const oldArticle = (await screen.findByText("earlier reply")).closest("article");
+    await waitFor(() => expect(document.activeElement).toBe(oldArticle));
+    await act(() => { mockPage.url.search = "?run=run-a"; });
+    const liveArticle = screen.getByText("authoritative partial").closest("article");
+    await waitFor(() => expect(document.activeElement).toBe(liveArticle));
+    await act(() => { mockPage.url.search = "?run=missing-run"; });
+    expect(await screen.findByText("The requested Run is not available in this conversation.")).toBeTruthy();
+    await act(() => { mockPage.url.search = "?run=old-run"; });
+    await waitFor(() => expect(document.activeElement).toBe(oldArticle));
+    expect(getSnapshotMock).toHaveBeenCalledOnce();
+    view.unmount();
+  });
+
+  it.each(["success", "failure"] as const)("ignores a late refresh %s after navigating to another session", async (outcome) => {
+    const refresh = deferred<BridgeSnapshot>();
+    getSnapshotMock.mockResolvedValueOnce(retainedConversation()).mockReturnValueOnce(refresh.promise)
+      .mockResolvedValueOnce(snapshot("session-b"));
+    const view = render(BridgeView, { sessionId: "session-a" });
+    await screen.findByText("earlier reply");
+    await refreshFromRun("consent");
+    await view.rerender({ sessionId: "session-b" });
+    await screen.findByText("session-b");
+    const composer = screen.getByLabelText<HTMLTextAreaElement>("Message");
+    composer.focus();
+    await fireEvent.input(composer, { target: { value: "session B draft" } });
+    await act(() => outcome === "success"
+      ? refresh.resolve(retainedConversation())
+      : refresh.reject(new Error("Late session A error")));
+    expect(screen.getByText("session-b")).toBeTruthy();
+    expect(screen.queryByText("earlier reply")).toBeNull();
+    expect(screen.queryByText("Late session A error")).toBeNull();
+    expect(document.activeElement).toBe(composer);
+    expect(composer.value).toBe("session B draft");
     view.unmount();
   });
 });

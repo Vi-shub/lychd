@@ -123,6 +123,168 @@ def test_llamacpp_single_mode_plan() -> None:
     assert {spec.model_id for spec in specs} == {"qwen"}
 
 
+@pytest.mark.parametrize("source", ["extra_args", "env_vars"])
+@pytest.mark.parametrize("router_option", ["models-dir", "models-preset"])
+def test_llamacpp_explicit_single_overrides_router_hints(source: str, router_option: str, tmp_path: Path) -> None:
+    preset = tmp_path / "router.ini"
+    preset.write_text("[other]\nmodel=/models/other.gguf\n", encoding="utf-8")
+    value = str(preset) if router_option == "models-preset" else "/models"
+    fields: dict[str, object] = {
+        "name": "forced-single",
+        "startup_mode": "single",
+        "model_path": "/models/chat.gguf",
+        source: [f"--{router_option}", value]
+        if source == "extra_args"
+        else {f"LLAMA_ARG_{router_option.upper().replace('-', '_')}": value},
+    }
+    soulstone = LlamaCppSoulstoneConfig.model_validate(fields)
+
+    connector, plan = _build_llamacpp_connector(soulstone)
+    specs = _capability_specs(_runtime_registry(), soulstone)
+
+    assert plan.exec_args[:4] == ["--sleep-idle-seconds", "-1", "-m", "/models/chat.gguf"]
+    assert connector.mode == "single"
+    assert connector.router_query_model_id is None
+    assert {spec.model_id for spec in specs} == {"chat"}
+    assert all(not spec.is_dynamic for spec in specs)
+    if source == "extra_args":
+        assert plan.exec_args[-2:] == [f"--{router_option}", value]
+
+
+@pytest.mark.parametrize("mode", ["single", "router"])
+@pytest.mark.parametrize(
+    "control",
+    [
+        ("-m", "/models/chat.gguf"),
+        ("--model", "/models/chat.gguf"),
+        ("-m", ""),
+        ("--model", ""),
+        ("--hf-repo", "example/chat"),
+        ("--model=/models/chat.gguf",),
+        ("-mu", "https://example.invalid/chat.gguf"),
+        ("--model-url", "https://example.invalid/chat.gguf"),
+        ("--model_url=https://example.invalid/chat.gguf",),
+        ("-dr", "ai/chat"),
+        ("--docker_repo", "ai/chat"),
+        ("-hf", "example/chat"),
+        ("-hfr", "example/chat"),
+        ("--hf_repo=example/chat",),
+        ("-hff", "chat.gguf"),
+        ("--hf-file", "chat.gguf"),
+        ("--embd-gemma-default",),
+        ("--fim-qwen-1.5b-default",),
+        ("--fim-qwen-3b-default",),
+        ("--fim-qwen-7b-default",),
+        ("--fim-qwen-7b-spec",),
+        ("--fim-qwen-14b-spec",),
+        ("--fim-qwen-30b-default",),
+        ("--gpt-oss-20b-default",),
+        ("--gpt-oss-120b-default",),
+        ("--vision-gemma-4b-default",),
+        ("--vision_gemma_12b_default",),
+        # A token consumed as an option value is deliberately also refused.
+        ("--alias", "--model"),
+    ],
+)
+def test_llamacpp_forced_modes_refuse_main_model_source_args(mode: str, control: tuple[str, ...]) -> None:
+    with pytest.raises(ValidationError, match=rf"forced {mode}.*model-source.*extra_args"):
+        LlamaCppSoulstoneConfig.model_validate(
+            {
+                "name": "forced-mode",
+                "startup_mode": mode,
+                "model_path": "/models/chat.gguf",
+                "models_dir": "/models",
+                "extra_args": ["--models-dir", "/models", *control],
+            }
+        )
+
+
+@pytest.mark.parametrize("source", ["env_vars", "secret_env_files"])
+@pytest.mark.parametrize(
+    "variable",
+    ["LLAMA_ARG_MODEL", "LLAMA_ARG_MODEL_URL", "LLAMA_ARG_DOCKER_REPO", "LLAMA_ARG_HF_REPO", "LLAMA_ARG_HF_FILE"],
+)
+def test_llamacpp_forced_router_refuses_single_model_source_env(variable: str, source: str) -> None:
+    with pytest.raises(ValidationError, match=rf"forced router.*model-source.*{source}"):
+        LlamaCppSoulstoneConfig.model_validate(
+            {
+                "name": "forced-router",
+                "startup_mode": "router",
+                "models_dir": "/models",
+                source: {variable: "model-source"},
+            }
+        )
+
+
+@pytest.mark.parametrize("source", ["env_vars", "secret_env_files"])
+def test_llamacpp_forced_single_refuses_hf_repo_environment(source: str) -> None:
+    with pytest.raises(ValidationError, match=rf"forced single.*model-source.*{source}"):
+        LlamaCppSoulstoneConfig.model_validate(
+            {
+                "name": "forced-single-hf",
+                "startup_mode": "single",
+                "model_path": "/models/chat.gguf",
+                source: {"LLAMA_ARG_HF_REPO": "remote-preset"},
+            }
+        )
+
+
+@pytest.mark.parametrize("extra_args", [("--alias", "chat-alias"), ("--spec-default",)])
+def test_llamacpp_forced_single_retains_local_model_with_safe_overlays(extra_args: tuple[str, ...]) -> None:
+    soulstone = LlamaCppSoulstoneConfig.model_validate(
+        {
+            "name": "forced-single",
+            "startup_mode": "single",
+            "model_path": "/models/chat.gguf",
+            "extra_args": extra_args,
+            "env_vars": {"LLAMA_ARG_MODEL": "", "LLAMA_ARG_HF_FILE": "chat.gguf"},
+            "secret_env_files": {"LLAMA_ARG_MODEL": "model-file"},
+        }
+    )
+
+    connector, plan = _build_llamacpp_connector(soulstone)
+
+    assert connector.mode == "single"
+    assert plan.exec_args[:4] == ["--sleep-idle-seconds", "-1", "-m", "/models/chat.gguf"]
+    assert plan.exec_args[-len(extra_args) :] == list(extra_args)
+
+
+def test_llamacpp_forced_router_ignores_unused_model_path_and_allows_non_source_defaults() -> None:
+    soulstone = LlamaCppSoulstoneConfig.model_validate(
+        {
+            "name": "forced-router",
+            "startup_mode": "router",
+            "model_path": "/models/unused.gguf",
+            "models_dir": "/models",
+            "extra_args": ["--spec-default"],
+        }
+    )
+
+    connector, plan = _build_llamacpp_connector(soulstone)
+
+    assert connector.mode == "router"
+    assert "-m" not in plan.exec_args
+    assert plan.exec_args[plan.exec_args.index("--models-dir") + 1] == "/models"
+    assert plan.exec_args[-1] == "--spec-default"
+    assert all(spec.is_dynamic for spec in _capability_specs(_runtime_registry(), soulstone))
+
+
+def test_llamacpp_auto_keeps_router_environment_inference_above_typed_model_path() -> None:
+    soulstone = LlamaCppSoulstoneConfig.model_validate(
+        {
+            "name": "auto-router",
+            "model_path": "/models/unused.gguf",
+            "env_vars": {"LLAMA_ARG_MODELS_DIR": "/models"},
+        }
+    )
+
+    connector, plan = _build_llamacpp_connector(soulstone)
+
+    assert connector.mode == "router"
+    assert "-m" not in plan.exec_args
+    assert plan.exec_args[plan.exec_args.index("--models-dir") + 1] == "/models"
+
+
 def test_llamacpp_router_mode_detects_preset_models(tmp_path: Path) -> None:
     preset = tmp_path / "models.ini"
     preset.write_text(
@@ -712,3 +874,259 @@ def test_llamacpp_resolve_effective_defaults_follow_cli_over_preset_precedence(t
     profile = profiles[0]
     assert profile.max_context == 131072
     assert profile.temperature == 0.7
+
+
+@pytest.mark.parametrize(
+    ("arguments", "environment", "expected_mode", "expected_id"),
+    [
+        (("-m", "/models/chat.gguf", "--models-dir", "/models"), {}, "single", "/models/chat.gguf"),
+        (("--models-dir", "/models", "-m", "/models/chat.gguf"), {}, "single", "/models/chat.gguf"),
+        (("--models-dir", "/models"), {"LLAMA_ARG_MODEL": "/models/env.gguf"}, "single", "/models/env.gguf"),
+        (("-m", "/models/chat.gguf"), {"LLAMA_ARG_MODELS_DIR": "/models"}, "single", "/models/chat.gguf"),
+        (("--model", ""), {"LLAMA_ARG_MODEL": "/models/env.gguf"}, "router", "actual-mode"),
+        (("-m", "/models/chat.gguf", "--model", ""), {}, "router", "actual-mode"),
+        (("--model", "", "-m", "/models/chat.gguf"), {}, "single", "/models/chat.gguf"),
+        (("--docker_repo", "ai/chat", "--models-dir", "/models"), {}, "single", "ai/chat"),
+        (("--docker-repo", ""), {"LLAMA_ARG_DOCKER_REPO": "ai/chat"}, "router", "actual-mode"),
+        (("--spec-default",), {"LLAMA_ARG_MODELS_DIR": "/models"}, "router", "actual-mode"),
+        (("-hfd", "example/draft"), {}, "router", "actual-mode"),
+        (("-hff", "chat.gguf"), {}, "router", "actual-mode"),
+        (("-mu", "https://example.invalid/chat.gguf"), {}, "router", "actual-mode"),
+        (("-m", "/models/chat.gguf"), {"LLAMA_ARG_ALIAS": "env-alias"}, "single", "env-alias"),
+        (("-m", "/models/chat.gguf", "--alias", ""), {"LLAMA_ARG_ALIAS": "env-alias"}, "single", "env-alias"),
+    ],
+)
+def test_llamacpp_actual_mode_overlays_options_before_classification(
+    arguments: tuple[str, ...], environment: dict[str, str], expected_mode: str, expected_id: str
+) -> None:
+    command = ["llama-server", "--sleep-idle-seconds", "-1", *arguments]
+    stone = LlamaCppSoulstoneConfig.model_validate({"name": "actual-mode", "exec": command, "env_vars": environment})
+    connector, plan = _build_llamacpp_connector(stone)
+    specs = _capability_specs(_runtime_registry(), stone)
+
+    assert plan.exec_args == command
+    assert connector.mode == expected_mode
+    assert {spec.model_id for spec in specs} == {expected_id}
+    assert {spec.is_dynamic for spec in specs} == {expected_mode == "router"}
+    assert connector.router_query_model_id == (expected_id if expected_mode == "router" else None)
+
+
+@pytest.mark.parametrize("source", ["env_vars", "secret_env_files"])
+def test_llamacpp_actual_mode_uses_environment_after_auto_router_plan(source: str) -> None:
+    stone = LlamaCppSoulstoneConfig.model_validate(
+        {
+            "name": "auto-mixed",
+            "model_path": "/models/unused.gguf",
+            "extra_args": ["--models-dir", "/models"],
+            "env_vars": {"LLAMA_ARG_MODEL": ""},
+            source: {"LLAMA_ARG_MODEL": "main-model"},
+        }
+    )
+    connector, plan = _build_llamacpp_connector(stone)
+
+    assert "-m" not in plan.exec_args
+    assert connector.mode == "single"
+    assert connector.router_query_model_id is None
+    assert all(not spec.is_dynamic for spec in _capability_specs(_runtime_registry(), stone))
+
+
+@pytest.mark.parametrize("source", ["env_vars", "secret_env_files"])
+def test_llamacpp_actual_mode_cli_empty_clears_projected_model(source: str) -> None:
+    command = ["--sleep-idle-seconds", "-1", "--model", ""]
+    stone = LlamaCppSoulstoneConfig.model_validate(
+        {"name": "empty-model", "exec": command, source: {"LLAMA_ARG_MODEL": "main-model"}}
+    )
+    connector, plan = _build_llamacpp_connector(stone)
+
+    assert plan.exec_args == command
+    assert connector.mode == "router"
+    assert all(spec.is_dynamic for spec in _capability_specs(_runtime_registry(), stone))
+
+
+@pytest.mark.parametrize("command_field", ["exec", "extra_args"])
+@pytest.mark.parametrize(
+    "source",
+    [
+        {"arguments": ["-hf", "example/chat"]},
+        {"arguments": ["--hf-repo", "example/chat", "-m", "/models/chat.gguf"]},
+        {"arguments": ["--hf-file", "chat.gguf"], "env_vars": {"LLAMA_ARG_HF_REPO": "example/chat"}},
+        {"env_vars": {"LLAMA_ARG_HF_REPO": "example/chat"}},
+        {"secret_env_files": {"LLAMA_ARG_HF_REPO": "remote-preset"}},
+        {"arguments": ["--gpt-oss-20b-default"]},
+        {"arguments": ["--fim-qwen-7b-spec"]},
+        {"arguments": ["--vision_gemma_12b_default"]},
+    ],
+)
+def test_llamacpp_actual_mode_refuses_remote_resolved_main_sources(
+    command_field: str, source: dict[str, object]
+) -> None:
+    fields = {key: value for key, value in source.items() if key != "arguments"}
+    arguments = cast("list[str]", source.get("arguments", []))
+    fields[command_field] = ["--sleep-idle-seconds", "-1", *arguments] if command_field == "exec" else arguments
+    if command_field == "extra_args":
+        fields["model_path"] = "/models/chat.gguf"
+    with pytest.raises(ValidationError, match="remote-resolved main-model"):
+        LlamaCppSoulstoneConfig.model_validate({"name": "remote-source", **fields})
+
+
+@pytest.mark.parametrize("source", ["env_vars", "secret_env_files"])
+def test_llamacpp_actual_mode_allows_cli_to_clear_remote_repository(source: str) -> None:
+    stone = LlamaCppSoulstoneConfig.model_validate(
+        {
+            "name": "cleared-hf",
+            "exec": ["--sleep-idle-seconds", "-1", "--hf-repo", "", "-m", "/models/chat.gguf"],
+            source: {"LLAMA_ARG_HF_REPO": "remote-preset"},
+        }
+    )
+    connector, _ = _build_llamacpp_connector(stone)
+
+    assert connector.mode == "single"
+
+
+@pytest.mark.parametrize(
+    "arguments",
+    [
+        ("--model",),
+        ("--model", "--models-dir", "/models"),
+        ("--model=/models/chat.gguf",),
+        ("-m=/models/chat.gguf",),
+        ("--models_dir=/models",),
+        ("--alias", "--model", "/models/chat.gguf"),
+        ("--unknown", "--model", "/models/chat.gguf"),
+        ("-unknown", "ordinary-value", "--model", "/models/chat.gguf"),
+        ("--unknown", "ordinary-value", "--models-dir", "/models"),
+        ("--unknown", "--alias", "advertised"),
+        ("--unknown", "ordinary-value", "--alias", "advertised"),
+        ("--alias=advertised",),
+        ("--alias",),
+    ],
+)
+def test_llamacpp_actual_mode_refuses_ambiguous_source_tokens(arguments: tuple[str, ...]) -> None:
+    with pytest.raises(ValidationError, match="source option"):
+        LlamaCppSoulstoneConfig.model_validate(
+            {"name": "ambiguous-source", "exec": ["--sleep-idle-seconds", "-1", *arguments]}
+        )
+
+
+def test_llamacpp_actual_mode_preserves_unknown_trailing_options() -> None:
+    command = ["--sleep-idle-seconds", "-1", "--model", "/models/chat.gguf", "--unknown", "value"]
+    stone = LlamaCppSoulstoneConfig.model_validate({"name": "trailing-options", "exec": command})
+    connector, plan = _build_llamacpp_connector(stone)
+
+    assert plan.exec_args == command
+    assert connector.mode == "single"
+
+
+@pytest.mark.parametrize(
+    ("arguments", "environment", "expected_id"),
+    [
+        (("--alias", "z-last"), {"LLAMA_ARG_ALIAS": "a-first"}, "a-first"),
+        (("--alias", "z-last", "--alias", "a-first", "--alias", ""), {}, "a-first"),
+        (("--alias", "  z-last, a-first , ,middle  "), {}, "a-first"),
+        (("--alias", "\t\r\na-first\v\f"), {}, "a-first"),
+        (("--alias", ""), {"LLAMA_ARG_ALIAS": "env-alias"}, "env-alias"),
+    ],
+)
+def test_llamacpp_actual_inventory_identity_accumulates_aliases(
+    arguments: tuple[str, ...], environment: dict[str, str], expected_id: str
+) -> None:
+    command = ["--sleep-idle-seconds", "-1", "-m", "/models/base.gguf", *arguments]
+    stone = LlamaCppSoulstoneConfig.model_validate(
+        {"name": "aliases", "port": 23333, "exec": command, "env_vars": environment}
+    )
+    connector, plan = _build_llamacpp_connector(stone)
+    specs = _capability_specs(_runtime_registry(), stone)
+
+    assert plan.exec_args == command
+    assert {info.id for info in connector.model_infos} == {expected_id}
+    assert {spec.model_id for spec in specs} == {expected_id}
+    assert connector.get_model().model_name == expected_id
+
+
+def test_llamacpp_actual_inventory_identity_keeps_managed_stem_alias() -> None:
+    stone = LlamaCppSoulstoneConfig.model_validate({"name": "managed", "model_path": "/models/chat.gguf"})
+    connector, plan = _build_llamacpp_connector(stone)
+
+    assert plan.exec_args[plan.exec_args.index("--alias") + 1] == "chat"
+    assert {info.id for info in connector.model_infos} == {"chat"}
+
+
+@pytest.mark.parametrize(
+    ("overrides", "expected_id"),
+    [
+        ({"env_vars": {"LLAMA_ARG_ALIAS": "env-alias"}}, "env-alias"),
+        ({"extra_args": ["--model", "/models/override.gguf"]}, "override"),
+        (
+            {"extra_args": ["--models-dir", "/models"], "env_vars": {"LLAMA_ARG_MODEL": "/models/env.gguf"}},
+            "/models/env.gguf",
+        ),
+        ({"served_model_id": "public-model", "env_vars": {"LLAMA_ARG_MODEL": "/models/env.gguf"}}, "public-model"),
+        (
+            {
+                "served_model_id": "public-model",
+                "extra_args": ["--alias", "z-last"],
+                "env_vars": {"LLAMA_ARG_ALIAS": "a-first"},
+            },
+            "a-first",
+        ),
+    ],
+)
+def test_llamacpp_actual_inventory_default_follows_captured_catalogue(
+    overrides: dict[str, object], expected_id: str
+) -> None:
+    stone = LlamaCppSoulstoneConfig.model_validate(
+        {"name": "default-model", "port": 23333, "model_path": "/models/typed.gguf", **overrides}
+    )
+    connector, _ = _build_llamacpp_connector(stone)
+
+    assert {info.id for info in connector.model_infos} == {expected_id}
+    assert connector.get_model().model_name == expected_id
+
+
+@pytest.mark.parametrize("mode", ["auto", "router"])
+@pytest.mark.parametrize("source", ["underscore", "secret"])
+@pytest.mark.parametrize("option", ["models-dir", "models-preset"])
+def test_llamacpp_actual_router_admission_reuses_projected_options(mode: str, source: str, option: str) -> None:
+    fields: dict[str, object] = {"name": "router-inputs", "startup_mode": mode}
+    if source == "underscore":
+        fields["extra_args"] = [f"--{option.replace('-', '_')}", "/models/router-source"]
+    else:
+        fields["secret_env_files"] = {f"LLAMA_ARG_{option.replace('-', '_').upper()}": "router-source"}
+    stone = LlamaCppSoulstoneConfig.model_validate(fields)
+    connector, _ = _build_llamacpp_connector(stone)
+
+    assert connector.mode == "router"
+    assert all(spec.is_dynamic for spec in _capability_specs(_runtime_registry(), stone))
+
+
+def test_llamacpp_actual_router_admission_does_not_restore_cleared_environment() -> None:
+    with pytest.raises(ValidationError, match="requires 'models_dir' or 'models_preset'"):
+        LlamaCppSoulstoneConfig.model_validate(
+            {
+                "name": "cleared-router",
+                "extra_args": ["--models-dir", ""],
+                "env_vars": {"LLAMA_ARG_MODELS_DIR": "/models"},
+            }
+        )
+
+
+def test_llamacpp_actual_router_secret_preset_is_not_read(monkeypatch: pytest.MonkeyPatch) -> None:
+    def unexpected_load(_parser: object, _path: str) -> None:
+        pytest.fail("Runtime construction attempted to read a projected secret preset")
+
+    monkeypatch.setattr(
+        "lychd.extensions.builtin.animator.llamacpp.parser_preset.LlamaCppPresetParser.load_preset", unexpected_load
+    )
+    stone = LlamaCppSoulstoneConfig.model_validate(
+        {
+            "name": "private-preset",
+            "secret_env_files": {"LLAMA_ARG_MODELS_PRESET": "private-models"},
+            "models": [{"id": "declared", "path": "/models/declared.gguf"}],
+        }
+    )
+    connector, plan = _build_llamacpp_connector(stone)
+
+    assert connector.mode == "router"
+    assert "/run/secrets/private-models" in plan.exec_args
+    assert {info.id for info in connector.model_infos} == {"declared"}
+    assert all(spec.is_dynamic for spec in _capability_specs(_runtime_registry(), stone))

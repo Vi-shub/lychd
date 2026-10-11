@@ -94,20 +94,20 @@ async def test_mixed_wait_sequence_replaces_owner_before_graph_reentry(
         queue_name="runs",
         priority=50,
     )
-    assert await ledger.try_claim_run(run.run_id, enqueue_seq=0)
+    assert (await ledger.try_claim_run(run.run_id, enqueue_seq=0)).acknowledged
     first_park = ledger.park_consent if consent_first else ledger.park_delegate
     second_park = ledger.park_delegate if consent_first else ledger.park_consent
     await first_park(run.run_id, "earlier-owner")
     first = await ledger.get(run.run_id)
     assert first is not None
-    assert await ledger.try_claim_run(run.run_id, enqueue_seq=await _admit(ledger, first))
+    assert (await ledger.try_claim_run(run.run_id, enqueue_seq=await _admit(ledger, first))).acknowledged
     await second_park(run.run_id, "current-owner")
     current = await ledger.get(run.run_id)
     assert current is not None
     assert (current.consent_id, current.delegated_job_id) == (
         (None, "current-owner") if consent_first else ("current-owner", None)
     )
-    assert await ledger.try_claim_run(run.run_id, enqueue_seq=await _admit(ledger, current))
+    assert (await ledger.try_claim_run(run.run_id, enqueue_seq=await _admit(ledger, current))).acknowledged
 
     checkpoint_owner = first if stale_checkpoint else current
     node = _ConsentStation() if checkpoint_owner.consent_id is not None else _DelegateStation()

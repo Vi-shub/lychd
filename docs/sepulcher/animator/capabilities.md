@@ -24,6 +24,12 @@ proved chat/model path, narrow toolset compatibility, and readiness mechanics. I
 executable audio, visual, embedding, rerank, service-job, or host-tool routes. [State of
 Work](../../state-of-the-work.md#animator-dispatch-spine) owns that boundary.
 
+A capability carries the `registrant_id` assigned to its runtime or Portal definition during
+extension assembly. The same identity accompanies its granted specification and Nexus response
+row. It identifies the contributing package, separately from the Provider and capability key; it
+grants no authority. Direct adapter injection without registration reports `None` rather than
+claiming Core ownership.
+
 ## Interface, profile, and operation
 
 For the designed interface/profile path, distinguish the contract you need from the exact
@@ -140,9 +146,9 @@ Dispatcher never starts, stops, loads, evicts, submits an effect, or waits on a 
 [Orchestrator](../../adr/23-orchestrator.md) owns readiness convergence. The interface owner or
 Worker invokes the granted surface. A waiting Graph holds no live grant. Runtime models and
 toolsets are bound only while issuing an admitted grant. Capability, specification, and state
-reads expose detached declarations and observations. The retained `get_runtime()` lookup is a
-control-plane-internal runtime handle; it is neither a model/toolset bind nor a second public grant
-route.
+reads expose detached declarations and observations. The registry keeps runtime handles private;
+callers obtain model and toolset bindings only through the scoped grant path. Control-plane
+activation and readiness operations do not expose a second public binding route.
 
 ### One process generation
 

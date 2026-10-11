@@ -139,10 +139,76 @@ async def _await_claim_gate(substrate: RunSubstrate) -> None:
     await substrate.orchestrator.worker_broker.claim_gate.wait()
 
 
-async def _claim_run(substrate: RunSubstrate, run_id: str, enqueue_seq: int) -> bool:
-    """Claim only after any prior worker's child containment has finished."""
+@dataclass(frozen=True, slots=True)
+class _ClaimResult:
+    claimed: bool
+    interruption: BaseException | None = None
+
+
+def _retain_claim_interruption(error: BaseException, interruption: BaseException) -> None:
+    """Keep prior causal chains when a later claim boundary supplies the outward error."""
+    pending = [error]
+    seen: set[int] = set()
+    while pending:
+        current = pending.pop()
+        if current is interruption:
+            return
+        if id(current) in seen:
+            continue
+        seen.add(id(current))
+        if current.__cause__ is not None:
+            pending.append(current.__cause__)
+        if current.__context__ is not None:
+            pending.append(current.__context__)
+    tail = error
+    while tail.__context__ is not None and id(tail.__context__) in seen:
+        following = tail.__context__
+        seen.remove(id(following))
+        tail = following
+    tail.__context__ = interruption
+
+
+def _eligible_claim_interruption(error: BaseException) -> bool:
+    return isinstance(error, (Exception, asyncio.CancelledError)) or (
+        isinstance(error, BaseExceptionGroup)
+        and _is_cancellation_group(cast("BaseExceptionGroup[BaseException]", error))
+    )
+
+
+async def _claim_run(substrate: RunSubstrate, run_id: str, enqueue_seq: int) -> _ClaimResult:
+    """Keep the exact attempt and any exceptional observation under one guard."""
     async with substrate.claims.hold(run_id):
-        return await substrate.ledger.try_claim_run(run_id, enqueue_seq=enqueue_seq)
+        attempt = await substrate.ledger.try_claim_run(run_id, enqueue_seq=enqueue_seq)
+        if attempt.failure is None:
+            return _ClaimResult(attempt.acknowledged is True)
+        interruption = attempt.cleanup_failure if attempt.cleanup_failure is not None else attempt.failure
+        if attempt.cleanup_failure is not None:
+            _retain_claim_interruption(interruption, attempt.failure)
+        if not attempt.attempted_after_locked_prestate or not all(
+            _eligible_claim_interruption(error)
+            for error in (attempt.failure, attempt.cleanup_failure)
+            if error is not None
+        ):
+            return _ClaimResult(claimed=False, interruption=interruption)
+        try:
+            observation = await substrate.ledger.observe_claim(run_id, enqueue_seq=enqueue_seq)
+        except BaseException as exc:  # noqa: BLE001 - resolution failure acquires no ownership
+            _retain_claim_interruption(exc, interruption)
+            return _ClaimResult(claimed=False, interruption=exc)
+        run, delivery = observation.run, observation.delivery
+        claimed = (
+            run is not None
+            and delivery is not None
+            and run.run_id == run_id
+            and delivery.run_id == run_id
+            and run.enqueue_seq == enqueue_seq
+            and delivery.enqueue_seq == enqueue_seq
+            and run.queue_name == delivery.queue_name
+            and run.priority == delivery.priority
+            and run.status is RunStatus.RUNNING
+            and delivery.state is RunDeliveryState.CLAIMED
+        )
+        return _ClaimResult(claimed, interruption)
 
 
 def _require_claimed_delivery(
@@ -213,6 +279,22 @@ async def perform_run(
                 await heartbeat_task
 
 
+def _is_cancellation_group(exc: BaseExceptionGroup[BaseException]) -> bool:
+    """Recognize cancellation trees without granting unrelated fatal leaves authority."""
+    pending: list[BaseException] = [exc]
+    cancelled = False
+    while pending:
+        member = pending.pop()
+        if isinstance(member, BaseExceptionGroup):
+            group = cast("BaseExceptionGroup[BaseException]", member)
+            pending.extend(group.exceptions)
+        elif isinstance(member, asyncio.CancelledError):
+            cancelled = True
+        elif not isinstance(member, Exception):
+            return False
+    return cancelled
+
+
 async def _perform_run(  # noqa: C901, PLR0911, PLR0912, PLR0915 - honest fresh/resume/park/fail path
     ctx: dict[str, Any],
     *,
@@ -230,24 +312,31 @@ async def _perform_run(  # noqa: C901, PLR0911, PLR0912, PLR0915 - honest fresh/
         return {"status": "skipped", "run_id": run_id}  # stale / duplicate claim guard
     claim_enqueue_seq = delivery_seq
     claim_task = asyncio.ensure_future(_claim_run(substrate, run_id, claim_enqueue_seq))
+    caller_interruption: asyncio.CancelledError | None = None
     try:
-        claimed = await asyncio.shield(claim_task)
-    except asyncio.CancelledError:
-        claimed = await complete_under_cancellation(claim_task)
-        if claimed:
-            settled = await complete_under_cancellation(
-                _settle_interrupted_claim(
-                    substrate,
-                    run,
-                    enqueue_seq=claim_enqueue_seq,
-                    error="run worker cancelled",
-                    persistence=None,
+        claim = await asyncio.shield(claim_task)
+    except asyncio.CancelledError as exc:
+        caller_interruption = exc
+        claim = await complete_under_cancellation(claim_task)
+    interruption = claim.interruption if claim.interruption is not None else caller_interruption
+    if interruption is not None:
+        try:
+            raise interruption  # noqa: TRY301 - settlement errors retain this original interruption
+        except BaseException:
+            if claim.claimed:
+                settled = await complete_under_cancellation(
+                    _settle_interrupted_claim(
+                        substrate,
+                        run,
+                        enqueue_seq=claim_enqueue_seq,
+                        error=str(interruption) if isinstance(interruption, Exception) else "run worker cancelled",
+                        persistence=None,
+                    )
                 )
-            )
-            if settled:
-                await complete_under_cancellation(_emit_terminal(substrate, run_id))
-        raise
-    if not claimed:
+                if settled:
+                    await complete_under_cancellation(_emit_terminal(substrate, run_id))
+            raise
+    if not claim.claimed:
         return {"status": "skipped", "run_id": run_id}  # atomic redelivery fence
 
     emitter: RunEmitter | None = None
@@ -281,6 +370,29 @@ async def _perform_run(  # noqa: C901, PLR0911, PLR0912, PLR0915 - honest fresh/
             # finally cannot mistake our terminal row for somebody else's event.
             terminal_owned = await complete_under_cancellation(settle_task)
             raise
+
+    async def settle_interruption(error: str) -> bool:
+        """Clean terminal resources or settle this interruption, reporting new ownership."""
+        nonlocal terminal_owned
+        if terminal_owned:
+            await complete_under_cancellation(
+                _cleanup_claim_resources(
+                    substrate,
+                    run,
+                    persistence=persistence,
+                )
+            )
+            return False
+        terminal_owned = await complete_under_cancellation(
+            _settle_interrupted_claim(
+                substrate,
+                run,
+                enqueue_seq=claim_enqueue_seq,
+                error=error,
+                persistence=persistence,
+            )
+        )
+        return terminal_owned
 
     try:
         claimed_delivery = _require_claimed_delivery(
@@ -375,15 +487,16 @@ async def _perform_run(  # noqa: C901, PLR0911, PLR0912, PLR0915 - honest fresh/
             sigil=Sigil(name=run.sigil_name, scopes=run.sigil_scopes),
         )
 
+        deps = workflow.bind_deps(services) if workflow.bind_deps is not None else services
         emitter.status(RunStatus.RUNNING.value)
         if resume:
-            result = await runner.resume_graph(workflow.graph, deps=services)
+            result = await runner.resume_graph(workflow.graph, deps=deps)
         else:
             result = await runner.run_graph(
                 workflow.graph,
                 workflow.start_node(),
                 workflow.make_state(admitted_intent),
-                deps=services,
+                deps=deps,
             )
         if isinstance(result, RunParked):
             return await _commit_consent_park(substrate, ledger, emitter, run_id, result)
@@ -395,50 +508,17 @@ async def _perform_run(  # noqa: C901, PLR0911, PLR0912, PLR0915 - honest fresh/
             run,
             persistence=persistence,
         )
-    except asyncio.CancelledError:
-        # Once the claim CAS wins, every cancellation path settles durable truth
-        # before propagating, including setup/checkpoint and resume-seeding awaits.
-        if terminal_owned:
-            await complete_under_cancellation(
-                _cleanup_claim_resources(
-                    substrate,
-                    run,
-                    persistence=persistence,
-                )
-            )
-        else:
-            terminal_owned = await complete_under_cancellation(
-                _settle_interrupted_claim(
-                    substrate,
-                    run,
-                    enqueue_seq=claim_enqueue_seq,
-                    error="run worker cancelled",
-                    persistence=persistence,
-                )
-            )
-        raise
     except Exception as exc:
         logger.exception("perform_run_failed", run_id=run_id, workflow=run.workflow_name)
-        if terminal_owned:
-            await complete_under_cancellation(
-                _cleanup_claim_resources(
-                    substrate,
-                    run,
-                    persistence=persistence,
-                )
-            )
-        else:
-            terminal_owned = await complete_under_cancellation(
-                _settle_interrupted_claim(
-                    substrate,
-                    run,
-                    enqueue_seq=claim_enqueue_seq,
-                    error=str(exc),
-                    persistence=persistence,
-                )
-            )
-            if terminal_owned:
-                await _write_failed_turn(substrate, run_id=run_id, session_id=run.session_id)
+        if await settle_interruption(str(exc)):
+            await _write_failed_turn(substrate, run_id=run_id, session_id=run.session_id)
+        raise
+    except (asyncio.CancelledError, BaseExceptionGroup) as exc:
+        # Ordinary ExceptionGroups retain failure handling above. Other fatal
+        # leaves cannot acquire cancellation authority from a grouped sibling.
+        if isinstance(exc, BaseExceptionGroup) and not _is_cancellation_group(exc):
+            raise
+        await settle_interruption("run worker cancelled")
         raise
     else:
         return {"status": "done", "run_id": run_id}
@@ -462,10 +542,11 @@ async def _settle_interrupted_claim(
     """Let an API cancellation settle first, else fail this exact claimed hop.
 
     SAQ marks an active job aborting before its worker task receives cancellation.
-    Once the Run is ``CANCELLING``, the worker releases its resources immediately so
-    SAQ can acknowledge containment; the API commits ``CANCELLED`` only after that
-    acknowledgement. Outside that elected state, the worker waits for an in-process
-    cancellation election before falling back to its exact-sequence failure CAS.
+    Once the Run is ``CANCELLING``, the worker releases volatile resources so SAQ
+    can acknowledge containment, retaining its checkpoint until the API commits
+    ``CANCELLED`` after that acknowledgement. Outside that elected state, the worker
+    waits for an in-process cancellation election before falling back to its
+    exact-sequence failure CAS.
     It cannot wait for API settlement, which may need this worker to exit first.
 
     Returns ``True`` only when this worker owns the terminal write and must emit the
@@ -478,7 +559,7 @@ async def _settle_interrupted_claim(
         # The API is waiting for SAQ to observe this task's cancellation. Release
         # graph resources now; waiting on the API coordinator here would deadlock
         # the containment acknowledgement.
-        await _cleanup_cancelled_claim(substrate, run, persistence=persistence)
+        await _cleanup_cancelled_claim(substrate, current, persistence=persistence)
         return False
     if substrate.cancellations.active(run.run_id):
         await substrate.cancellations.wait_election(run.run_id)
@@ -486,11 +567,11 @@ async def _settle_interrupted_claim(
         if current is None:
             return False
         if current.status is RunStatus.CANCELLING and current.enqueue_seq == enqueue_seq:
-            await _cleanup_cancelled_claim(substrate, run, persistence=persistence)
+            await _cleanup_cancelled_claim(substrate, current, persistence=persistence)
             return False
     if current.status in TERMINAL_STATUSES:
         if current.status is RunStatus.CANCELLED and current.enqueue_seq == enqueue_seq:
-            await _cleanup_cancelled_claim(substrate, run, persistence=persistence)
+            await _cleanup_cancelled_claim(substrate, current, persistence=persistence)
         return False
     return await _fail_claimed_run(
         substrate,
@@ -507,7 +588,10 @@ async def _cleanup_cancelled_claim(
     *,
     persistence: PhylacteryProtocol | None,
 ) -> None:
-    """Release resources created after the API took its pre-abort run snapshot."""
+    """Release volatile worker resources, retaining checkpoints until cancellation commits."""
+    if run.status is RunStatus.CANCELLING:
+        substrate.context.release(run.run_id)
+        return
     await _cleanup_claim_resources(
         substrate,
         run,
@@ -535,7 +619,7 @@ async def _fail_claimed_run(
             return False
         if current.status not in {RunStatus.RUNNING, RunStatus.AWAITING_HARDWARE}:
             if current.status in {RunStatus.CANCELLING, RunStatus.CANCELLED}:
-                await _cleanup_cancelled_claim(substrate, run, persistence=persistence)
+                await _cleanup_cancelled_claim(substrate, current, persistence=persistence)
             return False
         return await _contain_and_fail_claim(
             substrate, run, enqueue_seq=enqueue_seq, error=error, persistence=persistence
@@ -572,7 +656,7 @@ async def _contain_and_fail_claim(
     if not settled:
         current = await substrate.ledger.get(run.run_id)
         if current is not None and current.status in {RunStatus.CANCELLING, RunStatus.CANCELLED}:
-            await _cleanup_cancelled_claim(substrate, run, persistence=persistence)
+            await _cleanup_cancelled_claim(substrate, current, persistence=persistence)
         return False
     await _cleanup_claim_resources(
         substrate,

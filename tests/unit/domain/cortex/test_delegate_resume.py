@@ -595,7 +595,7 @@ async def test_old_terminal_job_cannot_resume_a_newer_delegate_wait_for_same_run
     )
     assert await coordinator.adopt(first.job_id, settled) is True
     assert await engine.resume_delegate(first.job_id) is True
-    assert await ledger.try_claim_run("run-6", enqueue_seq=1) is True
+    assert (await ledger.try_claim_run("run-6", enqueue_seq=1)).acknowledged is True
 
     second = await _delegated_job(
         coordinator,

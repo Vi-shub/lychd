@@ -24,6 +24,9 @@ if TYPE_CHECKING:
     from litestar.config.app import AppConfig
     from litestar.datastructures import State
 
+    from lychd.config.settings.root import Settings
+    from lychd.developer import DeveloperFixture
+
 
 def provide_extensions(state: State) -> AssembledExtensions:
     """Provide the process-wide assembled extensions from app state."""
@@ -38,11 +41,12 @@ def provide_runes(state: State) -> RuneRegistry:
 class AppInit(InitPluginProtocol):
     """Configure the server application from side-effect-free component factories."""
 
-    __slots__ = ("listener_port",)
+    __slots__ = ("fixture", "listener_port")
 
-    def __init__(self, *, listener_port: int | None = None) -> None:
-        """Retain the detected listener port for loopback Host admission."""
+    def __init__(self, *, listener_port: int | None = None, fixture: DeveloperFixture | None = None) -> None:
+        """Select production or the explicit fixture before any ambient configuration."""
         self.listener_port = listener_port
+        self.fixture = fixture
 
     def on_app_init(self, app_config: AppConfig) -> AppConfig:
         """Configure the application when run as a web server.
@@ -58,33 +62,26 @@ class AppInit(InitPluginProtocol):
 
         """
         # Lazy import of settings to keep startup fast
-        from advanced_alchemy.extensions.litestar import SQLAlchemyPlugin
         from litestar.config.response_cache import ResponseCacheConfig
         from litestar.di import Provide
         from litestar.plugins.structlog import StructlogPlugin
         from litestar.stores.memory import MemoryStore
         from litestar.stores.registry import StoreRegistry
         from litestar_granian import GranianPlugin
-        from litestar_saq import SAQPlugin
 
         from lychd.__about__ import __version__ as current_version
         from lychd.config.components import (
             build_allowed_hosts_config,
             build_cors_config,
             build_csrf_config,
-            build_db_config,
-            build_saq_config,
             build_structlog_config,
         )
         from lychd.config.constants import CACHE_EXPIRATION
-        from lychd.config.runes.registry import load_rune_registry
         from lychd.domain.web.contracts import CsrfClientContract
-        from lychd.extensions.host import get_extensions
         from lychd.lib.exceptions import ApplicationError
 
-        settings = get_settings()
-        extensions = get_extensions()  # THE one assembly for this process
-        runes = load_rune_registry(extensions)  # validated TOML instances, loaded once
+        app_config.plugins.extend([GranianPlugin(), StrictPydanticSchemaPlugin()])
+        settings, extensions, runes = self._configure_composition(app_config)
 
         app_config.debug = settings.server.web.debug
 
@@ -94,15 +91,7 @@ class AppInit(InitPluginProtocol):
             use_handler_docstrings=True,
         )
 
-        app_config.plugins.extend(
-            [
-                GranianPlugin(),
-                StrictPydanticSchemaPlugin(),
-                SQLAlchemyPlugin(config=build_db_config(settings)),
-                SAQPlugin(config=build_saq_config(settings)),
-                StructlogPlugin(config=build_structlog_config(settings)),
-            ],
-        )
+        app_config.plugins.append(StructlogPlugin(config=build_structlog_config(settings)))
 
         # Loopback browser boundary / CSRF
         app_config.allowed_hosts = build_allowed_hosts_config(
@@ -179,7 +168,6 @@ class AppInit(InitPluginProtocol):
 
         # Dependencies
         from lychd.interface.web.deps import web_dependencies
-        from lychd.interface.web.lifespan import altar_services_lifespan
 
         app_config.dependencies.update(web_dependencies)
         app_config.dependencies.update(
@@ -188,11 +176,34 @@ class AppInit(InitPluginProtocol):
                 "runes": Provide(provide_runes, sync_to_thread=False),
             }
         )
-        # The web-layer composition path builds AltarServices, warms the registry,
-        # publishes on app.state, and drains on shutdown.
-        app_config.lifespan.append(altar_services_lifespan)  # pyright: ignore[reportUnknownMemberType]
 
         return app_config
+
+    def _configure_composition(self, app_config: AppConfig) -> tuple[Settings, AssembledExtensions, RuneRegistry]:
+        """Select service authority before the shared HTTP configuration."""
+        if self.fixture is not None:
+            from lychd.developer import refuse_fixture_mutations
+
+            app_config.guards.append(refuse_fixture_mutations)  # pyright: ignore[reportUnknownMemberType]
+            app_config.lifespan.append(self.fixture.lifespan)  # pyright: ignore[reportUnknownMemberType]
+            return self.fixture.settings, self.fixture.extensions, self.fixture.runes
+
+        from advanced_alchemy.extensions.litestar import SQLAlchemyPlugin
+        from litestar_saq import SAQPlugin
+
+        from lychd.config.components import build_db_config, build_saq_config
+        from lychd.config.runes.registry import load_rune_registry
+        from lychd.extensions.host import get_extensions
+        from lychd.interface.web.lifespan import altar_services_lifespan
+
+        settings = get_settings()
+        extensions = get_extensions()
+        runes = load_rune_registry(extensions)
+        app_config.plugins.extend(
+            [SQLAlchemyPlugin(config=build_db_config(settings)), SAQPlugin(config=build_saq_config(settings))]
+        )
+        app_config.lifespan.append(altar_services_lifespan)  # pyright: ignore[reportUnknownMemberType]
+        return settings, extensions, runes
 
 
 def create_app() -> Litestar:

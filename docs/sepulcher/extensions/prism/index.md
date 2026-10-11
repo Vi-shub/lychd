@@ -11,9 +11,10 @@ icon: material/pyramid
 admitted sources into bounded transformations and observations without letting captions, OCR,
 crops, reconstructions, conversions, or model judgments replace them.
 
-Vision admission is **Partial**: current code preserves immutable `ArtifactRef` metadata, projects
-image modality, distinguishes `vision` from image-capable `chat`, and filters declarations, but no
-Prism package, byte-custody or materialization path, OCR tool, or visual provider ships today.
+Vision admission is **Partial**: current code preserves immutable `ArtifactRef` metadata,
+distinguishes `vision` from image-capable `chat`, and filters declarations by explicitly supplied
+required input modalities. No Prism package, byte-custody or materialization path, OCR tool, or
+visual provider ships today.
 [State of Work](../../../state-of-the-work.md#vision-admission) owns that boundary;
 [ADR 36](../../../adr/36-vision.md) owns the designed contract.
 

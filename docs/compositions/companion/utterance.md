@@ -15,9 +15,9 @@ The client creates a fresh utterance identity, frame sequence, codec, byte/durat
 push-to-talk → authenticate → transcribe → preview or clarify
 → typed Intent → settled CompanionTurnHandoff@1
                      || independently admitted destination Invocation
-settled terminal-result reference → Companion presentation → optional speech
+settled terminal-result reference → Companion presentation under its admitted output policy
 ```
 
-When a terminal-result reference has settled elsewhere, a fresh authorized `companion.present_result@1` can present it against this utterance/device. Committed text survives synthesis or playback failure. Companion owns no wait, cancellation, retry, or recovery for that destination Invocation.
+When a terminal-result reference has settled elsewhere, a fresh authorized `companion.present_result@1` can present it against this utterance/device. Committed text survives synthesis or playback failure. Preserving that text does not complete a presentation that requires speech. Its admitted configuration must explicitly accept text-only fallback for that alternative to count as completion; otherwise the presentation returns exact partial or non-completion. This does not reopen or relabel the independently settled destination result. Companion owns no wait, cancellation, retry, or recovery for that destination Invocation.
 
 The two handoffs therefore promise separate settled results. A Product needing one coordinated round trip must pin a named Suite with aggregate wait, cancellation, recovery, and settlement. [Return](return.md) explains what reconnect can retrieve without replaying the request.

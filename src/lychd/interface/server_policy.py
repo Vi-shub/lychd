@@ -21,6 +21,9 @@ _RELOAD_ENVIRONMENT_KEYS = (
     "LITESTAR_RELOAD_DIRS",
     "LITESTAR_RELOAD_INCLUDES",
     "LITESTAR_RELOAD_EXCLUDES",
+    "GRANIAN_RELOAD_PATHS",
+    "GRANIAN_RELOAD_INCLUDE",
+    "GRANIAN_RELOAD_EXCLUDE",
 )
 _RELOAD_FLAG_ENVIRONMENT_KEYS = ("LITESTAR_RELOAD", "GRANIAN_RELOAD")
 _LISTENER_PORT_ENVIRONMENT_KEYS = ("LITESTAR_PORT", "GRANIAN_PORT")
@@ -41,6 +44,7 @@ _RELOAD_OPTIONS = frozenset(
         "--reload",
         "-R",
         "--reload-dir",
+        "--reload-paths",
         "-I",
         "--reload-include",
         "-E",
@@ -49,6 +53,7 @@ _RELOAD_OPTIONS = frozenset(
 )
 _LONG_RELOAD_VALUE_OPTIONS = (
     "--reload-dir",
+    "--reload-paths",
     "--reload-include",
     "--reload-exclude",
 )
@@ -101,7 +106,7 @@ def evaluate_server_runtime_policy(
     argv: Sequence[str] = (),
     original_argv: Sequence[str] = (),
 ) -> ServerRuntimePolicy:
-    """Validate worker/reload policy and resolve the effective listener port.
+    """Validate process and native listener policy, resolving listener authority.
 
     ``server_arguments`` is the explicit server tail used by ``lychd serve``.
     When omitted, process arguments are admitted only for a detected Litestar or
@@ -123,8 +128,9 @@ def evaluate_server_runtime_policy(
         listener_port = _environment_port(environment)
     if listener_port is None and default_listener_port is not None:
         listener_port = _parse_port(str(default_listener_port), source="settings.server.port")
-    if native_serve:
+    if server_arguments is not None:
         _validate_native_listener_environment(environment)
+        _validate_native_metrics(server_arguments, environment)
         environment_host = _native_environment_host(environment)
         listener_host = listener_host or environment_host or _DEFAULT_NATIVE_LISTENER_HOST
     return ServerRuntimePolicy(listener_port=listener_port, listener_host=listener_host)
@@ -294,6 +300,34 @@ def _validate_native_listener_environment(environment: Mapping[str, str]) -> Non
         if environment.get(variable) not in {None, ""}:
             message = f"LychD native serve does not support {variable}; use its loopback TCP listener."
             raise ServerRuntimePolicyError(message)
+
+
+def _validate_native_metrics(arguments: Sequence[str], environment: Mapping[str, str]) -> None:
+    """Refuse an effective exporter using the installed native option grammar.
+
+    The raw parser runs no callbacks, type conversions, or environment lookups.
+    Reusing its grammar prevents an option value spelled ``--no-metrics`` from
+    disguising enablement. Locked-parser regressions cover this coupling; only
+    the supplied environment participates in the fallback boolean conversion.
+    """
+    environment_value = environment.get("GRANIAN_METRICS_ENABLED", "").strip()
+    if not environment_value and not {"--metrics", "--no-metrics"}.intersection(arguments):
+        return
+
+    from click import BOOL, ClickException, Context
+    from litestar_granian.cli import run_command
+
+    try:
+        with Context(run_command) as context:
+            options, _, _ = run_command.make_parser(context).parse_args(list(arguments))
+        metrics_enabled = options.get("metrics_enabled")
+        if metrics_enabled is None:
+            metrics_enabled = BOOL.convert(environment_value, None, None) if environment_value else False
+    except ClickException as exc:
+        raise ServerRuntimePolicyError(str(exc)) from exc
+    if metrics_enabled:
+        message = "LychD native serve does not support the Granian metrics listener; use its loopback TCP listener."
+        raise ServerRuntimePolicyError(message)
 
 
 def _parse_native_host(value: str, *, source: str) -> str:

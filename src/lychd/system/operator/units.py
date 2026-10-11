@@ -16,7 +16,7 @@ _SYSTEMCTL_TIMEOUT_SECONDS = 3.0
 
 
 class OwnedUnitInventoryService:
-    """Project Scribe authority into exact runtime units and observed state."""
+    """Project exact Scribe ownership, retaining load state separately from activity."""
 
     def __init__(
         self,
@@ -98,6 +98,7 @@ class OwnedUnitInventoryService:
             state=state,
             unit_file_state=fields.get("UnitFileState", "unknown"),
             detail=detail,
+            load_state=load_state,
         )
 
     @staticmethod

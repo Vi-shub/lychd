@@ -23,7 +23,8 @@ name = "echo"
 groups = ["conversation", "studio"]
 ```
 
-That still names one service instance. Starting `conversation.target` and `studio.target` does not
+That still names one service instance. Starting `lychd-coven-conversation.target` and
+`lychd-coven-studio.target` does not
 create two copies, and common membership does not prove the complete union fits. The compiled
 conflict graph remains the executable coexistence law.
 

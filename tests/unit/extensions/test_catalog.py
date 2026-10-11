@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import FrozenInstanceError
+
 import pytest
 
 from lychd.domain.animation.services.adapters.contracts import SoulstoneDefinition
@@ -62,6 +64,16 @@ def test_multiple_animator_runtimes_register_exact_definitions() -> None:
         "llamacpp",
     }
     assert len(context.portals.definitions) == 2
+    assert {item.registrant_id for item in context.soulstones.registrations} == {
+        "builtin:animator/vllm",
+        "builtin:animator/llamacpp",
+    }
+    assert {item.registrant_id for item in context.portals.registrations} == {"builtin:animator"}
+    snapshot = list(context.soulstones.registrations)
+    snapshot.clear()
+    assert len(context.soulstones.registrations) == 2
+    with pytest.raises(FrozenInstanceError):
+        context.soulstones.registrations[0].registrant_id = "core"  # type: ignore[misc]
 
 
 def test_exllamav3_builtin_registers_one_runtime_definition() -> None:

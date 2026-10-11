@@ -627,3 +627,185 @@ it("starts with concerns and discloses the project brief while keeping continuat
   expect(within(context).getByRole("button", { name: "Edit project" })).toBeTruthy();
   expect(changeAtlasProject).not.toHaveBeenCalled();
 });
+function citedProject(kind: AtlasReference["kind"] = "run") {
+  const target = `${kind}/shared?part=one&next=two`;
+  const note = "Failure reproduction: ".repeat(8);
+  const references: AtlasReference[] = [
+    { id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", kind, target_id: target, concern_id: null, note: "Baseline", author: "Magus", created_at: now },
+    { id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", kind, target_id: target, concern_id: concernId, note, author: "Magus", created_at: now },
+    { id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", kind, target_id: target, concern_id: otherConcernId, note, author: "Magus", created_at: now }
+  ];
+  const assessment = {
+    id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd", concern_id: concernId, concern_revision: 1,
+    brief_revision: 1, statement: concern.statement, criteria: concern.criteria, brief: project().brief,
+    judgment: "insufficient" as const, rationale: "Earlier assessment basis.", reference_ids: [references[1]!.id],
+    author: "Magus", created_at: now
+  };
+  return project({
+    concerns: [concern, { ...concern, id: otherConcernId }], references,
+    assessments: [assessment, { ...assessment, id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee", rationale: "Latest assessment basis.", reference_ids: [references[0]!.id] }]
+  });
+}
+
+it.each(["session", "run"] as const)("opens the actual historical %s citation separately while preserving an assessment draft", async (kind) => {
+  const saved = citedProject(kind);
+  vi.mocked(getAtlasProject).mockResolvedValue(saved);
+  render(AtlasView, { projectId });
+  await fireEvent.click((await screen.findAllByRole("button", { name: "Record assessment" }))[0]!);
+  const form = screen.getByRole("form", { name: "Record assessment" });
+  await fireEvent.change(within(form).getByLabelText("Judgment"), { target: { value: "disputed" } });
+  await fireEvent.input(within(form).getByLabelText(/Reason required/), { target: { value: "Keep the draft and its evidence." } });
+  const selected = within(form).getByRole("checkbox", { name: /Failure reproduction/ }) as HTMLInputElement;
+  await fireEvent.click(selected);
+  const summary = screen.getByText("Assessment history (2)", { selector: "summary" });
+  await fireEvent.click(summary);
+  const history = summary.closest("details")!;
+  const earlier = within(history).getByText("Earlier assessment basis.").closest("li")!;
+  const citation = within(earlier).getByRole("link");
+  expect(citation.getAttribute("href")).toBe(`/${kind === "session" ? "bridge" : "orb"}/${encodeURIComponent(saved.references[1]!.target_id)}`);
+  expect(citation.getAttribute("target")).toBe("_blank");
+  expect(citation.getAttribute("rel")?.split(" ")).toContain("noopener");
+  expect(citation.textContent).toContain("Open in new tab");
+  await fireEvent.click(citation);
+  expect((within(form).getByLabelText("Judgment") as HTMLSelectElement).value).toBe("disputed");
+  expect((within(form).getByLabelText(/Reason required/) as HTMLTextAreaElement).value).toBe("Keep the draft and its evidence.");
+  expect(selected.checked).toBe(true);
+  expect(window.confirm).not.toHaveBeenCalled();
+  expect(changeAtlasProject).not.toHaveBeenCalled();
+  expect(createAtlasProject).not.toHaveBeenCalled();
+});
+
+it("exposes each cited record's scope, full note and identity despite identical activity and concern labels", async () => {
+  const saved = citedProject();
+  saved.assessments.push({ ...saved.assessments[0]!, id: "ffffffff-ffff-4fff-8fff-ffffffffffff", concern_id: otherConcernId, rationale: "Other concern basis.", reference_ids: [saved.references[2]!.id] });
+  vi.mocked(getAtlasProject).mockResolvedValue(saved);
+  render(AtlasView, { projectId });
+  await screen.findAllByRole("heading", { name: concern.statement });
+  const latest = screen.getAllByText("Latest assessment basis.")[0]!.parentElement!;
+  expect(within(latest).getByText("Project as a whole")).toBeTruthy();
+  const projectDetails = within(latest).getByText("Reference details", { selector: "summary" });
+  await fireEvent.click(projectDetails);
+  expect(within(projectDetails.parentElement!).getByText("Baseline")).toBeTruthy();
+  expect(within(projectDetails.parentElement!).getByText(saved.references[0]!.id)).toBeTruthy();
+  const summary = screen.getByText("Assessment history (2)", { selector: "summary" });
+  await fireEvent.click(summary);
+  const earlier = within(summary.closest("details")!).getByText("Earlier assessment basis.").closest("li")!;
+  const other = screen.getAllByText("Other concern basis.")[0]!.parentElement!;
+  for (const [record, reference] of [[earlier, saved.references[1]!], [other, saved.references[2]!]] as const) {
+    expect(within(record).getByText(`Concern: ${concern.statement}`)).toBeTruthy();
+    const details = within(record).getByText("Reference details", { selector: "summary" });
+    await fireEvent.click(details);
+    expect(within(details.parentElement!).getByText(reference.note.trim())).toBeTruthy();
+    expect(within(details.parentElement!).getByText(reference.id)).toBeTruthy();
+    expect(within(details.parentElement!).getByText(reference.concern_id!)).toBeTruthy();
+    expect(within(record).queryByText(saved.references[0]!.id)).toBeNull();
+  }
+  expect(within(earlier).queryByText(saved.references[2]!.id)).toBeNull();
+  expect(changeAtlasProject).not.toHaveBeenCalled();
+});
+
+it("retains cited identity with an empty note and leaves a missing reference unavailable", async () => {
+  const saved = citedProject();
+  saved.references[1]!.note = "";
+  saved.assessments[0]!.reference_ids.push("missing-reference");
+  vi.mocked(getAtlasProject).mockResolvedValue(saved);
+  render(AtlasView, { projectId });
+  const summary = await screen.findByText("Assessment history (2)", { selector: "summary" });
+  await fireEvent.click(summary);
+  const earlier = within(summary.closest("details")!).getByText("Earlier assessment basis.").closest("li")!;
+  expect(within(earlier).getByText("Reference unavailable")).toBeTruthy();
+  expect(within(earlier).getAllByRole("link")).toHaveLength(1);
+  const details = within(earlier).getByText("Reference details", { selector: "summary" });
+  await fireEvent.click(details);
+  expect(within(details.parentElement!).getByText(saved.references[1]!.id)).toBeTruthy();
+  expect(within(details.parentElement!).getByText(concernId)).toBeTruthy();
+  expect(within(details.parentElement!).getByText("None recorded")).toBeTruthy();
+  expect(within(earlier).queryByText(saved.references[0]!.id)).toBeNull();
+});
+
+it.each(["session", "run"] as const)("explicitly drafts an already-linked %s for another concern and saves only on submission", async (kind) => {
+  const saved = citedProject(kind);
+  saved.assessments = [];
+  saved.references = [saved.references[1]!];
+  const original = structuredClone(saved.references[0]!);
+  const added = { ...original, id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", concern_id: otherConcernId, note: "Another concern's context" };
+  vi.mocked(getAtlasProject).mockResolvedValue(saved);
+  vi.mocked(changeAtlasProject).mockResolvedValue(project({ ...saved, version: 2, references: [original, added] }));
+  render(AtlasView, { projectId, linkKind: kind, linkId: original.target_id });
+  await screen.findByRole("heading", { name: "Activity linked to this project" });
+  expect(screen.queryByRole("form")).toBeNull();
+  await fireEvent.click(screen.getByRole("button", { name: "Link this activity to another concern" }));
+  const form = screen.getByRole("form", { name: "Link existing activity" });
+  expect((within(form).getByLabelText("Activity") as HTMLSelectElement).value).toBe(kind);
+  expect((within(form).getByLabelText(/Existing ID/) as HTMLInputElement).value).toBe(original.target_id);
+  expect(within(form).getByRole("link", { name: /Inspect this activity/ }).getAttribute("href")).toBe(`/${kind === "session" ? "bridge" : "orb"}/${encodeURIComponent(original.target_id)}`);
+  await fireEvent.change(within(form).getByLabelText("Related to"), { target: { value: otherConcernId } });
+  await fireEvent.input(within(form).getByLabelText("Context note"), { target: { value: added.note } });
+  expect(changeAtlasProject).not.toHaveBeenCalled();
+  expect(createAtlasProject).not.toHaveBeenCalled();
+  await fireEvent.submit(form);
+  expect(vi.mocked(changeAtlasProject).mock.calls[0]![1].change).toEqual({
+    kind: "reference.add", reference_kind: kind, target_id: original.target_id, concern_id: otherConcernId, note: added.note
+  });
+  expect(saved.references).toEqual([original]);
+  expect(screen.getAllByText("No assessment has been recorded.")).toHaveLength(2);
+  await fireEvent.click(screen.getAllByRole("button", { name: "Record assessment" })[1]!);
+  const assessment = screen.getByRole("form", { name: "Record assessment" });
+  expect(within(assessment).getAllByRole("checkbox")).toHaveLength(1);
+  expect((within(assessment).getByRole("checkbox", { name: /Another concern's context/ }) as HTMLInputElement).checked).toBe(false);
+  expect(within(assessment).queryByRole("checkbox", { name: /Failure reproduction/ })).toBeNull();
+  expect(changeAtlasProject).toHaveBeenCalledTimes(1);
+});
+
+it("keeps a dirty draft when opening the incoming activity is declined", async () => {
+  const saved = citedProject();
+  vi.mocked(getAtlasProject).mockResolvedValue(saved);
+  render(AtlasView, { projectId, linkKind: "run", linkId: saved.references[0]!.target_id });
+  await fireEvent.click(await screen.findByRole("button", { name: "Edit project" }));
+  await fireEvent.input(screen.getByRole("textbox", { name: "Brief" }), { target: { value: "Keep my brief draft" } });
+  vi.mocked(window.confirm).mockReturnValue(false);
+  await fireEvent.click(screen.getByRole("button", { name: "Link this activity to another concern" }));
+  expect(window.confirm).toHaveBeenCalledOnce();
+  expect((screen.getByRole("textbox", { name: "Brief" }) as HTMLTextAreaElement).value).toBe("Keep my brief draft");
+  expect(screen.queryByRole("form", { name: "Link existing activity" })).toBeNull();
+  expect(changeAtlasProject).not.toHaveBeenCalled();
+});
+
+it.each(["pending", "uncertain"])("locks the incoming activity action while a save is %s", async (outcome) => {
+  const saved = citedProject();
+  vi.mocked(getAtlasProject).mockResolvedValue(saved);
+  const response = deferred<AtlasProject>();
+  if (outcome === "pending") vi.mocked(changeAtlasProject).mockReturnValueOnce(response.promise);
+  else vi.mocked(changeAtlasProject).mockRejectedValueOnce(new TypeError("Response lost"));
+  render(AtlasView, { projectId, linkKind: "run", linkId: saved.references[0]!.target_id });
+  await fireEvent.click(await screen.findByRole("button", { name: "Edit project" }));
+  await fireEvent.input(screen.getByRole("textbox", { name: "Brief" }), { target: { value: "Held save values" } });
+  await fireEvent.submit(screen.getByRole("form", { name: "Edit project" }));
+  if (outcome === "uncertain") await screen.findByRole("button", { name: "Retry same save" });
+  const action = screen.getByRole("button", { name: "Link this activity to another concern" }) as HTMLButtonElement;
+  expect(action.disabled).toBe(true);
+  await fireEvent.click(action);
+  expect(screen.queryByRole("form", { name: "Link existing activity" })).toBeNull();
+  expect((screen.getByRole("textbox", { name: "Brief" }) as HTMLTextAreaElement).value).toBe("Held save values");
+  expect(changeAtlasProject).toHaveBeenCalledTimes(1);
+  if (outcome === "pending") await act(() => response.resolve(saved));
+});
+
+it("keeps an explicitly opened incoming draft after same-scope duplicate refusal", async () => {
+  const saved = citedProject();
+  vi.mocked(getAtlasProject).mockResolvedValue(saved);
+  vi.mocked(changeAtlasProject).mockRejectedValueOnce(new ApiError("Activity is already linked to this concern", 409, "atlas_write_rejected"));
+  render(AtlasView, { projectId, linkKind: "run", linkId: saved.references[1]!.target_id });
+  await screen.findByRole("heading", { name: "Activity linked to this project" });
+  await fireEvent.click(screen.getByRole("button", { name: "Link this activity to another concern" }));
+  const form = screen.getByRole("form", { name: "Link existing activity" });
+  await fireEvent.change(within(form).getByLabelText("Related to"), { target: { value: concernId } });
+  await fireEvent.input(within(form).getByLabelText("Context note"), { target: { value: "Keep this attempted context" } });
+  await fireEvent.submit(form);
+  expect((await screen.findByRole("alert")).textContent).toContain("already linked to this concern");
+  expect((within(form).getByLabelText(/Existing ID/) as HTMLInputElement).value).toBe(saved.references[1]!.target_id);
+  expect((within(form).getByLabelText("Related to") as HTMLSelectElement).value).toBe(concernId);
+  expect((within(form).getByLabelText("Context note") as HTMLTextAreaElement).value).toBe("Keep this attempted context");
+  expect(screen.getByRole("button", { name: "Load latest for comparison" })).toBeTruthy();
+  expect(changeAtlasProject).toHaveBeenCalledTimes(1);
+});

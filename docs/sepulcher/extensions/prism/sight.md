@@ -48,7 +48,7 @@ one explicit operation:
 | `ground` | Relate a retained text query to candidate regions; translated queries preserve original text and translator revision. |
 | `segment` | Produce semantic, instance, panoptic, or prompted masks under an exact ontology, prompt, and overlap policy. |
 | `track` | Relate region hypotheses through an exact finite time window; track identity is local to this job. |
-| `estimate_depth` | Produce explicitly relative, inverse, or metric depth plus validity and uncertainty. |
+| `estimate_depth` | Produce relative or metric depth in a declared depth or inverse-depth representation, with validity and uncertainty. |
 | `estimate_pose` | Produce keypoints under a pinned skeleton ontology and coordinate space. |
 | `estimate_flow` | Produce dense or sparse apparent motion between exact source and destination frames. |
 | `compare` | Register two sources or a time window and return bounded change candidates plus registration error and alternatives. |
@@ -109,7 +109,7 @@ typed facets:
 | --- | --- |
 | regions | original-source boxes, points, polygons, class or phrase, score semantics, ontology and coverage |
 | masks | semantic/instance/panoptic/prompted kind, RLE or mask artifact, region relation, overlap and prompt lineage |
-| depth | relative/inverse/metric kind, ray-depth or camera-z convention, units and scale when proved, validity and uncertainty artifacts |
+| depth | relative or metric scale, depth or inverse-depth representation, ray-depth or camera-z convention, units and scale when proved, validity and uncertainty artifacts |
 | pose | skeleton ontology and revision, coordinate space, keypoints, visibility and score semantics |
 | flow | exact ordered frame pair, vector axes and units, dense or sparse field artifact, validity and occlusion |
 | tracks | job-local track id, observations and spans, association method, gaps, occlusion and termination |

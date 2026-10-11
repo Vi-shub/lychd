@@ -1247,16 +1247,16 @@ async def test_noop_fast_path_rechecks_containment_after_async_planning() -> Non
         {"titan": _runtime("titan", up=True)},
     )
     manager = _make_manager(AsyncMock(), registry)
-    original_calculate = manager.calculate_transition_plan
+    original_calculate = manager._calculate_transition_plan  # pyright: ignore[reportPrivateUsage]
     planning = asyncio.Event()
     release = asyncio.Event()
 
-    async def block_plan(key: str) -> Any:
+    async def block_plan(key: str, admission: Any) -> Any:
         planning.set()
         await release.wait()
-        return await original_calculate(key)
+        return await original_calculate(key, admission)
 
-    with patch.object(manager, "calculate_transition_plan", side_effect=block_plan):
+    with patch.object(manager, "_calculate_transition_plan", side_effect=block_plan):
         task = asyncio.create_task(manager.request_transition(target.key, 100))
         await planning.wait()
         manager._contain("concurrent uncertain mutation")  # pyright: ignore[reportPrivateUsage]

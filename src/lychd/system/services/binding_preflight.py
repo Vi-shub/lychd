@@ -36,7 +36,9 @@ type BindingPreflightIssueCode = Literal[
     "reactor-owner",
     "uncaged-control-secret",
     "uncaged-web-secret",
+    "uncaged-access-secret",
     "uncaged-database-secret",
+    "uncaged-runtime-database-secret",
 ]
 
 
@@ -309,6 +311,7 @@ class BindingPreflightService:
         *,
         control_plane_secrets: Sequence[str],
     ) -> list[BindingPreflightIssue]:
+        """Require loaded bootstrap and native runtime credentials without resolving secrets."""
         issues: list[BindingPreflightIssue] = []
         if control_plane_secrets:
             issues.append(
@@ -331,12 +334,30 @@ class BindingPreflightService:
                 )
             )
 
+        if settings.server.web.access_password is None:
+            issues.append(
+                BindingPreflightIssue(
+                    code="uncaged-access-secret",
+                    target="local access password",
+                    detail="Required local access password is unavailable in Settings.",
+                )
+            )
+
         if settings.server.database.password is None:
             issues.append(
                 BindingPreflightIssue(
                     code="uncaged-database-secret",
-                    target="database password",
-                    detail="Required database password is unavailable in Settings.",
+                    target="bootstrap database password",
+                    detail="Required bootstrap database password is unavailable in Settings.",
+                )
+            )
+
+        if settings.server.database.runtime_password is None:
+            issues.append(
+                BindingPreflightIssue(
+                    code="uncaged-runtime-database-secret",
+                    target="runtime database password",
+                    detail="Required runtime database password is unavailable in Settings.",
                 )
             )
         return issues

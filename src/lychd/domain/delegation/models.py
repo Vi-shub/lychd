@@ -13,6 +13,7 @@ from lychd.domain.artifacts import ArtifactRef
 
 __all__ = [
     "LEGAL_DELEGATED_AGENT_TRANSITIONS",
+    "MAX_DELEGATED_ERROR_LENGTH",
     "TERMINAL_DELEGATED_AGENT_STATUSES",
     "DelegatedAgentEvent",
     "DelegatedAgentEventKind",
@@ -28,13 +29,13 @@ __all__ = [
 _MAX_IDENTIFIER_LENGTH = 128
 _MAX_PROMPT_LENGTH = 1_048_576
 _MAX_RESULT_TEXT_LENGTH = 1_048_576
-_MAX_ERROR_LENGTH = 16_384
+MAX_DELEGATED_ERROR_LENGTH = 16_384
 _MAX_ARTIFACT_REFS = 256
 
 
 def bound_result_text(text: str, *, result_field: Literal["output", "error"]) -> str:
     """Bound locally projected result text while leaving runtime validation strict."""
-    limit = _MAX_RESULT_TEXT_LENGTH if result_field == "output" else _MAX_ERROR_LENGTH
+    limit = _MAX_RESULT_TEXT_LENGTH if result_field == "output" else MAX_DELEGATED_ERROR_LENGTH
     if len(text) <= limit:
         return text
     suffix = "\n...[truncated]"
@@ -169,7 +170,7 @@ class DelegatedAgentResult(BaseModel):
     ]
     output: str | None = Field(default=None, max_length=_MAX_RESULT_TEXT_LENGTH)
     artifacts: tuple[ArtifactRef, ...] = Field(default=(), max_length=_MAX_ARTIFACT_REFS)
-    error: str | None = Field(default=None, max_length=_MAX_ERROR_LENGTH)
+    error: str | None = Field(default=None, max_length=MAX_DELEGATED_ERROR_LENGTH)
 
     @model_validator(mode="after")
     def _validate_terminal_shape(self) -> DelegatedAgentResult:

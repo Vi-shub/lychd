@@ -43,10 +43,16 @@ class OwnedUnitRetirementService:
         self._systemctl = systemctl_bin
 
     def plan(self) -> UnitRetirementPlan:
-        """Plan from validated receipt ownership and fail on unknown unit state."""
+        """Refuse unknown, failed, masked, indirect, or bad-setting units before retirement."""
         catalog = self._inventory.owned_units()
         if catalog.warning:
             raise OperatorError(catalog.warning)
+        bad_setting = tuple(
+            f"{unit.name} ({unit.load_state})" for unit in catalog.units if unit.load_state == "bad-setting"
+        )
+        if bad_setting:
+            message = f"Cannot safely retire exact owned unit(s) with unsupported load state: {', '.join(bad_setting)}"
+            raise OperatorError(message)
         unknown = tuple(unit.name for unit in catalog.units if unit.state is ObservationState.UNKNOWN)
         if unknown:
             message = f"Cannot prove runtime state for exact owned unit(s): {', '.join(unknown)}"
@@ -54,6 +60,20 @@ class OwnedUnitRetirementService:
         unknown_enablement = tuple(unit.name for unit in catalog.units if unit.unit_file_state == "unknown")
         if unknown_enablement:
             message = f"Cannot prove enablement state for exact owned unit(s): {', '.join(unknown_enablement)}"
+            raise OperatorError(message)
+        failed = tuple(unit.name for unit in catalog.units if unit.state is ObservationState.FAILED)
+        if failed:
+            message = f"Cannot safely retire exact owned unit(s) in failed state: {', '.join(failed)}"
+            raise OperatorError(message)
+        unsupported = tuple(
+            f"{unit.name} ({unit.unit_file_state})"
+            for unit in catalog.units
+            if unit.unit_file_state in {"masked", "masked-runtime", "indirect"}
+        )
+        if unsupported:
+            message = (
+                f"Cannot safely retire exact owned unit(s) with unsupported unit-file state: {', '.join(unsupported)}"
+            )
             raise OperatorError(message)
         return UnitRetirementPlan(
             generation=catalog.generation,

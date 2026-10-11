@@ -59,7 +59,7 @@ async def test_interrupted_worker_waits_for_election_not_its_own_abort(
         queue_name="runs",
         priority=50,
     )
-    assert await ledger.try_claim_run(run.run_id, enqueue_seq=0)
+    assert (await ledger.try_claim_run(run.run_id, enqueue_seq=0)).acknowledged
     election_entered = asyncio.Event()
     election_release = asyncio.Event()
     worker_waiting = asyncio.Event()

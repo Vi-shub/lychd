@@ -48,13 +48,16 @@ if TYPE_CHECKING:
     from lychd.agents.workflows import WorkflowRegistry
     from lychd.config.runes.registry import RuneRegistry
     from lychd.config.settings.root import Settings
+    from lychd.domain.animation.extension import RegisteredPortalDefinition, RegisteredSoulstoneDefinition
     from lychd.domain.animation.services.adapters.contracts import PortalDefinition, SoulstoneRuntimeAdapter
     from lychd.domain.codex.ledger import ConsentLedger
     from lychd.domain.cortex.engine import RunQueue
     from lychd.domain.cortex.ledger import RunLedger
     from lychd.domain.delegation.ports import DelegatedAgentRuntime
+    from lychd.domain.orchestration.actuator import RuntimeActuator
     from lychd.domain.orchestration.containment import SoftActivationGuard
     from lychd.domain.web.atlas import AtlasStorePort
+    from lychd.domain.web.consent_reviews import ConsentReviewProducer
     from lychd.domain.web.fragments import FragmentRegistry
     from lychd.domain.web.sessions import SessionStorePort
     from lychd.domain.web.swap_requests import SwapRequestLedger
@@ -86,8 +89,17 @@ class AltarServices:
 
     async def aclose(self) -> None:
         """Cancel tracked tasks and drain pending ledger writes before shutdown."""
-        await self.tickets.aclose()
-        await self.bus.aclose()
+        failures: list[BaseException] = []
+        for close in (self.tickets.aclose, self.bus.aclose):
+            try:
+                await close()
+            except BaseException as exc:  # noqa: BLE001 - drain every owner and preserve cancellation
+                failures.append(exc)
+        if len(failures) == 1:
+            raise failures[0]
+        if failures:
+            message = "Altar service closure failed."
+            raise BaseExceptionGroup(message, failures)
 
 
 def _validate_routed_queues(routing: Mapping[str, RouteRule], queues: Mapping[str, RunQueue]) -> None:
@@ -100,14 +112,20 @@ def _validate_routed_queues(routing: Mapping[str, RouteRule], queues: Mapping[st
         raise RuntimeError(msg)
 
 
-def _build_run_ledger(profile: str) -> RunLedger:
+def _build_run_ledger(profile: str, settings: Settings) -> RunLedger:
     """Select the Run ledger from the shared persistence profile."""
     if profile == "memory":
         return InMemoryRunLedger()
+    from functools import partial
+
+    from lychd.db.claim_observer import observe_claim
     from lychd.db.engine import get_session_factory
     from lychd.domain.cortex.ledger import DbRunLedger
 
-    return DbRunLedger(session_factory=get_session_factory())
+    return DbRunLedger(
+        session_factory=get_session_factory(),
+        claim_observer=partial(observe_claim, settings=settings.server.database),
+    )
 
 
 def _build_session_store(profile: str, *, sigil_name: str) -> SessionStorePort:
@@ -182,8 +200,10 @@ def build_altar_services(
     *,
     queues: Mapping[str, RunQueue],
     runes: RuneRegistry,
-    runtime_adapters: Sequence[SoulstoneRuntimeAdapter],
+    runtime_adapters: Sequence[SoulstoneRuntimeAdapter] = (),
     portal_definitions: Sequence[PortalDefinition] = (),
+    soulstone_registrations: Sequence[RegisteredSoulstoneDefinition] = (),
+    portal_registrations: Sequence[RegisteredPortalDefinition] = (),
     delegated_runtime_adapters: Sequence[DelegatedAgentRuntime] = (),
     delegated_runtime_catalog: Sequence[RegisteredDelegatedRuntime] = (),
     workflows: WorkflowRegistry | None = None,
@@ -191,12 +211,14 @@ def build_altar_services(
     settings: Settings | None = None,
     systemctl_bin: str | None = None,
     soft_activation_guard: SoftActivationGuard | None = None,
+    runtime_actuator: RuntimeActuator | None = None,
+    consent_reviews: ConsentReviewProducer | None = None,
 ) -> AltarServices:
     """Assemble `AltarServices` at the application composition boundary.
 
     The run ledger is chosen by the persistence ``profile`` (defaults to
     ``settings.server.database.profile`` — ``postgres`` in production, ``memory`` in DB-free
-    tests). The bus tees non-TOKEN events into whichever ledger is selected, so the
+    tests and the isolated developer fixture). The bus tees non-TOKEN events into whichever ledger is selected, so the
     choice happens here, before the bus is built.
     """
     if settings is None:
@@ -221,9 +243,11 @@ def build_altar_services(
         ),
         runtime_adapters=runtime_adapters,
         portal_definitions=portal_definitions,
+        soulstone_registrations=soulstone_registrations,
+        portal_registrations=portal_registrations,
     )
     leases = LeaseLedger()
-    ledger = _build_run_ledger(profile)
+    ledger = _build_run_ledger(profile, settings)
     bus = InProcessEventBus(ledger=ledger)
     dispatcher = Dispatcher(registry=registry, leases=leases, events=bus)
     switching = settings.orchestration.switching
@@ -239,7 +263,9 @@ def build_altar_services(
         leases=leases,
         policy=policy,
         arbiter=TransitionArbiter(),
-        actuator=build_runtime_actuator(
+        actuator=runtime_actuator
+        if runtime_actuator is not None
+        else build_runtime_actuator(
             switching,
             registry,
             systemctl_bin=systemctl_bin,
@@ -254,7 +280,9 @@ def build_altar_services(
     consents = _build_consent_ledger(profile)
     tickets = TicketStore()
     swap_requests = _build_swap_request_ledger(profile)
-    projector = EventProjector(fragments=fragments, sessions=bridge_sessions, consents=consents)
+    projector = EventProjector(
+        fragments=fragments, sessions=bridge_sessions, consents=consents, consent_reviews=consent_reviews
+    )
     if workflows is None:
         workflows = builtin_workflow_registry(weaver=settings.weaver)
     delegates = _build_delegation_coordinator(profile, delegated_runtime_adapters)

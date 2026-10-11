@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-import shlex
 from pathlib import Path, PurePosixPath
 from typing import Any, Final, Literal
 
@@ -12,6 +11,14 @@ from lychd.system.unit_names import animator_target_unit, coven_target_unit
 
 _MOUNT_OPTIONS: Final[frozenset[str]] = frozenset(
     {"O", "U", "Z", "copy", "nocopy", "nodev", "noexec", "nosuid", "ro", "rw", "z"}
+)
+_SUPPORTED_PODMAN_ARGS: Final[frozenset[str]] = frozenset(
+    {
+        "--replace",
+        "--ipc=host",
+        "--ulimit=memlock=-1:-1",
+        "--tmpfs=/app/logs:rw,nosuid,nodev,noexec,mode=1777",
+    }
 )
 _ENV_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 _SECRET_MODE = re.compile(r"^0[0-7]{3}$")
@@ -221,6 +228,7 @@ class QuadletContainer(QuadletBase):
     """Data model for 'container.jinja'. Represents a single [Container] Quadlet file.
 
     The Vessel that contains a portion of the Daemon's spirit.
+    Raw Podman arguments admit only explicitly supported complete values.
     """
 
     # [Unit] section
@@ -316,7 +324,7 @@ class QuadletContainer(QuadletBase):
     )
     @classmethod
     def validate_list_directives(cls, values: list[str], info: ValidationInfo) -> list[str]:
-        """Reject line and systemd-specifier injection in repeated directives."""
+        """Keep repeated directives within their typed unit and container policies."""
         if info.field_name in {
             "wants",
             "requires",
@@ -328,12 +336,11 @@ class QuadletContainer(QuadletBase):
             return _validate_unit_name_list(values, field_name=f"QuadletContainer.{info.field_name}")
         for value in values:
             _validate_unit_text(value, field_name=f"QuadletContainer.{info.field_name}")
-            if info.field_name == "podman_args" and any(
-                token.split("=", 1)[0]
-                in {"--cap-add", "--privileged", "--security-opt", "--read-only", "--read-only-tmpfs"}
-                for token in shlex.split(value)
-            ):
-                msg = "Raw Podman arguments cannot override container capability, privilege or root-filesystem policy"
+            if info.field_name == "podman_args" and value not in _SUPPORTED_PODMAN_ARGS:
+                msg = (
+                    "Raw Podman arguments cannot override container policy; "
+                    "only explicitly supported complete values are admitted"
+                )
                 raise ValueError(msg)
             if info.field_name == "devices" and any(char.isspace() for char in value):
                 msg = "QuadletContainer.devices entries cannot contain whitespace"

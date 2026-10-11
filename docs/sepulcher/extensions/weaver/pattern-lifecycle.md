@@ -30,11 +30,12 @@ change it or the public Pattern revision when new behavior cannot safely resume 
 not automatically detect source edits. Edge parity and return semantics must still be established
 by source review and tests.
 
-The [migration contract](../../../adr/28-workflow.md#migration-without-rewritten-history)
-adds a private `legacy_inline` resolution for each executable station while preserving the frozen
-v2 manifest snapshot and digest. The terminal stays Graph `End`. [State of
-Work](../../../state-of-the-work.md#topology-a-local-runs) records evidence for this passage from
-manifest equality to separate contract and implementation bindings.
+The [private v2 adapter](../../../adr/28-workflow.md#private-v2-adapter-designed) remains Designed.
+It would derive a Scroll-private `legacy_inline` identity for each executable station and fingerprint
+its Python node binding in an internal Resolution Lock. The terminal would remain Graph `End`.
+This lock would leave the frozen v2 manifest snapshot and digest unchanged. It would not be
+persisted on Run, portable, configurable from TOML, or exposed by Loom/Orb; the portable Spell
+catalogue would remain a separate contract.
 
 The catalogue is immutable after construction. It rejects duplicate `(key, revision)` pairs,
 requires an explicit active revision when one name has alternatives, requires explicit non-default

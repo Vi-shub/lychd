@@ -58,6 +58,13 @@ pretends to rewind an external effect.
 The recovered cut is the sole durable truth. Work admitted after it is absent and must be
 resubmitted, never reconstructed.
 
+That cut cannot override a separate store's surviving deletion or hold authority. The initial
+[Reliquary custody profile](06-persistence.md#backup-and-restore-boundary) admits no restore or
+clone activation: an older capture cannot revive material by omitting a later tombstone or hold.
+Known loss or uncertainty of that control history keeps the store inactive. A future restore must
+reconcile independently retained, nonrollback authority before opening admission; inode, UUID and
+in-root hash checks alone do not establish that freshness.
+
 The coordinator composes, rather than absorbs, the owners of queue claim and retry
 ([Workers](14-workers.md)), graph re-admission ([Graph](24-graph.md)), physical convergence
 ([Orchestrator](23-orchestrator.md)), and source selection ([Evolution](18-evolution.md)).

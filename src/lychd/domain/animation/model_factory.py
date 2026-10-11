@@ -1,8 +1,9 @@
 """The OpenAI-compatible model constructor used by runtime hydration.
 
 Local generic runtimes explicitly select `LOCAL_COMPAT_PROFILE`: its inlined `$defs`
-and non-strict tools fit llama.cpp/vLLM/SGLang-style endpoints. Provider portals route
-through the matching Pydantic AI OpenAI-interface provider or profile resolver.
+and non-strict tools fit llama.cpp/vLLM/SGLang-style endpoints. Optional Responses
+input-token counting is disabled. Provider portals route through the matching
+Pydantic AI OpenAI-interface provider or profile resolver.
 """
 
 from __future__ import annotations
@@ -35,6 +36,7 @@ __all__ = [
 LOCAL_COMPAT_PROFILE = OpenAIModelProfile(
     json_schema_transformer=InlineDefsJsonSchemaTransformer,
     openai_supports_strict_tool_definition=False,
+    openai_supports_input_token_counting=False,
     supports_inline_system_prompts=True,
 )
 

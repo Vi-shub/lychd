@@ -9,10 +9,11 @@ A pose estimated from a frame becomes reusable motion only after its skeleton, t
 uncertainty are carried into curves. **Kinesis** performs that work and the bounded generation,
 retargeting, cleanup, synchronization, conversion, and validation of existing clips.
 
-The return belongs to an exact rig and clock contract. Its consumer may then judge a performance,
-import it into an engine, or separately authorize playback. Kinesis supplies none of those acts
-merely by producing a convincing preview. [Live Kinesis](live-kinesis.md) handles the later armed
-session rather than extending a finite job indefinitely.
+The return identifies its exact clock and, where rig-bound, its rig contract. Its consumer may
+then judge a performance, import it into an engine, or separately authorize playback. Kinesis
+supplies none of those acts merely by producing a convincing preview. [Live
+Kinesis](live-kinesis.md) handles the later armed session rather than extending a finite job
+indefinitely.
 
 This candidate study was reviewed on **2026-08-08**. Its contracts, FOSS tool path, model studies,
 and bakes are Designed; [State](../../../state-of-the-work.md#vision-admission) owns delivery.
@@ -62,10 +63,10 @@ has proved:
 Those acts belong to a Composition or a separately authorized world effect, not a motion worker.
 
 The request pins exact sources and temporal regions; operation and requested facets; source
-skeleton and target Form rig digests; calibration; units, axes, coordinate spaces, and time
-policies; constraints and anchors; purpose, classification, consent, retention, and likeness-use
-boundary; immutable model or tool preset; seed policy; deadline; compute or Portal budget; and
-idempotency key. Optional material never invents profile support.
+skeleton and target Form rig digests where the operation uses them; calibration; units, axes,
+coordinate spaces, and time policies; constraints and anchors; purpose, classification, consent,
+retention, and likeness-use boundary; immutable model or tool preset; seed policy; deadline;
+compute or Portal budget; and idempotency key. Optional material never invents profile support.
 
 `KinesisJob@2` owns motion stages, candidates, technical validation, and result settlement.
 Creative adoption belongs to the consuming Composition. Each concrete service or tool execution
@@ -83,11 +84,11 @@ replayed.
 
 ## Rig and clock law
 
-Kinesis consumes one exact Form deformation facet. That Form-owned facet exposes stable joint ids
-and hierarchy; rest, bind, and inverse-bind transforms; local frames; handedness; up and forward
-axes; units and scale; root and pelvis semantics; degrees of freedom and joint limits; effectors
-and contact bones; mirror pairs; skin influences; and facial, expression, or viseme ontology where
-present.
+Rig-bound work consumes one exact Form deformation facet. That Form-owned facet exposes stable
+joint ids and hierarchy; rest, bind, and inverse-bind transforms; local frames; handedness; up
+and forward axes; units and scale; root and pelvis semantics; degrees of freedom and joint
+limits; effectors and contact bones; mirror pairs; skin influences; and facial, expression, or
+viseme ontology where present.
 
 `RigMap@1` binds source and target skeleton digests, calibration pose, semantic mapping,
 orientation offsets, scale and translation rules, twist and helper distribution, IK chains and

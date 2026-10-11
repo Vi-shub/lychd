@@ -77,6 +77,19 @@ class DelegatedAgentJobStore(Protocol):
         """Advance one legal nonterminal lifecycle edge."""
         ...
 
+    async def settle_acceptance_failure(
+        self,
+        job_id: str,
+        result: DelegatedAgentResult,
+    ) -> tuple[DelegatedAgentJob, bool]:
+        """Under the job lock, adopt LOST only while still PREPARING.
+
+        Require a matching, shape-valid LOST result. Preserve RUNNING and every
+        terminal row unchanged; reject any other state. Return ``(job, adopted)``
+        with one result-adoption event only when this operation settles LOST.
+        """
+        ...
+
     async def adopt(self, job_id: str, result: DelegatedAgentResult) -> tuple[DelegatedAgentJob, bool]:
         """Adopt one terminal result once; return ``(job, adopted)``."""
         ...

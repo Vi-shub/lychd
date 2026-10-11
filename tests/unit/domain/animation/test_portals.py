@@ -16,7 +16,7 @@ from lychd.config.runes.registry import RuneRegistry
 from lychd.config.settings.root import get_settings
 from lychd.domain.animation.capabilities import CapabilityFamily, CapabilityPhase
 from lychd.domain.animation.errors import CapabilityUnavailable
-from lychd.domain.animation.extension import PortalStore
+from lychd.domain.animation.extension import PortalStore, RegisteredPortalDefinition
 from lychd.domain.animation.links import Link
 from lychd.domain.animation.schemas import (
     AnimatorConfig,
@@ -438,3 +438,38 @@ async def test_portal_hydrates_but_dispatch_remains_quarantined(
     with pytest.raises(CapabilityUnavailable, match="portal egress admission"):
         async with dispatcher.lease_grant(family="chat", model_name="gpt-5.2", run_id="r1"):
             pytest.fail("portal dispatch must remain quarantined")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("owner", [None, "builtin:animator", "crypt:private/portal"])
+async def test_portal_registration_provenance_preserves_grant_quarantine(owner: str | None) -> None:
+    portal = OpenAIPortalConfig.model_validate({"name": "attributed", "models": [{"id": "provider-model"}]})
+    registrations = [RegisteredPortalDefinition(registrant_id=owner, definition=_OPENAI_PORTAL)] if owner else []
+    raw_definitions = [_OPENAI_PORTAL] if owner is None else []
+    registry = AnimatorRegistry(
+        declarations=AnimatorDeclarations(soulstones=(), portals=(portal,)),
+        portal_registrations=registrations,
+        portal_definitions=raw_definitions,
+    )
+    registrations.clear()
+    raw_definitions.clear()
+    specs = registry.list_capabilities()
+    assert len(specs) == 1
+    spec = specs[0]
+    assert spec.registrant_id == owner
+    assert spec.key == "attributed:chat:provider-model"
+    assert spec.runtime == "portal:openai"
+    assert spec.is_dynamic is False
+    assert spec.concurrency.dedicated is False
+    with pytest.raises(CapabilityUnavailable, match="portal egress admission is not configured"):
+        await registry.issue_grant(spec.key, holder="run:attribution")
+
+
+def test_portal_registration_collision_reports_both_registrants() -> None:
+    with pytest.raises(ValueError, match=r"builtin:animator.*crypt:collision"):
+        RuntimeAdapterRegistry(
+            portal_registrations=[
+                RegisteredPortalDefinition(registrant_id="builtin:animator", definition=_OPENAI_PORTAL),
+                RegisteredPortalDefinition(registrant_id="crypt:collision", definition=_OPENAI_PORTAL),
+            ]
+        )

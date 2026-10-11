@@ -6,14 +6,15 @@ import asyncio
 from dataclasses import dataclass, field
 from typing import Any, Literal, cast
 from unittest.mock import AsyncMock
+from uuid import UUID
 
 import pytest
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ConfigDict, ValidationError
 from pydantic_graph import BaseNode, End, GraphBuilder, GraphRunContext, StepContext
 
 from lychd.domain.cortex.graph import build_serial_graph, serial_graph_topology
 from lychd.domain.cortex.graph_runner import GraphRunner, NodeOccurrenceEvent
-from lychd.domain.cortex.stasis import DurableStasisPhylactery, InMemoryStasisStore, NodeSnapshot
+from lychd.domain.cortex.stasis import DurableStasisPhylactery, EndSnapshot, InMemoryStasisStore, NodeSnapshot
 
 
 class RouteState(BaseModel):
@@ -372,3 +373,51 @@ async def test_native_cancellation_retains_only_safe_reentry(stage: str) -> None
         with pytest.raises(ValueError, match="No created checkpoint"):
             await runner.resume_graph(graph, deps=effects)
         assert effects.invocations == 1
+
+
+class StrictCheckpointResult(BaseModel):
+    model_config = ConfigDict(strict=True, extra="forbid")
+    action_id: UUID
+    coordinate: tuple[int, int, int]
+    cursor: int
+
+
+@dataclass
+class StrictCheckpointNode(BaseNode[RouteState, None, StrictCheckpointResult]):
+    __pydantic_config__ = ConfigDict(strict=True, extra="forbid")
+    action_id: UUID
+    coordinate: tuple[int, int, int]
+    cursor: int
+
+    async def run(self, ctx: GraphRunContext[RouteState, None]) -> End[StrictCheckpointResult]:
+        _ = ctx
+        pytest.fail("codec-only node must never execute")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("boundary", ["node", "output"])
+async def test_strict_node_and_output_use_their_json_contract(boundary: str) -> None:
+    graph = build_serial_graph(
+        nodes=(StrictCheckpointNode,), state_type=RouteState, deps_type=type(None), output_type=StrictCheckpointResult
+    )
+    store = InMemoryStasisStore()
+    persistence = DurableStasisPhylactery(job_id="strict-values", store=store)
+    persistence.set_graph_types(graph)
+    action_id = UUID("12345678-1234-5678-1234-567812345678")
+    if boundary == "node":
+        await persistence.snapshot_node(RouteState(), StrictCheckpointNode(action_id, (12, 64, -5), 3))
+    else:
+        await persistence.snapshot_end(
+            RouteState(), End(StrictCheckpointResult(action_id=action_id, coordinate=(12, 64, -5), cursor=3))
+        )
+
+    replacement = DurableStasisPhylactery(job_id="strict-values", store=store)
+    replacement.set_graph_types(graph)
+    restored = (await replacement.load_all())[0]
+    if boundary == "node":
+        assert isinstance(restored, NodeSnapshot)
+        assert type(restored.node) is StrictCheckpointNode
+        assert restored.node == StrictCheckpointNode(action_id, (12, 64, -5), 3)
+    else:
+        assert isinstance(restored, EndSnapshot)
+        assert restored.result.data == StrictCheckpointResult(action_id=action_id, coordinate=(12, 64, -5), cursor=3)

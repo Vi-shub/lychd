@@ -2,11 +2,17 @@ from __future__ import annotations
 
 import json
 import tomllib
+import zipfile
 from pathlib import Path
+
+import pytest
+from scripts.verify_release_artifacts import ReleaseArtifactError, _verify_wheel  # pyright: ignore[reportPrivateUsage]
 
 from lychd.__about__ import __version__
 
 ROOT = Path(__file__).parents[2]
+_WHEEL_DIST_INFO = f"lychd-{__version__}.dist-info"
+_SOURCE_REVISION = "a" * 40
 
 
 def test_delivery_clients_are_project_roots_outside_python_source() -> None:
@@ -102,7 +108,7 @@ def test_container_carries_project_license_and_notices() -> None:
     assert "psycopg[pool]>=3.2.13,<4" in dependencies
     assert all("psycopg-binary" not in dependency for dependency in dependencies)
     assert project["project"]["optional-dependencies"]["postgres-binary"] == [
-        "psycopg-binary==3.3.5",
+        "psycopg-binary==3.3.6",
     ]
     assert "--no-dev --no-install-project --no-editable" in containerfile
 
@@ -112,7 +118,7 @@ def test_altar_notice_is_generated_and_shipped_with_static_client() -> None:
     public_notice = ROOT / "src" / "lychd" / "public" / "THIRD_PARTY_NOTICES.txt"
     notice = source_notice.read_text(encoding="utf-8")
 
-    assert "mermaid@11.17.2" in notice
+    assert "@xyflow/svelte@1.6.6" in notice
     assert "svelte@5.57.0" in notice
     assert "Regenerate with: npm run licenses" in notice
     assert public_notice.read_bytes() == source_notice.read_bytes()
@@ -164,3 +170,110 @@ def test_release_candidate_has_immutable_source_and_real_archive_gates() -> None
     assert "SHA256SUMS" in artifact_gate
     assert "src/lychd/public/" in artifact_gate
     assert "release tag" in artifact_gate
+
+
+@pytest.fixture
+def wheel_members() -> dict[str, bytes]:
+    frontend_notice = (ROOT / "clients" / "web" / "static" / "THIRD_PARTY_NOTICES.txt").read_bytes()
+    return {
+        f"{_WHEEL_DIST_INFO}/METADATA": (
+            f"Metadata-Version: 2.4\nName: lychd\nVersion: {__version__}\nLicense-Expression: MPL-2.0\n\n"
+        ).encode(),
+        f"{_WHEEL_DIST_INFO}/licenses/LICENSE": (ROOT / "LICENSE").read_bytes(),
+        f"{_WHEEL_DIST_INFO}/licenses/THIRD_PARTY_NOTICES.md": (ROOT / "THIRD_PARTY_NOTICES.md").read_bytes(),
+        f"{_WHEEL_DIST_INFO}/licenses/clients/web/static/THIRD_PARTY_NOTICES.txt": frontend_notice,
+        "lychd/public/THIRD_PARTY_NOTICES.txt": frontend_notice,
+        "lychd/public/index.html": (
+            f'<a href="https://github.com/hexanomicon/lychd/tree/{_SOURCE_REVISION}/clients/web">Source</a>'
+        ).encode(),
+    }
+
+
+def _write_wheel(tmp_path: Path, members: dict[str, bytes]) -> Path:
+    wheel = tmp_path / f"lychd-{__version__}-py3-none-any.whl"
+    with zipfile.ZipFile(wheel, "w") as archive:
+        for name, payload in members.items():
+            archive.writestr(name, payload)
+    return wheel
+
+
+def test_wheel_accepts_exact_mpl_license_header(tmp_path: Path, wheel_members: dict[str, bytes]) -> None:
+    wheel_members[f"{_WHEEL_DIST_INFO}/METADATA"] += b"Description mentions License-Expression: MIT.\n"
+    wheel = _write_wheel(tmp_path, wheel_members)
+
+    _verify_wheel(wheel, _SOURCE_REVISION, __version__, ROOT)
+
+
+@pytest.mark.parametrize(
+    "license_metadata",
+    [
+        pytest.param("\n", id="missing"),
+        pytest.param("License-Expression: MIT\n\n", id="wrong"),
+        pytest.param("\nLicense-Expression: MPL-2.0\n", id="missing-with-body-spoof"),
+        pytest.param("License-Expression: MIT\n\nLicense-Expression: MPL-2.0\n", id="wrong-with-body-spoof"),
+        pytest.param("License-Expression: MPL-2.00\n\n", id="value-suffix"),
+        pytest.param("License-Expression: MPL-2.0 OR MIT\n\n", id="compound-expression"),
+        pytest.param("X-License-Expression: MPL-2.0\n\n", id="field-prefix"),
+        pytest.param("Summary: License-Expression: MPL-2.0\n\n", id="other-field-value"),
+    ],
+)
+def test_wheel_rejects_missing_or_inexact_license_header(
+    tmp_path: Path,
+    wheel_members: dict[str, bytes],
+    license_metadata: str,
+) -> None:
+    wheel_members[f"{_WHEEL_DIST_INFO}/METADATA"] = (
+        f"Metadata-Version: 2.4\nName: lychd\nVersion: {__version__}\n{license_metadata}"
+    ).encode()
+    wheel = _write_wheel(tmp_path, wheel_members)
+
+    with pytest.raises(ReleaseArtifactError, match="wheel metadata"):
+        _verify_wheel(wheel, _SOURCE_REVISION, __version__, ROOT)
+
+
+@pytest.mark.parametrize(
+    ("member", "replacement", "error"),
+    [
+        pytest.param(
+            f"{_WHEEL_DIST_INFO}/METADATA",
+            f"Name: other\nVersion: {__version__}\nLicense-Expression: MPL-2.0\n\n".encode(),
+            "wheel metadata does not identify the lychd distribution",
+            id="name",
+        ),
+        pytest.param(
+            f"{_WHEEL_DIST_INFO}/METADATA",
+            b"Name: lychd\nVersion: 999.0.0\nLicense-Expression: MPL-2.0\n\n",
+            "wheel metadata does not match project version",
+            id="version",
+        ),
+        pytest.param(f"{_WHEEL_DIST_INFO}/licenses/LICENSE", b"altered", "wheel project license differs", id="license"),
+        pytest.param(
+            f"{_WHEEL_DIST_INFO}/licenses/THIRD_PARTY_NOTICES.md",
+            b"altered",
+            "wheel source notice differs",
+            id="source-notice",
+        ),
+        pytest.param(
+            f"{_WHEEL_DIST_INFO}/licenses/clients/web/static/THIRD_PARTY_NOTICES.txt",
+            b"altered",
+            "wheel frontend notice differs",
+            id="frontend-notice",
+        ),
+        pytest.param(
+            "lychd/public/THIRD_PARTY_NOTICES.txt", b"altered", "wheel Altar notice differs", id="altar-notice"
+        ),
+        pytest.param("lychd/public/index.html", b"altered", "wheel does not link its Altar", id="source-revision"),
+    ],
+)
+def test_wheel_rejects_altered_identity_or_payload(
+    tmp_path: Path,
+    wheel_members: dict[str, bytes],
+    member: str,
+    replacement: bytes,
+    error: str,
+) -> None:
+    wheel_members[member] = replacement
+    wheel = _write_wheel(tmp_path, wheel_members)
+
+    with pytest.raises(ReleaseArtifactError, match=error):
+        _verify_wheel(wheel, _SOURCE_REVISION, __version__, ROOT)

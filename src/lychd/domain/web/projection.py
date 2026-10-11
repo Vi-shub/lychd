@@ -10,13 +10,23 @@ import json
 from dataclasses import asdict
 from typing import TYPE_CHECKING, Any, Literal, cast
 
-from lychd.domain.codex.schemas import CENSORED_VALUE
+from lychd.domain.codex.schemas import censor
+from lychd.domain.codex.scopes import scopes_satisfied
+from lychd.domain.web.consent_reviews import (
+    ConsentReviewFailureError,
+    ConsentReviewForbiddenError,
+    ConsentReviewProducer,
+    ConsentReviewUnavailableError,
+    NativeReviewResolution,
+    resolve_native_review,
+)
 from lychd.domain.web.contracts import RunEventEnvelope
 from lychd.domain.web.schemas import ConsentCard, SwapTicket
 
 if TYPE_CHECKING:
     from lychd.domain.codex.ledger import ConsentLedger
     from lychd.domain.codex.schemas import ConsentView
+    from lychd.domain.codex.sigil import Sigil
     from lychd.domain.cortex.events import RunEvent
     from lychd.domain.web.fragments import FragmentRegistry
     from lychd.domain.web.sessions import SessionStorePort
@@ -53,13 +63,15 @@ class EventProjector:
         fragments: FragmentRegistry,
         sessions: SessionStorePort,
         consents: ConsentLedger,
+        consent_reviews: ConsentReviewProducer | None = None,
     ) -> None:
         """Bind the projector to the descriptor registry, sessions, and consent ledger."""
         self._fragments = fragments
         self._sessions = sessions
         self._consents = consents
+        self._consent_reviews = consent_reviews
 
-    async def project(self, event: RunEvent) -> RunEventEnvelope:
+    async def project(self, event: RunEvent, *, reviewer: Sigil) -> RunEventEnvelope:
         """Project one internal run event without interpreting data as markup."""
         kind = cast("EventKind", str(event.kind))
         payload: dict[str, Any]
@@ -68,7 +80,7 @@ class EventProjector:
         elif kind == "fragment":
             payload = self._project_fragment(event.data)
         elif kind == "consent":
-            payload = await self._project_consent(event.data)
+            payload = await self._project_consent(event, reviewer=reviewer)
         elif kind == "done":
             payload = await self._project_done(event.run_id, event.data)
         else:  # explicit `resync`: replace through this stream boundary
@@ -82,7 +94,8 @@ class EventProjector:
             payload=payload,
         )
 
-    async def _project_consent(self, data: str) -> dict[str, Any]:
+    async def _project_consent(self, event: RunEvent, *, reviewer: Sigil) -> dict[str, Any]:
+        data = event.data
         consent_id = data
         if data.startswith("{"):
             try:
@@ -91,7 +104,9 @@ class EventProjector:
             except json.JSONDecodeError:
                 consent_id = ""
         view = await self._consents.get(consent_id)
-        return {"consent": asdict(self.consent_card_view(view))} if view is not None else {}
+        if view is None or view.run_id != event.run_id:
+            return {}
+        return {"consent": asdict(await self.consent_card_view(view, reviewer=reviewer))}
 
     def _project_fragment(self, payload: str) -> dict[str, Any]:
         """Contain malformed events and reuse the registry's model-output gate."""
@@ -125,22 +140,41 @@ class EventProjector:
 
     # -- consent ----------------------------------------------------------
 
-    def consent_card_view(self, view: ConsentView) -> ConsentCard:
-        """Build the Seat-of-Consent view-model from a `ConsentView` (status-mapped)."""
-        reason = view.args.get("reason")
-        vision = (
-            reason
-            if isinstance(reason, str) and reason != CENSORED_VALUE
-            else "This action requires the Magus's consent before it may proceed."
-        )
+    async def native_review(
+        self, view: ConsentView, *, reviewer: Sigil, purpose: Literal["view", "decide"]
+    ) -> NativeReviewResolution:
+        """Resolve fresh reviewer eligibility and exact content for either purpose."""
+        return await resolve_native_review(self._consent_reviews, consent=view, reviewer=reviewer, purpose=purpose)
+
+    async def consent_card_view(self, view: ConsentView, *, reviewer: Sigil) -> ConsentCard:
+        """Project a censored envelope and only a complete authorized native review."""
+        review = None
+        binding_digest = None
+        review_status: Literal["not_required", "available", "unavailable"] = "not_required"
+        can_decide = view.status == "pending" and scopes_satisfied(reviewer.scopes, {"runs:approve"})
+        if view.native_review_required:
+            review_status = "unavailable"
+            try:
+                resolved = await self.native_review(view, reviewer=reviewer, purpose="view")
+            except (ConsentReviewUnavailableError, ConsentReviewForbiddenError, ConsentReviewFailureError):
+                can_decide = False
+            else:
+                review_status = "available"
+                review = resolved.document
+                binding_digest = resolved.binding.digest
+                can_decide = can_decide and resolved.decision_allowed
         state: Any = _CONSENT_STATE.get(view.status, "refused")
         return ConsentCard(
             id=view.id,
             run_id=view.run_id,
             tool_name=view.tool_name,
-            args=view.args,
-            vision=vision,
+            args=censor(view.args),
+            vision="This action requires the Magus's consent before it may proceed.",
             state=state,
+            native_review_status=review_status,
+            native_review=review,
+            review_binding_digest=binding_digest,
+            can_decide=can_decide,
         )
 
     def ticket_view(

@@ -3,8 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
+import pytest
+
 from lychd.system.operator import (
     ObservationState,
+    OwnedUnit,
     OwnedUnitInventoryService,
     ProcessResult,
 )
@@ -135,3 +138,46 @@ def test_deactivating_vessel_remains_active_for_authority_arbitration(
     )
 
     assert service.inspect().units[0].state is ObservationState.ACTIVE
+
+
+@pytest.mark.parametrize("load_state", ["loaded", "not-found", "bad-setting"])
+@pytest.mark.parametrize(
+    ("active_state", "state"),
+    [
+        ("active", ObservationState.ACTIVE),
+        ("activating", ObservationState.ACTIVE),
+        ("reloading", ObservationState.ACTIVE),
+        ("deactivating", ObservationState.ACTIVE),
+        ("inactive", ObservationState.INACTIVE),
+        ("failed", ObservationState.FAILED),
+    ],
+)
+def test_unit_inventory_retains_load_state_without_changing_activity(
+    load_state: str,
+    active_state: str,
+    state: ObservationState,
+) -> None:
+    runner = _Runner(
+        [ProcessResult((), 0, f"LoadState={load_state}\nActiveState={active_state}\nUnitFileState=disabled\n")]
+    )
+    service = OwnedUnitInventoryService(
+        cast("ScribeService", _Scribe(OwnedBindings(receipt_present=True, runtime_units=("lychd-test.service",)))),
+        runner,
+        systemctl_bin="/usr/bin/systemctl",
+    )
+
+    unit = service.inspect().units[0]
+
+    assert unit.state is state
+    assert unit.unit_file_state == "disabled"
+    assert unit.detail == ("" if load_state == "loaded" else f"load state: {load_state}")
+    assert unit.load_state == load_state
+
+
+def test_owned_unit_default_does_not_fabricate_loaded_or_shift_positional_detail() -> None:
+    unit = OwnedUnit(
+        "lychd-test.service", ("/units/lychd-test.service",), ObservationState.INACTIVE, "disabled", "observed"
+    )
+
+    assert unit.detail == "observed"
+    assert unit.load_state == "unknown"

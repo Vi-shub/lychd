@@ -54,9 +54,9 @@ Reference cancellation is idempotent; no effectful process-tree cancellation is 
 `lost` records indeterminate external truth: it is terminal for result adoption, neither polled nor
 restarted, and not permission to repeat. It is also not containment proof. Explicit parent
 cancellation still calls the owning runtime's cancellation operation and records
-`lost → cancelled` only after that call returns. Cancellation during runtime start settles `lost`;
-an unclassified exception after start was invoked also settles `lost`, because the adapter may
-already have accepted work. A failure before runtime invocation settles `failed`.
+`lost → cancelled` only after that call returns. Cancellation during runtime start settles `lost`.
+An unclassified exception after `runtime.start` is invoked also settles `lost`; a failure before
+invocation may settle `failed`.
 
 Resume admission atomically creates the fresh monotonic delivery key. Publication failure leaves
 that exact queued delivery for relay. Startup recognizes the pre-park crash window only when the

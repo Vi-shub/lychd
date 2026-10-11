@@ -15,4 +15,4 @@ Deletion inventories local candidates, imports, caches, and derivatives. An expo
 
 A network-disabled synthetic 2D project should bootstrap a repository, admit small visual/music bundles, import through test adapters, build a scene, and run one controller scenario. Emit exactly one `PlayableBuildBundle@1` with source, build, test, playtest, and checksum receipts. Signing, upload, store accounts, telemetry, public players, and release remain outside it.
 
-A separate 3D fixture adds validated GLB, collision, baked navigation, accepted Kinesis clip/controller, an interaction, headless logic checks, and a real renderer/hardware playtest receipt. It proves no hostile-project execution, open-world streaming, model-driven actor, networking, or other engine profile.
+A separate 3D fixture adds validated GLB, collision, baked navigation, an accepted Kinesis clip and a [Foundry controller](assets.md#source-to-engine-derivative), an interaction, headless logic checks, and a real renderer/hardware playtest receipt. It proves no hostile-project execution, open-world streaming, model-driven actor, networking, or other engine profile.

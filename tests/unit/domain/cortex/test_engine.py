@@ -107,8 +107,7 @@ class _ClaimThenRaiseQueue:
                 str(kwargs["run_id"]),
                 enqueue_seq=int(kwargs["enqueue_seq"]),
             )
-            is True
-        )
+        ).acknowledged is True
         message = "broker reply lost after claim"
         raise RuntimeError(message)
 
@@ -442,7 +441,7 @@ async def test_exclusive_session_allows_exact_replay_and_next_turn_after_termina
     )
     assert replay.run_id == first.run_id
 
-    assert await ledger.try_claim_run(first.run_id, enqueue_seq=0) is True
+    assert (await ledger.try_claim_run(first.run_id, enqueue_seq=0)).acknowledged is True
     assert (
         await ledger.try_settle_claim(
             first.run_id,
@@ -660,7 +659,7 @@ async def test_terminal_idempotent_replay_does_not_mint_live_channel() -> None:
     engine, ledger, queues = _engine()
     intent = Intent(session_id="s", prompt="already settled", source="bridge")
     first = await engine.submit(intent, idempotency_key="bridge:s:req-terminal")
-    assert await ledger.try_claim_run(first.run_id, enqueue_seq=0) is True
+    assert (await ledger.try_claim_run(first.run_id, enqueue_seq=0)).acknowledged is True
     assert await ledger.try_settle_claim(first.run_id, enqueue_seq=0, status=RunStatus.DONE) is True
     fresh_bus = InProcessEventBus(ledger=ledger)
     replay_engine = RunEngine(
@@ -1097,7 +1096,7 @@ async def test_cancel_retries_failed_context_cleanup_without_leaking_its_error(
         release_context=release_context,
     )
     await engine.submit(Intent(session_id="s", run_id="cancel-parked", prompt="hi", source="bridge"))
-    assert await ledger.try_claim_run("cancel-parked", enqueue_seq=0) is True
+    assert (await ledger.try_claim_run("cancel-parked", enqueue_seq=0)).acknowledged is True
     await ledger.park_consent("cancel-parked", "consent-1")
     context.assemble(
         run_id="cancel-parked",
@@ -1210,7 +1209,7 @@ async def test_concurrent_terminal_evidence_repairs_share_one_writer() -> None:
         queue_name="runs",
         priority=70,
     )
-    assert await ledger.try_claim_run("repair-once", enqueue_seq=0) is True
+    assert (await ledger.try_claim_run("repair-once", enqueue_seq=0)).acknowledged is True
     assert (
         await ledger.try_settle_claim(
             "repair-once",
@@ -1264,7 +1263,7 @@ async def test_cancelled_terminal_repair_leader_hands_off_to_its_follower() -> N
         queue_name="runs",
         priority=70,
     )
-    assert await ledger.try_claim_run("repair-handoff", enqueue_seq=0) is True
+    assert (await ledger.try_claim_run("repair-handoff", enqueue_seq=0)).acknowledged is True
     assert (
         await ledger.try_settle_claim(
             "repair-handoff",
@@ -1322,7 +1321,7 @@ async def test_terminal_evidence_retry_starts_a_fresh_writer_generation() -> Non
         queue_name="runs",
         priority=70,
     )
-    assert await ledger.try_claim_run("repair-retry", enqueue_seq=0) is True
+    assert (await ledger.try_claim_run("repair-retry", enqueue_seq=0)).acknowledged is True
     assert (
         await ledger.try_settle_claim(
             "repair-retry",
@@ -1397,7 +1396,7 @@ async def test_cancel_settles_the_runs_pending_consent_card() -> None:
         consents=consents,
     )
     await engine.submit(Intent(session_id="s", run_id="cancel-consent", prompt="hi", source="bridge"))
-    assert await ledger.try_claim_run("cancel-consent", enqueue_seq=0)
+    assert (await ledger.try_claim_run("cancel-consent", enqueue_seq=0)).acknowledged
     consent = await consents.park(
         run_id="cancel-consent",
         tool_name="request_coven_swap",
@@ -1657,7 +1656,7 @@ async def test_approve_seam_reenqueues_parked_run() -> None:
     """approve (consent seam) re-enqueues an AWAITING_CONSENT run with a resume hop."""
     engine, ledger, queues = _engine()
     await engine.submit(Intent(session_id="s", run_id="run_p", prompt="hi", source="bridge"))
-    assert await ledger.try_claim_run("run_p", enqueue_seq=0)
+    assert (await ledger.try_claim_run("run_p", enqueue_seq=0)).acknowledged
     await ledger.park_consent("run_p", "consent_1")
     _decide(engine, run_id="run_p", consent_id="consent_1")
 
@@ -1679,7 +1678,7 @@ async def test_approve_seam_reenqueues_parked_run() -> None:
 async def test_approve_refuses_a_parked_run_without_matching_decided_consent() -> None:
     engine, ledger, queues = _engine()
     await engine.submit(Intent(session_id="s", run_id="run_pending", prompt="hi", source="bridge"))
-    assert await ledger.try_claim_run("run_pending", enqueue_seq=0)
+    assert (await ledger.try_claim_run("run_pending", enqueue_seq=0)).acknowledged
     await ledger.park_consent("run_pending", "consent_pending")
 
     await engine.resume_consent("consent_pending")
@@ -1703,7 +1702,7 @@ async def test_double_approve_enqueues_the_resume_once() -> None:
 
     engine, ledger, queues = _engine()
     await engine.submit(Intent(session_id="s", run_id="run_d", prompt="hi", source="bridge"))
-    assert await ledger.try_claim_run("run_d", enqueue_seq=0)
+    assert (await ledger.try_claim_run("run_d", enqueue_seq=0)).acknowledged
     await ledger.park_consent("run_d", "consent_d")
     _decide(engine, run_id="run_d", consent_id="consent_d")
 
@@ -1726,7 +1725,7 @@ async def test_approve_enqueue_failure_retains_exact_resume_delivery() -> None:
     """A broker failure after consent admission leaves one relayable resume hop."""
     engine, ledger, queues = _engine()
     await engine.submit(Intent(session_id="s", run_id="run_r", prompt="hi", source="bridge"))
-    assert await ledger.try_claim_run("run_r", enqueue_seq=0)
+    assert (await ledger.try_claim_run("run_r", enqueue_seq=0)).acknowledged
     await ledger.park_consent("run_r", "consent_r")
     _decide(engine, run_id="run_r", consent_id="consent_r")
 
@@ -1755,7 +1754,7 @@ async def test_approve_cancellation_preserves_exact_resume_delivery(monkeypatch:
     """Cancellation after consent admission cannot lose the durable resume hop."""
     engine, ledger, queues = _engine()
     await engine.submit(Intent(session_id="s", run_id="run_cancel", prompt="hi", source="bridge"))
-    assert await ledger.try_claim_run("run_cancel", enqueue_seq=0)
+    assert (await ledger.try_claim_run("run_cancel", enqueue_seq=0)).acknowledged
     await ledger.park_consent("run_cancel", "consent_cancel")
     _decide(engine, run_id="run_cancel", consent_id="consent_cancel")
     queue = _CancellationQueue()
@@ -1803,7 +1802,7 @@ async def test_consent_recovery_deadline_during_admission_preserves_recoverable_
     engine, ledger, queues = _engine()
     for run_id in ("blocked-owner", "next-owner"):
         await engine.submit(Intent(session_id="s", run_id=run_id, prompt="hi", source="bridge"))
-        assert await ledger.try_claim_run(run_id, enqueue_seq=0)
+        assert (await ledger.try_claim_run(run_id, enqueue_seq=0)).acknowledged
         await ledger.park_consent(run_id, f"consent-{run_id}")
         _decide(engine, run_id=run_id, consent_id=f"consent-{run_id}")
     original_admit = ledger.try_admit_consent
@@ -1856,7 +1855,7 @@ async def test_consent_recovery_deadline_interrupts_optional_publication_diagnos
     engine, ledger, queues = _engine()
     for run_id in ("failed-publication", "later-publication"):
         await engine.submit(Intent(session_id="s", run_id=run_id, prompt="hi", source="bridge"))
-        assert await ledger.try_claim_run(run_id, enqueue_seq=0)
+        assert (await ledger.try_claim_run(run_id, enqueue_seq=0)).acknowledged
         await ledger.park_consent(run_id, f"consent-{run_id}")
         _decide(engine, run_id=run_id, consent_id=f"consent-{run_id}")
     stopped = asyncio.Event()

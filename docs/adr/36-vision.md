@@ -13,16 +13,17 @@ icon: material/eye-settings-outline
 ## Status
 
 Vision admission is **Partial**. The current v1 compatibility spine defines immutable `ArtifactRef`
-metadata, projects image media types to the `image` modality, distinguishes the closed `vision`
-family from image-capable `chat`, and filters capability declarations by required input modality.
+metadata, distinguishes the closed `vision` family from image-capable `chat`, and filters
+capability declarations by explicitly supplied required input modalities.
 Delegated-job contracts can carry artifact references; the current `Intent` and Bridge admission
 remain text-only and carry neither artifacts nor required modalities through the Run ledger.
 These shapes prove metadata and routing contracts, not an executable visual interface.
 
 It does **not** upload, store, authorize, materialize, decode, normalize, or transport image
-bytes. Bridge does not forward artifact modalities into dispatch. No Prism package, Reliquary
-backend, OCR tool, or managed visual provider ships. [State of
-Work](../state-of-the-work.md#vision-admission) owns that boundary.
+bytes. Bridge does not forward artifact modalities into dispatch. No Prism package, image
+custody adapter, OCR tool, or managed visual provider ships. The separate bounded local
+[WAV custody seam](../state-of-the-work.md#artifact-reference-contract) provides no visual
+execution. [State of Work](../state-of-the-work.md#vision-admission) owns that boundary.
 
 ## Decision
 
@@ -100,6 +101,14 @@ The Reliquary owns source bytes before Prism acts. Its durable reference binds a
 and SHA-256 digest, media type and byte size, classification and owning Principal, plus custody
 and retention policy. The future materializer rechecks authority on every read. `ArtifactRef` is
 neither byte custody nor a bearer token; a provider URL is neither durable custody nor permission.
+
+The [first Reliquary custody profile](06-persistence.md#reliquary-custody-designed) compares the
+complete retained reference before materialization, including identity and classification as well
+as digest, media type, and size. Owner and trusted acquisition attribution remain separate from
+producer claims. Quarantine inspection requires different authority from an admitted read.
+Echo's PCM inspector is the first bounded consumer; its structural result grants no admission,
+speech eligibility, or visual/provider compatibility. A separately authorized trusted handler
+admits only the exact retained bytes.
 
 Decoders receive hostile input. Admission bounds supported formats, dimensions, frames, pages,
 geometry, vertices, faces, nodes, materials, textures, scene depth, animation channels, bone

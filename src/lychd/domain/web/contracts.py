@@ -128,6 +128,9 @@ class ConsentDecisionIntent(ClientContract):
     """One explicit operator verdict."""
 
     verdict: Literal["approve", "deny"]
+    review_binding_digest: (
+        Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{64}$", min_length=64, max_length=64)] | None
+    ) = None
 
 
 class ConsentDecisionResult(ClientContract):

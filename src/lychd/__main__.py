@@ -73,7 +73,7 @@ def _run_litestar(args: Sequence[str], *, prog_name: str) -> None:
 )
 @click.argument("server_args", nargs=-1, type=click.UNPROCESSED)
 def serve(server_args: tuple[str, ...]) -> None:
-    """Run the ASGI vessel; remaining options are server options."""
+    """Run the ASGI vessel, preserving admitted listeners through late dotenv loading."""
     from lychd.config.settings.root import get_settings
 
     try:
@@ -90,21 +90,26 @@ def serve(server_args: tuple[str, ...]) -> None:
     if policy.listener_host is None:
         message = "LychD could not resolve one effective loopback listener host."
         raise click.ClickException(message)
-    previous_port = os.environ.get("LITESTAR_PORT")
-    previous_host = os.environ.get("LITESTAR_HOST")
-    os.environ["LITESTAR_PORT"] = str(policy.listener_port)
-    os.environ["LITESTAR_HOST"] = policy.listener_host
+    listener_environment = {
+        "LITESTAR_PORT": str(policy.listener_port),
+        "LITESTAR_HOST": policy.listener_host,
+        "GRANIAN_METRICS_ENABLED": "false",
+        "LITESTAR_FILE_DESCRIPTOR": "",
+        "GRANIAN_FILE_DESCRIPTOR": "",
+        "LITESTAR_UNIX_DOMAIN_SOCKET": "",
+        "GRANIAN_UDS": "",
+    }
+    previous_environment = {variable: os.environ.get(variable) for variable in listener_environment}
+    # dotenv preserves present keys, and Click ignores empty alternate listeners.
+    os.environ.update(listener_environment)
     try:
         _run_litestar(("run", *server_args), prog_name="lychd serve")
     finally:
-        if previous_port is None:
-            os.environ.pop("LITESTAR_PORT", None)
-        else:
-            os.environ["LITESTAR_PORT"] = previous_port
-        if previous_host is None:
-            os.environ.pop("LITESTAR_HOST", None)
-        else:
-            os.environ["LITESTAR_HOST"] = previous_host
+        for variable, previous_value in previous_environment.items():
+            if previous_value is None:
+                os.environ.pop(variable, None)
+            else:
+                os.environ[variable] = previous_value
 
 
 @cli.command(

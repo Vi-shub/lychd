@@ -494,8 +494,8 @@ async def test_postgres_reconciliation_failure_blocks_publication_and_cleans_up(
         aclose=AsyncMock(side_effect=lambda: cleanup_events.append("services")),
     )
     extensions = SimpleNamespace(
-        runtime_adapters=(),
-        portal_definitions=(),
+        soulstone_registrations=(),
+        portal_registrations=(),
         delegated_runtime_adapters={},
         delegated_runtime_catalog=(),
     )

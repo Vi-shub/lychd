@@ -1,6 +1,6 @@
 import createClient from "openapi-fetch";
 
-import type { paths } from "./openapi";
+import type { components, paths } from "./openapi";
 import type {
   AltarStatus,
   AtlasCatalogue,
@@ -156,11 +156,18 @@ export async function sendBridgeMessage(sessionId: string, prompt: string, reque
   );
 }
 
-export async function decideConsent(consentId: string, verdict: "approve" | "deny") {
+export async function decideConsent(
+  consentId: string,
+  verdict: components["schemas"]["ConsentDecisionIntent"]["verdict"],
+  reviewBindingDigest?: components["schemas"]["ConsentDecisionIntent"]["review_binding_digest"]
+) {
   return unwrap(
     await client.POST("/api/v1/bridge/consents/{consent_id}/decision", {
       params: { path: { consent_id: consentId } },
-      body: { verdict },
+      body: {
+        verdict,
+        ...(reviewBindingDigest === undefined ? {} : { review_binding_digest: reviewBindingDigest })
+      },
       headers: await csrfHeaders()
     })
   );

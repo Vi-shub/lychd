@@ -15,7 +15,7 @@ from enum import StrEnum
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Callable, Sequence
     from datetime import datetime
 
     from lychd.domain.animation.capabilities import CapabilityGrant
@@ -140,8 +140,18 @@ class LeaseLedger:
             return rows
         return [row for row in rows if row.animator_name == animator_name]
 
-    async def drained(self, animator_names: Sequence[str], *, timeout: float) -> bool:  # noqa: ASYNC109
-        """Return True once no leases remain on the given animators; False on timeout."""
+    async def drained(
+        self,
+        animator_names: Sequence[str],
+        *,
+        timeout: float,  # noqa: ASYNC109 - existing ledger wait contract
+        on_wait_deadline: Callable[[float], None] | None = None,
+    ) -> bool:
+        """Return whether leases clear before the ledger's original drain cutoff.
+
+        An already-clear set creates no timeout. The internal timing handoff is
+        synchronous at cutoff creation, after the caller has paused claims.
+        """
         names = set(animator_names)
 
         def _clear() -> bool:
@@ -149,8 +159,12 @@ class LeaseLedger:
 
         if _clear():
             return True
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + timeout
+        if on_wait_deadline is not None:
+            on_wait_deadline(deadline)
         with contextlib.suppress(TimeoutError):
-            async with asyncio.timeout(timeout):
+            async with asyncio.timeout_at(deadline):
                 while True:
                     waiter = asyncio.Event()
                     self._release_waiters.add(waiter)
@@ -158,6 +172,8 @@ class LeaseLedger:
                         await waiter.wait()
                     finally:
                         self._release_waiters.discard(waiter)
+                    if loop.time() >= deadline:
+                        return False
                     if _clear():
                         return True
-        return _clear()
+        return False

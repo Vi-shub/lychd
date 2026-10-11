@@ -126,6 +126,13 @@ that arbitrary runtime code may extend. This seal does not recursively freeze tr
 Python objects; each Contribution contract must provide its own immutability or defensive-copy
 boundary.
 
+The v1 Animator catalogue retains these registration records through hydration. Capability
+specifications, grants, Orchestrator status, and Nexus response rows carry the host-assigned
+`registrant_id` separately from runtime and Provider identity. Adapter-supplied attribution cannot
+override it. Direct adapter injection without a registration record remains explicitly
+unattributed (`None`); it does not acquire Core provenance. This metadata changes neither the
+persisted capability key nor eligibility or effect authority.
+
 The accepted general-service capability surface is Designed and is not present in that context.
 It requires separately owned and sealed contribution stores for semantic interface revisions,
 immutable profile revisions/digests, Connector dialect-driver revisions, evidence bindings, and

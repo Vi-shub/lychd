@@ -20,6 +20,7 @@ the boundary your change crosses:
 | Run admission, execution, or recovery | [Workers](docs/adr/14-workers.md) and the relevant [Graph](docs/adr/24-graph.md) section. |
 | Agent steps, consent continuation, or delegated work | [Agents](docs/adr/20-agents.md), then [HitL](docs/adr/25-hitl.md) or [Graph](docs/adr/24-graph.md). |
 | Browser behavior or API projection | [Frontend](docs/adr/15-frontend.md), then the affected instrument in the [Altar source map](clients/web/src/README.md). |
+| Extension configuration or typed contributions | [Extension authoring](docs/sepulcher/extensions/authoring.md), then its linked Phoenix source and isolated tests. |
 | Documentation, vocabulary, or lore | [Documentation topology](docs/adr/01-doctrine.md#documentation-topology), then the owning page and its neighbors. |
 
 You can start with that one boundary. Use the Covenant index for adjacent decisions as the change
@@ -127,8 +128,12 @@ does not itself issue credentials or authorize a release.
 
 ## Supported Environment
 
-- Python is `>=3.12,<3.15`; `.python-version` pins 3.13 for repository and release checks. Use
-  `uv` for dependencies and commands.
+- Python supports `>=3.12,<3.16`; `.python-version` pins 3.15.0 for repository, release,
+  documentation, and Altar tooling. Use `uv` 0.13.0 for dependencies and commands.
+- The Vessel uses the stable `python:3.14.8-slim-bookworm` base. Core Python CI selects both
+  3.14.8 and 3.15.0; the manual Python and PostgreSQL jobs use the same two versions. These
+  configured lanes keep the repository and Vessel interpreters under explicit checks; passing
+  portable tests does not qualify a Linux image or database deployment.
 - Host operation targets a free and open-source Linux stack with systemd, cgroup v2, and rootless
   Podman/Quadlet. Most repository tests use isolated substitutes and do not prove that a real host
   works; [Summoning](docs/summoning.md) owns the live-host prerequisites and rite.
@@ -138,6 +143,11 @@ does not itself issue credentials or authorize a release.
   scripts blocked unless explicitly approved; the Linux Altar build requires no such approvals.
 - Android client setup and focused checks are in [the client README](clients/android/README.md).
   Its Gradle gates are separate from the Python and web-client commands below.
+
+Companion client checks use JDK 17 and a pinned Gradle wrapper. The Kotlin/JVM interaction tests
+need no Android SDK. Building the opt-in Android application requires the SDK; its instrumented
+tests also require a selected device or emulator. The [Android client README](clients/android/README.md)
+owns those commands and their evidence boundaries.
 
 ## Setup and Commands
 
@@ -178,9 +188,13 @@ must own that location.
 
 Pull requests and pushes to `dev` and `main` run **Core Python CI**: repository lint, formatting and strict
 typing, followed by `make test-ci`. This explicit selection covers configuration, database model
-contracts, animation/dispatch/orchestration, core Run logic, extensions, agents and web contracts,
-plus the configuration workflow tests. It uses in-process substitutes, requires no container
-daemon, running database, systemd service, model or GPU, and does not prove host operation.
+contracts, release archive checks, native server admission, operator control, failed or masked unit
+deletion previews, credential and contributed-secret checks, init binding-site refusal,
+animation/dispatch/orchestration, core Run and delegated-job logic, extensions, agents and web contracts,
+plus configuration, extension contribution, reconstructed Bridge resume, and the inactive Blockworld
+placement workflow.
+It uses in-process substitutes, requires no container daemon, running database, systemd service,
+model or GPU, and does not prove host operation.
 `CI_PYTEST_TARGETS` in the Makefile owns the exact selection. Reproduce it locally with:
 
 ```bash
@@ -260,18 +274,32 @@ theme, extensions, and site metadata.
 Frontend checks and the static build need the Python and Node dependencies above, but no running
 Vessel, database, GPU, or model. Start there for a first frontend contribution.
 
-`make frontend-dev` serves the source client at `http://127.0.0.1:5173`. It starts only Vite;
-its `/api` and `/schema` requests currently proxy to `http://127.0.0.1:8000`. A separately prepared,
-isolated backend or fixture must supply that address. Without it, the shell can load while API
-reads fail. The repository does not currently supply a standalone hostless backend launcher for
-this target.
+For local backend validation, run `make developer-fixture` in one terminal and
+`make frontend-dev` in another. With the default listener settings, the fixture uses
+`http://127.0.0.1:8000`; Vite serves the source client at `http://127.0.0.1:5173` and forwards
+`/api` and `/schema` to it. Vite alone can load the shell, but API reads need the fixture.
 
-An isolated backend using the application middleware must retain its local login and CSRF checks
-and explicitly admit `http://127.0.0.1:5173` through `server.web.allowed_cors_origins`. A proxy does
-not grant access or authorize effects. Do not put credentials in Vite configuration, rewrite the
-browser's Origin, or point this preview at the installation used for Summoning. Browser acceptance
-against a real host uses the compiled Altar at Litestar's own origin and follows
-[Summoning](docs/summoning.md). Fixture previews and component tests remain separate evidence.
+Each fixture start prints username `magus` and a fresh password in its terminal. It reads no
+operator configuration or secrets and starts no database, queue worker, model, or Host Reactor. Its
+memory state ends with the process. One labelled synthetic conversation and failed Run supply
+sample data for Bridge, Orb, and the exact Pattern revision in Loom. The failed status records
+no graph, model, or host execution. All mutations are refused, including requests with valid
+credentials and CSRF.
+
+Browser login, credential reuse, and the interactive Bridge–Orb–Loom journey remain unqualified.
+The pending manual acceptance check uses a dedicated local browser profile: open
+`http://127.0.0.1:5173/api/v1/altar/status`, authenticate with the terminal credentials, then open
+`http://127.0.0.1:5173/bridge` and follow the synthetic Run into Orb and its exact Pattern in
+Loom. Check that authentication carries across those reads. These commands and backend tests
+alone do not qualify that browser workflow; [State of Work](docs/state-of-the-work.md#current-evidence-envelope)
+records the evidence boundary.
+
+The fixture admits the exact Vite origin through the normal Host, CORS, Origin, authentication,
+and CSRF boundaries. Keep credentials out of Vite configuration, URLs, environment variables,
+and source; preserve the browser's Origin. Do not connect this preview to the installation used
+for Summoning. Real-host browser acceptance uses the compiled Altar at Litestar's own origin
+and follows [Summoning](docs/summoning.md). The disposable fixture grants no production macOS
+support or Linux host qualification.
 
 ### Test Selection
 
@@ -279,12 +307,13 @@ Start with the closest test that can fail, then widen by boundary. For example:
 
 ```bash
 make test PYTEST_TARGETS="tests/unit" K="expression"
-make test PYTEST_TARGETS="tests/integration" M="integration"
+make test PYTEST_TARGETS="tests/integration"
 make coverage
 ```
 
-`K` selects test names; `M` selects registered markers. Most tests are classified by directory,
-and the registered `unit` and `slow` markers are currently unapplied. `M=unit` therefore collects
+`K` selects test names. `M` replaces the default `not container` marker expression; include
+`not container` when a custom marker selection should retain that exclusion. Most tests are
+classified by directory, and the registered `unit` and `slow` markers are currently unapplied. `M=unit` therefore collects
 nothing: use `PYTEST_TARGETS="tests/unit"`. `make coverage` is a separate serial branch-coverage
 gate with the configured 80% floor; ordinary tests and CI do not enable coverage implicitly.
 

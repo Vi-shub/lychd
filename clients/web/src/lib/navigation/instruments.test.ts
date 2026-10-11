@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { bridgeRunHref, loomOriginHref, orbReturnHref, selectedOrbHref } from "./instruments";
+import { bridgeRunHref, loomOriginHref, orbReturnHref, selectedBridgeHref, selectedOrbHref } from "./instruments";
 
 describe("instrument navigation hints", () => {
+  it("normalizes an explicit Bridge session beneath the configured base", () => {
+    expect(selectedBridgeHref("/altar/bridge/session%2Db", "/altar/bridge")).toBe("/bridge/session-b");
+    expect(selectedBridgeHref("/bridge/session-b", "/altar/bridge")).toBeNull();
+    expect(selectedBridgeHref("/elsewhere/altar/bridge/session-b", "/altar/bridge")).toBeNull();
+    expect(selectedBridgeHref("/altar/bridge/session-b/extra", "/altar/bridge")).toBeNull();
+  });
+
   it("preserves bounded selection without admitting foreign routes or query authority", () => {
     expect(selectedOrbHref("/altar/orb/run-a", "?event=event-a&job=job-a&redirect=https://elsewhere.test", "/altar/orb"))
       .toBe("/orb/run-a?event=event-a&job=job-a");

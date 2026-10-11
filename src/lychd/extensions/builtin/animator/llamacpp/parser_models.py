@@ -7,10 +7,13 @@ from typing import Literal
 
 @dataclass(slots=True)
 class LlamaCppRuntimeInference:
-    """Best-effort runtime metadata inferred from command/env inputs."""
+    """Option-level inputs: None is absent, empty source strings are explicit."""
 
     mode: Literal["single", "router"] | None = None
     model_provider: str | None = None
+    model_aliases: frozenset[str] = frozenset()
+    hf_repo: str | None = None
+    docker_repo: str | None = None
     model_path: str | None = None
     models_dir: str | None = None
     models_preset: str | None = None

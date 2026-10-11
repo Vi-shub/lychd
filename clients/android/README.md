@@ -71,3 +71,37 @@ owns the mobile application of IAM law; [State of Work](../../docs/state-of-the-
 owns delivery claims.
 
 See [ADR 01](../../docs/adr/01-doctrine.md#repository-source-topology) for the client boundary.
+
+## Offline text prototype
+
+The independent `interaction` reducer and opt-in `offline` Android application preserve the
+memory-only text draft experiment. They share this checkout's Gradle, Kotlin, Compose and JDK
+versions. The existing `app` remains the foreground audio/mock-transport client described above.
+The offline application has its own application ID, `org.lychd.companion.offline`, and declares
+neither network nor microphone permission. It does not connect to the Vessel or persist drafts.
+
+Run the reducer without an Android SDK:
+
+```sh
+./gradlew --no-daemon --dependency-verification=strict -PcoreOnly=true :interaction:test
+```
+
+With the Android SDK configured, build and test the separate prototype:
+
+```sh
+./gradlew --no-daemon --dependency-verification=strict -PcoreOnly=true -PincludeOfflineApp=true \
+  :offline:testDebugUnitTest :offline:lintDebug :offline:assembleDebug :offline:assembleDebugAndroidTest
+```
+
+The [screen](offline/src/main/kotlin/org/lychd/companion/CompanionScreen.kt) and
+[ViewModel](offline/src/main/kotlin/org/lychd/companion/OfflineDraftViewModel.kt) expose a draft's
+fixed deadline, revision-fenced edits, expiry and local cancellation. Review and Submit remain
+disabled. Activity recreation preserves the current process-local state; process death does not.
+The [reducer](interaction/src/main/kotlin/org/lychd/companion/interaction/Interaction.kt) also models
+inert review, submission and presentation transitions with exact process-local identity tokens.
+No reducer signal is a native admission, destination effect or durable receipt.
+
+The [unit tests](offline/src/test/kotlin/org/lychd/companion/OfflineDraftViewModelTest.kt) and
+[instrumentation tests](offline/src/androidTest/kotlin/org/lychd/companion/CompanionLifecycleTest.kt)
+keep JVM and device evidence separate. A device run uses `:offline:connectedDebugAndroidTest`
+with an explicitly selected emulator or device; APK assembly alone does not qualify that boundary.

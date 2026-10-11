@@ -32,6 +32,11 @@ class BindingSites:
         """Return both sites in stable generation order."""
         return (self.quadlet, self.systemd_user)
 
+    @property
+    def initialization_paths(self) -> tuple[Path, ...]:
+        """Return shared binding components that init must admit and preserve."""
+        return (self.quadlet.parent, self.quadlet, self.systemd_user.parent, self.systemd_user)
+
 
 DEFAULT_BINDING_SITES = BindingSites(
     quadlet=PATH_SYSTEMD_UNITS_DIR,

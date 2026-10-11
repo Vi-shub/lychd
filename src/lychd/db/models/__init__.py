@@ -5,6 +5,7 @@ alembic autogenerate and ``target_metadata`` see the full schema.
 """
 
 from lychd.db.models.atlas import AtlasProjectRecord, AtlasRequestRecord
+from lychd.db.models.blockworld import BlockworldPlacementAction, BlockworldPlacementMission
 from lychd.db.models.checkpoint import RunCheckpoint
 from lychd.db.models.codex import CodexPreauthorization
 from lychd.db.models.consent import Consent
@@ -20,6 +21,8 @@ from lychd.db.models.step import Step
 __all__ = [
     "AtlasProjectRecord",
     "AtlasRequestRecord",
+    "BlockworldPlacementAction",
+    "BlockworldPlacementMission",
     "CodexPreauthorization",
     "Consent",
     "DelegatedAgentEventRecord",

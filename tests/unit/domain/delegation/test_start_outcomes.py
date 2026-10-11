@@ -24,13 +24,14 @@ class _LostAcknowledgementRuntime:
     """Simulate acceptance in memory; never launch a process or contact a service."""
 
     name: str = "lost-acknowledgement"
+    error_message: str = "acknowledgement lost after simulated acceptance"
     accepted: list[DelegatedAgentJobRef] = field(default_factory=list)
     cancelled: list[DelegatedAgentJobRef] = field(default_factory=list)
 
     async def start(self, request: DelegatedAgentRequest, job: DelegatedAgentJobRef) -> None:
         assert request.request_id == job.request_id
         self.accepted.append(job)
-        msg = "acknowledgement lost after simulated acceptance"
+        msg = self.error_message
         raise OSError(msg)
 
     async def poll(self, job: DelegatedAgentJobRef) -> DelegatedAgentResult | None:
@@ -52,20 +53,33 @@ def _request() -> DelegatedAgentRequest:
 
 
 @pytest.mark.asyncio
-async def test_lost_start_acknowledgement_preserves_replay_and_containment_identity() -> None:
-    runtime = _LostAcknowledgementRuntime()
+@pytest.mark.parametrize(
+    "message",
+    ["acknowledgement lost", "x" * 16_384, "x" * 16_385, "x" * 20_000],
+    ids=["short", "exact-limit", "one-over-limit", "oversized"],
+)
+async def test_lost_start_acknowledgement_preserves_replay_and_containment_identity(message: str) -> None:
+    runtime = _LostAcknowledgementRuntime(error_message=message)
     store = InMemoryDelegatedAgentJobStore()
     coordinator = DelegatedAgentCoordinator(runtimes={runtime.name: runtime}, store=store)
     request = _request()
 
-    with pytest.raises(OSError, match="acknowledgement lost"):
+    with pytest.raises(OSError, match=r"acknowledgement lost|x") as raised:
         await coordinator.submit(request)
+    assert str(raised.value) == message
 
     lost = await store.get_by_request(request.request_id)
     assert lost is not None
     assert lost.status is DelegatedAgentJobStatus.LOST
     assert lost.result is not None
     assert lost.result.status is DelegatedAgentJobStatus.LOST
+    assert lost.result.error is not None
+    assert len(lost.result.error) <= 16_384
+    if len(message) <= 16_384:
+        assert lost.result.error == message
+    else:
+        assert lost.result.error.endswith("\n...[truncated]")
+    assert lost.events[-1].status is DelegatedAgentJobStatus.LOST
     assert runtime.accepted == [lost.ref]
 
     assert await coordinator.submit(request) == lost.ref

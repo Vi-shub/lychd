@@ -11,7 +11,7 @@ The Lich may wear a stylized character in one place and use a different eligible
 
 `avatar.compose_profile@2` begins with an eligible Persona revision and exact visual, acoustic speech-voice, motion, output-locale, disclosure, and fallback references. Its immutable `AvatarProfile@2` retains their provenance and licence limits. It specifies eligibility and defaults, not a live target, translated text, or evidence that every facet has been rendered.
 
-Mirror owns Persona identity, discourse manner, orientation, commitments, and lineage. The [media ownership comparison](../choosing-a-home.md#media-owners-do-not-follow-file-extensions) follows visual, acoustic, musical, and timed-language sources; [Kinesis](../../sepulcher/extensions/prism/kinesis.md) retains technical motion. Avatar references those exact revisions and judges the coherence of the assembled presentation for its intended targets.
+[Mirror](../../sepulcher/extensions/mirror.md) owns Persona identity, discourse manner, orientation, commitments, and lineage. The [media ownership comparison](../choosing-a-home.md#media-owners-do-not-follow-file-extensions) follows visual, acoustic, musical, and timed-language sources; [Kinesis](../../sepulcher/extensions/prism/kinesis.md) retains technical motion. Avatar references those exact revisions and judges the coherence of the assembled presentation for its intended targets.
 
 ## Select a Morphe
 

@@ -34,7 +34,7 @@ type DirectoryValidator = Callable[[int, Path], None]
 _FILE_OPEN_FLAGS: Final = (
     os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
 )
-_READ_FILE_FLAGS: Final = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
+_READ_FILE_FLAGS: Final = os.O_RDONLY | os.O_NONBLOCK | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
 _AUXILIARY_NAME_ATTEMPTS: Final = 8
 
 
@@ -178,7 +178,18 @@ def stage_text_file(
     content: str,
     mode: int,
 ) -> FilePublication:
-    """Write and attest one private same-directory candidate."""
+    """Encode text through the shared immutable-byte staging primitive."""
+    return stage_bytes_file(parent_fd=parent_fd, path=path, content=content.encode("utf-8"), mode=mode)
+
+
+def stage_bytes_file(
+    *,
+    parent_fd: int,
+    path: Path,
+    content: bytes | Callable[[FileIdentity], bytes],
+    mode: int,
+) -> FilePublication:
+    """Stage bytes, optionally binding immutable metadata to the new inode."""
     descriptors = DescriptorSet()
     descriptor = -1
     staging_name = ""
@@ -213,10 +224,14 @@ def stage_text_file(
         identity = settlement.identity(path=path, metadata=metadata)
         settlement.require_regular_file(metadata, path=path)
         os.fchmod(descriptor, mode)
-        stream = os.fdopen(descriptor, "w", encoding="utf-8")
+        payload = content(identity) if callable(content) else content
+        if type(payload) is not bytes:
+            message = "File publication requires immutable bytes."
+            raise TypeError(message)  # noqa: TRY301 - settle the exact newly staged inode
+        stream = os.fdopen(descriptor, "wb")
         descriptors.transfer(descriptor)
         with stream:
-            stream.write(content)
+            stream.write(payload)
             stream.flush()
             os.fsync(stream.fileno())
     except BaseException as primary:  # noqa: BLE001 - exact staging cleanup precedes native propagation
@@ -415,7 +430,14 @@ def classify_publication_after_error(
     ) from primary
 
 
-def attest_public_file(publication: FilePublication) -> None:
+def attest_public_file(
+    publication: FilePublication,
+    *,
+    owner_uid: int | None = None,
+    mode: int | None = None,
+    links: int | None = None,
+    size: int | None = None,
+) -> None:
     """Require the installed public name to retain the staged identity."""
     descriptors = DescriptorSet()
     descriptor = -1
@@ -467,9 +489,13 @@ def attest_public_file(publication: FilePublication) -> None:
     if metadata is None:  # pragma: no cover - every failed capture returns above
         message = f"Published initialization file attestation produced no metadata: {publication.identity.path}"
         raise PublicationRollbackError(message)
-    if not stat.S_ISREG(metadata.st_mode) or not settlement.matches(
-        metadata,
-        expected=publication.identity,
+    if (
+        not stat.S_ISREG(metadata.st_mode)
+        or not settlement.matches(metadata, expected=publication.identity)
+        or (owner_uid is not None and metadata.st_uid != owner_uid)
+        or (mode is not None and stat.S_IMODE(metadata.st_mode) != mode)
+        or (links is not None and metadata.st_nlink != links)
+        or (size is not None and metadata.st_size != size)
     ):
         message = f"Published initialization file changed identity: {publication.identity.path}"
         raise PublicationRollbackError(message)

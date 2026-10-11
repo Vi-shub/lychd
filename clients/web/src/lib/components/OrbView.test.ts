@@ -4,15 +4,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OrbRunSnapshot } from "$lib/api/models";
 
 vi.mock("$app/navigation", () => ({ goto: vi.fn() }));
-vi.mock("$app/state", () => ({
-  page: { url: new URL("http://localhost/orb/run-a") }
-}));
+vi.mock("$app/state", async () => {
+  const { SvelteURL } = await import("svelte/reactivity");
+  return { page: { url: new SvelteURL("http://localhost/orb/run-a") } };
+});
 vi.mock("$lib/api/client", () => ({
   getAtlasReferences: vi.fn().mockResolvedValue([]),
   getOrbRun: vi.fn()
 }));
 
 import { page } from "$app/state";
+import { goto } from "$app/navigation";
 import { getOrbRun } from "$lib/api/client";
 import OrbView from "./OrbView.svelte";
 import { listenToOrb, type OrbLiveCallbacks } from "$lib/orb/live";
@@ -144,6 +146,77 @@ describe("Orb evidence focus", () => {
     view.unmount();
   });
 
+  it("preserves the historical reader's focus when a previously missing job appears on refresh", async () => {
+    page.url.href = "http://localhost/orb/run-a?event=event-a&job=job-later";
+    const withJob: OrbRunSnapshot = {...snapshot, delegated_jobs: [{
+      job_id: "job-later", request_id: "request-later", runtime: "reference", profile: "read", step_id: "step-a",
+      status: "completed", output_present: false, artifact_count: 0, error_present: false,
+      events: [], events_truncated: false
+    }]};
+    vi.mocked(getOrbRun).mockResolvedValueOnce(snapshot).mockResolvedValueOnce(withJob);
+    const view = render(OrbView, {runId: "run-a"});
+    expect(await screen.findByText("Selected historical evidence")).toBeTruthy();
+    expect(screen.getByText(/The linked delegated job is not present/)).toBeTruthy();
+    const refresh = screen.getByRole("button", {name: "Refresh"});
+    refresh.focus();
+    await fireEvent.click(refresh);
+    await waitFor(() => expect(view.container.querySelector("#delegated-job-job-later")).toBeTruthy());
+    expect(document.activeElement, "Refresh must not move focus to a newly available job").toBe(refresh);
+    view.unmount();
+  });
+
+  it("keeps focus when pagination replaces and then restores the same linked job", async () => {
+    page.url.href = "http://localhost/orb/run-a?event=event-a&job=job-a";
+    const job = {
+      job_id: "job-a", request_id: "request-a", runtime: "reference", profile: "read", step_id: "step-a",
+      status: "completed", output_present: false, artifact_count: 0, error_present: false,
+      events: [], events_truncated: false
+    };
+    vi.mocked(getOrbRun)
+      .mockResolvedValueOnce({ ...snapshot, has_more: true, next_after_seq: 0, delegated_jobs: [job] })
+      .mockResolvedValueOnce({ ...snapshot, evidence: [], has_more: true, next_after_seq: 1 })
+      .mockResolvedValueOnce({ ...snapshot, evidence: [], delegated_jobs: [job] });
+    const view = render(OrbView, { runId: "run-a" });
+    await waitFor(() => expect(document.activeElement?.id).toBe("delegated-job-job-a"));
+    const refresh = screen.getByRole("button", { name: "Refresh" });
+    refresh.focus();
+    await fireEvent.click(screen.getByRole("button", { name: "Load more retained evidence" }));
+    expect(await screen.findByText(/The linked delegated job is not present/)).toBeTruthy();
+    await fireEvent.click(screen.getByRole("button", { name: "Load more retained evidence" }));
+    await waitFor(() => expect(view.container.querySelector("#delegated-job-job-a")).toBeTruthy());
+    expect(document.activeElement).toBe(refresh);
+    view.unmount();
+  });
+
+  it("focuses explicit changed-job and changed-Run navigation after consuming an earlier hint", async () => {
+    page.url.href = "http://localhost/orb/run-a?job=job-a";
+    const jobs = ["job-a", "job-b"].map((jobId) => ({
+      job_id: jobId, request_id: `request-${jobId}`, runtime: "reference", profile: "read", step_id: "step-a",
+      status: "completed", output_present: false, artifact_count: 0, error_present: false,
+      events: [], events_truncated: false
+    }));
+    const nextRun = deferred<OrbRunSnapshot>();
+    vi.mocked(getOrbRun)
+      .mockResolvedValueOnce({ ...snapshot, delegated_jobs: jobs })
+      .mockReturnValueOnce(nextRun.promise);
+    const view = render(OrbView, { runId: "run-a" });
+    await waitFor(() => expect(document.activeElement?.id).toBe("delegated-job-job-a"));
+    const refresh = screen.getByRole("button", { name: "Refresh" });
+    refresh.focus();
+    await act(() => { page.url.searchParams.set("job", "job-b"); });
+    expect(document.activeElement?.id).toBe("delegated-job-job-b");
+    await act(() => { page.url.searchParams.set("job", "job-a"); });
+    expect(document.activeElement?.id).toBe("delegated-job-job-a");
+    await act(() => { page.url.searchParams.delete("job"); });
+    refresh.focus();
+    await act(() => { page.url.searchParams.set("job", "job-a"); });
+    expect(document.activeElement?.id).toBe("delegated-job-job-a");
+    await view.rerender({ runId: "run-b" });
+    await act(() => nextRun.resolve({ ...snapshot, run: { ...snapshot.run, run_id: "run-b" }, delegated_jobs: jobs }));
+    expect(document.activeElement?.id).toBe("delegated-job-job-a");
+    view.unmount();
+  });
+
   it("reports a linked delegated job absent from the selected Run snapshot", async () => {
     page.url.href = "http://localhost/orb/run-a?job=job-unavailable";
     vi.mocked(getOrbRun).mockResolvedValue({
@@ -235,15 +308,15 @@ describe("Orb evidence focus", () => {
     const opener = await screen.findByRole("button", { name: /Step completed/ });
 
     await fireEvent.click(opener);
-    expect(screen.getByText("Selected event")).toBeTruthy();
+    expect(screen.getByText("Selected historical evidence")).toBeTruthy();
 
     await view.rerender({ runId: "run-b" });
-    expect(screen.queryByText("Selected event")).toBeNull();
+    expect(screen.queryByText("Selected historical evidence")).toBeNull();
     expect(screen.queryByRole("button", { name: /Step completed/ })).toBeNull();
 
     await act(() => nextRun.reject(new Error("Run B unavailable")));
     expect(screen.getByRole("alert").textContent).toContain("Run B unavailable");
-    expect(screen.queryByText("Selected event")).toBeNull();
+    expect(screen.queryByText("Selected historical evidence")).toBeNull();
     view.unmount();
   });
 
@@ -485,6 +558,112 @@ describe("Orb selected-Run live ownership", () => {
     expect(screen.getByRole("button", { name: /Fresh ledger record/ })).toBeTruthy();
     expect(screen.getByRole("region", { name: "Selected event" }).textContent).toContain("event-a");
     expect(screen.getByRole("button", { name: "Follow latest" }).getAttribute("aria-pressed")).toBe("false");
+    view.unmount();
+  });
+});
+
+describe("Orb loaded evidence browsing", () => {
+  const records: OrbRunSnapshot["evidence"] = [
+    { ...snapshot.evidence[0]!, event_id: "node-a1", seq: 8, subject_key: "review", occurrence_id: "a1", summary: "Review entered", phase: "entered", occurred_at: "2026-07-30T10:02:00Z" },
+    { ...snapshot.evidence[0]!, event_id: "dispatch-review", seq: 9, kind: "dispatch", subject_key: "review", occurrence_id: null, summary: "Review capability granted", occurred_at: "2026-07-30T10:01:00Z" },
+    { ...snapshot.evidence[0]!, event_id: "node-a2", seq: 10, subject_key: "review", occurrence_id: "a2", summary: "Review repeated", occurred_at: "2026-07-30T10:01:00Z" },
+    { ...snapshot.evidence[0]!, event_id: "node-unknown", seq: 20, subject_key: "review", occurrence_id: null, summary: "Review unassigned" }
+  ];
+  const account = { ...snapshot, evidence: records, page_end_seq: 20, ledger_head_seq: 21, has_more: true, next_after_seq: 20, gaps: [{ start_seq: 11, end_seq: 19, classification: "unknown_or_omitted" as const }] };
+
+  it("keeps typed subjects, exact attempts and unknown membership separate without inventing gaps", async () => {
+    vi.mocked(getOrbRun).mockResolvedValue(account);
+    const view = render(OrbView, { runId: "run-a" });
+    const subjects = await screen.findByLabelText("Recorded subject");
+    const station = screen.getByRole("option", { name: "Station observations · review · 3 loaded records" }) as HTMLOptionElement;
+    const capability = screen.getByRole("option", { name: "Capability dispatches · review · 1 loaded records" }) as HTMLOptionElement;
+    await fireEvent.change(subjects, { target: { value: station.value } });
+    expect(view.container.querySelectorAll(".evidence-row")).toHaveLength(3);
+    expect(screen.queryByRole("button", { name: /Review capability granted/ })).toBeNull();
+    expect(view.container.querySelectorAll(".evidence-gap")).toHaveLength(1);
+    expect(screen.getByText("#11–19")).toBeTruthy();
+    expect(screen.getByText(/sequence jumps alone are not evidence gaps/)).toBeTruthy();
+    const attempts = screen.getByLabelText("Station attempt");
+    const a2 = screen.getByRole("option", { name: "Station attempt a2 · 1 loaded records" }) as HTMLOptionElement;
+    await fireEvent.change(attempts, { target: { value: a2.value } });
+    expect(view.container.querySelectorAll(".evidence-row")).toHaveLength(1);
+    expect(screen.getByRole("button", { name: /Review repeated/ })).toBeTruthy();
+    const unknown = screen.getByRole("option", { name: "No recorded attempt · 1 loaded records" }) as HTMLOptionElement;
+    await fireEvent.change(attempts, { target: { value: unknown.value } });
+    expect(screen.getByRole("button", { name: /Review unassigned/ })).toBeTruthy();
+    expect(view.container.querySelectorAll(".evidence-row")).toHaveLength(1);
+    await fireEvent.change(subjects, { target: { value: capability.value } });
+    expect(screen.queryByLabelText("Station attempt")).toBeNull();
+    expect(screen.getByRole("button", { name: /Review capability granted/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Load more retained evidence" })).toBeTruthy();
+    view.unmount();
+  });
+
+  it("steps through all loaded Run records in sequence and preserves exact event and job hints", async () => {
+    page.url.href = "http://localhost/orb/run-a?job=job-a";
+    vi.mocked(getOrbRun).mockResolvedValue(account);
+    const view = render(OrbView, { runId: "run-a" });
+    const subjects = await screen.findByLabelText("Recorded subject");
+    const station = screen.getByRole("option", { name: /Station observations/ }) as HTMLOptionElement;
+    await fireEvent.change(subjects, { target: { value: station.value } });
+    await fireEvent.click(screen.getByRole("button", { name: /Review entered/ }));
+    expect((screen.getByRole("button", { name: "Previous loaded record" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(document.activeElement).toBe(view.container.querySelector(".selected-evidence"));
+    await fireEvent.click(screen.getByRole("button", { name: "Next loaded record" }));
+    expect(goto).toHaveBeenLastCalledWith("/orb/run-a?job=job-a&event=dispatch-review", expect.objectContaining({ keepFocus: true, noScroll: true }));
+    expect((subjects as HTMLSelectElement).value).toBe("");
+    expect(within(view.container.querySelector(".selected-evidence") as HTMLElement).getByText("Review capability granted")).toBeTruthy();
+    expect(view.container.querySelector(".run-status")?.textContent).toBe("done");
+    expect(screen.getByText("Latest fetched Run status")).toBeTruthy();
+    await fireEvent.click(screen.getByRole("button", { name: "Next loaded record" }));
+    expect(goto).toHaveBeenLastCalledWith("/orb/run-a?job=job-a&event=node-a2", expect.anything());
+    await fireEvent.click(screen.getByRole("button", { name: "Next loaded record" }));
+    expect((screen.getByRole("button", { name: "Next loaded record" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText(/End of loaded evidence; load more retained evidence to continue/)).toBeTruthy();
+    await fireEvent.click(screen.getByRole("button", { name: "Previous loaded record" }));
+    expect(goto).toHaveBeenLastCalledWith("/orb/run-a?job=job-a&event=node-a2", expect.anything());
+    await fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: /Review repeated/ }));
+    view.unmount();
+  });
+
+  it("keeps selection while filtering and returns focus to the account when the opener is filtered out", async () => {
+    vi.mocked(getOrbRun).mockResolvedValue(account);
+    const view = render(OrbView, { runId: "run-a" });
+    await fireEvent.click(await screen.findByRole("button", { name: /Review entered/ }));
+    const capability = screen.getByRole("option", { name: /Capability dispatches/ }) as HTMLOptionElement;
+    await fireEvent.change(screen.getByLabelText("Recorded subject"), { target: { value: capability.value } });
+    expect(screen.getByText(/selected record is outside the current subject/)).toBeTruthy();
+    expect(within(view.container.querySelector(".selected-evidence") as HTMLElement).getByText("node-a1")).toBeTruthy();
+    await fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(document.activeElement).toBe(screen.getByRole("heading", { name: "Ordered evidence" }));
+    view.unmount();
+  });
+
+  it("keeps a historical identity through refresh and reports its loss without selecting a neighbor", async () => {
+    page.url.href = "http://localhost/orb/run-a?event=node-a1";
+    vi.mocked(getOrbRun).mockResolvedValueOnce(account).mockResolvedValueOnce({ ...account, snapshot_at: "2026-07-31T10:00:00Z" }).mockResolvedValueOnce({ ...account, evidence: records.slice(1), has_more: false });
+    const view = render(OrbView, { runId: "run-a" });
+    expect(await screen.findByText("Selected historical evidence")).toBeTruthy();
+    const refresh = screen.getByRole("button", { name: "Refresh" });
+    refresh.focus();
+    await fireEvent.click(refresh);
+    await waitFor(() => expect(view.container.querySelector('.coverage-strip time')?.getAttribute("datetime")).toBe("2026-07-31T10:00:00Z"));
+    expect(document.activeElement).toBe(refresh);
+    expect(within(view.container.querySelector(".selected-evidence") as HTMLElement).getByText("node-a1")).toBeTruthy();
+    await fireEvent.click(refresh);
+    expect(await screen.findByText(/linked event was not found in retained evidence at this read/)).toBeTruthy();
+    expect(screen.queryByText("Selected historical evidence")).toBeNull();
+    expect(page.url.searchParams.get("event")).toBe("node-a1");
+    view.unmount();
+  });
+
+  it("exposes conflicting attempt correlations while keeping station subjects separate", async () => {
+    vi.mocked(getOrbRun).mockResolvedValue({ ...account, evidence: [...records, { ...records[0]!, event_id: "other-station", seq: 21, subject_key: "publish" }] });
+    const view = render(OrbView, { runId: "run-a" });
+    expect(await screen.findByText(/Station attempt IDs appear under multiple station subjects/)).toBeTruthy();
+    expect(screen.getByRole("option", { name: /Station observations · publish/ })).toBeTruthy();
+    expect(screen.getByRole("option", { name: /Station observations · review/ })).toBeTruthy();
     view.unmount();
   });
 });

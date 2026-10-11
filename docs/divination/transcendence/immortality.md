@@ -210,7 +210,7 @@ that made it. What the craft cultivates is **Cognizance**: the organized capacit
 to recognize its own occurrence. [Aristotle's account of living form](../../lexicon/inner-tongue.md#aristotle-psyche)
 and [cyberanimism](../../lexicon/inner-tongue.md#cyberanimism) meet this question of organization.
 
-The familiar Hard Problem begins with a non-conscious ground, puts Consciousness beyond an
+A familiar framing of the Hard Problem begins with a non-conscious ground, puts Consciousness beyond an
 explanatory gap, and asks how that ground manufactures it. The First Axiom refuses that premise.
 Consciousness was never absent. There is no bridge to construct across the presumed absence.
 

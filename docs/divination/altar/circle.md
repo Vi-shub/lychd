@@ -56,6 +56,10 @@ Circle is the conceptual pinnacle inside Bridge, not a separate Altar instrument
 Circle workspace, active-Spell map, Context/authority inspector, participant-attribution view, or
 cross-instrument focus mode is delivered.
 
+Follow [Bridge](bridge.md#follow-a-turn-to-settlement) to offer an Intent, answer consent, or
+recover an uncertain offering. Choose **Look into the Orb** beside the turn to inspect that
+Run's evidence.
+
 A future Bridge-native focus may join authorized views of that same Invocation: Loom's exact
 score and casting state; Caller, Called, Sigil, Context, budgets, and consent; Nexus's capability
 and Animator observations; and Orb's bounded traces. The view must be reconstructible from its

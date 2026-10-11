@@ -13,7 +13,7 @@ from lychd.extensions.base import ExtensionStore
 
 
 @dataclass(frozen=True, slots=True)
-class _RegisteredSoulstoneDefinition:
+class RegisteredSoulstoneDefinition:
     """One Soulstone definition with host-assigned extension provenance."""
 
     registrant_id: str
@@ -21,7 +21,7 @@ class _RegisteredSoulstoneDefinition:
 
 
 @dataclass(frozen=True, slots=True)
-class _RegisteredPortalDefinition:
+class RegisteredPortalDefinition:
     """One Portal definition with host-assigned extension provenance."""
 
     registrant_id: str
@@ -36,7 +36,12 @@ class SoulstoneStore(ExtensionStore):
         super().__init__()
         self._runes = runes
         self._current_registrant = current_registrant or (lambda: "core")
-        self._registrations: list[_RegisteredSoulstoneDefinition] = []
+        self._registrations: list[RegisteredSoulstoneDefinition] = []
+
+    @property
+    def registrations(self) -> tuple[RegisteredSoulstoneDefinition, ...]:
+        """Frozen registration records, detached from store membership."""
+        return tuple(self._registrations)
 
     @property
     def definitions(self) -> tuple[SoulstoneDefinition, ...]:
@@ -95,7 +100,7 @@ class SoulstoneStore(ExtensionStore):
                 )
                 raise ValueError(msg)
         self._runes.add_schema(definition.rune_schema)
-        self._registrations.append(_RegisteredSoulstoneDefinition(registrant_id=registrant_id, definition=definition))
+        self._registrations.append(RegisteredSoulstoneDefinition(registrant_id=registrant_id, definition=definition))
 
 
 class PortalStore(ExtensionStore):
@@ -106,7 +111,12 @@ class PortalStore(ExtensionStore):
         super().__init__()
         self._runes = runes
         self._current_registrant = current_registrant or (lambda: "core")
-        self._registrations: list[_RegisteredPortalDefinition] = []
+        self._registrations: list[RegisteredPortalDefinition] = []
+
+    @property
+    def registrations(self) -> tuple[RegisteredPortalDefinition, ...]:
+        """Frozen registration records, detached from store membership."""
+        return tuple(self._registrations)
 
     @property
     def definitions(self) -> tuple[PortalDefinition, ...]:
@@ -137,4 +147,4 @@ class PortalStore(ExtensionStore):
                 )
                 raise ValueError(msg)
         self._runes.add_schema(definition.rune_schema)
-        self._registrations.append(_RegisteredPortalDefinition(registrant_id=registrant_id, definition=definition))
+        self._registrations.append(RegisteredPortalDefinition(registrant_id=registrant_id, definition=definition))

@@ -1,6 +1,6 @@
 """Full offline run of the bridge_chat graph (A5 §10).
 
-Drives `BRIDGE_CHAT_GRAPH` end to end with a `TestModel`, asserting the node
+Drives `BRIDGE_CHAT_GRAPH` end to end with `TestModel` and `FunctionModel`, asserting the node
 path, the event sequence, turn settlement, and context release — with no model
 request permitted (`ALLOW_MODEL_REQUESTS = False`).
 """
@@ -12,6 +12,7 @@ from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any, cast
 
 import pytest
+from pydantic_ai.models.function import DeltaToolCall, FunctionModel
 from pydantic_ai.models.test import TestModel
 
 from lychd.agents.outputs import BridgeReply
@@ -32,6 +33,7 @@ if TYPE_CHECKING:
     from pydantic_ai import AgentRunResult, RunContext
     from pydantic_ai.messages import ModelMessage, ModelResponse
     from pydantic_ai.models import ModelRequestParameters, StreamedResponse
+    from pydantic_ai.models.function import AgentInfo
     from pydantic_ai.settings import ModelSettings
     from pydantic_ai.usage import RequestUsage
 
@@ -60,6 +62,45 @@ async def test_happy_path_settles_turn() -> None:
     assert turns.added
     assert turns.added[0][1].state == "settled"
     assert services.context.get("run_1") is not None  # worker owns release after terminal Run settlement
+
+
+@pytest.mark.asyncio
+async def test_model_receives_context_and_streams_complete_text() -> None:
+    """Exercise real instruction preparation and token projection through the Forge."""
+    received_instructions: list[str | None] = []
+
+    async def answer(_messages: list[ModelMessage], info: AgentInfo) -> AsyncGenerator[str | dict[int, DeltaToolCall]]:
+        received_instructions.append(info.instructions)
+        yield "prefix: "
+        yield "<>& suffix"
+        yield {
+            0: DeltaToolCall(
+                name=info.output_tools[0].name,
+                json_args='{"answer":"settled","fragments":[]}',
+                tool_call_id="output",
+            )
+        }
+
+    events, turns = FakeEvents(), FakeTurns()
+    services = make_services(
+        model=FunctionModel(stream_function=answer),
+        events=events,
+        turns=turns,
+        consents=FakeConsents(),
+        orchestrator=FakeOrchestrator(),
+    )
+    state = BridgeChatState(session_id="sess_1", run_id="run_1", prompt="Use the admitted context.")
+    async with BRIDGE_CHAT_GRAPH.iter(inputs=WeaveContext(), state=state, deps=services) as run:
+        async for _ in run:
+            pass
+
+    assert received_instructions
+    assert all("active capability: chat:test" in (instructions or "") for instructions in received_instructions)
+    tokens = [payload for _, kind, payload in events.events if kind == "token"]
+    assert "".join(tokens) == "prefix: <>& suffix"
+    assert run.output == BridgeReply(answer="settled", fragments=[])
+    assert turns.added[0][1].content == "settled"
+    assert turns.added[0][1].state == "settled"
 
 
 @pytest.mark.asyncio

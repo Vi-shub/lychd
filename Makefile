@@ -10,10 +10,10 @@ MAKEFLAGS += --no-print-directory
 # =============================================================================
 
 # Argument extraction for tests
-# Usage: make test K="animation" M="unit"
+# Usage: make test K="animation"
 #        make test PYTEST_TARGETS="tests/unit/config/runes"
 # The reliable default is serial; opt into bounded parallelism explicitly (e.g., make test N=8).
-# Disposable container receipts are excluded unless ``make test-containers`` is used.
+# Disposable container receipts are excluded by default; explicit M replaces that selector.
 # Default output is compact for agent context. Use VERBOSE=1 when debugging:
 # it disables RTK filtering and makes pytest stream stdout plus long tracebacks
 # into the caller and enables live DEBUG logging.
@@ -24,11 +24,25 @@ PYTEST_TARGETS ?= tests
 # Automatic CI covers these in-process contracts; host/filesystem qualification
 # and disposable PostgreSQL remain separate. Keep the full test/check defaults.
 CI_PYTEST_TARGETS := tests/unit/config tests/unit/db \
-	tests/unit/domain/animation tests/unit/domain/cortex \
+	tests/architecture/test_release_legal_artifacts.py \
+	tests/unit/test_app.py tests/unit/cli/test_cli.py \
+	tests/unit/system/operator tests/unit/cli/test_operator.py \
+	tests/unit/cli/test_deletion_retirement.py \
+	tests/unit/system/services/test_binding_preflight.py tests/unit/system/test_uncaged_unit.py \
+	tests/unit/system/services/test_init_binding_sites.py tests/unit/system/services/test_bind_compilation.py \
+	tests/unit/system/test_schemas.py tests/unit/system/services/test_artifact_custody.py \
+	tests/unit/system/services/test_artifact_publication.py \
+	tests/unit/domain/test_artifact_custody.py \
+	tests/unit/domain/animation tests/unit/domain/cortex tests/unit/domain/delegation \
 	tests/unit/domain/orchestration tests/unit/domain/web \
-	tests/unit/extensions tests/unit/lib tests/agents tests/web \
-	tests/integration/test_configuration_workflows.py
+	tests/unit/extensions tests/unit/lib tests/unit/compositions tests/agents tests/web \
+	tests/integration/test_configuration_workflows.py \
+	tests/integration/test_bridge_casting_workflow.py \
+	tests/integration/test_blockworld_placement_vertical.py \
+	tests/integration/test_crypt_extension_vertical.py \
+	tests/integration/test_extension_configuration.py
 CONTAINER_TEST_TARGETS ?= tests/integration/test_db_consent_pg.py \
+	tests/integration/test_db_blockworld_pg.py \
 	tests/integration/test_database_authority_pg.py \
 	tests/integration/test_db_atlas_pg.py \
 	tests/integration/test_db_migrations_pg.py \
@@ -162,6 +176,10 @@ frontend-dev: ## Run the SvelteKit Altar in loopback-only development mode
 	@echo "${INFO} Starting frontend dev server..."
 	@$(NPM) --prefix $(WEB_CLIENT_DIR) run dev
 
+.PHONY: developer-fixture
+developer-fixture: ## Run the read-only synthetic backend for local browser development
+	@$(UV_DEV_RUN) python -m lychd.developer
+
 .PHONY: frontend-build
 frontend-build: ## Generate contracts and compile the static Svelte Altar
 	@echo "${INFO} Building frontend assets..."
@@ -224,7 +242,7 @@ type-check: ## Run BasedPyright. Usage: make type-check TYPECHECK_TARGETS="src/l
 	@echo "${OK} Types are strict."
 
 .PHONY: test
-test: ## Run tests. Usage: make test K="anim" M="unit"
+test: ## Run tests. Usage: make test K="anim"
 	@echo "${INFO} Running tests (Args: $(PYTEST_ARGS) Targets: $(PYTEST_EFFECTIVE_TARGETS))..."
 	@basetemp="$(strip $(PYTEST_BASETEMP))"
 	@if [[ -z "$$basetemp" ]]; then

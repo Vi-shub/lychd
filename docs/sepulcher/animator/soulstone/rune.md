@@ -27,7 +27,7 @@ Rune type; no `type=` field may switch it after discovery.
 | `quadlet.image` | runtime default | OCI image inside the embedded `QuadletConfig`; required by the generic runtime. |
 | `runtime` | `"generic"` | Selects the local runtime adapter. |
 | `model_path` | `null` | Single-model artifact path or runtime-specific identity input. |
-| `served_model_id` | `null` | Exact provider-facing id returned by live model inventory; required when it differs from the path basename or Soulstone name. |
+| `served_model_id` | `null` | For an inferred single model, set the exact provider-facing id when it differs from the path stem (basename without its final suffix), or the Soulstone name if no path is set. |
 | `base_url` | derived | Connector endpoint root; credentials, query, fragment, and invalid ports are refused. |
 | `port` | assigned | Unique host port; derives `http://localhost:{port}/v1`. |
 | `groups` | `[]` | Compatible [Coven](../coven.md) target membership. |

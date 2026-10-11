@@ -44,10 +44,10 @@ def test_profile_switch_selects_ledger_impl(monkeypatch: pytest.MonkeyPatch) -> 
 
     get_settings.cache_clear()  # This test's environment defines a fresh process configuration.
     try:
-        assert isinstance(_build_run_ledger("memory"), InMemoryRunLedger)
+        assert isinstance(_build_run_ledger("memory", get_settings()), InMemoryRunLedger)
         # `postgres` builds the durable ledger; constructing a session factory opens no
         # connection, so this stays DB-free.
-        assert isinstance(_build_run_ledger("postgres"), DbRunLedger)
+        assert isinstance(_build_run_ledger("postgres", get_settings()), DbRunLedger)
     finally:
         get_settings.cache_clear()
 
@@ -138,7 +138,7 @@ async def test_every_run_query_returns_detached_truth() -> None:
     assert stored is not None
     assert stored.pattern_manifest["nodes"][0]["label"] == "original"
 
-    assert await ledger.try_claim_run("run_1", enqueue_seq=0)
+    assert (await ledger.try_claim_run("run_1", enqueue_seq=0)).acknowledged
     await ledger.park_consent("run_1", "consent_1")
     consent_run = await ledger.get_by_consent("consent_1")
     assert consent_run is not None
@@ -216,8 +216,8 @@ async def test_atomic_run_claim_has_exactly_one_winner() -> None:
     first = await ledger.try_claim_run("run_1", enqueue_seq=0)
     duplicate = await ledger.try_claim_run("run_1", enqueue_seq=0)
 
-    assert first is True
-    assert duplicate is False
+    assert first.acknowledged is True
+    assert duplicate.acknowledged is False
 
 
 @pytest.mark.asyncio
@@ -230,7 +230,7 @@ async def test_published_delivery_remains_claimable_until_worker_settlement() ->
     published = await ledger.get_delivery("run_1", enqueue_seq=0)
     assert published is not None
     assert published.state is RunDeliveryState.PUBLISHED
-    assert await ledger.try_claim_run("run_1", enqueue_seq=0) is True
+    assert (await ledger.try_claim_run("run_1", enqueue_seq=0)).acknowledged is True
     assert (
         await ledger.try_settle_claim(
             "run_1",
@@ -261,7 +261,7 @@ async def test_enqueue_failure_settlement_cannot_overwrite_worker_claim() -> Non
     )
 
     assert await ledger.try_fail_queued("queued", enqueue_seq=0, error="publish failed") is True
-    assert await ledger.try_claim_run("claimed", enqueue_seq=0) is True
+    assert (await ledger.try_claim_run("claimed", enqueue_seq=0)).acknowledged is True
     assert await ledger.try_fail_queued("claimed", enqueue_seq=0, error="late publish error") is False
 
     queued = await ledger.get("queued")
@@ -324,7 +324,7 @@ async def test_claimed_failure_is_owned_by_enqueue_sequence() -> None:
     ledger = InMemoryRunLedger(honor_intent_run_id=True)
     await ledger.create(_intent(), workflow_name="bridge_chat", queue_name="runs", priority=70)
     assert await ledger.rotate_delivery("run_1", enqueue_seq=0) == 1
-    assert await ledger.try_claim_run("run_1", enqueue_seq=1) is True
+    assert (await ledger.try_claim_run("run_1", enqueue_seq=1)).acknowledged is True
 
     await ledger.park_consent("run_1", "consent-current")
     assert (
@@ -335,7 +335,7 @@ async def test_claimed_failure_is_owned_by_enqueue_sequence() -> None:
         )
         == 2
     )
-    assert await ledger.try_claim_run("run_1", enqueue_seq=2) is True
+    assert (await ledger.try_claim_run("run_1", enqueue_seq=2)).acknowledged is True
 
     assert await ledger.try_fail_claimed("run_1", enqueue_seq=1, error="old hop failed") is False
     running = await ledger.get("run_1")
@@ -355,7 +355,7 @@ async def test_stale_consent_delivery_cannot_claim_retried_hop() -> None:
     """Admission allocates identity atomically and stale broker jobs lose the claim."""
     ledger = InMemoryRunLedger(honor_intent_run_id=True)
     await ledger.create(_intent(), workflow_name="bridge_chat", queue_name="runs", priority=70)
-    assert await ledger.try_claim_run("run_1", enqueue_seq=0) is True
+    assert (await ledger.try_claim_run("run_1", enqueue_seq=0)).acknowledged is True
     await ledger.park_consent("run_1", "consent-first")
 
     assert (
@@ -366,7 +366,7 @@ async def test_stale_consent_delivery_cannot_claim_retried_hop() -> None:
         )
         == 1
     )
-    assert await ledger.try_claim_run("run_1", enqueue_seq=1) is True
+    assert (await ledger.try_claim_run("run_1", enqueue_seq=1)).acknowledged is True
     await ledger.park_consent("run_1", "consent-second")
     assert (
         await ledger.try_admit_consent(
@@ -377,19 +377,19 @@ async def test_stale_consent_delivery_cannot_claim_retried_hop() -> None:
         == 2
     )
 
-    assert await ledger.try_claim_run("run_1", enqueue_seq=1) is False
+    assert (await ledger.try_claim_run("run_1", enqueue_seq=1)).acknowledged is False
     queued = await ledger.get("run_1")
     assert queued is not None
     assert queued.status is RunStatus.QUEUED
     assert queued.enqueue_seq == 2
-    assert await ledger.try_claim_run("run_1", enqueue_seq=2) is True
+    assert (await ledger.try_claim_run("run_1", enqueue_seq=2)).acknowledged is True
 
 
 @pytest.mark.asyncio
 async def test_historical_consent_cannot_admit_a_later_wait() -> None:
     ledger = InMemoryRunLedger(honor_intent_run_id=True)
     await ledger.create(_intent(), workflow_name="bridge_chat", queue_name="runs", priority=70)
-    assert await ledger.try_claim_run("run_1", enqueue_seq=0)
+    assert (await ledger.try_claim_run("run_1", enqueue_seq=0)).acknowledged
     await ledger.park_consent("run_1", "consent-old")
     assert (
         await ledger.try_admit_consent(
@@ -399,7 +399,7 @@ async def test_historical_consent_cannot_admit_a_later_wait() -> None:
         )
         == 1
     )
-    assert await ledger.try_claim_run("run_1", enqueue_seq=1)
+    assert (await ledger.try_claim_run("run_1", enqueue_seq=1)).acknowledged
     await ledger.park_consent("run_1", "consent-current")
 
     assert (
@@ -427,7 +427,7 @@ async def test_historical_consent_cannot_admit_a_later_wait() -> None:
 async def test_generic_status_writer_cannot_bypass_consent_admission() -> None:
     ledger = InMemoryRunLedger(honor_intent_run_id=True)
     await ledger.create(_intent(), workflow_name="bridge_chat", queue_name="runs", priority=70)
-    assert await ledger.try_claim_run("run_1", enqueue_seq=0)
+    assert (await ledger.try_claim_run("run_1", enqueue_seq=0)).acknowledged
     await ledger.park_consent("run_1", "consent-current")
 
     with pytest.raises(IllegalRunTransitionError):
@@ -447,7 +447,7 @@ async def test_generic_status_writer_cannot_bypass_consent_admission() -> None:
 async def test_delivery_cursor_sees_old_run_when_resume_makes_it_eligible() -> None:
     ledger = InMemoryRunLedger(honor_intent_run_id=True)
     old = await ledger.create(_intent("old"), workflow_name="bridge_chat", queue_name="runs", priority=70)
-    assert await ledger.try_claim_run(old.run_id, enqueue_seq=0)
+    assert (await ledger.try_claim_run(old.run_id, enqueue_seq=0)).acknowledged
     await ledger.park_consent(old.run_id, "consent-old")
 
     current = await ledger.create(
@@ -563,7 +563,7 @@ async def test_list_by_status_and_get_by_consent() -> None:
     running = await ledger.list_by_status(RunStatus.RUNNING)
     assert [r.run_id for r in running] == ["a"]
 
-    assert await ledger.try_claim_run("b", enqueue_seq=0)
+    assert (await ledger.try_claim_run("b", enqueue_seq=0)).acknowledged
     await ledger.park_consent("b", "consent_9")
     found = await ledger.get_by_consent("consent_9")
     assert found is not None
@@ -621,3 +621,45 @@ async def test_get_nonterminal_for_session_filters_terminal_and_other_session_tr
     await ledger.set_status("active-later", RunStatus.RUNNING)
     await ledger.set_status("active-later", RunStatus.DONE)
     assert await ledger.get_nonterminal_for_session("sess_1") is None
+
+
+@pytest.mark.asyncio
+async def test_absent_claim_is_explicit_skip_without_attempt() -> None:
+    outcome = await InMemoryRunLedger().try_claim_run("absent", enqueue_seq=0)
+    assert outcome.acknowledged is False
+    assert outcome.attempted_after_locked_prestate is False
+    assert outcome.failure is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("delivery_state", [None, RunDeliveryState.CLAIMED, RunDeliveryState.SETTLED])
+async def test_corrupt_queued_authority_fails_before_mutation(delivery_state: RunDeliveryState | None) -> None:
+    from dataclasses import replace
+
+    ledger = InMemoryRunLedger(honor_intent_run_id=True)
+    await ledger.create(_intent(), workflow_name="bridge_chat", queue_name="runs", priority=50)
+    delivery = ledger._deliveries[("run_1", 0)]
+    if delivery_state is None:
+        del ledger._deliveries[("run_1", 0)]
+    else:
+        ledger._deliveries[("run_1", 0)] = replace(delivery, state=delivery_state)
+    outcome = await ledger.try_claim_run("run_1", enqueue_seq=0)
+    assert outcome.acknowledged is None
+    assert outcome.attempted_after_locked_prestate is False
+    assert isinstance(outcome.failure, RuntimeError)
+    current = await ledger.get("run_1")
+    assert current is not None
+    assert current.status is RunStatus.QUEUED
+    assert current.started_at is None
+
+
+@pytest.mark.asyncio
+async def test_stale_sequence_needs_no_old_delivery() -> None:
+    ledger = InMemoryRunLedger(honor_intent_run_id=True)
+    await ledger.create(_intent(), workflow_name="bridge_chat", queue_name="runs", priority=50)
+    assert await ledger.rotate_delivery("run_1", enqueue_seq=0) == 1
+    del ledger._deliveries[("run_1", 0)]
+    outcome = await ledger.try_claim_run("run_1", enqueue_seq=0)
+    assert outcome.acknowledged is False
+    assert outcome.attempted_after_locked_prestate is False
+    assert outcome.failure is None

@@ -6,7 +6,6 @@ outside this DB-free suite; here we assert the rendered text and CLI projection.
 
 from __future__ import annotations
 
-import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
@@ -15,8 +14,6 @@ import pytest
 from click.testing import CliRunner
 
 from lychd.cli.commands import bind_quadlets
-from lychd.config import QuadletConfig
-from lychd.domain.animation.schemas import GenericSoulstoneConfig
 from lychd.system.binding_sites import (
     AttestedBindingSite,
     AttestedBindingSites,
@@ -27,6 +24,7 @@ from lychd.system.schemas import SystemdService
 from lychd.system.services.binding_preflight import (
     BindingPreflightReport,
 )
+from lychd.system.services.scribe.models import BindingReconcilePlan
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
@@ -104,25 +102,25 @@ def runner() -> CliRunner:
 
 def _mock_bind_pass(mocker: MockerFixture) -> SimpleNamespace:
     """Stub the normal bind pass so the uncaged branch can be exercised in isolation."""
-    stone = GenericSoulstoneConfig(
-        name="test",
-        quadlet=QuadletConfig(image="example/runtime"),
-        runtime="openai_compatible",
-    )
-    portal = SimpleNamespace(api_key_secret_name=None)
     mock_loader_cls = mocker.patch("lychd.domain.animation.services.loader.AnimatorLoader")
-    mock_loader_cls.return_value.hydrate_all.return_value = ([stone], [portal])
+    mock_loader_cls.return_value.hydrate_all.return_value = ([], [])
 
     mock_secret_store = mocker.patch("lychd.system.services.secrets.PodmanSecretStore").return_value
     mock_secret_store.ensure_present.return_value = False
     mock_secret_store.exists.return_value = True
 
     mock_transmuter = mocker.patch("lychd.domain.animation.transmute.Transmuter").return_value
-    mock_transmuter.transmute_all.return_value = ["rune1"]
+    mock_transmuter.transmute_all.return_value = []
 
     mock_scribe = mocker.patch(
         "lychd.system.services.scribe.facade.ScribeService",
     ).return_value
+    mock_scribe.plan_reconcile_all.return_value = BindingReconcilePlan(
+        changes=(),
+        observed_generation="before",
+        desired_generation="after",
+    )
+    mock_scribe.reconcile_all.return_value = "after"
     preflight = mocker.patch("lychd.system.services.binding_preflight.BindingPreflightService").return_value
     preflight.inspect.return_value = BindingPreflightReport(
         issues=(),
@@ -149,14 +147,8 @@ def _mock_bind_pass(mocker: MockerFixture) -> SimpleNamespace:
         ),
     )
     mocker.patch("lychd.system.services.lifecycle.lock.LifecycleLock")
-    mock_subprocess = mocker.patch("subprocess.run")
-    mock_subprocess.return_value = subprocess.CompletedProcess(
-        args=("/usr/bin/systemctl", "--user", "daemon-reload"),
-        returncode=0,
-        stdout="",
-        stderr="",
-    )
-    return SimpleNamespace(scribe=mock_scribe, subprocess=mock_subprocess)
+    systemd = mocker.patch("lychd.system.services.systemd.SystemdUserManager")
+    return SimpleNamespace(scribe=mock_scribe, systemd=systemd)
 
 
 def test_bind_uncaged_writes_unit_and_prints_canonical_start_hint(
@@ -175,8 +167,6 @@ def test_bind_uncaged_writes_unit_and_prints_canonical_start_hint(
     assert "lychd start" in result.output
     assert "systemctl --user enable" not in result.output
     assert "flip the switch" in result.output
-    # daemon-reload runs; enable/start is NEVER auto-invoked.
-    reload_calls = [c for c in mocks.subprocess.call_args_list if c.args and "daemon-reload" in c.args[0]]
-    enable_calls = [c for c in mocks.subprocess.call_args_list if c.args and "enable" in c.args[0]]
-    assert reload_calls, "expected a systemd daemon-reload"
-    assert not enable_calls, "the Magus flips the switch — bind must not auto-enable"
+    # Bind may reload its declared files; the operator separately starts the unit.
+    mocks.systemd.assert_called_once_with(systemctl_bin="/usr/bin/systemctl")
+    assert mocks.systemd.return_value.method_calls == [mocker.call.daemon_reload()]

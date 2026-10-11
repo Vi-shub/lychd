@@ -679,7 +679,16 @@ export interface components {
             args: {
                 [key: string]: unknown;
             };
+            /** @default false */
+            can_decide: boolean;
             id: string;
+            native_review?: components["schemas"]["NativeReviewDocument"] | null;
+            /**
+             * @default not_required
+             * @enum {string}
+             */
+            native_review_status: "not_required" | "available" | "unavailable";
+            review_binding_digest?: string | null;
             run_id: string;
             /**
              * @default pending_consent
@@ -691,6 +700,7 @@ export interface components {
         };
         /** ConsentDecisionIntent */
         ConsentDecisionIntent: {
+            review_binding_digest?: string | null;
             /** @enum {string} */
             verdict: "approve" | "deny";
         };
@@ -843,6 +853,11 @@ export interface components {
             /** Format: uuid */
             request_id: string;
         };
+        /** NativeReviewDocument */
+        NativeReviewDocument: {
+            facts: components["schemas"]["ReviewFact"][];
+            title: string;
+        };
         /** NexusBoard */
         NexusBoard: {
             covens: [
@@ -863,6 +878,7 @@ export interface components {
             model_id: string;
             persistent_resident: boolean;
             reason: string | null;
+            registrant_id?: string | null;
             runtime: string;
             /** @enum {string} */
             state: "active" | "warm" | "awaited" | "warming" | "cold" | "fault";
@@ -953,6 +969,12 @@ export interface components {
             loom_path: string | null;
             pattern_id: string;
             revision: string;
+        };
+        /** ReviewFact */
+        ReviewFact: {
+            key: string;
+            label: string;
+            value: string;
         };
         /** RunEventEnvelope */
         RunEventEnvelope: {
@@ -1441,7 +1463,34 @@ export interface operations {
                 };
             };
             /** @description Additional response */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

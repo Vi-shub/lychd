@@ -8,7 +8,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from lychd.system.schemas import SystemdService
+from lychd.system.schemas import QuadletContainer, SystemdService, podman_secret_source
 from lychd.system.services.bind import BindRequest
 
 if TYPE_CHECKING:
@@ -24,8 +24,6 @@ def required_secret_names_from_soulstones(
     runtime_plans: Sequence[RuntimePlan] = (),
 ) -> list[str]:
     """Collect every Rune-, control-, and adapter-planned Soulstone secret."""
-    from lychd.system.schemas import podman_secret_source
-
     if runtime_plans and len(runtime_plans) != len(soulstones):
         msg = "Runtime plan count must match the Soulstone count"
         raise ValueError(msg)
@@ -54,7 +52,7 @@ def compile_bind_request(
     portals: Sequence[PortalConfig],
     uncaged: bool,
 ) -> BindRequest:
-    """Compile loaded declarations into one immutable application request."""
+    """Compile declarations and every emitted container secret into one bind request."""
     from lychd.domain.animation.capabilities import CapabilitySpec
     from lychd.domain.animation.conflicts import require_soulstone_capability_coverage
     from lychd.domain.animation.services.adapters.registry import (
@@ -63,7 +61,7 @@ def compile_bind_request(
     from lychd.domain.animation.transmute import Transmuter
 
     runtime_planner = RuntimeAdapterRegistry(
-        adapters=extensions.runtime_adapters,
+        soulstone_registrations=extensions.soulstone_registrations,
     )
     runtime_plans = tuple(runtime_planner.plan(stone) for stone in soulstones)
     capability_specs: list[CapabilitySpec] = []
@@ -90,23 +88,34 @@ def compile_bind_request(
         runes=runes,
         runtime_plans=runtime_plans,
     )
+    core_secret_factories = {
+        settings.server.web.secret_key_secret: (lambda: secrets.token_hex(32)),
+        settings.server.database.password_secret: (lambda: secrets.token_urlsafe(16)),
+        settings.server.database.runtime_password_secret: (lambda: secrets.token_urlsafe(32)),
+        settings.server.database.phoenix_password_secret: (lambda: secrets.token_urlsafe(32)),
+        settings.server.web.access_password_secret: (lambda: secrets.token_urlsafe(32)),
+    }
+    manifest_secrets = {
+        podman_secret_source(spec)
+        for manifest in manifests
+        if isinstance(manifest, QuadletContainer)
+        for spec in manifest.secrets
+    }
+    # Only emitted references inherit generation authority; explicit operator
+    # requirements must retain BindRequest's core/operator overlap refusal.
+    manifest_requirements = manifest_secrets.difference(core_secret_factories)
     return BindRequest.compile(
         manifests=manifests,
         plain_units=_desired_plain_units(
             settings=settings,
             uncaged=uncaged,
         ),
-        core_secret_factories={
-            settings.server.web.secret_key_secret: (lambda: secrets.token_hex(32)),
-            settings.server.database.password_secret: (lambda: secrets.token_urlsafe(16)),
-            settings.server.database.runtime_password_secret: (lambda: secrets.token_urlsafe(32)),
-            settings.server.database.phoenix_password_secret: (lambda: secrets.token_urlsafe(32)),
-            settings.server.web.access_password_secret: (lambda: secrets.token_urlsafe(32)),
-        },
+        core_secret_factories=core_secret_factories,
         required_secret_names=sorted(
             {
                 *required_soulstone_secrets,
                 *portal_secrets,
+                *manifest_requirements,
             }
         ),
     )

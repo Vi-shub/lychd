@@ -33,6 +33,7 @@ if TYPE_CHECKING:
     from pydantic_ai.models import Model
     from pydantic_ai.toolsets import AbstractToolset
 
+    from lychd.domain.animation.extension import RegisteredPortalDefinition, RegisteredSoulstoneDefinition
     from lychd.domain.animation.services.adapters.contracts import (
         PortalDefinition,
         SoulstoneRuntimeAdapter,
@@ -56,7 +57,7 @@ class _ProbeContractError(ValueError):
 def _capability_provenance(spec: CapabilitySpec, runtime: RuntimeAnimator) -> str:
     return (
         f"{type(spec).__name__}(animator_name={spec.animator_name!r}, runtime={spec.runtime!r}, "
-        f"source_kind={spec.source_kind.value!r}, family={spec.family.value!r}, model_id={spec.model_id!r}) "
+        f"registrant_id={spec.registrant_id!r}, source_kind={spec.source_kind.value!r}, family={spec.family.value!r}, model_id={spec.model_id!r}) "
         f"from {runtime_provenance(runtime)}"
     )
 
@@ -110,8 +111,10 @@ class AnimatorRegistry:
         self,
         *,
         declarations: AnimatorDeclarations,
-        runtime_adapters: Sequence[SoulstoneRuntimeAdapter],
+        runtime_adapters: Sequence[SoulstoneRuntimeAdapter] = (),
         portal_definitions: Sequence[PortalDefinition] = (),
+        soulstone_registrations: Sequence[RegisteredSoulstoneDefinition] = (),
+        portal_registrations: Sequence[RegisteredPortalDefinition] = (),
     ) -> None:
         """Initialize from one compiled declaration snapshot.
 
@@ -126,7 +129,9 @@ class AnimatorRegistry:
         self._declarations = declarations
         self._runtime_adapters: RuntimeAdapterRegistry = _RuntimeAdapterRegistry(
             adapters=list(runtime_adapters),
-            portal_definitions=list(portal_definitions),
+            portal_definitions=portal_definitions,
+            soulstone_registrations=soulstone_registrations,
+            portal_registrations=portal_registrations,
         )
         self._soulstones: dict[str, SoulstoneConfig] = {}
         self._animators: dict[str, RuntimeAnimator] = {}
@@ -166,8 +171,10 @@ class AnimatorRegistry:
             if existing_runtime is not None:
                 msg = (
                     f"Duplicate runtime key {runtime.name!r}: existing contributor "
-                    f"{runtime_provenance(existing_runtime)} conflicts with "
-                    f"{runtime_provenance(runtime)}."
+                    f"{runtime_provenance(existing_runtime)} "
+                    f"(registrant_id={self._runtime_adapters.registrant_id_for(existing_runtime.rune)!r}) conflicts with "
+                    f"{runtime_provenance(runtime)} "
+                    f"(registrant_id={self._runtime_adapters.registrant_id_for(rune)!r})."
                 )
                 raise ValueError(msg)
             new_animators[runtime.name] = runtime

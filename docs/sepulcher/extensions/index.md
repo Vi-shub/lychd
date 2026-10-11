@@ -56,6 +56,9 @@ instance, never an abstract Domain.
 
 ## How an organ enters
 
+For a first contribution, follow [Extension authoring](authoring.md) through the existing Phoenix
+registration shim, typed Rune, Quadlet contributor, and configuration test.
+
 The coupled pre-v1 **Extension Protocol** admits explicitly selected built-in and private Crypt
 packages through `register(context)`; it neither scans the environment nor discovers arbitrary
 entry points. Built-ins evolve atomically with Core, while private packages accept refactor
@@ -70,8 +73,8 @@ migration of volatile extension objects. The boot boundary is enforced; automate
 remains Designed.
 
 [ADR 05](../../adr/05-extensions.md) owns admission and compatibility. [State of
-Work](../../state-of-the-work.md#extension-activation-contributions) records the Partial five-store
-surface and its attribution limits. Selection grants shaped registration—not route, secret,
+Work](../../state-of-the-work.md#extension-activation-contributions) records the five-store surface, its v1
+capability attribution, and the remaining lifecycle limits. Selection grants shaped registration—not route, secret,
 workflow, migration, workload, effect, or automatic activation authority.
 
 ## How an organ earns permanence

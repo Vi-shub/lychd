@@ -13,9 +13,35 @@ icon: material/chip
 ## Launch and identity
 
 The adapter translates the Rune into a deterministic launch plan. Explicit `exec` owns the whole
-command; otherwise explicit `startup_mode` wins, `auto` chooses `single` when `model_path` exists
-and `router` otherwise, and typed `extra_args` append last. GPU/CPU offload remains an exact
-profile fact, not a universal VRAM promise.
+command. In managed operation, explicit `startup_mode` selects `single` or `router`; `auto` uses
+argument and environment inference before falling back to `single` when `model_path` exists and
+`router` otherwise. Typed `extra_args` append last. Forced modes refuse known main-model source
+controls in `extra_args`, including model shortcuts and token lookalikes in value positions.
+Use `model_path` for forced `single`, or model directories and presets for forced `router`.
+Forced `router` also refuses model-source environment controls; forced `single` refuses a main
+Hugging Face repository in the environment because a remote preset can clear its model path.
+Both checks include variables projected from `secret_env_files`.
+These checks bound the supported command shape without reproducing upstream's full option grammar.
+GPU/CPU offload remains an exact profile fact, not a universal VRAM promise.
+
+Mode metadata follows the final command and its projected environment, including
+`secret_env_files`. For main-model and router source options, environment values apply first;
+a CLI value replaces the same source option even when it is empty. A nonempty main model path or
+Docker repository selects `single`; model directories and presets do not override that main source. Without a main source the server is a
+router. For managed `auto` planning, router argument or environment inputs still take precedence
+over an otherwise unused typed `model_path`.
+
+An effective main Hugging Face repository or a built-in main-model shortcut is refused: remote
+preset contents can change the server's mode, so local declaration cannot establish it. Use an
+explicit local model or router directory/preset. A model URL, HF filename, draft model, or
+`--spec-default` alone does not establish a main model or its provider identity.
+
+Source, router, and alias controls require separate positional values; empty values are retained,
+while missing, dash-leading, and equals-form values fail validation. Known underscore aliases are
+normalized for interpretation without rewriting passthrough bytes. Place these controls before
+options whose arity LychD does not know: a later source or alias token is ambiguous and refused.
+Unknown trailing options remain operator-owned. This bounds source interpretation without
+reproducing every upstream option or treating a consumed option value as a source control.
 
 With passthrough `exec`, the operator must keep its listening port and served alias aligned with
 the declared endpoint and model identity. Declaration compilation rejects a known `--port` or
@@ -48,11 +74,35 @@ The pinned [argument parser](https://github.com/ggml-org/llama.cpp/blob/434ddbbc
 normalizes underscore option names and consumes values positionally; equals-form sleep flags are
 not accepted by that engine revision.
 
-For managed single-model operation, `served_model_id` supplies the generated `--alias` and the
-capability identity when no explicit `[[models]]` catalogue is present. Otherwise the model path
-basename supplies that alias. Declared model ids must match the engine's live inventory; a healthy
-process alone cannot grant an absent model. The single-model probe validates `/v1/models` after
-`/health`, following the upstream [Model Info API](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md#get-v1models-openai-compatible-model-info-api).
+The same revision [selects router mode only after resolving the main model sources](https://github.com/ggml-org/llama.cpp/blob/434ddbbc0e30522e897670681e503b797c12b7c1/tools/server/server.cpp#L110-L127).
+A later empty `--model` can clear an earlier path, and a
+[Hugging Face remote preset clears the main-model settings](https://github.com/ggml-org/llama.cpp/blob/434ddbbc0e30522e897670681e503b797c12b7c1/common/arg.cpp#L631-L636).
+The forced-mode refusals prevent those inputs from contradicting the selected launch shape.
+
+Aliases accumulate across `LLAMA_ARG_ALIAS` and every `--alias` or `-a` occurrence. Each value
+supplies comma-separated names; the supported profile trims ASCII whitespace and discards empty
+entries. An empty CLI alias does not clear an environment alias. The lexicographically first name
+in the combined set identifies the single model in the engine's inventory. Without any alias,
+single-model identity is the exact Docker repository or model path, including its directory and
+suffix. These rules follow the pinned [alias handler](https://github.com/ggml-org/llama.cpp/blob/434ddbbc0e30522e897670681e503b797c12b7c1/common/arg.cpp#L2899-L2909)
+and [inventory identity](https://github.com/ggml-org/llama.cpp/blob/434ddbbc0e30522e897670681e503b797c12b7c1/tools/server/server-context.cpp#L1263-L1273);
+locale-dependent treatment of non-ASCII whitespace is not attested by this profile.
+
+When managed planning selects `single`, it generates an alias. Explicit argument or environment
+aliases take precedence; otherwise `served_model_id` supplies it, followed by the generated model path's stem
+(basename without its final suffix), a Docker repository, or the Soulstone name. An explicit
+`[[models]]` catalogue does not disable alias generation. Without that catalogue, the adapter
+infers capability identity from the final launch inputs. Default model selection uses the first
+entry of the captured catalogue, including an explicit catalogue when supplied. An `auto` plan
+that omits the typed model and becomes single-model through an environment source does not add
+an alias; its identity follows the final inputs above.
+
+Declared model ids must match the engine's live inventory; a healthy process alone cannot grant
+an absent model. The single-model probe validates `/v1/models` after `/health`, following the
+upstream [Model Info API](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md#get-v1models-openai-compatible-model-info-api).
+A preset path projected through `secret_env_files` is not opened locally for catalogue or
+generation-default discovery. Declare the model catalogue when using that source; its actual
+contents and runtime behavior remain operator validation.
 
 ## Context allocation
 
@@ -85,7 +135,7 @@ Model unloading is not a separate adapter operation; whole-runtime shutdown belo
 A real engine/GPU/model result remains [operator validation](../../../../state-of-the-work.md#llamacpp-integration).
 
 Control receipts are intentionally literal: model-load succeeds only on JSON boolean `true`, not
-`1` or `"true"`, and a slot count rejects Python/JSON booleans even though they are integer-like.
+`1` or `"true"`.
 Known numeric preset keys use their canonical integer or floating type; boolean words are ignored
 rather than silently becoming `0` or `1`. Treat those refusals as malformed provider/configuration
 evidence, not as successful control.

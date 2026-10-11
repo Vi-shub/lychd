@@ -13,7 +13,6 @@ from lychd.domain.animation.links import Link
 from lychd.domain.animation.schemas import GenerationProfile, SoulstoneConfig
 from lychd.domain.animation.services.adapters.catalog import (
     capability_specs_from_model_infos,
-    default_model_id_for_soulstone,
     model_infos_from_soulstone,
 )
 from lychd.domain.animation.services.adapters.contracts import (
@@ -29,6 +28,7 @@ from lychd.extensions.builtin.animator.llamacpp.parser_cli import LlamaCppCliInf
 from lychd.extensions.builtin.animator.llamacpp.parser_models import LlamaCppRuntimeInference
 from lychd.extensions.builtin.animator.llamacpp.runtime import LlamaCppDescriptor, LlamaCppRuntimePlanner
 from lychd.extensions.builtin.animator.soulstones import LlamaCppSoulstoneConfig
+from lychd.extensions.builtin.animator.soulstones.llamacpp import LlamaCppMode
 
 if TYPE_CHECKING:
     from lychd.domain.animation.lifecycle import AnimatorLifecycle
@@ -64,7 +64,7 @@ class LlamaCppRuntimeAdapter:
             link=local_link_default(runtime=self.runtime),
             base_url=base_url,
             model_infos=model_infos,
-            default_model_id=default_model_id_for_soulstone(stone, model_infos),
+            default_model_id=model_infos[0].id if model_infos else None,
             mode=descriptor.mode,
             router_query_model_id=descriptor.router_query_model_id,
             generation_defaults=GenerationProfile.model_validate(self._runtime_defaults(descriptor)),
@@ -236,54 +236,41 @@ class LlamaCppRuntimeAdapter:
             runtime=self.runtime,
         )
 
-        if stone.exec:
-            return RuntimePlan(exec_args=list(stone.exec), env_overrides={})
-
-        inferred = self._infer_runtime(stone)
-        mode = inferred.mode or stone.resolved_mode()
-        args = self._planner.plan_exec_args(
-            soulstone=stone,
-            inferred=inferred,
-            mode=mode,
-            listen_host=LISTEN_HOST,
-        )
-        return RuntimePlan(exec_args=args, env_overrides={})
+        command, _ = self._planned_inference(stone)
+        return RuntimePlan(exec_args=command, env_overrides={})
 
     def _describe_runtime(self, soulstone: LlamaCppSoulstoneConfig) -> LlamaCppDescriptor:
-        """Produce connector-facing runtime descriptor for llama.cpp orchestration."""
-        inferred = self._infer_runtime(soulstone)
-        mode = inferred.mode or soulstone.resolved_mode()
-        if not soulstone.exec:
-            # Managed defaults are emitted as CLI arguments and therefore shadow
-            # both environment and preset values. Describe the command we plan,
-            # including the final extra-argument overlays, rather than an input
-            # fragment that can omit the actual context limit or alias.
-            command = self._planner.plan_exec_args(
-                soulstone=soulstone,
-                inferred=inferred,
-                mode=mode,
-                listen_host=LISTEN_HOST,
-            )
-            inferred = self._parser.merge(
-                primary=self._parser.infer_args(command),
-                secondary=self._parser.infer_env(soulstone.env_vars),
-            )
+        """Describe the admitted final command and its projected environment."""
+        _, inferred = self._planned_inference(soulstone)
         return self._planner.describe_runtime(
             soulstone=soulstone,
             inferred=inferred,
-            mode=mode,
+            mode=inferred.mode or "router",
         )
 
-    def _infer_runtime(self, soulstone: LlamaCppSoulstoneConfig) -> LlamaCppRuntimeInference:
-        """Infer runtime metadata from command/extra args and env vars."""
-        cmd_inference = LlamaCppRuntimeInference()
-        if soulstone.exec:
-            cmd_inference = self._parser.infer_args(list(soulstone.exec))
-        elif soulstone.extra_args:
-            cmd_inference = self._parser.infer_args(list(soulstone.extra_args))
-
-        env_inference = self._parser.infer_env(soulstone.env_vars)
-        return self._parser.merge(primary=cmd_inference, secondary=env_inference)
+    def _planned_inference(self, soulstone: LlamaCppSoulstoneConfig) -> tuple[list[str], LlamaCppRuntimeInference]:
+        """Keep AUTO planning precedence while classifying the actual emitted inputs."""
+        command = list(soulstone.exec or soulstone.extra_args)
+        command_inference = self._parser.infer_args(command)
+        env_inference = self._parser.infer_env(soulstone.inference_env())
+        inferred = self._parser.merge(primary=command_inference, secondary=env_inference)
+        if not soulstone.exec:
+            # AUTO historically lets a router CLI/env fragment omit the typed
+            # model fallback. That planning choice does not erase a main source
+            # in the other fragment from the final process environment.
+            planning_mode = soulstone.resolved_mode(command_inference.mode or env_inference.mode)
+            command = self._planner.plan_exec_args(
+                soulstone=soulstone,
+                inferred=inferred,
+                mode=planning_mode,
+                listen_host=LISTEN_HOST,
+            )
+            inferred = self._parser.merge(primary=self._parser.infer_args(command), secondary=env_inference)
+        actual_mode = inferred.mode or "router"
+        if soulstone.startup_mode not in {LlamaCppMode.AUTO, actual_mode}:
+            msg = "The llama.cpp final command contradicts the forced startup mode."
+            raise ValueError(msg)
+        return command, inferred
 
     def _runtime_defaults(self, descriptor: LlamaCppDescriptor) -> dict[str, object]:
         """Translate llama.cpp planner defaults into shared generation-profile keys."""

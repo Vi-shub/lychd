@@ -48,6 +48,8 @@ class CapabilitySpec(BaseModel):
     key: str = Field(min_length=1)
     animator_name: str = Field(min_length=1)
     runtime: str = Field(min_length=1)
+    # Registration provenance only; raw adapter injection remains unattributed.
+    registrant_id: str | None = Field(default=None, min_length=1)
     source_kind: SourceKind
     family: CapabilityFamily
     model_id: str = Field(min_length=1)

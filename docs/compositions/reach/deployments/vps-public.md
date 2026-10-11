@@ -28,7 +28,9 @@ The baseline is outbound-only and guest/public-only, using one admitted Habitat/
 7. **Call:** persist `ServiceJobAttempt@1` or the enrolled/task-authorized Intercom task/outbox, then `SUBMITTING` before transmission. Adapter receives no Sigil or undisclosed Context.
 8. **Quarantine:** validate attributed return protocol/schema, size, terminal, correlation, citations, privacy, and output class before adoption.
 9. **Commit:** one transaction writes `ReachTurn@1` and `DiscordDeliveryIntent@1` in `PENDING` with effect, digest, and deterministic nonce. Authenticated claim grants a generation-fenced lease; ledger persists `CLAIMED`, then `SUBMITTING`, before edge REST with `enforce_nonce=true`. Edge holds no database credential.
-10. **Settle:** authenticated settlement writes `ReachDelivery@1` with effect/digest, platform status, nonce, claim generation, and known message id. Expired pre-submit claims may be reclaimed under the same intent. After possible send, exact same-nonce retry is allowed only within Discord's documented uniqueness window and with matching payload; otherwise keep `UNKNOWN` and do not resend.
+10. **Settle:** authenticated settlement writes `ReachDelivery@1` with effect/digest, platform status, nonce, claim generation, and known message id. Expired pre-submit claims may be reclaimed under the same intent. After possible send, keep `UNKNOWN` and do not resend until independent evidence reconciles the effect.
+
+Discord's [Create Message reference](https://docs.discord.com/developers/resources/message#create-message) describes nonce uniqueness only for “the past few minutes”; it supplies no bounded safe retry deadline. A future adapter may admit same-nonce, matching-payload retry only under an exact platform guarantee that excludes duplication for that attempt.
 
 ```text
 DiscordEventAdmission
@@ -85,10 +87,12 @@ The first independent interoperability receipt pins one A2A 1.0 binding/adapter,
 | peer | one pre-enrolled Principal, canonical HTTPS origin, Agent Card digest, server certificate identity, and task authorization named by the receipt |
 | authentication | mutual TLS with distinct audience-bound client credential; no bearer in payload |
 | task | `reach.public_corpus_answer@1`; one text query plus one `CorpusEvidenceBundle@1`; text/structured response only; files, artifact URLs, tools, teaching, and continuation refused |
-| operations | non-blocking `POST /message:send` returning a Task, then `GET /tasks/{id}` only; a direct Message, stream, or push notification is outside this receipt |
-| polling | every 2 seconds, at most 20 polls, 45-second absolute task deadline; transport retry never creates another message/task identity |
+| operations | non-blocking `POST /message:send` with `configuration.returnImmediately=true`, returning a Task, then `GET /tasks/{id}` only; a direct Message, stream, or push notification is outside this receipt |
+| polling | every 2 seconds, at most 20 polls, 45-second absolute task deadline |
 | ceilings | one task; 32 KiB request; 256 KiB response; eight evidence passages; 2,000-character query; profile-pinned token and spend ceilings |
 | adoption | authenticated expected task/context identity, current peer authorization, first terminal, quarantine, schema/citation validation |
+
+A2A 1.0 makes [Send Message idempotency optional](https://a2a-protocol.org/v1.0.0/specification/#331-idempotency); `messageId` alone does not prove deduplication. Before retrying an ambiguous initial POST, the receipt must admit the selected peer's guarantee that the exact same message and payload resolve to the original Task without duplicate work for that redelivery. Without that guarantee, preserve the uncertain task for reconciliation and do not resend. An admitted retry preserves the exact envelope and message/task identities; every physical attempt, including retries and polls, needs a fresh byte-time `EgressDecision` and consumes its transmission budget.
 
 Replace each peer field with an observed independent endpoint; placeholders or same-process fakes prove conformance only. A model Portal is a separate E2E case under the same egress/attempt/quarantine/delivery law.
 

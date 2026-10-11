@@ -24,14 +24,22 @@ keeps a processing dossier while two internal stages work through the material:
 | [Extractor](extractor.md) | What is here, who produced it, and how should it be named and classified? | Source-located units with attribution, proposed names, labels, and uncertainty. |
 | [Synthesizer](synthesizer.md) | How does this relate to what is already known, and what could be adopted? | Evidence-linked knowledge and proposals for separately admitted use. |
 
+For a first personal intake, a smaller model could identify and prioritize material from a bounded
+chat export or supplied phone history before a larger model synthesizes selected units. That split
+is a possible implementation of the two stages. Selection would need to account for deferred
+material and bring relevant corrections and contradictions into synthesis with the earlier claims.
+
 Extractor and Synthesizer are internal parts of Transmuter, not nested Compositions, Extension
 Domains, fixed Agent identities, or independent coordinators. Naming and labeling belong to
 Extractor; no separate Labeler is introduced.
 
 A chat archive and its images can yield a proposed preference, a project history, and a possible
 Persona revision. The operator's words remain distinct from the model's interpretations. A
-contradiction stays visible. Archive or Mirror decides whether to accept the exact proposal, and
-Transmuter records that outcome alongside what it prepared.
+contradiction stays visible. [Archive](../../adr/27-memory.md) or
+[Mirror](../../adr/32-identity.md) decides whether to accept the exact proposal, and Transmuter
+records that outcome alongside what it prepared. In the designed memory path, Archive retains
+admitted records in the [Phylactery](../../sepulcher/phylactery/index.md); its Curator separately
+decides which revisions are eligible for recall.
 
 ## Sources and machinery
 

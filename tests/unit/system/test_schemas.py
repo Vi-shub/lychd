@@ -241,3 +241,116 @@ def test_animator_and_coven_unit_names_have_one_canonical_spelling() -> None:
     assert animator_service_unit("qwen") == "lychd-qwen.service"
     assert animator_target_unit("qwen") == "lychd-animator-qwen.target"
     assert coven_target_unit("logic") == "lychd-coven-logic.target"
+
+
+@pytest.mark.parametrize(
+    "arguments",
+    [
+        ["--secret=extension-token"],
+        ["--secret", "extension-token"],
+        ["--secret extension-token"],
+        ["'--secret=extension-token'"],
+        ['"--secret" "extension-token"'],
+        ["--secret='extension-token'"],
+        ["--replace --secret=extension-token"],
+    ],
+)
+def test_quadlet_container_requires_typed_secret_arguments(arguments: list[str]) -> None:
+    with pytest.raises(ValueError, match="Raw Podman arguments"):
+        QuadletContainer(
+            description="Extension secret policy",
+            image="example/extension:latest",
+            container_name="extension-secret-test",
+            podman_args=arguments,
+        )
+
+
+@pytest.mark.parametrize(
+    "spec",
+    [
+        "extension-token",
+        "extension-token,type=mount,target=/run/secrets/token,mode=0400",
+        "extension-token,type=env,target=EXTENSION_TOKEN",
+    ],
+)
+def test_quadlet_container_keeps_supported_raw_arguments_with_typed_secrets(spec: str) -> None:
+    arguments = ["--replace", "--ipc=host", "--ulimit=memlock=-1:-1"]
+    container = QuadletContainer(
+        description="Extension secret policy",
+        image="example/extension:latest",
+        container_name="extension-secret-test",
+        podman_args=arguments,
+        secrets=[spec],
+    )
+    assert container.podman_args == arguments
+    assert container.secrets == [spec]
+
+
+@pytest.mark.parametrize(
+    "arguments",
+    [
+        ["--publish=0.0.0.0:19999:9999/udp"],
+        ["--publish", "0.0.0.0:19999:9999/udp"],
+        ["--publish 0.0.0.0:19999:9999/udp"],
+        ['"--publish=0.0.0.0:19999:9999/udp"'],
+        ["-p", "0.0.0.0:19999:9999/udp"],
+        ["-p0.0.0.0:19999:9999/udp"],
+        ["-dp0.0.0.0:19999:9999/udp"],
+        ["-itp", "0.0.0.0:19999:9999/udp"],
+        ["--publish-all"],
+        ["--publish-all=false"],
+        ["-P"],
+        ["-dP"],
+        ["-itP"],
+        ["--network=host"],
+        ["--network", "host"],
+        ["--net=host"],
+        ["--net host"],
+        ["--volume=/etc:/etc:ro"],
+        ["--tmpfs=/:rw"],
+        ["--user=0"],
+        ["--future-option=enabled"],
+        ["--replace=true"],
+        ["--replace=false"],
+        ["--ipc=container:other"],
+        [" --replace"],
+        ["--replace "],
+        ["'--replace'"],
+        ["--replace --ipc=host"],
+        ["--tmpfs=/app/logs:rw,nosuid,nodev,noexec,mode=1777 --net=host"],
+        [""],
+    ],
+)
+def test_quadlet_container_rejects_unsupported_raw_arguments(arguments: list[str]) -> None:
+    with pytest.raises(ValueError, match="Raw Podman arguments"):
+        QuadletContainer(
+            description="Bounded raw arguments",
+            image="example/extension:latest",
+            container_name="extension-raw-args",
+            podman_args=arguments,
+        )
+
+
+@pytest.mark.parametrize(
+    "arguments",
+    [
+        [],
+        ["--replace"],
+        [
+            "--ulimit=memlock=-1:-1",
+            "--replace",
+            "--tmpfs=/app/logs:rw,nosuid,nodev,noexec,mode=1777",
+            "--ipc=host",
+            "--replace",
+        ],
+    ],
+)
+def test_quadlet_container_preserves_supported_raw_values(arguments: list[str]) -> None:
+    container = QuadletContainer(
+        description="Bounded raw arguments",
+        image="example/extension:latest",
+        container_name="extension-raw-args",
+        podman_args=arguments,
+    )
+
+    assert container.podman_args == arguments

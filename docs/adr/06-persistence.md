@@ -12,16 +12,19 @@ icon: material/database
 
 ## Decision
 
-PostgreSQL is the single-node persistence backend. LychD reaches it through async SQLAlchemy and
-`asyncpg`. The Phylactery alone owns engine construction, codecs, sessions and transaction
-boundaries, migration order, and schema admission. Domains own record meaning and lifecycle;
-neither they nor extension packages gain ambient migration authority.
+PostgreSQL is the single-node persistence backend. Ordinary application transactions
+use async SQLAlchemy and `asyncpg`; the exceptional claim observer below uses one
+disposable native `asyncpg` connection. The Phylactery alone owns connection and
+engine construction, codecs, sessions and transaction boundaries, migration order,
+and schema admission. Domains own record meaning and lifecycle; neither they nor
+extension packages gain ambient migration authority.
 
 In durable operation, **Phylactery means PostgreSQL**: the one database cluster assigned to an
 application partition. It is not a generic storage facade, a repository of interchangeable
 save/retrieve backends, or an abstraction that makes committed application truth backend-agnostic.
-Domain repositories isolate SQL mechanics and permit bounded test substitutes; they do not turn a
-process-local or in-memory store into a deployed Phylactery. LychD does not use loose
+Domain repositories isolate SQL mechanics and permit bounded test substitutes and the explicitly
+isolated, disposable [developer fixture](11-backend.md#isolated-developer-fixture-designed).
+Neither makes a process-local or in-memory store a deployed Phylactery. LychD does not use loose
 application-managed files as a shadow database around PostgreSQL transactions, constraints, and
 migrations.
 
@@ -41,8 +44,10 @@ identity, including an existing installation's `lich` owner. They never enter th
 The separate marked runtime role receives application-database CONNECT, public-schema USAGE,
 table SELECT/INSERT/UPDATE/DELETE and sequence USAGE/SELECT; Alembic and SAQ version tables
 remain read-only. It has no superuser, role/database creation, replication, BYPASSRLS, role
-membership, schema CREATE, or application-object ownership. SQLAlchemy checks each new runtime
-connection; SAQ verifies schema instead of initializing or migrating it at worker startup.
+membership, schema CREATE, or application-object ownership. Every new application runtime connection must pass the same authority check:
+SQLAlchemy installs it at connection creation, and the disposable claim observer
+performs it before reading application records. SAQ verifies schema instead of
+initializing or migrating it at worker startup.
 
 The explicit migration gate verifies administrative identity and SCRAM TCP policy, refuses
 unmarked or overprivileged existing runtime roles, provisions distinct credentials, applies
@@ -121,6 +126,110 @@ transaction. A [Portal](../sepulcher/animator/portal.md) remains a remote capabi
 [Intercom](26-a2a.md) and [Legion](../sepulcher/extensions/legion.md) carry bounded work or references; none forms a
 shared database fabric.
 
+## Reliquary custody (Designed)
+
+Reliquary is a separately named artifact store reached through one typed custody port. It is not
+a Phylactery backend and shares no PostgreSQL transaction. Its first profile,
+`same-host-trusted-bootstrap@1`, retains bounded immutable bytes supplied by trusted local
+composition. The first consumer is Echo's canonical PCM inspector. This accepts a custody
+contract; [State](../state-of-the-work.md#artifact-reference-contract) owns implementation evidence.
+
+### Identity and quarantine
+
+An import binds a store UUID and caller-owned request UUID to
+`urn:lychd:artifact:<store-uuid>:<request-uuid>`. Only validated internal UUIDs determine storage
+names; an arbitrary reference, producer label, path, or URL never supplies a filesystem component.
+The first profile accepts immutable `bytes` of at most 1 MiB with declared `audio/wav` media type.
+It accepts no source path, stream, URL, producer inode, or provider handle. A malformed WAV may
+enter quarantine; it cannot pass the separate PCM admission check.
+
+One immutable envelope commits the raw bytes with at most 16 KiB of canonical, versioned
+metadata. The complete reference describes the raw payload, including its computed SHA-256 and
+size. The record also retains its trusted owner, importing subject, store/profile and request
+identity, import fingerprint, manual-retention basis, and audit time. Declared producer and source
+claims remain bounded, attributed claims; missing provenance stays unknown. They cannot replace
+trusted importing identity. Classification, ownership, provenance, and payload never mutate in
+place; changed material needs a new identity. This profile creates no derivative graph.
+
+Import success establishes quarantine only. Quarantine inspection, admission, ordinary read,
+hold, hold release, and deletion are distinct object actions under
+[IAM](38-iam.md#trusted-local-custody). Every lookup compares the full retained reference, including
+identity and classification. Bounded metadata may be read internally to decide authority, but a
+failed lookup or authorization discloses neither metadata nor payload. Reading a reference or
+possessing an earlier decision never grants present access.
+
+Echo's trusted admission handler retrieves the retained bytes under quarantine-inspection
+authority and reruns its real PCM inspector. It does not accept a caller-constructed observation
+as proof. A separate current admission decision permits an immutable receipt binding the complete
+record, reference, inspector revision and measured facts. Structural success alone publishes no
+admission. An admitted read checks current authority again before returning the retained bytes;
+this proves neither speech eligibility nor provider compatibility.
+
+### Publication and continuity
+
+The caller supplies an isolated private root and retains its explicit binding: profile/schema,
+store UUID, invoking UID, and root device/inode. No default XDG path or container mount is added.
+[Layout](13-layout.md#publish-an-owned-object) governs safe ancestry, pinned descriptors and
+no-clobber publication. One lifetime exclusive process lock and an internal operation lock
+serialize all state transitions. The lock is an owned, regular `0600` single-link inode; ordinary
+operation never replaces or removes it.
+
+The envelope and immutable control receipts use the same publication mechanism: write a new
+owned `0600` inode, flush and `fsync`, publish without replacement, re-attest the public identity,
+remove only its exact owned private staging name, and sync the namespace before reporting
+success. Every envelope, control, and lock read opens without following links or blocking on
+special files, then checks the opened inode's type, owner, mode, link count and bounded size
+before reading. A producer retains no write descriptor or hardlink to the owned copy.
+
+An exact import retry with the same request fingerprint returns current retained custody after
+fresh authorization. Different bytes or immutable metadata conflict without replacing the
+original. A tombstone permanently forbids reuse. A lost response after a proved commit therefore
+permits exact lookup; uncertain publication never permits blind replay.
+
+Clean same-root restart verifies the retained root binding, bounded envelope metadata, control
+bindings and file identities. Activation reads no payload region. Each later protected access
+checks the complete retained record and current authority before reading payload bytes, then
+verifies their size and digest before disclosure; reopening alone proves no payload integrity.
+Unknown entries, unexplained private stages, extra aliases, malformed records, replacement or
+uncertain settlement are preserved as typed recovery. A filename alone grants no cleanup
+authority. The first profile need not guess how to repair every interrupted state automatically.
+
+### Retention and deletion
+
+Retention is manual. Up to sixteen distinct hold identities may be recorded over one artifact's
+lifetime; exhausting that bound refuses another hold. Each immutable hold binds its UUID, reason,
+subject and exact record. Hold authorization sees that proposed UUID and reason. Release names
+the exact retained hold and its digest, exposes that target to current release authorization,
+and cannot affect a later hold. Hold IDs are never reused; elapsed time releases nothing.
+
+Hold changes and deletion share the serialized operation boundary. Any active hold refuses
+deletion without changing bytes or policy. Deletion first publishes and directory-syncs a
+permanent tombstone binding the retained record, exact payload identity, deletion request and
+decision, and hold-release basis. That tombstone takes precedence over admission and denies both
+ordinary and quarantine reads, even when physical cleanup fails.
+
+Only then may the adapter retire the exact owned, regular, single-link payload identity and sync
+the resulting namespace. Its result distinguishes payload absence, cleanup pending, and recovery
+required. A fresh authorized retry may finish retirement of the recorded identity; it cannot
+adopt a foreign replacement. Tombstones remain indefinitely and import identities cannot be
+reused. This promises logical unavailability and observed local cleanup, not secure media erasure
+or deletion of copies outside the store. Native Linux retirement remains a separate physical
+verification obligation.
+
+### Backup and restore boundary
+
+This first profile supplies no export, clone activation, or restore-reactivation operation.
+Copying a directory is not an admitted backup or restore. A known restoration, lost control
+history, or uncertain continuity disables activation. Future restoration must enter an inactive
+target and reconcile against separately retained, nonrollback deletion and hold authority;
+without it, activation refuses. [Snapshots](07-snapshots.md#rehydration-and-reckoning) cannot revive
+material merely because an older capture lacks a later tombstone.
+
+Root UUID and inode checks establish ordinary binding continuity, not freshness against an
+out-of-band in-place rollback. This trusted-host profile does not contain malicious processes
+with the same UID or an operator rewriting its storage. Such behavior cannot be detected merely
+by revalidating in-root hashes and is not claimed as protected recovery.
+
 ## Wire and work contracts
 
 ### Codecs and detached values
@@ -146,6 +255,47 @@ Workers select pending work under row locks with `SKIP LOCKED`. Selection, owner
 and all facts that establish the claim commit atomically: no two workers may own one labor unit.
 The replaceable JSONB `run_checkpoint` is one unique, cascading row per `run`; it is recovery
 state, not the ordered `run`/`step` ledger.
+
+An exact Run claim first locks the Run by identity, then its exact delivery, in
+the existing SQLAlchemy transaction. It proves the unclaimed prestate before any
+mutation or autoflush can occur, retains the conditional Run and delivery updates,
+and commits them atomically. A conditional mismatch after that locked proof is an
+attempt failure. Queue selection's `SKIP LOCKED` rule does not govern these exact
+identity reads.
+
+After an eligible completed claim failure, the Phylactery may open one disposable
+native `asyncpg` observer using the same configured endpoint, database, runtime
+role, loaded runtime password, and connection-security policy. It executes the
+existing `RUNTIME_AUTHORITY_QUERY` and `require_runtime_authority`; only exact
+positive verification permits application reads. Authority refusal remains an
+authority error. There is no administrative fallback, alternate endpoint, pool
+checkout, connection reuse, or retry.
+
+The observer starts one READ COMMITTED, READ WRITE transaction and takes bounded
+blocking locks on the Run identity, then its exact delivery. Bound parameters and
+the owned model identities define its narrow detached scalar projection. It issues
+no application DML or claim commit. A skipped lock or a nonlocking `QUEUED` read
+cannot establish claim loss.
+
+One absolute five-second monotonic deadline covers connection establishment,
+authority verification, transaction setup, both reads, detached-value construction,
+any normal rollback, and synchronous handle termination. Each operation consumes
+the remaining budget; nonzero server statement and lock limits must not round to
+zero or restart that budget. An explicit cutoff check rejects incomplete or late
+evidence before return.
+
+Every acquired observer handle is synchronously terminated before completion and
+never returned to a pool. Failure cleanup begins termination before graceful close
+and does not await rollback or close during deadline unwind. No detached
+application observer task is admitted.
+
+This is a cooperative observation-acceptance boundary. It proves neither server
+rollback completion nor universal resource reclamation. Startup and CancelRequest
+transports, callbacks, and possible DNS executor work can remain library-owned
+after cancellation. Acceptance on the admitted Linux profile requires adverse-
+transport and connection-count recovery evidence for both startup and command
+cancellation. [State of Work](../state-of-the-work.md#topology-a-local-runs) records
+implementation and qualification status.
 
 ### Deployment authority and edge journals
 
@@ -195,6 +345,46 @@ require result evidence whose job and status match the durable row. Migration `0
 upgrade that would have to infer an existing consent-wait owner or accept settled rows without that
 evidence. Its downgrade refuses while any Run remains `AWAITING_CONSENT`, so exact ownership cannot
 be erased underneath live work.
+
+#### Native Consent bindings (Designed)
+
+The [native review contract](25-hitl.md#required-review-for-native-actions-designed) adds explicit
+`native_review_required` and optional `native_binding` fields to Consent. Existing rows retain a
+false requirement and no binding, without rewriting their verdict or attribution. New native rows
+retain the requirement and complete binding together; missing or unsupported binding cannot be
+interpreted as legacy consent. Application decision updates preserve both fields.
+
+Removing this schema must refuse while any required-native or native-bound Consent remains,
+including settled history. The refusal check and schema removal hold a table lock that excludes
+concurrent writes, so a new binding cannot arrive between them. Rollback cannot erase or detach
+these records to make itself succeed; any custody or deletion decision is a separate owner act.
+This is **Designed** compatibility law, not an executed migration receipt. It adds no native action
+store and does not give Consent's Run lifecycle ownership of application recovery records.
+
+#### Blockworld placement custody (Designed)
+
+Blockworld's bounded placement keeps its admitted mission and native action in separate
+application records. The action retains its frozen command, exact Pattern and preparation/review
+identity, Consent identity, issuance disposition, judgment evidence used at issuance, and receipt
+or exact non-completion. Its immutable Run and Consent identifiers are references, not cascading
+ownership: deleting Core execution or Consent records cannot delete or detach this application
+truth. The action's mission reference restricts mission deletion while an action remains.
+
+Before issuance, a missing Run or Consent refuses the action. After issuance may have begun,
+missing execution or Consent records permit only reconciliation of the retained action; they never
+grant another issuance. Preparation, its Consent and any consumed bounded preauthorization share
+one transaction. Conditional issuance serializes the mission cursor and action; verified receipt,
+mission cursor and placement budget settle in one transaction. An uncertain commit is resolved by
+retained identity before further mutation.
+
+A terminal refusal before action creation is retained on the mission. Re-entry returns that result
+without creating Consent, consuming preauthorization, or reopening placement.
+
+This first schema has no automated retirement or deletion path. Removing it refuses while any
+mission or action remains, including settled history. The refusal check and removal lock both
+tables against concurrent writes in a fixed order. Export, explicit erasure, archival and
+incompatible-record migration require a later owned operation; downgrade cannot erase or rewrite
+retained records to make itself succeed.
 
 ### Atlas records
 

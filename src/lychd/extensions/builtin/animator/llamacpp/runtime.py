@@ -13,6 +13,7 @@ from lychd.extensions.builtin.animator.llamacpp.parser_models import (
 )
 from lychd.extensions.builtin.animator.llamacpp.parser_preset import LlamaCppPresetParser
 from lychd.extensions.builtin.animator.soulstones import LlamaCppSoulstoneConfig
+from lychd.extensions.builtin.animator.soulstones.llamacpp import LlamaCppMode
 
 logger = structlog.get_logger()
 
@@ -54,9 +55,13 @@ class LlamaCppRuntimePlanner:
     ) -> LlamaCppDescriptor:
         parser = LlamaCppPresetParser()
         model_provider = inferred.model_provider or self.preferred_model_id(soulstone) or soulstone.name
-        models_preset = inferred.models_preset or soulstone.models_preset
-        model_path = inferred.model_path or soulstone.model_path
-        preset_doc = parser.load_preset(models_preset) if models_preset else None
+        models_preset = inferred.models_preset if inferred.models_preset is not None else soulstone.models_preset
+        model_path = inferred.model_path if inferred.model_path is not None else soulstone.model_path
+        projected_env = soulstone.inference_env()
+        secret_paths = {projected_env[key] for key in soulstone.secret_env_files}
+        # Projected secret paths determine mode, but their contents are not local
+        # catalogue/default evidence and must not be opened during construction.
+        preset_doc = parser.load_preset(models_preset) if models_preset and models_preset not in secret_paths else None
         preset_defaults = (
             parser.parse_preset_defaults(
                 path=models_preset,
@@ -64,7 +69,7 @@ class LlamaCppRuntimePlanner:
                 model_path=model_path,
                 preset=preset_doc,
             )
-            if models_preset
+            if models_preset and preset_doc is not None
             else {}
         )
         generation_defaults = {**preset_defaults, **self.inferred_defaults(inferred)}
@@ -116,10 +121,21 @@ class LlamaCppRuntimePlanner:
         inferred: LlamaCppRuntimeInference,
     ) -> list[str]:
         result = list(args)
-        model_ref = inferred.model_path or soulstone.model_path
+        model_ref = (
+            soulstone.model_path
+            if soulstone.startup_mode == LlamaCppMode.SINGLE
+            else inferred.model_path or soulstone.model_path
+        )
         if model_ref:
             result = ["-m", model_ref, *result]
-        result.extend(["--alias", inferred.model_provider or self.preferred_model_id(soulstone)])
+        generated_alias = (
+            min(inferred.model_aliases, default=None)
+            or soulstone.served_model_id
+            or (Path(model_ref).stem if model_ref else None)
+            or inferred.docker_repo
+            or soulstone.name
+        )
+        result.extend(["--alias", generated_alias])
         return result
 
     def _router_mode_args(

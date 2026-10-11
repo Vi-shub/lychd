@@ -22,7 +22,11 @@ env:
 
 jobs:
   python:
-    name: Python contracts
+    name: Python contracts ${{ matrix.python-version }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.14.8", "3.15.0"]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -37,16 +41,20 @@ jobs:
       - name: Install Python and uv
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
-          version: "0.12.10"
-          python-version: "3.13"
+          version: "0.13.0"
+          python-version: ${{ matrix.python-version }}
           enable-cache: true
-          cache-suffix: checks-python
+          cache-suffix: checks-python-${{ matrix.python-version }}
 
       - name: Run repository Python gate
         run: make check
 
   postgres:
-    name: Disposable PostgreSQL receipts
+    name: Disposable PostgreSQL receipts ${{ matrix.python-version }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.14.8", "3.15.0"]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -61,10 +69,10 @@ jobs:
       - name: Install Python and uv
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
-          version: "0.12.10"
-          python-version: "3.13"
+          version: "0.13.0"
+          python-version: ${{ matrix.python-version }}
           enable-cache: true
-          cache-suffix: checks-postgres
+          cache-suffix: checks-postgres-${{ matrix.python-version }}
 
       - name: Run disposable PostgreSQL receipts
         run: make test-containers N=0
@@ -84,8 +92,8 @@ jobs:
       - name: Install Python and uv
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
-          version: "0.12.10"
-          python-version: "3.13"
+          version: "0.13.0"
+          python-version: "3.15.0"
           enable-cache: true
           cache-suffix: checks-altar
 
@@ -138,8 +146,8 @@ jobs:
       - name: Install Python and uv
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
-          version: "0.12.10"
-          python-version: "3.13"
+          version: "0.13.0"
+          python-version: "3.15.0"
           enable-cache: true
           cache-suffix: checks-documentation
 

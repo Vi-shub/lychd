@@ -229,7 +229,7 @@ def test_timeout_kills_owned_descendant_and_cleans_stage(probe_path: Path) -> No
     status = Path(f"/proc/{pid}/stat")
     try:
         state = status.read_text().split()[2]
-    except FileNotFoundError:
+    except (FileNotFoundError, ProcessLookupError):
         state = None
     assert state in {None, "Z"}
     os.kill(os.getpid(), 0)

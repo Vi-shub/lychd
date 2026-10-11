@@ -13,7 +13,7 @@ A visual asset can be approved by its director and still fail an engine import. 
 
 `AssetImportReceipt@1` binds source, importer, target, transformations, outputs, and checks. Spatial admission includes source units/axes/origin/scale, coordinate transforms, materials/textures, skeleton/animation mappings, generated collision/LOD/engine derivatives, importer/engine revisions, warnings, validation, and performance. `AssetFindingSet@1` returns attributable correction evidence without changing producer lineage or creative approval.
 
-A glTF/GLB can combine mesh, PBR appearance, skeleton, skinning, and animation. Point clouds, Gaussian/radiance forms, neutral voxels, game block grids, and portable assemblies require their own supported import forms. Unsupported forms fail or return findings. Prism Form owns admitted source-form conversion and declared loss; an engine importer cannot quietly mesh, rig, voxelize, or bake the source.
+A glTF/GLB can combine mesh, PBR appearance, skeleton, skinning, and animation. Point clouds, Gaussian/radiance forms, neutral voxels, game block grids, and portable assemblies require their own supported import forms. Unsupported forms fail or return findings. [Prism Form](../../sepulcher/extensions/prism/form.md#one-form-job-explicit-operation) owns admitted source-form conversion and declared loss; an engine importer cannot quietly mesh, rig, voxelize, or bake the source.
 
 One asset's collider, LOD, skeleton/material/animation map belongs to its import. World-wide collision layers/masks, navigation joins, spawn, streaming, interaction roles, actor bindings, and controller use belong to the [World](world.md) bake. Reusing a derivative changes neither receipt's ownership.
 

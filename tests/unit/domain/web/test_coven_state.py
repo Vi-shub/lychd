@@ -64,3 +64,20 @@ def test_build_nexus_board_projects_capability_state(
         cast("Any", _FakeRegistry()),
     )
     assert board.covens[0][1][0].state == expected
+
+
+@pytest.mark.parametrize("registrant_id", [None, "core", "builtin:animator", "crypt:private/engine"])
+@pytest.mark.parametrize("source_kind", ["soulstone", "portal"])
+def test_nexus_projects_registration_provenance_without_changing_identity(
+    registrant_id: str | None,
+    source_kind: str,
+) -> None:
+    board = build_nexus_board(
+        cast("Any", _FakeOrchestrator([_status(registrant_id=registrant_id, source_kind=source_kind)])),
+        cast("Any", _FakeRegistry()),
+    )
+    row = board.portals[0] if source_kind == "portal" else board.covens[0][1][0]
+    assert row.registrant_id == registrant_id
+    assert row.capability_key == "atelier:vision:the-eye"
+    assert row.model_id == "the-eye"
+    assert row.runtime == "llamacpp"

@@ -38,10 +38,9 @@ environment.
 
 Stop submissions and let Bridge-visible work settle. There is no complete Run census or graceful
 drain command that proves zero-loss restart; if unseen work or continuity matters, do not restart.
-Pulse reserves `status` for Run census and `stop` for graceful drain, while
-[State](../../state-of-the-work.md#core-cli-rites) records their current limits. Direct Systemd
-action bypasses Orchestrator admission and lease drain. Active work must reach a supported durable
-boundary, or its loss must be accepted.
+[State](../../state-of-the-work.md#core-cli-rites) records the current `status` and `stop` limits.
+Direct Systemd action bypasses Orchestrator admission and lease drain. Active work must reach a
+supported durable boundary, or its loss must be accepted.
 
 ### The generated body {#the-generated-body}
 
@@ -101,8 +100,9 @@ The memory profile has no cross-process truth and remains best-effort.
   or delegate whose containment remains uncertain cannot be declared terminal merely to open the
   Altar.
 
-Startup repairs missing or mismatched terminal evidence from canonical terminal Runs before
-removing residual checkpoints. [Ghouls](../vessel/ghouls.md#parks-terminal-truth-and-cancellation)
+Startup repairs missing terminal evidence from canonical terminal Runs. Mismatched terminal
+evidence aborts required PostgreSQL startup; it is not overwritten. Cancellation cleanup may still
+remove its checkpoint when evidence fails. [Ghouls](../vessel/ghouls.md#parks-terminal-truth-and-cancellation)
 owns terminal ordering. A checkpoint left by failed cleanup never revives a terminal Run.
 
 Lifespan-owned delivery, consent, and delegated-wait relays continue repair after startup. They

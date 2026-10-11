@@ -245,23 +245,23 @@ Portable Spells and Scrolls arrive additively:
 No compatibility shim may present a v2 Python node as a canonical public Spell merely because its
 label resembles one.
 
-The first internal adapter for steps 2–3 must use one deliberately private
-identity. For every executable v2 station it must derive a Scroll-private contract from
-`(pattern_id, pattern_revision, manifest_digest, station_id, legacy_inline)`, place it under the
-station key and kind, and bind it to the manifest's exact `implementation_revision`,
-`checkpoint_schema`, and Python node fingerprint `module:qualname`. Contract, placement, and
-implementation identities remain separate and form a
-one-to-one set over executable stations. The declarative terminal maps to Graph `End` and is not
-adapted into a fictional Spell or implementation.
+### Private v2 adapter (Designed)
 
-That boot-derived `legacy_inline` Resolution Lock must have a deterministic **internal-v0**
-digest. It is not JCS portable identity, a signature input, a public Spell contract, or proof of
-Python source equivalence. Its digest must change when the exact local node binding changes without
-altering the frozen v2 Pattern snapshot or digest. During this migration step, in-process exact
-revision lookup must use the lock without storing it on Run, exposing it through Loom/Orb, or
-claiming the future persisted Resolution Lock. Persisting and projecting it begins only with a
-new schema and migration under steps 4–5. [State of Work](../state-of-the-work.md#topology-a-local-runs)
-records which steps have executable evidence.
+The first internal adapter for steps 2–3 remains undelivered. It must give every executable v2
+station a deliberately private identity: derive a Scroll-private contract from `(pattern_id,
+pattern_revision, manifest_digest, station_id, legacy_inline)`, place it under the station key and
+kind, and bind it to the manifest's exact `implementation_revision`, `checkpoint_schema`, and Python
+node fingerprint `module:qualname`. Contract, placement, and implementation identities must remain
+separate and form a one-to-one set over executable stations. The declarative terminal maps to Graph
+`End` and must not become a fictional Spell or implementation.
+
+The boot-derived `legacy_inline` Resolution Lock must have a deterministic **internal-v0** digest.
+It is not JCS portable identity, a signature input, a public Spell contract, or proof of Python
+source equivalence. It must change when the exact local node binding changes without altering the
+frozen v2 Pattern snapshot or digest. During this migration step, in-process exact revision lookup
+must use the lock; the lock must not be stored on Run, exposed by Loom/Orb, or claimed as the future
+persisted Resolution Lock. Persisting and projecting it begins only with a new schema and migration
+under steps 4–5.
 
 ### Configuration-to-casting spine
 
@@ -292,15 +292,14 @@ from a similar label. Placement-specific Agent and Context assembly occurs after
 Reader may receive an exact `structure` or `verbatim` projection without acquiring Writer tools,
 while a Writer must separately satisfy its declared effect and authority contract. The current
 source delivers the fixed v2 registry and a bounded `[weaver.bridge]` selector for `bridge_chat@2`.
-Its exact capability key is server-admitted Run
-intent, copied into typed Graph state; a missing key refuses admission or checkpoint decoding,
+Its exact capability key is server-admitted Run intent, copied into typed Graph state; a missing key refuses admission or checkpoint decoding,
 and an unavailable target never falls back to another runtime. The worker binds the revision's
 state validator to persisted Run intent; the Graph runner checks fresh and restored state before
 node execution, including hardware re-entry. A differing key, Run/session identity, prompt, or
 admitted priority refuses the checkpoint. Retried admissions first read
 existing Run truth, so configuration changes cannot rewrite queued or parked work. Revision 1
 applies the same admitted-state checks while keeping its eligible-pool behavior and manifest.
-Private `legacy_inline` boot adaptation, portable stores, general lock persistence, placement
+Private `legacy_inline` adaptation, portable stores, Resolution Lock persistence, placement
 profiles, and dynamic registration remain undelivered.
 
 ## Execution-road planning
@@ -788,7 +787,7 @@ Three semantic service classes govern admission; they are not broker queues:
 | Service class | Contract |
 | --- | --- |
 | `foreground` | Eligible now and latency-sensitive. It receives preference, not a promise of immediate start or unsafe preemption. |
-| `deadline_windowed` | Eligible no earlier than `not_before` and governed by `latest_start_at` plus optional `finish_by`; expiry settles explicitly rather than running silently late. |
+| `deadline_windowed` | Initial Invocation admission is no earlier than `not_before` and strictly before `latest_start_at`, with optional `finish_by`. An unadmitted firing at or beyond the latest-start bound settles explicitly without an Invocation. |
 | `spare_capacity` | No completion-time promise. Scarce-resource work requires a proved bounded yield/containment contract or an operator-approved quiet window. |
 
 Class is orthogonal to doctrine priority and physical queue. Continuous foreground demand must not
@@ -801,6 +800,99 @@ revision, IANA time zone, ambiguous/nonexistent civil-time policy, overlap and m
 bounded catch-up, budgets, and authority owner. Jitter changes eligibility, never Occurrence
 identity. An overlap remains live while its prior Invocation is nonterminal, including Stasis;
 coalescing requires a Pattern-owned typed merge and preserves every member Occurrence.
+
+### Temporal admission and settlement (Designed)
+
+These rules govern the designed Schedule and Occurrence contract. They add no executable
+scheduler, store, Run status, event, or callable interface.
+
+A firing has one recoverable identity within an authority-qualified stable Schedule. A calendar
+source identifies its nominal firing and selected fold member when applicable; an external
+trigger requires a source-qualified durable event identity. Input equality, delivery identity,
+jitter, worker attempt, and arrival time do not identify a firing. A trigger without a recoverable
+source-firing identity cannot claim durable deduplication. This is an identity requirement, not a
+public identifier encoding.
+
+Each source firing is assigned to one exact Schedule revision once. Assignment and revision
+activation share serialized decision authority. Rediscovery first recovers the assignment by
+stable Schedule and source firing, across all retained revisions; it never looks only under the
+currently active revision. The assigned revision, immutable source content, Pattern and policy
+revisions, calendar interpretation, resolved absolute bounds, and selected jitter remain with the
+Occurrence. A replay returns that Occurrence and any admitted Invocation even after the original
+Run is terminal. Changed immutable source content fails closed; a newly active policy revision
+alone does not make an unchanged source replay conflicting content.
+
+For a previously unassigned external event, the revision active at its first committed assignment
+owns the firing. Activation and assignment cannot race to assign it twice. For calendar firings,
+activation instead pins a disjoint, recoverable partition of the source firings between retained
+revisions. This partition covers unresolved old firings as well as the cutover and new firings;
+late discovery uses that partition, not the revision active when a relay happens to run. Existing
+assignments cannot be changed by activation. A change of time zone, cadence, or fold policy must
+pin which nominal candidates under the two calendar interpretations denote the same source
+firing, which are distinct, and which are explicitly skipped under their assigned revision.
+Civil timestamps in different zones are not a shared ordering. Activation is refused if the
+partition is missing, ambiguous, or would reassign an existing firing. Two relays encountering
+the same cutover firing must therefore recover one assigned revision and one Occurrence. These
+requirements refine Schedule revision law; they introduce no separate registry or service.
+
+Calendar revisions retain the exact zone-rule interpretation needed to reproduce unresolved
+firings. Installing different zone rules requires another revision rather than silently
+reinterpreting an existing one. Materialization retains resolved bounds and selected jitter;
+redelivery and restart cannot resample or revise them. The default calendar policy selects the
+earlier instant in a fold and explicitly skips a nonexistent civil firing without shifting it.
+Recovery considers at most the newest still-eligible missed calendar firing for admission; older
+unadmitted backlog is explicitly skipped. Eligibility follows the firing's service class and no
+expired window is enlarged. Different fold, gap, or bounded catch-up policies must be pinned in
+the Schedule revision.
+
+Temporal decisions compare absolute UTC. Take a fresh trusted clock sample at the serialized
+conditional transition, after acquiring its decision authority; retain that sample as
+`decision_time` only if the exact atomic transaction commits. Transaction opening time, caller or
+delivery timestamps, and acknowledgement time cannot substitute. A lost acknowledgement requires
+observation of the exact durable decision; rollback leaves no accepted decision. This measures
+the accepted decision, not the later physical visibility or acknowledgement of the commit. A
+process may derive a fresh monotonic waiting budget from the retained absolute bounds but cannot
+persist that process-local reading as recovery authority. Restart and clock correction require
+another absolute check before an undecided transition; they never reopen a committed admission,
+skip, expiry, or terminal settlement.
+
+The `not_before`, `latest_start_at`, and optional `finish_by` predicates below apply only to
+`deadline_windowed`. Foreground and spare-capacity firings retain their own eligibility contracts;
+they require no invented cutoff or sentinel bound. Identity, revision assignment, deduplication,
+recovery, authority, and overlap rules apply to every service class.
+
+| Deadline-windowed boundary | Required transition |
+| --- | --- |
+| Initial admission | Admit only when `not_before <= decision_time < latest_start_at`, and strictly before any `finish_by`. The same atomic decision binds the Occurrence to one Invocation and its initial Run delivery. Before commit there is no admitted Invocation; afterwards publication and recovery preserve that exact admission. |
+| Unadmitted expiry | At or after `latest_start_at`, or an earlier `finish_by`, settle the firing explicitly as missed without creating an Invocation. Before `not_before`, retain it outside a sleeping worker while neither upper bound has expired. This strict rule retires the previously Designed admitted-late option for this class; no pinned miss policy can authorize it. |
+| Consent or delegate resume | Initial admission satisfies `latest_start_at` once; a later worker claim or first effect need not precede it. Resume preserves the exact persisted wait owner and pinned Pattern, and requires current authority and ordinary Workers, Graph, and HitL checks. An approval creates no new firing and renews no bound. |
+| Finish acceptance | The requested finish is timely only when its pinned semantic evidence is accepted by the authoritative terminal Run decision at `decision_time < finish_by`. The required proof must already be valid when that decision samples time; the transaction retains the exact proof and temporal disposition together. An intermediate artifact, generic `DONE`, event, or projection cannot substitute for that proof. |
+| Admitted finish expiry | At or after `finish_by`, absent a timely accepted finish, close forward-effect admission and record the unmet deadline. Every new forward-effect admission must check that bound; safety cannot depend on an expiry callback running on time. A committed expiry prevents later acceptance of a timely finish. Expiry alone establishes neither terminal Run truth nor proof that an effect stopped. |
+
+The requested finish remains domain- and Scroll-owned. If it requires delivered speech, committed
+text alone cannot satisfy it: speech or an explicitly admitted text-only fallback must be proved.
+A separately settled destination result does not finish a Companion presentation or a Suite round
+trip. Display is observational only when presentation is not itself the admitted result.
+
+After finish expiry, preserve every already-started effect's identity, actual result, and
+settlement obligations under its original safety budgets. Use the existing owning cancellation,
+containment, and reconciliation contracts. A late result can resolve those obligations but cannot
+retroactively satisfy `finish_by`, reopen a terminal job, or authorize replacement submission.
+Unknown effects remain unresolved; required unresolved containment keeps the Run nonterminal under
+[Workers](14-workers.md#terminal-settlement). These are temporal dispositions, not new Run statuses.
+Without `finish_by`, `latest_start_at` supplies no completion-time promise.
+
+The default overlap policy skips a new firing while any earlier Invocation of the same stable
+Schedule is nonterminal, across all Schedule revisions. Consent, delegated work, cancellation,
+and required unresolved containment keep that overlap live. Neither a released worker nor a
+finish accepted only in memory releases it. A different overlap policy must be pinned; coalescing
+still requires the Pattern-owned typed merge and preserves every member Occurrence.
+
+Schedule timing does not change [Orchestrator](23-orchestrator.md) activation-cutoff law. Timely
+actuator/adapter invocation or honest readiness confirmation retires that local admission cutoff;
+subsequent settlement keeps its original safety budgets. An expired coalesced follower ends only
+its own wait. Local coalescing and that process-local cutoff establish neither Occurrence identity
+nor workflow settlement.
 
 Canonical **Occurrence** means the schedule or external-trigger firing before Invocation admission.
 The delivered Graph runtime's `occurrence_id` field is a legacy name for a station-attempt

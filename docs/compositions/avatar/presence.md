@@ -51,6 +51,7 @@ Each target keeps the authority needed to judge what happened there:
 | [Homestead](../homestead/index.md), for a room display | Place policy, bystanders, indicators, purpose, and controls. |
 | Vehicle controller | Occupants, safety, motion, and local override. |
 | [Familiar](../familiar/index.md) | Body, capabilities, geofence, emergency stop, mission, observations, and effects. |
+| [Companion](../companion/index.md) | Mobile session, privacy, disclosure, configuration, reconnect, and separate stop-speaking/cancel-session controls over an admitted Familiar phone body. |
 
 For VR, the target is exact `VRHabitat@1`. Avatar may select eligible head, hands, body, voice, motion, captions, disclosure, and fallback. It creates no XR session/reference space, locomotion, haptics, tracking capture, entry, or exit authority. Head/hand/gaze/face/body signals constrain eligibility but prove no identity, intent, attention, emotion, consent, co-location, or remembered experience. Raw high-rate inputs stay with the engine/runtime; Avatar retains minimum capability facts and semantic results.
 

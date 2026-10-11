@@ -91,8 +91,11 @@ only their common OCI image invariant.
 Lifecycle, mounts, devices, secrets, ports, commands, placement, and policy remain explicit fields
 of the receiving owner rather than generic raw-Quadlet authority. `QuadletContainer` is the later
 physical manifest model. Embedding `quadlet` declares the requested body but does not bypass the
-owner-specific contributor or compiler that admits those policies. There is no `Stone`,
-`ServiceStone`, or `AmbientStone` base type:
+owner-specific contributor or compiler that admits those policies. Container secrets use the typed
+`secrets` field so Bind can validate their source names and presence. Raw Podman arguments are a
+closed set of explicitly supported, complete values. Other values, aliases, short flags, and extra
+tokens are refused; they cannot introduce an independent secret, mount, device, publication, or
+network-policy path. There is no `Stone`, `ServiceStone`, or `AmbientStone` base type:
 **Soulstone** is the sole accepted service term using that suffix.
 
 ### Versioned application deployments

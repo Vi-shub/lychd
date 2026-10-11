@@ -3,12 +3,12 @@
 # ==============================================================================
 # We define an alias 'uv' for the image containing the uv binary.
 # This allows us to "borrow" the tool later without downloading it into our layers.
-FROM ghcr.io/astral-sh/uv:0.12.10 AS uv
+FROM ghcr.io/astral-sh/uv:0.13.0 AS uv
 
 # ==============================================================================
 # STAGE I: BUILDER
 # ==============================================================================
-FROM python:3.13-slim-bookworm AS builder
+FROM python:3.14.8-slim-bookworm AS builder
 
 # Configure uv for container usage:
 # - LINK_MODE=copy: Essential for cache mounts (hardlinks fail across filesystems).
@@ -48,7 +48,7 @@ RUN /app/.venv/bin/python scripts/generate_python_third_party_notices.py \
 # ==============================================================================
 # STAGE II: RUNNER (The Production Artifact)
 # ==============================================================================
-FROM python:3.13-slim-bookworm
+FROM python:3.14.8-slim-bookworm
 
 ARG VCS_REF=unknown
 LABEL org.opencontainers.image.source="https://github.com/hexanomicon/lychd" \

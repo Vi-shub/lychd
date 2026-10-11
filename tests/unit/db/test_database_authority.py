@@ -8,6 +8,8 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from pydantic import SecretStr
 from saq.queue.postgres_migrations import get_migrations
+from sqlalchemy import event
+from sqlalchemy.pool import QueuePool
 
 from lychd.config.settings.server import DatabaseSettings
 from lychd.db import bootstrap, engine
@@ -29,6 +31,35 @@ def test_sqlalchemy_accepts_verified_runtime_authority() -> None:
     connection.cursor.return_value.fetchone.return_value = (False,)
     verify_sqlalchemy_connection(connection, None)
     connection.cursor.return_value.close.assert_called_once()
+
+
+@pytest.mark.parametrize("unsafe", [True, False], ids=["refused", "accepted"])
+def test_sqlalchemy_pool_closes_refused_connections_and_reuses_accepted_ones(*, unsafe: bool) -> None:
+    connections: list[MagicMock] = []
+
+    def connect() -> MagicMock:
+        connection = MagicMock()
+        connection.cursor.return_value.fetchone.return_value = (unsafe,)
+        connections.append(connection)
+        return connection
+
+    pool = QueuePool(connect, pool_size=1, max_overflow=0)
+    event.listen(pool, "connect", verify_sqlalchemy_connection)
+    try:
+        for _ in range(3):
+            if unsafe:
+                with pytest.raises(DatabaseAuthorityError):
+                    pool.connect()
+            else:
+                pool.connect().close()
+        assert connections
+        if not unsafe:
+            assert len(connections) == 1
+            connections[0].close.assert_not_called()
+    finally:
+        pool.dispose()
+    for connection in connections:
+        connection.close.assert_called_once()
 
 
 @pytest.mark.parametrize(

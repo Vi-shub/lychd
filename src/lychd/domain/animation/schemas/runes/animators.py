@@ -146,8 +146,9 @@ class SoulstoneConfig(AnimatorConfig, ABC):
         default=None,
         min_length=1,
         description=(
-            "Exact provider-facing model id returned by the runtime inventory. "
-            "Set this when it differs from the model_path basename or Soulstone name."
+            "Exact provider-facing model id for the inferred single-model fallback. "
+            "Set this when it differs from the model_path stem (basename without its final suffix), "
+            "or the Soulstone name if no path is set."
         ),
     )
     base_url: AnyHttpUrl | None = Field(

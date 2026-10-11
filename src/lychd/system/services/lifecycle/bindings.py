@@ -23,7 +23,6 @@ if TYPE_CHECKING:
 
 _SYSTEMCTL_PROBE_TIMEOUT_SECONDS = 3.0
 _SYSTEMCTL_RELOAD_TIMEOUT_SECONDS = 30.0
-_SYSTEMCTL_NOT_FOUND_EXIT = 4
 
 
 class BindingLifecycleService:
@@ -142,85 +141,62 @@ class BindingLifecycleService:
         )
 
     def _unit_actions(self, owned: OwnedBindings) -> list[LifecycleAction]:
-        """Return inert/enabled blockers for exact receipt-derived runtime units."""
-        if self._systemctl is None:
-            return []
+        """Require explicit inactive state before removing receipt-owned sources.
+
+        Generated and static units cannot be disabled like installed units.
+        Their sources may be removed while inactive; authority release still
+        requires the stricter post-reload disabled/not-found proof.
+        """
         actions: list[LifecycleAction] = []
         for unit in owned.runtime_units:
-            active_result = self._run_systemctl("is-active", "--quiet", unit)
-            if active_result is None:
-                actions.append(
-                    LifecycleAction(
-                        LifecycleDisposition.BLOCKED,
-                        LifecycleResourceKind.UNIT,
-                        unit,
-                        "systemd activity check could not be executed",
+            result = self._run_systemctl(
+                "show",
+                unit,
+                "--property=LoadState",
+                "--property=ActiveState",
+                "--property=UnitFileState",
+            )
+            if result is None:
+                detail = "systemd state check could not be executed"
+            elif result.returncode != 0:
+                error = result.stderr.strip() or f"exit {result.returncode}"
+                detail = f"systemd state check failed: {error}"
+            else:
+                fields = self._parse_show(result.stdout)
+                load_state = fields.get("LoadState")
+                active_state = fields.get("ActiveState")
+                unit_file_state = fields.get("UnitFileState")
+                if len(result.stdout.splitlines()) != len(fields) or set(fields) != {
+                    "LoadState",
+                    "ActiveState",
+                    "UnitFileState",
+                }:
+                    detail = "systemd state check returned missing or malformed properties"
+                elif active_state == "inactive" and (
+                    (load_state == "not-found" and unit_file_state == "")
+                    or (load_state == "loaded" and unit_file_state in {"disabled", "generated", "static"})
+                ):
+                    actions.append(
+                        LifecycleAction(
+                            LifecycleDisposition.PRESERVE,
+                            LifecycleResourceKind.UNIT,
+                            unit,
+                            f"runtime unit is inactive and {unit_file_state or 'not found'}",
+                        )
                     )
-                )
-                continue
-            active = active_result.returncode
-            if active == 0:
-                actions.append(
-                    LifecycleAction(
-                        LifecycleDisposition.BLOCKED,
-                        LifecycleResourceKind.UNIT,
-                        unit,
-                        "unit is active; stop it before `lychd del`",
+                    continue
+                else:
+                    detail = (
+                        "unit is not provably inactive with removable binding sources "
+                        f"(load={load_state or 'unknown'}, active={active_state or 'unknown'}, "
+                        f"unit-file={unit_file_state or 'unknown'})"
                     )
-                )
-                continue
-            if active not in {3, _SYSTEMCTL_NOT_FOUND_EXIT}:
-                actions.append(
-                    LifecycleAction(
-                        LifecycleDisposition.BLOCKED,
-                        LifecycleResourceKind.UNIT,
-                        unit,
-                        f"systemd activity check failed with exit {active}",
-                    )
-                )
-                continue
-            enabled_result = self._run_systemctl("is-enabled", "--quiet", unit)
-            if enabled_result is None:
-                actions.append(
-                    LifecycleAction(
-                        LifecycleDisposition.BLOCKED,
-                        LifecycleResourceKind.UNIT,
-                        unit,
-                        "systemd enablement check could not be executed",
-                    )
-                )
-                continue
-            enabled = enabled_result.returncode
-            if enabled == 0:
-                actions.append(
-                    LifecycleAction(
-                        LifecycleDisposition.BLOCKED,
-                        LifecycleResourceKind.UNIT,
-                        unit,
-                        "unit is enabled; disable it before `lychd del`",
-                    )
-                )
-                continue
-            if enabled not in {1, _SYSTEMCTL_NOT_FOUND_EXIT}:
-                actions.append(
-                    LifecycleAction(
-                        LifecycleDisposition.BLOCKED,
-                        LifecycleResourceKind.UNIT,
-                        unit,
-                        f"systemd enablement check failed with exit {enabled}",
-                    )
-                )
-                continue
             actions.append(
                 LifecycleAction(
-                    LifecycleDisposition.PRESERVE,
+                    LifecycleDisposition.BLOCKED,
                     LifecycleResourceKind.UNIT,
                     unit,
-                    (
-                        "runtime unit is not found"
-                        if _SYSTEMCTL_NOT_FOUND_EXIT in (active, enabled)
-                        else "runtime unit is inactive and disabled"
-                    ),
+                    detail,
                 )
             )
         return actions

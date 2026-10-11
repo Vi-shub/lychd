@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import asyncio
+import math
 from typing import TYPE_CHECKING, Annotated, Any, cast
 
 from litestar import Controller, Request, Response, get, post
 from litestar.di import NamedDependency
-from litestar.exceptions import ServiceUnavailableException
+from litestar.exceptions import ServiceUnavailableException, ValidationException
 from litestar.params import FromQuery, QueryParameter
 from litestar.status_codes import HTTP_202_ACCEPTED, HTTP_409_CONFLICT
 
@@ -12,7 +14,7 @@ from lychd.domain.codex.guards import requires_scopes
 from lychd.domain.cortex.leases import LeaseLedger
 from lychd.domain.cortex.priority import PRIORITY_MAX, PRIORITY_MIN
 from lychd.domain.cortex.substrate import get_run_substrate
-from lychd.domain.orchestration.arbiter import TransitionDeclined
+from lychd.domain.orchestration.arbiter import TransitionAdmissionExpired, TransitionDeclined
 from lychd.domain.orchestration.manager import OrchestratorManager
 from lychd.domain.orchestration.schema import TransitionPlan
 
@@ -31,6 +33,12 @@ def _handle_transition_declined(_request: Request[Any, Any, Any], exc: Transitio
         },
         status_code=HTTP_409_CONFLICT,
     )
+
+
+def _handle_admission_expired(
+    _request: Request[Any, Any, Any], exc: TransitionAdmissionExpired
+) -> Response[dict[str, str]]:
+    return Response(content={"code": exc.code, "detail": str(exc)}, status_code=HTTP_409_CONFLICT)
 
 
 def _lease_row_json(row: LeaseRow) -> dict[str, Any]:
@@ -72,7 +80,10 @@ class OrchestratorController(Controller):
     @post(
         "/activate",
         status_code=HTTP_202_ACCEPTED,
-        exception_handlers={TransitionDeclined: _handle_transition_declined},
+        exception_handlers={
+            TransitionDeclined: _handle_transition_declined,
+            TransitionAdmissionExpired: _handle_admission_expired,
+        },
         guards=[requires_scopes("orchestrator:transition")],
     )
     async def activate_capability(
@@ -80,12 +91,23 @@ class OrchestratorController(Controller):
         orchestrator: NamedDependency[OrchestratorManager],
         target: FromQuery[str],
         priority: Annotated[int, QueryParameter(ge=PRIORITY_MIN, le=PRIORITY_MAX)] = PRIORITY_MAX,
+        admission_timeout_s: FromQuery[float | None] = None,
     ) -> TransitionPlan:
         """Manually trigger the transition path for one capability key.
 
         A HARD_SWAP whose ``priority`` is below the switching gate is declined with a
         409 (the plan + threshold in the body); SOFT_SWAP / NO_OP are never gated.
+        Optional admission expiry ends at invocation or readiness confirmation,
+        rather than imposing a timeout on physical settlement or this response.
         """
+        if admission_timeout_s is not None:
+            now = asyncio.get_running_loop().time()
+            deadline = now + admission_timeout_s
+            if not math.isfinite(admission_timeout_s) or admission_timeout_s < 0 or not math.isfinite(deadline):
+                raise ValidationException(detail="admission_timeout_s must produce a finite, nonnegative duration.")
+            if now >= deadline:
+                raise TransitionAdmissionExpired
+            return await orchestrator.request_transition(target, priority=priority, admission_deadline=deadline)
         return await orchestrator.request_transition(target, priority=priority)
 
     @get("/queues", guards=[requires_scopes("altar:read")])

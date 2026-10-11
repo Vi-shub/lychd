@@ -9,7 +9,7 @@ The **Nexus** lets you inspect readiness, preview a change, and request one phys
 These are different acts. Viewing changes nothing. **Preview** calculates a nonbinding plan.
 **Request transition** performs a real maximum-priority lifecycle mutation.
 
-After [first life](../../summoning.md#the-awakening), open
+Complete [Altar’s startup and local-access steps](index.md#bring-one-intent), then open
 `http://127.0.0.1:7134/nexus` within the same-host browser boundary.
 
 ## Read the observation before planning
@@ -59,15 +59,18 @@ directly.
 
 ## Keep one request identity through uncertainty
 
-The browser allocates a request id before submission. If the response is uncertain, retry keeps
-that id and target. Admission reserves the first target before task launch. PostgreSQL preserves
-this fence across Vessel restarts; the memory profile preserves it for one process. Reusing the
-id for a different target is rejected.
+The browser allocates a request id before submission. If the response is uncertain, keep Nexus
+open and choose **Request transition** again for the same target to reuse that id. Admission
+reserves the first target before task launch. PostgreSQL preserves this fence across Vessel
+restarts; the memory profile preserves it for one process. Reusing the id for a different target
+is rejected.
 
 A retry returns the live ticket when available. If its ticket expired or its process ended, the
 same request id is refused without relaunch: ticket state no longer establishes the physical
-outcome. The client retains that refused id. A lost answer is not permission to mint another
-physical request.
+outcome. The client retains that refused id while Nexus stays open. Leaving or reloading discards
+the prepared retry; cancel the navigation warning while the outcome remains unknown. PostgreSQL
+retains the admission fence, not this browser retry state. A lost answer is not permission to mint
+another physical request.
 
 ## Follow the ticket and the physical observation
 

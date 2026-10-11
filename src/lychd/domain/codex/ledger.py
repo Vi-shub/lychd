@@ -20,7 +20,16 @@ from fnmatch import fnmatchcase
 from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 from uuid import UUID, uuid4
 
-from lychd.domain.codex.schemas import ConsentDecision, ConsentStatusValue, ConsentView, censor, constraints_admit
+from lychd.domain.codex.schemas import (
+    ConsentDecision,
+    ConsentStatusValue,
+    ConsentView,
+    NativeConsentBinding,
+    censor,
+    constraints_admit,
+    decode_native_binding,
+    require_native_binding,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -58,7 +67,14 @@ class ConsentLedger(Protocol):
         """Return the read-model for one consent, or None."""
         ...
 
-    async def decide(self, consent_id: str, *, approved: bool, decided_by: str) -> ConsentView | None:
+    async def decide(
+        self,
+        consent_id: str,
+        *,
+        approved: bool,
+        decided_by: str,
+        expected_native_binding: NativeConsentBinding | None = None,
+    ) -> ConsentView | None:
         """Idempotently settle a pending consent (grant/deny) and return the view."""
         ...
 
@@ -111,6 +127,8 @@ class _ConsentRow:
     decided_at: datetime | None = None
     preauth_slug: str | None = None
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    native_review_required: bool = False
+    native_binding: NativeConsentBinding | None = None
 
 
 class InMemoryConsentLedger:
@@ -176,6 +194,9 @@ class InMemoryConsentLedger:
         row = self._rows.get(consent_id)
         if row is None or (row.status != "pending" and (not row.decided_by or row.decided_at is None)):
             return None
+        view = self._view(row)
+        if view.native_review_required and view.native_binding is None:
+            return None
         return _verdict_of(row.status)
 
     def _view(self, row: _ConsentRow) -> ConsentView:
@@ -183,11 +204,13 @@ class InMemoryConsentLedger:
             id=row.id,
             run_id=row.run_id,
             tool_name=row.tool_name,
-            args=deepcopy(row.args),
+            args=censor(row.args),
             status=row.status,
             decided_by=row.decided_by,
             decided_at=row.decided_at,
             preauth_slug=row.preauth_slug,
+            native_review_required=row.native_review_required or row.native_binding is not None,
+            native_binding=decode_native_binding(row.native_binding) if row.native_review_required else None,
         )
 
     async def get(self, consent_id: str) -> ConsentView | None:
@@ -195,11 +218,19 @@ class InMemoryConsentLedger:
         row = self._rows.get(consent_id)
         return self._view(row) if row is not None else None
 
-    async def decide(self, consent_id: str, *, approved: bool, decided_by: str) -> ConsentView | None:
+    async def decide(
+        self,
+        consent_id: str,
+        *,
+        approved: bool,
+        decided_by: str,
+        expected_native_binding: NativeConsentBinding | None = None,
+    ) -> ConsentView | None:
         """Idempotently settle a pending consent and return its view."""
         row = self._rows.get(consent_id)
         if row is None:
             return None
+        require_native_binding(self._view(row), expected_native_binding)
         if row.status == "pending":
             row.status = "granted" if approved else "denied"
             row.decided_by = decided_by
@@ -304,17 +335,20 @@ class CodexConsentLedger:
             return ConsentDecision(status=status, consent_id=str(row.id), preauth_slug=row.preauth_slug)
 
     async def verdict(self, consent_id: str) -> bool | None:
-        """Return a verdict, revalidating any standing policy behind a grant."""
+        """Return a verdict, revalidating standing policy against database wall time."""
         from sqlalchemy import func, select
 
         from lychd.db.models import CodexPreauthorization, Consent
-        from lychd.domain.codex.services import PREAUTH_DIGEST_PAYLOAD_KEY, preauth_authorization_digest
+        from lychd.domain.codex.services import PREAUTH_DIGEST_PAYLOAD_KEY, preauth_authorization_digest, row_to_view
 
         async with self._session_factory() as session:
             row = await session.get(Consent, UUID(consent_id))
             if row is None:
                 return None
             if row.status != "pending" and (not row.decided_by or row.decided_at is None):
+                return None
+            view = row_to_view(row)
+            if view.native_review_required and view.native_binding is None:
                 return None
             verdict = _verdict_of(cast("ConsentStatusValue", row.status))
             if verdict is not True or row.decided_by != "codex:preauth":
@@ -328,7 +362,7 @@ class CodexConsentLedger:
                     select(CodexPreauthorization).where(CodexPreauthorization.slug == row.preauth_slug)
                 )
                 if preauth is not None and preauth.enabled and preauth.source_present:
-                    database_now = await session.scalar(select(func.now()))
+                    database_now = await session.scalar(select(func.clock_timestamp()))
                     authorized = (
                         database_now is not None
                         and (preauth.expires_at is None or preauth.expires_at > database_now)
@@ -343,15 +377,24 @@ class CodexConsentLedger:
         async with self._session_factory() as session:
             return await ConsentService(session=session).get_view(consent_id)
 
-    async def decide(self, consent_id: str, *, approved: bool, decided_by: str) -> ConsentView | None:
+    async def decide(
+        self,
+        consent_id: str,
+        *,
+        approved: bool,
+        decided_by: str,
+        expected_native_binding: NativeConsentBinding | None = None,
+    ) -> ConsentView | None:
         """Idempotently settle a pending consent."""
         from lychd.domain.codex.services import ConsentService
 
         async with self._session_factory() as session:
             svc = ConsentService(session=session)
             if approved:
-                return await svc.grant(consent_id, decided_by=decided_by)
-            return await svc.deny(consent_id, decided_by=decided_by)
+                return await svc.grant(
+                    consent_id, decided_by=decided_by, expected_native_binding=expected_native_binding
+                )
+            return await svc.deny(consent_id, decided_by=decided_by, expected_native_binding=expected_native_binding)
 
     async def pending_count(self) -> int:
         """Return the number of pending consents."""

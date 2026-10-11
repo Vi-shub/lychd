@@ -35,6 +35,8 @@ from lychd.domain.delegation.models import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
     from sqlalchemy import CursorResult
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -47,8 +49,64 @@ __all__ = [
     "DelegateAdmissionEvidence",
     "InMemoryRunLedger",
     "RunAdmissionConflictError",
+    "RunClaimAttempt",
+    "RunClaimObservation",
+    "RunClaimState",
     "RunLedger",
 ]
+
+
+@dataclass(frozen=True, slots=True)
+class RunClaimAttempt:
+    """Complete invocation-local outcome, including commit and session cleanup."""
+
+    acknowledged: bool | None
+    attempted_after_locked_prestate: bool
+    failure: BaseException | None = None
+    cleanup_failure: BaseException | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class RunClaimState:
+    """Detached Run scalars needed to establish exact claim authority."""
+
+    run_id: str
+    enqueue_seq: int
+    status: RunStatus
+    queue_name: str
+    priority: int
+
+
+@dataclass(frozen=True, slots=True)
+class RunClaimObservation:
+    """One fenced observation of the Run and its requested delivery."""
+
+    run: RunClaimState | None
+    delivery: RunDeliveryRecord | None
+
+
+def _claimable_prestate(run: RunClaimState | None, delivery: RunDeliveryRecord | None, *, enqueue_seq: int) -> bool:
+    if run is None:
+        return False
+    status = RunStatus(run.status)
+    if run.enqueue_seq != enqueue_seq or status is not RunStatus.QUEUED:
+        return False
+    if (
+        delivery is None
+        or delivery.run_id != run.run_id
+        or delivery.enqueue_seq != enqueue_seq
+        or delivery.queue_name != run.queue_name
+        or delivery.priority != run.priority
+    ):
+        msg = "Queued Run has missing or inconsistent exact delivery authority"
+        raise RuntimeError(msg)
+    state = RunDeliveryState(delivery.state)
+    if state is RunDeliveryState.HELD:
+        return False
+    if state not in {RunDeliveryState.PENDING, RunDeliveryState.PUBLISHED}:
+        msg = "Queued Run has an already claimed or settled delivery"
+        raise RuntimeError(msg)
+    return True
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -203,11 +261,16 @@ class RunLedger(Protocol):
         """Replace one unclaimed delivery with a fresh key while preserving its mode."""
         ...
 
-    async def try_claim_run(self, run_id: str, *, enqueue_seq: int) -> bool:
+    async def try_claim_run(self, run_id: str, *, enqueue_seq: int) -> RunClaimAttempt:
         """Claim QUEUED → RUNNING for this exact PENDING or PUBLISHED delivery.
 
-        A broker worker may arrive before publication acknowledgement is recorded.
+        The outcome covers the operation, commit and session exit. A failed attempt
+        may be observed only after this boundary completes, under the same guard.
         """
+        ...
+
+    async def observe_claim(self, run_id: str, *, enqueue_seq: int) -> RunClaimObservation:
+        """Observe exact claim authority after a completed failed attempt."""
         ...
 
     async def try_fail_queued(self, run_id: str, *, enqueue_seq: int, error: str) -> bool:
@@ -603,24 +666,37 @@ class InMemoryRunLedger:
         )
         return record.enqueue_seq
 
-    async def try_claim_run(self, run_id: str, *, enqueue_seq: int) -> bool:
-        """Claim the exact queued hop on the loop; stale/duplicate deliveries lose."""
-        record = self._require(run_id)
-        delivery = self._deliveries.get((run_id, enqueue_seq))
-        if (
-            record.status is not RunStatus.QUEUED
-            or record.enqueue_seq != enqueue_seq
-            or delivery is None
-            or delivery.state not in {RunDeliveryState.PENDING, RunDeliveryState.PUBLISHED}
-        ):
-            return False
-        _apply_status(record, RunStatus.RUNNING, error=None)
-        self._deliveries[(run_id, enqueue_seq)] = replace(
-            delivery,
-            state=RunDeliveryState.CLAIMED,
-            claimed_at=datetime.now(UTC),
+    async def try_claim_run(self, run_id: str, *, enqueue_seq: int) -> RunClaimAttempt:
+        """Check and mutate one exact hop without yielding the loop."""
+        attempted = False
+        try:
+            record = self._runs.get(run_id)
+            delivery = self._deliveries.get((run_id, enqueue_seq))
+            state = (
+                RunClaimState(record.run_id, record.enqueue_seq, record.status, record.queue_name, record.priority)
+                if record is not None
+                else None
+            )
+            if not _claimable_prestate(state, delivery, enqueue_seq=enqueue_seq) or record is None or delivery is None:
+                return RunClaimAttempt(acknowledged=False, attempted_after_locked_prestate=False)
+            attempted = True
+            _apply_status(record, RunStatus.RUNNING, error=None)
+            self._deliveries[(run_id, enqueue_seq)] = replace(
+                delivery, state=RunDeliveryState.CLAIMED, claimed_at=datetime.now(UTC)
+            )
+        except BaseException as exc:  # noqa: BLE001 - complete outcome retains fatal trees for worker classification
+            return RunClaimAttempt(None, attempted, exc)
+        return RunClaimAttempt(acknowledged=True, attempted_after_locked_prestate=True)
+
+    async def observe_claim(self, run_id: str, *, enqueue_seq: int) -> RunClaimObservation:
+        """Read the loop-confined pair without an intervening await."""
+        record = self._runs.get(run_id)
+        return RunClaimObservation(
+            RunClaimState(record.run_id, record.enqueue_seq, record.status, record.queue_name, record.priority)
+            if record is not None
+            else None,
+            self._deliveries.get((run_id, enqueue_seq)),
         )
-        return True
 
     async def try_fail_queued(self, run_id: str, *, enqueue_seq: int, error: str) -> bool:
         """Fail only the exact unclaimed queued hop after publication refusal."""
@@ -920,9 +996,22 @@ class DbRunLedger:
     process-local side map.
     """
 
-    def __init__(self, *, session_factory: async_sessionmaker[AsyncSession]) -> None:
-        """Bind the ledger to a session factory (typically `get_session_factory()`)."""
+    def __init__(
+        self,
+        *,
+        session_factory: async_sessionmaker[AsyncSession],
+        claim_observer: Callable[..., Awaitable[RunClaimObservation]] | None = None,
+    ) -> None:
+        """Bind ordinary transactions and the exceptional disposable observer."""
         self._session_factory = session_factory
+        self._claim_observer = claim_observer
+
+    async def observe_claim(self, run_id: str, *, enqueue_seq: int) -> RunClaimObservation:
+        """Use only the composed disposable observer; never a pooled fallback."""
+        if self._claim_observer is None:
+            msg = "The exceptional Run claim observer is not configured"
+            raise RuntimeError(msg)
+        return await self._claim_observer(run_id, enqueue_seq=enqueue_seq)
 
     async def create(
         self,
@@ -1265,51 +1354,94 @@ class DbRunLedger:
             )
             return next_seq
 
-    async def try_claim_run(self, run_id: str, *, enqueue_seq: int) -> bool:
-        """Claim the exact delivery and Run in one PostgreSQL transaction."""
-        from sqlalchemy import func, update
+    async def try_claim_run(self, run_id: str, *, enqueue_seq: int) -> RunClaimAttempt:
+        """Lock exact prestate, attempt once, and retain body and cleanup failures."""
+        from sqlalchemy import func, select, update
 
         from lychd.db.models import Run, RunDelivery
 
-        async with self._session_factory() as session:
-            now = datetime.now(UTC)
-            run_result = cast(
-                "CursorResult[Any]",
-                await session.execute(
-                    update(Run)
-                    .where(
-                        Run.id == UUID(run_id),
-                        Run.status == RunStatus.QUEUED.value,
-                        Run.enqueue_seq == enqueue_seq,
+        attempted = False
+        acknowledged = False
+        failure: BaseException | None = None
+        cleanup_failure: BaseException | None = None
+        try:
+            async with self._session_factory() as session:
+                try:
+                    row = await session.scalar(
+                        select(Run).where(Run.id == UUID(run_id)).with_for_update().execution_options(autoflush=False)
                     )
-                    .values(
-                        status=RunStatus.RUNNING.value,
-                        started_at=func.coalesce(Run.started_at, now),
-                        error=None,
+                    state = (
+                        RunClaimState(
+                            str(row.id), row.enqueue_seq, RunStatus(str(row.status)), row.queue_name, row.priority
+                        )
+                        if row is not None
+                        else None
                     )
-                ),
-            )
-            if run_result.rowcount != 1:
-                await session.rollback()
-                return False
-            delivery_result = await session.execute(
-                update(RunDelivery)
-                .where(
-                    RunDelivery.run_id == UUID(run_id),
-                    RunDelivery.enqueue_seq == enqueue_seq,
-                    RunDelivery.state.in_((RunDeliveryState.PENDING.value, RunDeliveryState.PUBLISHED.value)),
-                )
-                .values(
-                    state=RunDeliveryState.CLAIMED.value,
-                    claimed_at=now,
-                )
-                .returning(RunDelivery.id)
-            )
-            if delivery_result.scalar_one_or_none() is None:
-                await session.rollback()
-                return False
-            await session.commit()
-            return True
+                    delivery = None
+                    if state is not None and state.enqueue_seq == enqueue_seq and state.status is RunStatus.QUEUED:
+                        delivery_row = await session.scalar(
+                            select(RunDelivery)
+                            .where(RunDelivery.run_id == UUID(run_id), RunDelivery.enqueue_seq == enqueue_seq)
+                            .with_for_update()
+                            .execution_options(autoflush=False)
+                        )
+                        if delivery_row is not None:
+                            delivery = RunDeliveryRecord(
+                                run_id=str(delivery_row.run_id),
+                                enqueue_seq=delivery_row.enqueue_seq,
+                                queue_name=delivery_row.queue_name,
+                                priority=delivery_row.priority,
+                                resume=delivery_row.resume,
+                                state=RunDeliveryState(str(delivery_row.state)),
+                            )
+                    if _claimable_prestate(state, delivery, enqueue_seq=enqueue_seq):
+                        now = datetime.now(UTC)
+                        attempted = True
+                        run_result = cast(
+                            "CursorResult[Any]",
+                            await session.execute(
+                                update(Run)
+                                .where(
+                                    Run.id == UUID(run_id),
+                                    Run.status == RunStatus.QUEUED.value,
+                                    Run.enqueue_seq == enqueue_seq,
+                                )
+                                .values(
+                                    status=RunStatus.RUNNING.value,
+                                    started_at=func.coalesce(Run.started_at, now),
+                                    error=None,
+                                )
+                            ),
+                        )
+                        if run_result.rowcount != 1:
+                            msg = "Run claim changed after its locked prestate"
+                            raise RuntimeError(msg)  # noqa: TRY301 - retained by the complete attempt boundary
+                        delivery_result = await session.execute(
+                            update(RunDelivery)
+                            .where(
+                                RunDelivery.run_id == UUID(run_id),
+                                RunDelivery.enqueue_seq == enqueue_seq,
+                                RunDelivery.state.in_(
+                                    (RunDeliveryState.PENDING.value, RunDeliveryState.PUBLISHED.value)
+                                ),
+                            )
+                            .values(state=RunDeliveryState.CLAIMED.value, claimed_at=now)
+                            .returning(RunDelivery.id)
+                        )
+                        if delivery_result.scalar_one_or_none() is None:
+                            msg = "Run delivery changed after its locked prestate"
+                            raise RuntimeError(msg)  # noqa: TRY301 - retained by the complete attempt boundary
+                        await session.commit()
+                        acknowledged = True
+                except BaseException as exc:
+                    failure = exc
+                    raise
+        except BaseException as exc:  # noqa: BLE001 - cleanup must not erase the original body error
+            if failure is None:
+                failure = exc
+            elif exc is not failure:
+                cleanup_failure = exc
+        return RunClaimAttempt(acknowledged if failure is None else None, attempted, failure, cleanup_failure)
 
     async def try_fail_queued(self, run_id: str, *, enqueue_seq: int, error: str) -> bool:
         """CAS one exact unclaimed QUEUED delivery to FAILED."""

@@ -14,6 +14,7 @@ export type PendingOffering = Readonly<{
 export type ConsentDecision = Readonly<{
   sessionId: string;
   verdict: "approve" | "deny";
+  reviewBindingDigest?: string;
   sending: boolean;
   error: string;
   settled?: true;
@@ -35,7 +36,7 @@ export function createBridgeWorkspace() {
   const refused = new SvelteMap<string, ReadonlyArray<{ requestId: string; text: string; error: string }>>();
   // Local response generations fence reads overtaken by a mutation; not Run cursors.
   const settlements = new SvelteMap<string, number>();
-  // Intent survives card remount; only server responses establish a verdict.
+  // Verdict and review identity survive remount; only server responses settle them.
   const consentDecisions = new SvelteMap<string, ConsentDecision>();
   return {
     drafts,

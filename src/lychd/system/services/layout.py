@@ -13,6 +13,8 @@ import structlog
 from lychd.system.binding_sites import (
     DEFAULT_BINDING_SITES,
     PRIVATE_BINDING_SITE_MODE,
+    BindingSiteState,
+    inspect_binding_site,
 )
 from lychd.system.constants import (
     HOST_LAYOUT,
@@ -39,8 +41,6 @@ from lychd.system.services.lifecycle.models import (
 )
 
 logger = structlog.get_logger()
-
-_BINDING_SITES = frozenset(DEFAULT_BINDING_SITES.paths)
 
 
 @dataclass(frozen=True, slots=True)
@@ -81,16 +81,19 @@ class LayoutService:
         *,
         on_created: Callable[[CreatedResources], None] | None = None,
     ) -> CreatedResources:
-        """Synchronize the physical layout with the system blueprint."""
+        """Admit binding paths before effects, then create or preserve the layout."""
         created_batches: list[CreatedResources] = []
         skipped_paths: list[str] = []
+        binding_paths = frozenset(DEFAULT_BINDING_SITES.initialization_paths)
+        for path in self.paths:
+            if path in binding_paths:
+                self._require_binding_path(path)
 
         for path in self.paths:
+            if path in binding_paths:
+                self._require_binding_path(path)
             if os.path.lexists(path):
-                if path == PATH_POSTGRESS_DATA_DIR:
-                    inspect_preserved_datastore(path)
-                else:
-                    require_existing_directory(path)
+                self._preserve_existing_path(path)
                 logger.debug("layout_path_exists_skipped", path=str(path))
                 skipped_paths.append(str(path))
                 continue
@@ -125,12 +128,22 @@ class LayoutService:
         )
         return combined
 
+    @staticmethod
+    def _preserve_existing_path(path: Path) -> None:
+        """Keep the datastore exception exact and binding preservation admitted."""
+        if path == PATH_POSTGRESS_DATA_DIR:
+            inspect_preserved_datastore(path)
+        else:
+            require_existing_directory(path)
+        if path in DEFAULT_BINDING_SITES.initialization_paths:
+            LayoutService._require_binding_path(path, prepared=True)
+
     def _provision_path(self, path: Path) -> _ProvisionedPath:
         """Provision one path while keeping rollback evidence private."""
         directories = DirectoryProvisioning()
         attempt = _SubvolumeAttempt()
         try:
-            if path in _BINDING_SITES:
+            if path in DEFAULT_BINDING_SITES.initialization_paths:
                 return self._provision_binding_site(path, directories)
             if path == PATH_POSTGRESS_DATA_DIR:
                 return self._provision_postgres(path, directories, attempt)
@@ -146,15 +159,27 @@ class LayoutService:
             )
 
     @staticmethod
+    def _require_binding_path(path: Path, *, prepared: bool = False) -> None:
+        """Apply binding law to the target and its shared binding parent."""
+        for component in DEFAULT_BINDING_SITES.initialization_paths:
+            if component not in {path, path.parent}:
+                continue
+            inspection = inspect_binding_site(component, current_uid=os.getuid())
+            if inspection.state is BindingSiteState.BLOCKED or (prepared and not inspection.prepared):
+                message = f"Unsafe binding component {component}: {inspection.detail}"
+                raise RuntimeError(message)
+
+    @staticmethod
     def _provision_binding_site(
         path: Path,
         directories: DirectoryProvisioning,
     ) -> _ProvisionedPath:
-        """Create one private binding site."""
+        """Create a private binding path and recheck admission before journaling."""
         directories.create(
             path,
             mode=PRIVATE_BINDING_SITE_MODE,
         )
+        LayoutService._require_binding_path(path, prepared=True)
         logger.info(
             "layout_binding_site_created",
             path=str(path),

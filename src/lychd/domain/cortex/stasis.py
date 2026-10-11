@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import copy
+import json
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from dataclasses import dataclass, fields, is_dataclass
 from datetime import UTC, datetime
@@ -144,7 +145,9 @@ class DurableStasisPhylactery:
 
     Decode uses only the already resolved graph's node classes. The decoder never
     imports a class named by stored data and never makes a running/error snapshot
-    replayable. The worker separately validates the pinned Pattern and wait owner.
+    replayable. Typed values are validated as JSON on both write and restore,
+    preserving each declared type's strict JSON semantics. The worker separately
+    validates the pinned Pattern and wait owner.
     """
 
     def __init__(self, *, job_id: str, store: StasisStore) -> None:
@@ -266,10 +269,10 @@ class DurableStasisPhylactery:
                 values = {key: value for key, value in document.node.items() if key != "node_id"}
                 _validate_node_fields(node_id, node_type, values)
                 adapter = self._node_adapters.get(node_id)
-                node = adapter.validate_python(values) if adapter is not None else node_type()
+                node = adapter.validate_json(json.dumps(values)) if adapter is not None else node_type()
                 snapshots.append(
                     NodeSnapshot(
-                        state=self._state_adapter.validate_python(document.state),
+                        state=self._state_adapter.validate_json(json.dumps(document.state)),
                         node=node,
                         id=document.id,
                         status=document.status,
@@ -284,8 +287,8 @@ class DurableStasisPhylactery:
                     raise ValueError(msg)
                 snapshots.append(
                     EndSnapshot(
-                        state=self._state_adapter.validate_python(terminal.state),
-                        result=End(self._output_adapter.validate_python(terminal.result["data"])),
+                        state=self._state_adapter.validate_json(json.dumps(terminal.state)),
+                        result=End(self._output_adapter.validate_json(json.dumps(terminal.result["data"]))),
                         id=terminal.id,
                         ts=terminal.ts,
                     )
@@ -296,14 +299,14 @@ class DurableStasisPhylactery:
         return snapshots
 
     async def _save(self, snapshots: list[Snapshot[Any, Any]]) -> None:
-        """Validate serialized state, nodes, and output before replacing retained history."""
+        """Validate JSON state, nodes, and output before replacing retained history."""
         if self._state_adapter is None or self._output_adapter is None:
             msg = "snapshot graph types must be set"
             raise RuntimeError(msg)
         documents: list[dict[str, Any]] = []
         for snapshot in snapshots:
             state = self._state_adapter.dump_python(snapshot.state, mode="json")
-            self._state_adapter.validate_python(state)
+            self._state_adapter.validate_json(json.dumps(state))
             if isinstance(snapshot, NodeSnapshot):
                 node_id = snapshot.node.get_node_id()
                 if self._nodes.get(node_id) is not type(snapshot.node):
@@ -313,7 +316,7 @@ class DurableStasisPhylactery:
                 values = cast("dict[str, Any]", adapter.dump_python(snapshot.node, mode="json")) if adapter else {}
                 _validate_node_fields(node_id, type(snapshot.node), values)
                 if adapter is not None:
-                    adapter.validate_python(values)
+                    adapter.validate_json(json.dumps(values))
                 documents.append(
                     _NodeDocument(
                         kind="node",
@@ -327,7 +330,7 @@ class DurableStasisPhylactery:
                 )
             else:
                 output = self._output_adapter.dump_python(snapshot.result.data, mode="json")
-                self._output_adapter.validate_python(output)
+                self._output_adapter.validate_json(json.dumps(output))
                 documents.append(
                     _EndDocument(
                         kind="end",

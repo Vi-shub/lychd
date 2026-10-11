@@ -5,7 +5,7 @@ icon: material/cellphone-link
 
 # :material-cellphone-link: Companion
 
-Press to speak, inspect the words, and submit a bounded handoff. Later, an exact settled result can appear as text and optionally speech. Companion owns this mobile device experience—including privacy, disclosure, configuration, reconnect, and the difference between committed text and sound the handset actually delivered.
+Press to speak, inspect the words, and submit a bounded handoff. Later, an exact settled result can appear as text, with speech governed by the admitted presentation policy. Companion owns this mobile device experience—including privacy, disclosure, configuration, reconnect, and the difference between committed text and sound the handset actually delivered.
 
 The phone itself is a [Familiar](../familiar/index.md) body. [Avatar](../avatar/index.md) may present the Lich through it. Those relations grant neither body authority to the client nor identity to the screen.
 

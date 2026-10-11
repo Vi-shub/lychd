@@ -64,9 +64,12 @@ a dedicated high-entropy HTTP Basic credential before receiving the fixed local 
 credential belongs only to the Vessel and the host operator; shared Pod membership grants no
 access. Unsafe requests with a foreign Origin are refused even when their CSRF token is valid.
 This local credential does not establish remote identity, object isolation, or effect-time
-revocation. Dedicated-profile browser operation remains subject to its acceptance evidence;
-peer, proxy, tunnel, and non-loopback operation remain refused. The raw SAQ administrative UI
-is disabled: its traceback and broker-mutation surfaces are not admitted operator projections.
+revocation. Dedicated-profile browser operation remains subject to its acceptance evidence.
+The [isolated developer fixture](11-backend.md#isolated-developer-fixture-designed) may use its
+configured loopback Vite proxy while retaining the same authentication, Host, CORS, Origin, and
+CSRF checks. Peer access, production access through a proxy, tunnels, and non-loopback operation
+remain refused. The raw SAQ administrative UI is disabled: its traceback and broker-mutation
+surfaces are not admitted operator projections.
 
 Secrets remain references in Codex and Runes, are emitted only for a unit that needs them, and are
 absent from lower-trust child environments, receipts, errors, and command lines. A Tomb supervisor

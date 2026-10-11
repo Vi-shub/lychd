@@ -332,8 +332,9 @@ facts, delivery, playback, and their chronology.
 
 ### [EgressDecision](../adr/09-security.md#portal-privatization-and-egress) { #egressdecision }
 
-The Portal Egress Gate's allow-or-deny record for one exact payload, principal, purpose,
-destination, provider, model, policy revision, and receipt.
+The Egress Gate's restricted local allow-or-deny record for one exact remote disclosure, binding
+payload, principal, purpose, target, policy, and disclosure basis. Its target may be a Portal,
+A2A peer, or delegated runtime.
 
 ### [Encounter](../compositions/spectre/encounter.md) { #encounter }
 
@@ -444,11 +445,6 @@ admitted virtual place is a distinct `VRHabitat@1`. A Habitat does not by itself
 Context, device, world, or effect authority.
 
 [Spectre Habitat](../compositions/spectre/habitat.md)
-
-### [Hard Refusal](../adr/27-memory.md) { #hard-refusal }
-
-The retrieval policy that forbids an Agent from guessing when no Archive result clears the
-declared similarity threshold.
 
 ### [Hexanomicon](../index.md) { #hexanomicon }
 
@@ -795,7 +791,7 @@ Coffin without disclosing the real secret.
 ### [Pulse](../adr/19-cli.md) { #pulse }
 
 The `lychd` operator CLI and its closed `init`, `bind`, `start`, `stop`, `status` (alias `st`),
-`logs`, and `del` grammar.
+`logs`, `access`, and `del` grammar.
 
 [CLI source](https://github.com/hexanomicon/lychd/tree/main/src/lychd/cli/)
 
@@ -933,7 +929,8 @@ mounts, and secret references.
 
 ### [Sovereignty Wall](../adr/09-security.md) { #sovereignty-wall }
 
-The Security-owned privacy and egress boundary enforced by Dispatcher routing.
+The designed Security-owned boundary for admitting remote disclosure and checking the exact
+payload immediately before transmission.
 
 [Dispatcher](../adr/22-dispatcher.md)
 
@@ -1131,8 +1128,7 @@ Spellweaver’s short name in code, existing paths, and compatibility references
 
 ### [Whim](../adr/23-orchestrator.md#1-the-tipping-point-whim-algorithm) { #whim }
 
-The designed priority-weighted Orchestrator strategy whose current Codex fields are validated
-but inert.
+The designed priority-weighted Orchestrator strategy.
 
 ### [Whispers](../adr/19-cli.md) { #whispers }
 

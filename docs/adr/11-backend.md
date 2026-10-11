@@ -12,7 +12,7 @@ icon: material/star-shooting-outline
 
 ## Decision
 
-`src/lychd/app.py:create_app()` is the Vessel composition root. It creates one Litestar
+`src/lychd/app.py:create_app()` is the production Vessel composition root. It creates one Litestar
 application with `AppInit`; imports and route declarations do not mutate a pre-existing app.
 Core controllers and the compiled Altar fallback are collected there. Extensions are selected
 explicitly, receive a host-created context, and contribute shaped records rather than arbitrary
@@ -27,7 +27,7 @@ not construct the ASGI application.
 The runtime is one Granian/Litestar process and one event loop. The native launcher rejects
 multi-worker and reload configuration. The launcher and `create_app()` call one pure server policy
 which rejects server-visible worker/reload variables and detectable direct Litestar/Granian
-arguments.
+arguments, including Granian reload paths and include/exclude filters that activate reload.
 
 Listener authority resolves explicit `--port`, then `LITESTAR_PORT`, `GRANIAN_PORT`,
 and the configured server port; the native launcher publishes that result before Litestar loads
@@ -36,6 +36,9 @@ only `127.0.0.1` or `::1` from `--host`/`-H`, `LITESTAR_HOST`, or `GRANIAN_HOST`
 `127.0.0.1`, and publishes that host before delegation. File-descriptor and UNIX-domain-socket
 arguments or Litestar/Granian environment overrides are refused, including `GRANIAN_FILE_DESCRIPTOR`
 and `GRANIAN_UDS`: otherwise they would bypass the owned TCP host rather than refine it.
+The native launcher also refuses an enabled Granian metrics listener: it opens a separate socket
+outside application admission. It preserves metrics disablement and empty alternate-listener
+settings through delegation so later dotenv loading cannot add another listener.
 Native short-option clusters are expanded before policy validation; admitted debug/PDB flags
 cannot hide a host, port, worker, reload, or alternate-listener option. Unknown short options are
 refused and require an explicit long spelling. The caged image's intentional internal
@@ -47,7 +50,7 @@ scalability claim or permission to use another launcher.
 
 ## Lifespan and ownership
 
-Application initialization creates the typed Settings generation, selected extension assembly, and
+Production initialization creates the typed Settings generation, selected extension assembly, and
 validated Rune registry; installs routes, middleware, framework plugins, and dependency providers;
 then enters its lifespan. Startup crosses these boundaries in order:
 
@@ -65,6 +68,41 @@ weaken durable startup. [Workers (14)](14-workers.md) owns exact recovery order 
 Any failed startup follows the same reverse order as shutdown: stop in-process workers, withdraw
 the run substrate, close services, then disconnect queues. A collaborator therefore cannot outlive
 what it reads. There is no hot-reload contract.
+
+### Isolated developer fixture (Designed)
+
+One explicit developer entry may compose a disposable, read-only fixture for local browser work.
+Production remains the default. The fixture is selected before ambient Settings sources, Rune or
+extension discovery, or database and SAQ construction can run. It receives explicit Settings,
+fresh fixture-only credentials, and empty Rune and extension assemblies; it reads no operator
+configuration, secrets, or runtime control files.
+
+The fixture shares the real controllers, dependency providers, OpenAPI, authentication, Host,
+CORS, Origin, and CSRF boundaries. An additional admission guard refuses every unsafe HTTP
+method before controller or domain admission, including unversioned routes. Valid credentials
+do not permit fixture mutations. Reads remain free of execution and host effects. The common
+pure server policy still requires one process, one event loop, and a loopback TCP listener,
+refusing reload, extra workers, alternate sockets, and a separate metrics listener. This fixture
+grants no VPN, tunnel, or remote access.
+
+Existing memory repositories retain one visibly labelled synthetic conversation and terminal
+Run. Bridge and Orb project that same Run and link its exact registered Pattern revision into
+Loom. Its terminal status is sample data, never evidence of graph, model, or host execution.
+The real service graph receives a refusing implementation through the existing `RuntimeActuator`
+port at construction; its queue collaborators also refuse execution. No model or delegated
+runtime is registered, and omitted queue or runtime authority is reported unavailable.
+
+A dedicated lifespan owns construction, warming the empty registry, seeding, publication, and
+closure. It publishes services only after the fixture is whole, withdraws any publication on exit,
+and closes constructed collaborators on shutdown or failed startup. It performs no Host Reactor
+admission or durable recovery, connects no queues, and starts no workers or maintenance relays.
+All fixture state ends with the process; durable operation retains the production startup and
+recovery contract above.
+
+This option admits a development composition, not a deployed Phylactery or production macOS
+support. [State of Work](../state-of-the-work.md#current-evidence-envelope) owns its delivery and
+receipt boundary; [CONTRIBUTING](https://github.com/hexanomicon/lychd/blob/main/CONTRIBUTING.md#browser-development-and-its-backend)
+owns the startup and browser workflow when supplied. This design alone establishes neither.
 
 ### Where implementation belongs
 
@@ -95,7 +133,7 @@ does not establish external tracing.
 
 ### Captured credentials and database wire values
 
-The process owns one async SQLAlchemy engine/session factory. Connection and signing secrets load
+The production process owns one async SQLAlchemy engine/session factory. Connection and signing secrets load
 once with Settings as excluded `SecretStr` fields; consuming components read the captured values
 without reopening environment variables or files. [Configuration (12)](12-configuration.md)
 owns precedence, explicit reload, and secret-free serialization.
@@ -116,7 +154,9 @@ Wider browser controls and queue/execution isolation belong to
 Tomb queue, executor, credential, mount, sandbox, or promotion authority here. Its delivery
 boundary is maintained by [State of Work](../state-of-the-work.md#tomb-untrusted-execution).
 
-Focused tests cover memory-profile composition and web contracts. A disposable two-boot receipt
+Focused tests cover memory-profile composition and web contracts. An HTTP assembly fixture
+uses the real factory and security configuration with memory services, without entering lifespan;
+it proves Host, credential, CORS, Origin, and CSRF admission, not startup. A disposable two-boot receipt
 exercises the real application factory, PostgreSQL, in-process SAQ, and asyncpg installation with an
 offline model and HTTP test client; a focused disposable receipt round-trips both plain `json` and
 JSONB through the same engine factory. Neither proves a real browser, inference engine, or deployed

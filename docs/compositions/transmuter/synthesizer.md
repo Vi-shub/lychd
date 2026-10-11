@@ -51,7 +51,7 @@ is refused, and training was never requested. An unknown downstream effect remai
 reconciled with that owner; a missing receipt is not permission to repeat the effect.
 
 Retries preserve fixed inputs and revision pins. Source changes or corrections create revised
-candidates and invalidates affected pending proposals. Past acceptances remain recorded; needed
+candidates and invalidate affected pending proposals. Past acceptances remain recorded; needed
 repairs are proposed to the responsible owner rather than silently rewriting its history.
 
 Budget exhaustion retains completed proposals and identifies unfinished work. Cancellation stops

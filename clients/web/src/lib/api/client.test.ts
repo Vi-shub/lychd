@@ -303,3 +303,39 @@ describe("transition stream lifecycle", () => {
     expect(source.closeCalls).toBe(1);
   });
 });
+
+describe("Consent decision HTTP contract", () => {
+  it.each([
+    ["approve", "a".repeat(64)],
+    ["deny", "b".repeat(64)],
+    ["approve", undefined],
+    ["deny", undefined]
+  ] as const)("serializes %s with review identity %s", async (verdict, digest) => {
+    const NativeRequest = globalThis.Request;
+    class BrowserRequest extends NativeRequest {
+      constructor(input: RequestInfo | URL, init?: RequestInit) {
+        super(typeof input === "string" ? new URL(input, "http://localhost") : input, init);
+      }
+    }
+    const sent: Request[] = [];
+    vi.stubGlobal("Request", BrowserRequest);
+    vi.stubGlobal("fetch", vi.fn(async (request: Request) => {
+      if (request.url.endsWith("/altar/status")) {
+        return Response.json({ csrf: { cookie_name: "test-csrf", header_name: "X-Test-Csrf" } });
+      }
+      sent.push(request);
+      return Response.json({ consent: {}, pending_count: 0 });
+    }));
+    document.cookie = "test-csrf=review-token";
+    vi.resetModules();
+    const { decideConsent } = await import("./client");
+    await decideConsent("consent-a", verdict, digest);
+    expect(sent).toHaveLength(1);
+    const request = sent[0]!;
+    expect(request.url).toBe("http://localhost/api/v1/bridge/consents/consent-a/decision");
+    expect(request.method).toBe("POST");
+    expect(request.headers.get("X-Test-Csrf")).toBe("review-token");
+    expect(await request.json()).toEqual(digest === undefined ? { verdict } : { verdict, review_binding_digest: digest });
+    document.cookie = "test-csrf=; Max-Age=0";
+  });
+});

@@ -120,3 +120,24 @@ async def test_drained_false_on_timeout_with_survivor() -> None:
     ledger = LeaseLedger()
     ledger.acquire(_grant(grant_id="g1", animator_name="titan"), priority=50, admission_generation=0)
     assert await ledger.drained(["titan"], timeout=0.05) is False
+
+
+@pytest.mark.asyncio
+async def test_drain_handoff_is_absent_when_clear_and_exact_when_waiting(monkeypatch: pytest.MonkeyPatch) -> None:
+    ledger = LeaseLedger()
+    loop = asyncio.get_running_loop()
+    now = loop.time()
+    monkeypatch.setattr(loop, "time", lambda: now)
+    cutoffs: list[float] = []
+    assert await ledger.drained(["titan"], timeout=5, on_wait_deadline=cutoffs.append)
+    assert cutoffs == []
+    ledger.acquire(_grant(grant_id="g1"), priority=50, admission_generation=0)
+    draining = asyncio.create_task(ledger.drained(["titan"], timeout=5, on_wait_deadline=cutoffs.append))
+    await asyncio.sleep(0)
+    assert cutoffs == [now + 5]
+    # Release and resume before the native timeout callback gets a turn. The
+    # nominal deadline still wins over newly empty accounting.
+    now += 5
+    ledger.release("g1")
+    assert await draining is False
+    assert ledger.active() == []

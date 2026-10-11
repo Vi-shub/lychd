@@ -97,8 +97,8 @@ not silently replace the selected revision with the latest Persona.
 
 Every identity-bearing Invocation or artifact records who initiated, approved, delegated and
 acted, together with the active Sigil. It retains the exact Persona, AgentSpec, Posture,
-Composition, Pattern and Invocation revisions; contributing models, providers, tools, sources and
-humans; and parent, handoff and artifact lineage. Each record identifies its evidential role:
+Composition and Pattern revisions; the exact Invocation identity; contributing models, providers,
+tools, sources and humans; and parent, handoff and artifact lineage. Each record identifies its evidential role:
 assertion, observation, evaluation, correction or promoted act. Attribution establishes these
 relationships without deciding quality, credit, fault or causal blame.
 

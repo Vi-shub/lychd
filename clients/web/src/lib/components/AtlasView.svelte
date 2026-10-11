@@ -583,6 +583,9 @@
       <h2>{linkedIntent ? "Activity linked to this project" : projectId ? "Review this activity link" : "Choose a project for this activity"}</h2>
       <a href={referenceHref({ kind: linkIntent.kind, target_id: linkIntent.targetId })} target="_blank" rel="noopener noreferrer">{linkIntent.kind === "session" ? "Conversation in Bridge" : "Run in Orb"} · {linkIntent.targetId} ↗</a>
       {#if !projectId}<p class="field-help">Select a project below, or create one. You will review the link before saving.</p>{/if}
+      {#if linkedIntent && view}
+        <button type="button" disabled={loading || editorLocked} onclick={() => { if (linkIntent) openEditor("reference", undefined, "", linkIntent); }}>Link this activity to another concern</button>
+      {/if}
       <a href={atlasHref(projectId)}>{linkedIntent ? "Finish linking" : "Cancel linking"}</a>
     </section>
   {/if}
@@ -593,6 +596,19 @@
       <button type="button" disabled={loading || editorLocked} onclick={() => void load(projectId, requestedOffset, conflict)}>Retry loading</button>
     </div>
   {/if}
+
+  {#snippet citedReference(reference: AtlasReference)}
+    <a href={referenceHref(reference)} target="_blank" rel="noopener noreferrer">{activityName(reference)} · Open in new tab ↗</a>
+    <p class="field-help">{reference.concern_id ? `Concern: ${view?.concerns.find((item) => item.id === reference.concern_id)?.statement ?? "Concern unavailable"}` : "Project as a whole"}</p>
+    <details>
+      <summary>Reference details</summary>
+      <dl>
+        <dt>Context note</dt><dd class="prose">{reference.note || "None recorded"}</dd>
+        <dt>Reference ID</dt><dd class="prose">{reference.id}</dd>
+        {#if reference.concern_id}<dt>Concern ID</dt><dd class="prose">{reference.concern_id}</dd>{/if}
+      </dl>
+    </details>
+  {/snippet}
 
   {#snippet editorPanel()}
   {#if editor}
@@ -922,7 +938,7 @@
                     <ul class="assessment-references">
                       {#each latest.reference_ids as referenceId (referenceId)}
                         {@const reference = view.references.find((item) => item.id === referenceId)}
-                        <li>{#if reference}<a href={referenceHref(reference)} target="_blank" rel="noopener noreferrer">{activityName(reference)} · Open in new tab ↗</a>{:else}Reference unavailable{/if}</li>
+                        <li>{#if reference}{@render citedReference(reference)}{:else}Reference unavailable{/if}</li>
                       {/each}
                     </ul>
                   {/if}
@@ -957,7 +973,7 @@
                           <ul class="assessment-references">
                             {#each assessment.reference_ids as referenceId (referenceId)}
                               {@const reference = view.references.find((item) => item.id === referenceId)}
-                              <li>{#if reference}<a href={referenceHref(reference)}>{reference.kind === "session" ? "Conversation" : "Run"}: {reference.target_id}</a>{:else}<span>Reference unavailable</span>{/if}</li>
+                              <li>{#if reference}{@render citedReference(reference)}{:else}<span>Reference unavailable</span>{/if}</li>
                             {/each}
                           </ul>
                         {/if}

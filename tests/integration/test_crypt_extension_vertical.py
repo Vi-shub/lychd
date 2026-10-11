@@ -6,7 +6,10 @@ import asyncio
 from pathlib import Path
 from textwrap import dedent
 from typing import cast
+from unittest.mock import Mock
 
+import httpx
+import respx
 from pydantic_ai.models.test import TestModel
 
 from lychd.config.runes.registry import load_rune_registry
@@ -18,9 +21,15 @@ from lychd.domain.animation.services.registry import AnimatorRegistry
 from lychd.domain.animation.transmute import Transmuter
 from lychd.domain.cortex.dispatcher import Dispatcher
 from lychd.domain.cortex.leases import LeaseLedger
+from lychd.domain.orchestration.actuator import RuntimeActuator
+from lychd.domain.orchestration.arbiter import TransitionArbiter
+from lychd.domain.orchestration.manager import OrchestratorManager
+from lychd.domain.orchestration.policies import DeclaredConflictPolicy
+from lychd.domain.web.schemas import build_nexus_board
 from lychd.extensions.host import AssembledExtensions
 from lychd.extensions.manager import ExtensionManager
 from lychd.system.schemas import QuadletContainer
+from tests.runtime_guards import InertSoftActivationGuard
 
 _EXTENSION_ID = "adversarial/vertical"
 _MODEL_ID = "crypt-cipher-model"
@@ -119,6 +128,7 @@ _REGISTER_SOURCE = dedent(
                     key=f"{soulstone.name}:chat:{soulstone.capability_model_id}",
                     animator_name=soulstone.name,
                     runtime=self.runtime,
+                    registrant_id="core",
                     source_kind=SourceKind.SOULSTONE,
                     family=CapabilityFamily.CHAT,
                     model_id=soulstone.capability_model_id,
@@ -156,7 +166,13 @@ _REGISTER_SOURCE = dedent(
 ).lstrip()
 
 
-def test_external_crypt_contributes_rune_adapter_capability_to_dispatcher(tmp_path: Path) -> None:
+def test_external_crypt_contributes_rune_adapter_capability_to_dispatcher(
+    tmp_path: Path,
+    respx_mock: respx.MockRouter,
+) -> None:
+    respx_mock.route(host="localhost").mock(
+        side_effect=httpx.ConnectError("local builtin runtime intentionally unavailable")
+    )
     crypt_extensions = tmp_path / "crypt" / "extensions"
     register_file = crypt_extensions / "adversarial" / "vertical" / "register.py"
     register_file.parent.mkdir(parents=True)
@@ -181,15 +197,24 @@ def test_external_crypt_contributes_rune_adapter_capability_to_dispatcher(tmp_pa
         encoding="utf-8",
     )
 
+    builtin_rune = runes_dir / "animator" / "soulstones" / "vllm" / "main.toml"
+    builtin_rune.parent.mkdir(parents=True)
+    builtin_rune.write_text('name = "builtin-stone"\nmodel_path = "/models/builtin-model.gguf"\n', encoding="utf-8")
+
     context = ExtensionManager(
-        builtins=[],
+        builtins=["animator/vllm"],
         crypt=[_EXTENSION_ID],
         crypt_root=crypt_extensions,
     ).assemble()
     extensions = AssembledExtensions(context=context)
 
     rune_schema = next(schema for schema in extensions.rune_schemas if schema.__name__ == "AdversarialCryptRune")
-    runtime_adapter = extensions.runtime_adapters[0]
+    runtime_adapter = next(adapter for adapter in extensions.runtime_adapters if adapter.runtime == "crypt-adversarial")
+    assert {item.registrant_id for item in extensions.soulstone_registrations} == {
+        "builtin:animator/vllm",
+        f"crypt:{_EXTENSION_ID}",
+    }
+    assert {item.registrant_id for item in extensions.portal_registrations} == {"builtin:animator"}
 
     runes = load_rune_registry(extensions, runes_dir)
     loaded_rune = cast("SoulstoneConfig", runes.one(rune_schema))
@@ -204,7 +229,7 @@ def test_external_crypt_contributes_rune_adapter_capability_to_dispatcher(tmp_pa
     settings = get_settings()
     manifests = Transmuter(
         settings=settings,
-        runtime_planner=RuntimeAdapterRegistry(adapters=extensions.runtime_adapters),
+        runtime_planner=RuntimeAdapterRegistry(soulstone_registrations=extensions.soulstone_registrations),
     ).transmute_all([loaded_rune])
     physical = next(
         manifest
@@ -219,10 +244,12 @@ def test_external_crypt_contributes_rune_adapter_capability_to_dispatcher(tmp_pa
             runes=runes,
             core_reserved_ports={},
         ),
-        runtime_adapters=extensions.runtime_adapters,
+        soulstone_registrations=extensions.soulstone_registrations,
+        portal_registrations=extensions.portal_registrations,
     )
     registry.ensure_loaded()
     leases = LeaseLedger()
+    _assert_attribution_projection(registry, leases)
     dispatcher = Dispatcher(registry=registry, leases=leases)
 
     async def prove_dispatch() -> None:
@@ -234,6 +261,8 @@ def test_external_crypt_contributes_rune_adapter_capability_to_dispatcher(tmp_pa
             requires_tools=True,
         ) as grant:
             assert grant.spec.key == _CAPABILITY_KEY
+            assert grant.spec.registrant_id == f"crypt:{_EXTENSION_ID}"
+            assert grant.spec == registry.get_capability(_CAPABILITY_KEY)
             assert grant.state.health == "crypt-ready"
             assert isinstance(grant.model, TestModel)
             assert [toolset.id for toolset in grant.toolsets] == ["crypt-adversarial-tools"]
@@ -243,3 +272,32 @@ def test_external_crypt_contributes_rune_adapter_capability_to_dispatcher(tmp_pa
 
     asyncio.run(prove_dispatch())
     assert leases.active() == []
+
+
+def _assert_attribution_projection(registry: AnimatorRegistry, leases: LeaseLedger) -> None:
+    capabilities = registry.list_capabilities()
+    by_key = {spec.key: spec for spec in capabilities}
+    crypt_spec = by_key[_CAPABILITY_KEY]
+    assert crypt_spec.registrant_id == f"crypt:{_EXTENSION_ID}"
+    assert by_key["builtin-stone:chat:builtin-model"].registrant_id == "builtin:animator/vllm"
+    capabilities.clear()
+    detached = crypt_spec.model_dump()
+    detached["registrant_id"] = "core"
+    assert registry.get_capability(_CAPABILITY_KEY) == crypt_spec
+    assert len(registry.list_capabilities()) == 2
+    orchestrator = OrchestratorManager(
+        Mock(),
+        registry,
+        leases=leases,
+        policy=DeclaredConflictPolicy(),
+        arbiter=TransitionArbiter(),
+        actuator=Mock(spec=RuntimeActuator),
+        switching=get_settings().orchestration.switching,
+        soft_activation_guard=InertSoftActivationGuard(),
+    )
+    statuses = {row["capability_key"]: row for row in orchestrator.list_capability_statuses()}
+    assert statuses[_CAPABILITY_KEY]["registrant_id"] == f"crypt:{_EXTENSION_ID}"
+    board = build_nexus_board(orchestrator, registry)
+    rows = {row.capability_key: row for _, group in board.covens for row in group}
+    assert rows[_CAPABILITY_KEY].registrant_id == f"crypt:{_EXTENSION_ID}"
+    assert rows["builtin-stone:chat:builtin-model"].registrant_id == "builtin:animator/vllm"

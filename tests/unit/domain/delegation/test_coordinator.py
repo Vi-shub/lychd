@@ -561,6 +561,98 @@ async def test_cancel_rehydrates_effect_free_reference_job_after_restart() -> No
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("prompt_length", "expected_status"),
+    [
+        (1_048_546, DelegatedAgentJobStatus.SUCCEEDED),
+        (1_048_547, DelegatedAgentJobStatus.SUCCEEDED),
+        (1_048_576, DelegatedAgentJobStatus.SUCCEEDED),
+    ],
+    ids=["exact-result-limit", "one-over-result-limit", "maximum-request"],
+)
+async def test_reference_result_limit_settles_after_restart(
+    prompt_length: int,
+    expected_status: DelegatedAgentJobStatus,
+) -> None:
+    store = InMemoryDelegatedAgentJobStore()
+    runtime = ReferenceDelegatedAgentRuntime()
+    coordinator = DelegatedAgentCoordinator(runtimes={runtime.name: runtime}, store=store)
+    request = DelegatedAgentRequest(
+        request_id="reference-output-boundary",
+        run_id="reference-output-run",
+        step_id="delegate",
+        runtime=runtime.name,
+        prompt="x" * prompt_length,
+    )
+    ref = await coordinator.submit(request)
+    assert await coordinator.submit(request) == ref
+
+    restarted = ReferenceDelegatedAgentRuntime()
+    recovered = DelegatedAgentCoordinator(runtimes={restarted.name: restarted}, store=store)
+    settled = await recovered.refresh(ref.job_id)
+
+    assert settled.status is expected_status
+    assert settled.result is not None
+    complete_output = f"Reference delegate completed: {request.prompt}"
+    marker = "\n...[truncated]"
+    expected_output = (
+        complete_output if len(complete_output) <= 1_048_576 else complete_output[: 1_048_576 - len(marker)] + marker
+    )
+    assert settled.result.output == expected_output
+    assert settled.result.error is None
+    assert settled.request == request
+    assert await recovered.refresh(ref.job_id) == settled
+    assert _reference_projection_count(restarted) == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("lost", [False, True], ids=["running", "previously-lost"])
+async def test_cancel_rehydrates_maximum_reference_request(*, lost: bool) -> None:
+    """Persisted requests from before the fix must remain containable."""
+    store = InMemoryDelegatedAgentJobStore()
+    request = DelegatedAgentRequest(
+        request_id="reference-large-cancel",
+        run_id="reference-large-run",
+        step_id="delegate",
+        runtime="reference",
+        prompt="x" * 1_048_576,
+    )
+    ref = DelegatedAgentJobRef(
+        job_id="reference-large-job",
+        request_id=request.request_id,
+        run_id=request.run_id,
+        runtime=request.runtime,
+    )
+    await store.create(request, ref)
+    for status in (
+        DelegatedAgentJobStatus.ADMITTED,
+        DelegatedAgentJobStatus.PREPARING,
+    ):
+        await store.transition(ref.job_id, status)
+    if lost:
+        await store.adopt(
+            ref.job_id,
+            DelegatedAgentResult(
+                job_id=ref.job_id,
+                status=DelegatedAgentJobStatus.LOST,
+                error="previous reference result validation failed",
+            ),
+        )
+    else:
+        await store.transition(ref.job_id, DelegatedAgentJobStatus.RUNNING)
+    runtime = ReferenceDelegatedAgentRuntime()
+    coordinator = DelegatedAgentCoordinator(runtimes={runtime.name: runtime}, store=store)
+
+    assert await coordinator.cancel(ref.job_id) is True
+    assert await coordinator.cancel(ref.job_id) is False
+    settled = await coordinator.get(ref.job_id)
+    assert settled is not None
+    assert settled.status is DelegatedAgentJobStatus.CANCELLED
+    assert settled.request == request
+    assert _reference_projection_count(runtime) == 0
+
+
+@pytest.mark.asyncio
 async def test_reference_runtime_retires_high_cardinality_terminal_projections() -> None:
     runtime = ReferenceDelegatedAgentRuntime()
     coordinator = DelegatedAgentCoordinator(

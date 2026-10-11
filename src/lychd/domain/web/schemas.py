@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Literal
 
+from lychd.domain.web.consent_reviews import NativeReviewDocument
+
 if TYPE_CHECKING:
     from lychd.agents.workflows.base import Workflow
     from lychd.domain.animation.services.registry import AnimatorRegistry
@@ -43,6 +45,10 @@ class ConsentCard:
     args: dict[str, Any]
     vision: str
     state: ConsentState = "pending_consent"
+    native_review_status: Literal["not_required", "available", "unavailable"] = "not_required"
+    native_review: NativeReviewDocument | None = None
+    review_binding_digest: str | None = None
+    can_decide: bool = False
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -62,6 +68,7 @@ class NexusCovenRow:
     checked_at: datetime | None
     dedicated: bool
     persistent_resident: bool
+    registrant_id: str | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -156,6 +163,7 @@ def build_nexus_board(orchestrator: OrchestratorManager, registry: AnimatorRegis
             animator_name=str(status["animator_name"]),
             family=str(status["family"]),
             runtime=str(status["runtime"]),
+            registrant_id=status.get("registrant_id"),
             model_id=str(status["model_id"]),
             state=_coven_state(is_dynamic=bool(status["is_dynamic"]), phase=str(status["phase"])),
             is_active=bool(status["is_active"]),

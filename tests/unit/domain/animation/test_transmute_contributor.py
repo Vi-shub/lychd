@@ -197,3 +197,35 @@ def test_transmutation_store_rejects_cross_registrant_replay() -> None:
         context.transmutation.add_contributor(contributor)
     with context.provenance("two"), pytest.raises(ValueError, match="registered by 'one'"):
         context.transmutation.add_contributor(contributor)
+
+
+@pytest.mark.parametrize(
+    "arguments",
+    [
+        ["--secret=extension-token"],
+        ["--secret", "extension-token"],
+        ['"--secret=extension-token"'],
+        ["--publish=0.0.0.0:19999:9999/udp"],
+        ["-dp0.0.0.0:19999:9999/udp"],
+        ["-itP"],
+        ["--net=host"],
+        ["--volume=/etc:/etc:ro"],
+        ["--tmpfs=/:rw"],
+        ["--future-option=enabled"],
+    ],
+)
+def test_transmuter_revalidates_contributor_lists_mutated_before_return(arguments: list[str]) -> None:
+    contributed = QuadletContainer(
+        description="Initially valid",
+        image="example/extension:latest",
+        container_name="lychd-extra",
+    )
+
+    class Contributor:
+        def contribute(self, ctx: TransmutationContext) -> QuadletContribution:
+            del ctx
+            contributed.podman_args.extend(arguments)
+            return QuadletContribution(containers=(contributed,))
+
+    with pytest.raises(ValueError, match="Raw Podman arguments"):
+        _transmuter(Contributor()).transmute_all(())

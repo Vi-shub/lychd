@@ -31,7 +31,7 @@ A cue map expresses semantics, not a rendered soundtrack. A door can choose admi
 
 ## Model-native sound fails closed
 
-Pre-execution `MediaFacetAuthoritySet@1` must declare `world_sound`, `game.foundry` revision `4`, and exact `WorldSoundBrief@1` digest. After Prism technical settlement, Foundry issues its independent `SemanticFacetAdmissionReceipt@1` over child/compound digests, use, rights, findings, and disposition. Other owners, demux, and provider labels cannot do this for it. Undeclared sound is quarantined/deleted, with no guessed event or library admission. Inseparable compounds need every required owner to accept the exact digest/use.
+Pre-execution `MediaFacetAuthoritySet@1` must declare `world_sound`, `game.foundry` revision `4`, and exact `WorldSoundBrief@1` digest. After [Prism technical settlement](../../sepulcher/extensions/prism/video.md#admit-every-compound-facet), Foundry issues its independent `SemanticFacetAdmissionReceipt@1` over child/compound digests, use, rights, findings, and disposition. Other owners, demux, and provider labels cannot do this for it. Undeclared sound is quarantined/deleted, with no guessed event or library admission. Inseparable compounds need every required owner to accept the exact digest/use.
 
 ## Neighboring offices
 

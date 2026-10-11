@@ -28,11 +28,13 @@ queues.
 
 Three distinctions keep the path honest:
 
-- Current `ArtifactRef` support is metadata only. The
-  [artifact-reference boundary](../../state-of-the-work.md#artifact-reference-contract) proves
-  neither a stored recording nor playable byte custody.
-- In the accepted design, Reliquary custody preserves source and derivation. A transcript is an
-  attributed interpretation, not a replacement for its recording.
+- `ArtifactRef` carries metadata and grants no access. The explicit
+  [local custody seam](../../state-of-the-work.md#artifact-reference-contract) can retain supplied
+  WAV bytes and feed Echo's inspector after separate authorization and admission; it captures no
+  recording and supplies no playback or speech path.
+- Reliquary's accepted design preserves source and derivation; the first local profile retains
+  source bytes and attributed claims, without a derivative graph. A transcript is an attributed
+  interpretation, not a replacement for its recording.
 - Synthesized audio is a new artifact. Generation proves neither delivery nor playback; receipts
   must state what actually reached the listener.
 

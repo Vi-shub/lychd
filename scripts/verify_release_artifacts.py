@@ -109,7 +109,7 @@ def _verify_wheel(wheel: Path, revision: str, version: str, root: Path) -> None:
         names = set(archive.namelist())
         metadata_name = _require_suffix(names, ".dist-info/METADATA", "wheel")
         metadata = archive.read(metadata_name)
-        if b"License-Expression: MPL-2.0" not in metadata:
+        if _metadata_value(metadata, "License-Expression", "wheel") != "MPL-2.0":
             message = "wheel metadata does not declare MPL-2.0"
             raise ReleaseArtifactError(message)
         if _metadata_value(metadata, "Name", "wheel") != "lychd":

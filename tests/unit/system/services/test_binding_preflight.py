@@ -5,8 +5,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
+from pydantic import SecretStr
 
-from lychd.config.settings.root import Settings
+from lychd.config.components import build_csrf_config, build_saq_config
+from lychd.config.settings import DatabaseSettings, ServerSettings, Settings, WebSettings
 from lychd.system.binding_sites import AttestedBindingSite
 from lychd.system.host_tools import TrustedExecutable
 from lychd.system.readiness import (
@@ -159,7 +161,7 @@ def test_caged_preflight_accepts_private_roots_without_existing_unit_files(
 ) -> None:
     codex = tmp_path / "lychd.toml"
     _private_file(codex)
-    settings = Settings()
+    settings = Settings.model_construct()
     _private_reactor(settings, tmp_path)
 
     report = BindingPreflightService(
@@ -314,5 +316,86 @@ def test_uncaged_preflight_checks_loaded_credentials_and_aggregates_failures(
     assert [issue.code for issue in report.issues] == [
         "uncaged-control-secret",
         "uncaged-web-secret",
+        "uncaged-access-secret",
         "uncaged-database-secret",
+        "uncaged-runtime-database-secret",
     ]
+
+
+def _uncaged_settings(*, missing_credential: str | None = None) -> Settings:
+    credentials: dict[str, SecretStr | None] = {
+        name: SecretStr(f"synthetic-preflight-credential-{name}")
+        for name in ("password", "runtime_password", "secret_key", "access_password")
+    }
+    if missing_credential is not None:
+        credentials[missing_credential] = None
+    return Settings.model_construct(
+        server=ServerSettings(
+            database=DatabaseSettings(
+                password=credentials["password"],
+                runtime_password=credentials["runtime_password"],
+            ),
+            web=WebSettings(
+                secret_key=credentials["secret_key"],
+                access_password=credentials["access_password"],
+            ),
+        )
+    )
+
+
+@pytest.mark.parametrize(
+    ("missing_credential", "code", "target"),
+    [
+        ("password", "uncaged-database-secret", "bootstrap database password"),
+        ("runtime_password", "uncaged-runtime-database-secret", "runtime database password"),
+        ("secret_key", "uncaged-web-secret", "application signing key"),
+        ("access_password", "uncaged-access-secret", "local access password"),
+    ],
+)
+def test_uncaged_preflight_rejects_each_missing_loaded_credential(
+    tmp_path: Path,
+    missing_credential: str,
+    code: str,
+    target: str,
+) -> None:
+    codex = tmp_path / "lychd.toml"
+    _private_file(codex)
+    settings = _uncaged_settings(missing_credential=missing_credential)
+
+    report = BindingPreflightService(
+        codex_path=codex,
+        legacy_vessel_unit_path=tmp_path / "systemd" / "lychd-vessel.service",
+        host_readiness=_host_ready(),
+    ).inspect(settings, uncaged=True)
+
+    assert report.ready is False
+    assert [(issue.code, issue.target) for issue in report.issues] == [(code, target)]
+    with pytest.raises(BindingPreflightError, match=target):
+        report.require_ready()
+    if missing_credential == "runtime_password":
+        with pytest.raises(ValueError, match="Required runtime database password"):
+            build_saq_config(settings)
+
+
+def test_uncaged_preflight_accepts_loaded_bootstrap_and_native_runtime_credentials(
+    tmp_path: Path,
+) -> None:
+    codex = tmp_path / "lychd.toml"
+    _private_file(codex)
+    settings = _uncaged_settings()
+
+    report = BindingPreflightService(
+        codex_path=codex,
+        legacy_vessel_unit_path=tmp_path / "systemd" / "lychd-vessel.service",
+        host_readiness=_host_ready(),
+    ).inspect(settings, uncaged=True)
+
+    assert report.ready is True
+    assert report.issues == ()
+    assert report.require_ready().systemctl_bin == "/usr/bin/systemctl"
+    assert all(
+        queue.dsn and "synthetic-preflight-credential-runtime_password" in queue.dsn
+        for queue in build_saq_config(settings).queue_configs
+    )
+    assert build_csrf_config(settings).secret == "synthetic-preflight-credential-secret_key"  # noqa: S105
+    assert settings.server.database.phoenix_password is None

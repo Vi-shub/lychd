@@ -79,11 +79,14 @@ unversioned Loom detail are deliberately not routes. Scrying is Orb's act, not a
 Artifact references and configuration observations are contextual projections, not browser custody
 or configuration authority.
 
-The browser shell may retain drafts by exact session and explicit review destinations for
-its own lifetime. This is recoverable navigation state, not a durable dossier or execution truth.
-Cross-instrument links preserve an explicit Run and selected event where supported; returning to
-Bridge focuses that Run's turn. A stale or unavailable selection is reported, never silently
-replaced with another Run.
+The browser shell may retain drafts by exact session and the last explicit Bridge session path
+for its own lifetime. The global Bridge link returns to that session without a Run hint.
+The global Orb link opens the parallel Run field at `/orb`. Until an explicit Bridge session
+path is selected, its global link stays at `/bridge`;
+the server's default session does not establish browser navigation memory. This is recoverable
+navigation state, not a durable dossier or execution truth. Cross-instrument links preserve an
+explicit Run and selected event where supported; Orb's contextual Bridge return focuses that
+Run's turn. A stale or unavailable selection is reported, never silently replaced with another Run.
 
 [Circle](../divination/altar/circle.md) is likewise not a separate instrument or route in the present
 contract. One Bridge séance may contain many Invocation/Run projections; a future Circle focus may
@@ -734,8 +737,11 @@ exceptions, constrain Host to literal loopback authorities, and expose schema JS
 documentation assets. CSRF remains an unsafe-method layer, not authentication; ordinary requests
 still receive the fixed bootstrap Sigil. The foreground launcher can expose configuration the app
 cannot observe, security-header and production-browser receipts are absent, and no remote
-principal exists. Remote, proxied, tunneled, direct-image-public, and untrusted-browser use remains
-unsupported.
+principal exists. The [isolated developer fixture](11-backend.md#isolated-developer-fixture-designed)
+may use its configured loopback Vite proxy under [Security's](09-security.md) bounded exception.
+Remote access, production access through a proxy, tunnels, direct-image-public access, and
+untrusted-browser use remain unsupported. Authenticated browser acceptance of the fixture
+remains pending.
 
 Focused checks cover Svelte/TypeScript; frontend API, cursor, remount, stream, focus-return, and
 GenUI tests; Python routes, controllers, consent, SSE, fixed root assets, and the instruments;

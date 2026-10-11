@@ -6,6 +6,7 @@
 
   import { getOrbRun } from "$lib/api/client";
   import type { OrbRunSnapshot } from "$lib/api/models";
+  import { loadedSubjects, subjectIdentity, attemptIdentity, conflictingStationAttempts } from "./orb-evidence";
   import { delegationStatusLabel } from "$lib/delegation/presentation";
   import DelegateMark from "./DelegateMark.svelte";
   import AtlasLinks from "./AtlasLinks.svelte";
@@ -27,6 +28,8 @@
 
   let { runId }: { runId?: string } = $props();
   let history = $state.raw<OrbRunSnapshot | null>(null);
+  let subjectFilter = $state("");
+  let attemptFilter = $state("");
   let loading = $state(false);
   let loadingMore = $state(false);
   let error = $state("");
@@ -54,9 +57,6 @@
   let stopLive: (() => void) | undefined;
   let metadataVersion = 0;
   let resetRecoveryUsed = false;
-  let jobFocusIdentity: string | null = null;
-  let jobFocused = false;
-  let jobFocusVersion = 0;
   let snapshot = $derived.by((): OrbRunSnapshot | null => {
     if (!history) return null;
     const latest = livePage ?? history;
@@ -74,20 +74,32 @@
   let graph = $derived(playbackSource ? projectOrb(playbackSource, pattern, playbackCursor) : null);
   let playbackIndex = $derived(playbackSource ? playbackSource.evidence.findLastIndex((record) => playbackCursor === null || record.seq <= playbackCursor) : -1);
   let playbackRecord = $derived(playbackIndex >= 0 ? playbackSource?.evidence[playbackIndex] : undefined);
+  let evidenceHeading: HTMLElement | undefined;
+  let consumedJobRequest: { runId: string; jobId: string | null } | undefined;
   let bridgeHref = $derived(snapshot ? bridgeRunHref(snapshot.run.bridge_path, snapshot.run.run_id) : null);
   let loomHref = $derived(snapshot?.pattern.loom_path ? loomOriginHref(snapshot.pattern.loom_path, snapshot.run.run_id, page.url.search) : null);
   let requestedEventId = $derived(page.url.searchParams.get("event"));
   let requestedJobId = $derived(page.url.searchParams.get("job"));
-  let selected = $derived(snapshot?.evidence.find((event) => event.event_id === requestedEventId) ?? null);
+  let selectedEventId = $derived(requestedEventId);
+  let selected = $derived(snapshot?.evidence.find((event) => event.event_id === selectedEventId) ?? null);
+  let selectionNote = $derived(snapshot && selectedEventId && !selected
+    ? snapshot.has_more
+      ? "The linked event is outside this loaded page. Load more to continue the search."
+      : "The linked event was not found in retained evidence at this read."
+    : "");
+  let loadedEvidence = $derived([...(snapshot?.evidence ?? [])].sort((left, right) => left.seq - right.seq));
+  let subjects = $derived(loadedSubjects(loadedEvidence));
+  let selectedSubject = $derived(subjects.find((subject) => subject.key === subjectFilter));
+  let visibleEvidence = $derived(loadedEvidence.filter((event) =>
+    (!subjectFilter || subjectIdentity(event) === subjectFilter) &&
+    (!attemptFilter || attemptIdentity(event) === attemptFilter)
+  ));
+  let selectedIndex = $derived(loadedEvidence.findIndex((event) => event.event_id === selected?.event_id));
+  let previousEvidence = $derived(selectedIndex > 0 ? loadedEvidence[selectedIndex - 1] : undefined);
+  let nextEvidence = $derived(selectedIndex >= 0 ? loadedEvidence[selectedIndex + 1] : undefined);
+  let conflictingAttempts = $derived(conflictingStationAttempts(loadedEvidence));
   let selectedGraphId = $derived(selected && (playbackCursor === null || selected.seq <= playbackCursor) ? orbEvidenceNodeId(selected, pattern) : graphSelection);
   let selectedGraphNode = $derived(graph?.nodes.find((node) => node.id === selectedGraphId));
-  let selectionNote = $derived(
-    !snapshot || !requestedEventId || selected
-      ? ""
-      : snapshot.has_more
-        ? "The linked event is outside this loaded page. Load more to continue the search."
-        : "The linked event is no longer present in the retained evidence."
-  );
   let linkedJobUnavailable = $derived(Boolean(
     snapshot && requestedJobId && !snapshot.delegated_jobs.some((job) => job.job_id === requestedJobId)
   ));
@@ -98,7 +110,7 @@
 
   let timeline = $derived.by((): TimelineItem[] => {
     if (!snapshot) return [];
-    const items: TimelineItem[] = snapshot.evidence.map((evidence) => ({
+    const items: TimelineItem[] = visibleEvidence.map((evidence) => ({
       type: "evidence",
       seq: evidence.seq,
       evidence
@@ -141,29 +153,29 @@
   });
 
   $effect(() => {
-    const id = runId;
     const jobId = requestedJobId;
     const current = snapshot;
-    const identity = id && jobId ? `${id}:${jobId}` : null;
-    const version = ++jobFocusVersion;
-    const loadAtFocus = loadVersion;
-    if (identity !== jobFocusIdentity) {
-      jobFocusIdentity = identity;
-      jobFocused = false;
-    }
-    if (!identity || !jobId || jobFocused || current?.run.run_id !== id ||
-        !current?.delegated_jobs.some((job) => job.job_id === jobId)) return;
+    if (!current || current.run.run_id !== runId) return;
+    if (consumedJobRequest?.runId === runId && consumedJobRequest.jobId === jobId) return;
+    // A later snapshot may resolve this hint, but only navigation requests focus.
+    const request = { runId: current.run.run_id, jobId };
+    consumedJobRequest = request;
+    if (!jobId || !current.delegated_jobs.some((job) => job.job_id === jobId)) return;
     void tick().then(() => {
-      if (version !== jobFocusVersion || loadAtFocus !== loadVersion) return;
       const target = document.getElementById(delegatedJobElementId(jobId));
-      if (!target) return;
-      jobFocused = true;
+      if (!target || consumedJobRequest !== request || runId !== request.runId || snapshot?.run.run_id !== request.runId || requestedJobId !== jobId) return;
       target.scrollIntoView?.({ block: "nearest" });
       target.focus({ preventScroll: true });
     });
   });
 
-  async function load(id: string, recovering = false) {
+
+  function retryRead() {
+    if (loading || !error || snapshot) return;
+    void load(runId, false, true);
+  }
+
+  async function load(id: string | undefined, recovering = false, preserveReadError = false) {
     const version = ++loadVersion;
     stopLive?.();
     stopLive = undefined;
@@ -178,13 +190,22 @@
     activeRunId = id;
     loading = true;
     loadingMore = false;
-    error = "";
+    if (!preserveReadError) error = "";
     loadMoreError = "";
     if (identityChanged) {
       history = null;
       playbackCursor = null;
       playbackSnapshot = null;
       selectionReturnFocus = undefined;
+      consumedJobRequest = undefined;
+      subjectFilter = "";
+      attemptFilter = "";
+    }
+    if (!id) {
+      history = null;
+      loading = false;
+      loadController = undefined;
+      return;
     }
     try {
       const next = await getOrbRun(id, { limit: 100, signal: controller.signal });
@@ -197,6 +218,7 @@
       livePage = null; liveRecords = []; liveGaps = []; liveDropped = 0; pinnedEvidence = null;
       graphSelection = null; feedNote = "";
       connectLive(next, version);
+      error = "";
     } catch (cause) {
       if (version === loadVersion) {
         error = cause instanceof Error ? cause.message : "The evidence could not be read.";
@@ -250,12 +272,30 @@
     };
   }
 
-  async function selectEvidence(evidence: Evidence, opener: HTMLElement) {
+  function captureEvidenceHeading(node: HTMLElement) {
+    evidenceHeading = node;
+    return () => {
+      if (evidenceHeading === node) evidenceHeading = undefined;
+    };
+  }
+
+  function browseSubject(value: string) {
+    subjectFilter = value;
+    attemptFilter = "";
+  }
+
+  async function stepEvidence(evidence: Evidence) {
+    // Explicit stepping follows the Run account, including records outside a subject filter.
+    if (!visibleEvidence.some((event) => event.event_id === evidence.event_id)) browseSubject("");
+    await selectEvidence(evidence);
+  }
+
+  async function selectEvidence(evidence: Evidence, opener?: HTMLElement) {
     if (!runId) return;
     selectionReturnFocus = opener;
     following = false;
     pinnedEvidence = evidence;
-    selected = evidence;
+    selectedEventId = evidence.event_id;
     const url = new URL(page.url);
     url.searchParams.set("event", evidence.event_id);
     const orbPath = `/orb/${encodeURIComponent(runId)}${url.search}` as `/orb/${string}`;
@@ -265,12 +305,15 @@
       noScroll: true
     });
     await tick();
-    selectedInspector?.focus();
+    if (snapshot?.run.run_id === runId && selected?.event_id === evidence.event_id) {
+      selectedInspector?.focus();
+    }
   }
 
   async function clearSelection() {
     if (!runId) return;
-    const target = selectionReturnFocus;
+    const target = selectionReturnFocus ?? document.getElementById(`orb-event-${selectedEventId}`);
+    selectedEventId = null;
     selectionReturnFocus = undefined;
     graphSelection = null;
     pinnedEvidence = null;
@@ -279,11 +322,12 @@
     const orbPath = `/orb/${encodeURIComponent(runId)}${url.search}` as `/orb/${string}`;
     await goto(resolve(orbPath), {
       replaceState: true,
-      keepFocus: target !== undefined,
+      keepFocus: true,
       noScroll: true
     });
     await tick();
     if (target?.isConnected) target.focus();
+    else evidenceHeading?.focus();
   }
 
   function connectLive(initial: OrbRunSnapshot, version: number) {
@@ -359,10 +403,13 @@
 {:else}
   <div class="instrument-deck instrument-deck--orb">
     <section class="orb-main" aria-label="Selected run evidence">
-      {#if loading && !snapshot}
-        <div class="mist"></div><div class="mist"></div>
-      {:else if error && !snapshot}
+      {#if error && !snapshot}
         <div class="turn__fault" role="alert">{error}</div>
+        <button class="rune-btn" type="button" disabled={loading} aria-busy={loading} onclick={retryRead}>
+          {loading ? "Reading…" : "Retry read"}
+        </button>
+      {:else if loading && !snapshot}
+        <div class="mist"></div><div class="mist"></div>
       {:else if snapshot}
         {#if error}<div class="turn__fault" role="alert">{error}</div>{/if}
         <header class="run-identity">
@@ -385,7 +432,7 @@
             </nav>
           </div>
           <div class="run-outcome">
-            <span class="eyebrow">Recorded status</span>
+            <span class="eyebrow">Latest fetched Run status</span>
             <span class="chip run-status" data-state={snapshot.run.status}>{snapshot.run.status.replaceAll("_", " ")}</span>
             <span class="capture-label">Capture · {snapshot.capture.replaceAll("_", " ")}</span>
           </div>
@@ -452,17 +499,57 @@
           {/if}
         </section>
 
+        <section class="loaded-browsing panel" aria-labelledby="loaded-browsing-title">
+          <h2 id="loaded-browsing-title" class="rune-head">Browse loaded evidence</h2>
+          <p class="inspector-copy">Subjects and station attempts contain only records loaded here.</p>
+          <label for="orb-subject">Recorded subject</label>
+          <select id="orb-subject" bind:value={() => subjectFilter, browseSubject}>
+            <option value="">All loaded evidence · {loadedEvidence.length} loaded records</option>
+            {#if subjectFilter && !selectedSubject}
+              <option value={subjectFilter}>Previously selected subject · 0 loaded records</option>
+            {/if}
+            {#each subjects as subject (subject.key)}
+              <option value={subject.key}>{subject.label} · {subject.records.length} loaded records</option>
+            {/each}
+          </select>
+          {#if selectedSubject?.kind === "node"}
+            <label for="orb-attempt">Station attempt</label>
+            <select id="orb-attempt" bind:value={attemptFilter}>
+              <option value="">All loaded station attempts</option>
+              {#if attemptFilter && !selectedSubject.attempts.some((attempt) => attempt.key === attemptFilter)}
+                <option value={attemptFilter}>Previously selected station attempt · 0 loaded records</option>
+              {/if}
+              {#each selectedSubject.attempts as attempt (attempt.key)}
+                <option value={attempt.key}>{attempt.label} · {attempt.count} loaded records</option>
+              {/each}
+            </select>
+          {/if}
+          {#if conflictingAttempts.length}
+            <p class="context-unavailable">
+              Station attempt IDs appear under multiple station subjects in loaded evidence:
+              {conflictingAttempts.join(", ")}. Those subjects remain separate.
+            </p>
+          {/if}
+        </section>
+
         <section class="evidence-panel panel" aria-labelledby="evidence-title">
           <div class="panel-head">
-            <h2 id="evidence-title" class="rune-head">Ordered evidence</h2>
+            <h2 id="evidence-title" class="rune-head" tabindex="-1" {@attach captureEvidenceHeading}>Ordered evidence</h2>
             <span>
-              {snapshot.evidence.length} loaded event{snapshot.evidence.length === 1 ? "" : "s"}
+              {snapshot.evidence.length} loaded records
               {snapshot.has_more ? " · more retained" : ""}
             </span>
           </div>
           <p id="evidence-order-note" class="evidence-order-note">Sequence is order, not elapsed time or causality. Timestamps use local time.</p>
+          {#if subjectFilter}
+            <p class="inspector-copy" role="status">
+              Showing {visibleEvidence.length} of {loadedEvidence.length} loaded records.
+              Other subjects or attempts are filtered out; sequence jumps alone are not evidence gaps.
+            </p>
+            <button class="text-action" type="button" onclick={() => browseSubject("")}>Show all loaded evidence</button>
+          {/if}
           <ol class="evidence-list" aria-describedby="evidence-order-note">
-            {#each timeline as item (`${item.type}-${item.seq}`)}
+            {#each timeline as item (item.type === "evidence" ? item.evidence.event_id : `gap-${item.seq}-${item.endSeq}`)}
               {#if item.type === "gap"}
                 <li class="evidence-gap">
                   <span class="evidence-seq">#{item.seq}–{item.endSeq}</span>
@@ -471,9 +558,11 @@
               {:else}
                 <li>
                   <button
-                    class={["evidence-row", { current: selected?.event_id === item.evidence.event_id }]}
-                    type="button"
+                    id={`orb-event-${item.evidence.event_id}`}
                     aria-current={selected?.event_id === item.evidence.event_id ? "true" : undefined}
+                    class:current={selected?.event_id === item.evidence.event_id}
+                    class="evidence-row"
+                    type="button"
                     onclick={(event) => void selectEvidence(item.evidence, event.currentTarget)}
                   >
                     <span class="evidence-seq">
@@ -540,17 +629,30 @@
         >
           <div class="panel-head">
             <h2 id="selected-event-title" class="rune-head">Selected event</h2>
+            <p class="inspector-copy">Selected historical evidence</p>
             <button class="sheet-dismiss" type="button" onclick={clearSelection}>Close</button>
           </div>
+          <nav class="record-navigation" aria-label="Loaded record navigation">
+            <button class="text-action" type="button" disabled={!previousEvidence} onclick={() => previousEvidence && stepEvidence(previousEvidence)}>Previous loaded record</button>
+            <button class="text-action" type="button" disabled={!nextEvidence} onclick={() => nextEvidence && stepEvidence(nextEvidence)}>Next loaded record</button>
+          </nav>
+          <p class="inspector-copy">Run sequence across all loaded records.
+            {#if !previousEvidence}Start of loaded evidence. {/if}
+            {#if !nextEvidence}End of loaded evidence{snapshot?.has_more ? "; load more retained evidence to continue" : " at this read"}.{/if}
+          </p>
+          {#if !visibleEvidence.some((event) => event.event_id === selected?.event_id)}
+            <p class="inspector-copy">The selected record is outside the current subject or attempt filter.</p>
+          {/if}
           <p class="selected-evidence-summary">{selected.summary}</p>
           <dl class="kv">
             <dt>event</dt><dd class="glyph">{selected.event_id}</dd>
             <dt>sequence</dt><dd>#{selected.seq}</dd>
             <dt>recorded at</dt><dd><time datetime={selected.occurred_at}>{new Date(selected.occurred_at).toLocaleString()}</time> (local)</dd>
             <dt>kind</dt><dd>{selected.kind}</dd>
-            <dt>subject</dt><dd>{selected.subject_key ?? "Not supplied"}</dd>
-            <dt>phase</dt><dd>{selected.phase ?? "Not supplied"}</dd>
-            <dt>occurrence</dt><dd class="glyph">{selected.occurrence_id ?? "Not supplied"}</dd>
+            <dt>{selected.kind === "node" ? "station" : selected.kind === "dispatch" ? "capability" : "subject"}</dt><dd>{selected.subject_key ?? "No recorded subject"}</dd>
+            <dt>recorded at</dt><dd><time datetime={selected.occurred_at}>{new Date(selected.occurred_at).toLocaleString()}</time></dd>
+            <dt>phase</dt><dd>{selected.phase ?? "—"}</dd>
+            <dt>station attempt (occurrence_id)</dt><dd class="glyph">{selected.occurrence_id ?? "No recorded attempt"}</dd>
             <dt>capture</dt><dd>{selected.capture.replaceAll("_", " ")}</dd>
           </dl>
           {#if selected.nexus_path}

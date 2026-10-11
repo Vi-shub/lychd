@@ -35,12 +35,13 @@ names, never their shared parents.
 
 ## Creation, binding, and deletion authority
 
-`init --dry-run` describes a plan without mutation. `init` creates missing components as `0700`,
-preserves existing modes, and journals only successful creation identities. It refuses symlinks,
-non-directories, foreign ownership, unsafe effective access or group/other writability, and unsafe
-ancestry (except an appropriate sticky root/invoker-owned directory or a foreign read-only mount).
-`bind` applies the same law while planning and committing, but never creates a missing binding
-site. The per-UID/per-Codex lifecycle lock is under fixed host `/tmp`, not caller-selected `TMPDIR`.
+`init --dry-run` describes a plan without mutation; `init` journals only successful creation
+identities. At the shared binding sites, init creates missing components as `0700` and preserves
+safe existing modes. Planning and execution refuse symlinks, non-directories, foreign ownership,
+unsafe effective access or group/other writability, and unsafe ancestry (except an appropriate
+sticky root/invoker-owned directory or a foreign read-only mount). `bind` applies the same
+binding-site law while planning and committing, but never creates a missing site. The
+per-UID/per-Codex lifecycle lock is under fixed host `/tmp`, not caller-selected `TMPDIR`.
 
 The exact existing PostgreSQL `data/` leaf is a preservation-only exception to host-UID
 ownership: rootless PostgreSQL may own it through a subordinate UID. Init verifies its real,
@@ -58,6 +59,14 @@ replaceable pathname. File publication follows the same rule: write and `fsync` 
 publish no-clobber, re-attest through the pinned parent, `fsync` the directory, then journal. A
 race winner, replacement, ambiguous result, or failed journal is preserved or quarantined as typed
 recovery; it is never broadened into deletion authority.
+
+The Designed [Reliquary profile](06-persistence.md#reliquary-custody-designed) binds an explicitly
+supplied isolated private root to its exact owned identity; it introduces no implicit Crypt path
+or container mount. Artifact identifiers and producer labels never supply unchecked path
+components. Reads and publication re-attestation use nonblocking, no-follow opens and verify the
+opened inode before reading. Payload retirement follows a durable tombstone and exact identity
+attestation, then namespace sync. Unknown names, extra hardlinks, replacements and interrupted
+outcomes remain recovery evidence rather than deletion authority.
 
 ### Retire only recorded identities
 
