@@ -223,6 +223,20 @@ default. A rootless compatibility environment may deliberately opt in with
 `TESTCONTAINERS_RYUK_PRIVILEGED=true make test-containers`; do not export that setting as a normal
 repository default.
 
+The separate Linux target-switch proof requires the installed Quadlet generator, an ordinary
+rootless Podman cache containing the exact Python image pinned in its test, and a responding user
+session bus. It exports that image without network access, then uses a private image store and
+user manager. Read the test's resource and cleanup contract before opting in:
+
+```bash
+LYCHD_REQUIRE_QUADLET_PROOF=1 make test M=container N=0 PYTEST_TARGETS=tests/integration/test_systemd_quadlet_transaction.py PYTEST_BASETEMP=/tmp/lychd-quadlet-proof
+```
+
+Choose a fresh, short `PYTEST_BASETEMP` path. The proof needs up to 1 GiB of temporary storage
+(monitored, not quota-enforced), retains its receipt there, and refuses missing prerequisites when
+explicitly required. It does not start production units, load a model or qualify the full
+Orchestrator/Host Reactor path. Without the opt-in flag, the live case skips.
+
 The optional offline music engineering profile runs without the Vessel or a native Composition:
 
 ```bash

@@ -207,7 +207,11 @@ reconciliation remain the operator's responsibility.
 
 **Proved now:** LychD generates its declared Linux service shape and provides a mediated actuator;
 Soulstone and Phoenix retain separate identities while sharing validated embedded Quadlet
-configuration.
+configuration. An isolated Linux receipt also runs the generated conflict targets through
+systemd 261.2 and Quadlet/Podman 6.0.2 with real rootless containers: the first is observed running,
+then absent before the second starts; exact owned containers and processes are cleaned up.
+The fixture uses a private user manager and image store, a pinned offline image, and no host
+mounts, ports, GPUs, model or production configuration.
 
 Compilation explicitly selects the PostgreSQL image account alongside Pod-level `keep-id`,
 confines `:U` ownership changes to its dedicated datastore, and rejects Soulstone mounts of known
@@ -224,7 +228,7 @@ with existing mapped data; compilation and mocked ownership tests do not establi
 **Evidence**
 
 - **Source:** [Quadlet configuration](https://github.com/hexanomicon/lychd/blob/main/src/lychd/config/quadlet.py)
-- **Verification:** [Runtime protocol tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_runtime.py), [datastore custody tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_datastore_custody.py), and [mount authority tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/animation/test_mount_authority.py)
+- **Verification:** [Isolated Quadlet transaction](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_systemd_quadlet_transaction.py), [runtime protocol tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_runtime.py), [datastore custody tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_datastore_custody.py), and [mount authority tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/animation/test_mount_authority.py)
 - **Law:** [Containers](./adr/08-containers.md)
 
 ### Whole-body snapshot and restore {#whole-body-snapshot-restore}
@@ -705,13 +709,15 @@ quantization, cache, split, flags, load/inference/unload, and measured VRAM.
 Animator/Coven targets. Switching attests the loaded graph and current world, performs one bounded
 compound target request, waits for systemd settlement, and classifies success or exact restoration.
 
-**Boundary:** Repository tests and a private user-manager receipt use inert services, not the
-operator's Quadlet/Podman/GPU host. Declared coexistence is not measured capacity admission.
+**Boundary:** The private user-manager receipts cover inert services and an opt-in real rootless
+Quadlet transaction using production-generated target relationships. The latter verifies container
+ordering and cleanup in an isolated fixture; it does not exercise the Orchestrator, Host Reactor,
+production pod, GPU or model. Declared coexistence is not measured capacity admission.
 
 **Evidence**
 
 - **Source:** [Conflict schema](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/animation/schemas/concurrency.py) and [runtime actuator](https://github.com/hexanomicon/lychd/blob/main/src/lychd/system/services/runtime.py)
-- **Verification:** [Conflict tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/animation/test_conflicts.py) and [private-systemd receipt](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_systemd_target_transaction.py)
+- **Verification:** [Conflict tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/animation/test_conflicts.py) and [private-systemd receipt](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_systemd_target_transaction.py), plus the [real Quadlet transaction](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_systemd_quadlet_transaction.py)
 - **Law:** [Containers](./adr/08-containers.md)
 
 ### Safe runtime transitions {#safe-runtime-transitions}
