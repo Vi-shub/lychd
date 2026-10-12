@@ -21,12 +21,30 @@ from lychd.system.services.lifecycle.models import (
 _SHA256_PREFIX = "sha256:"
 
 
-def digest_file(path: Path) -> str:
-    """Return the canonical digest of one regular file."""
+def digest_file(path: Path, *, expected: os.stat_result) -> str:
+    """Hash only the expected regular inode through a nonblocking, no-follow open."""
     digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(chunk)
+    flags = os.O_RDONLY | os.O_NONBLOCK | getattr(os, "O_NOFOLLOW", 0)
+    descriptor = -1
+    try:
+        descriptor = os.open(path, flags)
+        observed = os.fstat(descriptor)
+        if not stat.S_ISREG(observed.st_mode):
+            msg = f"Cannot digest a non-regular generated file: {path}"
+            raise LifecycleError(msg)
+        if (observed.st_dev, observed.st_ino, observed.st_uid) != (expected.st_dev, expected.st_ino, expected.st_uid):
+            msg = f"Generated file identity changed before digest: {path}"
+            raise LifecycleError(msg)
+        with os.fdopen(descriptor, "rb") as stream:
+            descriptor = -1
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                digest.update(chunk)
+    except OSError as exc:
+        msg = f"Cannot digest generated file safely: {path}"
+        raise LifecycleError(msg) from exc
+    finally:
+        if descriptor >= 0:
+            os.close(descriptor)
     return f"{_SHA256_PREFIX}{digest.hexdigest()}"
 
 

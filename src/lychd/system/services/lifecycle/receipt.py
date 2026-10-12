@@ -221,7 +221,7 @@ class LifecycleReceiptStore:
         return receipt
 
     def _read_receipt_bytes(self) -> bytes:
-        """Read a bounded receipt through a no-follow descriptor."""
+        """Read a bounded receipt without blocking on a raced special file."""
         authority = current_authority()
         if not lexically_normal(self.path) or not is_within(self.path, authority.codex_root):
             msg = f"Lifecycle receipt is outside the current Codex authority: {self.path}"
@@ -229,7 +229,7 @@ class LifecycleReceiptStore:
         if symlink := path_has_symlink_component(self.path):
             msg = f"Unsafe lifecycle receipt path component: {symlink}"
             raise LifecycleError(msg)
-        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+        flags = os.O_RDONLY | os.O_NONBLOCK | getattr(os, "O_NOFOLLOW", 0)
         try:
             descriptor = os.open(self.path, flags)
         except OSError as exc:
@@ -522,7 +522,7 @@ class LifecycleReceiptStore:
 
     @staticmethod
     def _file_entry(path: Path, *, authority: LifecycleAuthority) -> _ReceiptFile:
-        """Validate and capture one exact init-created generated file."""
+        """Capture one generated-file identity and its descriptor-bound digest."""
         if not is_allowed_init_file(path, authority=authority):
             msg = f"Initialization created an unreceiptable file: {path}"
             raise LifecycleError(msg)
@@ -542,7 +542,7 @@ class LifecycleReceiptStore:
             path=str(path),
             device=metadata.st_dev,
             inode=metadata.st_ino,
-            digest=digest_file(path),
+            digest=digest_file(path, expected=metadata),
         )
 
     @staticmethod
@@ -655,7 +655,7 @@ class LifecycleReceiptStore:
                 str(path),
                 f"recorded file is now owned by uid {metadata.st_uid}",
             )
-        if digest_file(path) != entry.digest:
+        if digest_file(path, expected=metadata) != entry.digest:
             return LifecycleAction(
                 LifecycleDisposition.BLOCKED,
                 LifecycleResourceKind.FILE,

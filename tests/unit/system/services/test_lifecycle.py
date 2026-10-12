@@ -1,15 +1,19 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+import stat
 import subprocess
 import sys
+from functools import partial
 from pathlib import Path
-from typing import TypedDict
+from typing import Any, TypedDict, cast
 
 import pytest
 
 from lychd.system import constants as lifecycle_constants
+from lychd.system.services.lifecycle.deletion_checkpoint import DeletionCheckpointStore
 from lychd.system.services.lifecycle.initialization import InitializationPlanner
 from lychd.system.services.lifecycle.lock import LifecycleLock
 from lychd.system.services.lifecycle.models import (
@@ -20,6 +24,7 @@ from lychd.system.services.lifecycle.models import (
     LifecycleError,
     LifecycleResourceKind,
 )
+from lychd.system.services.lifecycle.paths import digest_file
 from lychd.system.services.lifecycle.receipt import LifecycleReceiptStore
 
 _SUBVOLUME_UUID = "12345678-1234-5678-1234-567812345678"
@@ -473,6 +478,96 @@ def test_modified_owned_file_blocks_before_any_effect(
     assert _tree_snapshot(isolated_roots["base"]) == before
 
 
+def _replace_generated_file(path: Path, *, replacement: str, foreign: Path) -> None:
+    path.rename(path.with_suffix(".retained"))
+    if replacement == "fifo":
+        os.mkfifo(path, mode=0o600)
+    elif replacement == "symlink":
+        path.symlink_to(foreign)
+    else:
+        path.write_bytes(b"replacement = true\n")
+
+
+@pytest.mark.parametrize("replacement", ["fifo", "symlink", "regular"])
+@pytest.mark.parametrize("preview", [False, True])
+def test_generated_file_digest_rejects_replacement_after_identity_check(
+    isolated_roots: IsolatedRoots,
+    monkeypatch: pytest.MonkeyPatch,
+    replacement: str,
+    *,
+    preview: bool,
+) -> None:
+    """Hashing cannot block or attach another inode's bytes to receipt identity."""
+    target = isolated_roots["codex"] / "lychd.toml"
+    target.parent.mkdir(parents=True)
+    target.write_bytes(b"generated = true\n")
+    foreign = isolated_roots["base"] / "foreign"
+    foreign.write_bytes(b"preserve these bytes\n")
+    store = LifecycleReceiptStore(isolated_roots["receipt"])
+    resources = CreatedResources(files=(target,))
+    if preview:
+        store.record(resources)
+    prior_receipt = store.path.read_bytes() if preview else None
+    original_open = Path.open
+    original_os_open = os.open
+    opened: list[int] = []
+
+    def guarded_open(path: Path, *args: Any, **kwargs: Any) -> Any:
+        if path == target and replacement == "fifo":
+            pytest.fail("Pathname digest open would block on the replacement FIFO")
+        return cast("Any", original_open(path, *args, **kwargs))
+
+    def observe_open(path: Path, flags: int, mode: int = 0o777) -> int:
+        if path == target and replacement == "fifo" and not flags & os.O_NONBLOCK:
+            pytest.fail("Descriptor digest open would block on the replacement FIFO")
+        descriptor = original_os_open(path, flags, mode)
+        if path == target:
+            opened.append(descriptor)
+        return descriptor
+
+    def race_before_digest(path: Path, **kwargs: Any) -> str:
+        _replace_generated_file(path, replacement=replacement, foreign=foreign)
+        return digest_file(path, **kwargs)
+
+    monkeypatch.setattr(Path, "open", guarded_open)
+    monkeypatch.setattr(os, "open", observe_open)
+    monkeypatch.setattr("lychd.system.services.lifecycle.receipt.digest_file", race_before_digest)
+
+    operation = store.plan_destroy if preview else partial(store.record, resources)
+    with pytest.raises(LifecycleError, match="digest"):
+        operation()
+
+    assert (store.path.read_bytes() if preview else None) == prior_receipt
+    assert store.exists is preview
+    assert foreign.read_bytes() == b"preserve these bytes\n"
+    assert target.with_suffix(".retained").read_bytes() == b"generated = true\n"
+    assert len(opened) == (0 if replacement == "symlink" else 1)
+    for descriptor in opened:
+        with pytest.raises(OSError, match="Bad file descriptor"):
+            os.fstat(descriptor)
+
+
+def test_generated_file_digest_records_the_opened_regular_file(
+    isolated_roots: IsolatedRoots,
+) -> None:
+    target = isolated_roots["codex"] / "lychd.toml"
+    target.parent.mkdir(parents=True)
+    payload = b"generated = true\n"
+    target.write_bytes(payload)
+    expected = target.stat()
+    store = LifecycleReceiptStore(isolated_roots["receipt"])
+
+    store.record(CreatedResources(files=(target,)))
+
+    (entry,) = store.load().files
+    assert (entry.device, entry.inode) == (expected.st_dev, expected.st_ino)
+    assert entry.digest == "sha256:" + hashlib.sha256(payload).hexdigest()
+    assert any(
+        action.target == str(target) and action.disposition is LifecycleDisposition.WOULD_REMOVE
+        for action in store.plan_destroy().actions
+    )
+
+
 def test_unowned_content_blocks_directory_removal_and_survives(
     isolated_roots: IsolatedRoots,
 ) -> None:
@@ -531,6 +626,51 @@ def test_symlink_receipt_fails_closed_without_touching_target(
 
     assert receipt.is_symlink()
     assert outside.read_text(encoding="utf-8").startswith('{"version"')
+
+
+@pytest.mark.parametrize("checkpoint", [False, True])
+@pytest.mark.parametrize("replace_at_open", [False, True])
+def test_lifecycle_authority_refuses_fifo_without_blocking(
+    isolated_roots: IsolatedRoots,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    checkpoint: bool,
+    replace_at_open: bool,
+) -> None:
+    """Invalid or raced authority files cannot stall a lifecycle command."""
+    codex = isolated_roots["codex"]
+    codex.mkdir(parents=True)
+    store = DeletionCheckpointStore(codex) if checkpoint else LifecycleReceiptStore(isolated_roots["receipt"])
+    path = store.path
+    if replace_at_open:
+        path.write_text("{}", encoding="utf-8")
+        path.chmod(0o600)
+    else:
+        os.mkfifo(path, mode=0o600)
+    original_open = os.open
+    opened: list[int] = []
+
+    def safe_open(target: Path, flags: int, mode: int = 0o777) -> int:
+        if target == path:
+            if replace_at_open:
+                target.unlink()
+                os.mkfifo(target, mode=0o600)
+            # Keep the negative control from hanging the test process.
+            if not flags & os.O_NONBLOCK:
+                pytest.fail("Opening the authority FIFO would block the lifecycle owner")
+        descriptor = original_open(target, flags, mode)
+        opened.append(descriptor)
+        return descriptor
+
+    monkeypatch.setattr(os, "open", safe_open)
+
+    with pytest.raises(LifecycleError, match="must be a regular file"):
+        store.load()
+
+    assert stat.S_ISFIFO(path.lstat().st_mode)
+    assert len(opened) == 1
+    with pytest.raises(OSError, match="Bad file descriptor"):
+        os.fstat(opened[0])
 
 
 def test_preexisting_external_data_mount_is_preserved(

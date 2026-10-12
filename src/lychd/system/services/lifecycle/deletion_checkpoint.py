@@ -181,10 +181,11 @@ class DeletionCheckpointStore:
             temporary.unlink(missing_ok=True)
 
     def _read(self) -> bytes:
+        """Reject special files through a nonblocking, no-follow descriptor."""
         if symlink := path_has_symlink_component(self.path):
             msg = f"Deletion checkpoint traverses an untrusted symlink: {symlink}"
             raise LifecycleError(msg)
-        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+        flags = os.O_RDONLY | os.O_NONBLOCK | getattr(os, "O_NOFOLLOW", 0)
         descriptor = -1
         try:
             descriptor = os.open(self.path, flags)
