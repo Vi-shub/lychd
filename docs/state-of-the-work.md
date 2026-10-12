@@ -1364,11 +1364,15 @@ unsupported.
 pinning, quarantine, authentication, and paid effects. The accepted design selects native static
 Fetch + Extract, a SearXNG Search Soulstone, and a later isolated Crawl4AI renderer candidate;
 Firecrawl remains deferred and paid web-acquisition Portals remain private-extension territory.
+The design now binds Scout provider contributions, a narrow SearXNG query/result contract,
+per-transmission engine egress mediation, and static extraction qualification limits and cases.
+Those limits are unqualified design targets, not execution evidence.
 
 **Do not expect yet:** There is no Scout provider, browser service, endpoint, Agent tool,
 acquisition receipt, download quarantine, authenticated session, or Smith ingestion path. There is
 no SearXNG or Crawl4AI Rune/adapter, no Scout provider store or effect-scoped tool binding, and no
 renderer containment outside the shared Pod.
+No Search engine/transport profile or bounded extraction process has passed qualification.
 
 **Evidence**
 

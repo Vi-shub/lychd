@@ -131,6 +131,19 @@ normalization, and conformance tests around a separate service. It does not mean
 SearXNG engine catalogue or a crawler/browser implementation into Core. The full provider and
 mechanism policy belongs to [ADR 30](../../adr/30-webcrawler.md#first-party-mechanism-policy).
 
+The [first Search profile](../../adr/30-webcrawler.md#searxng-search-contract) is deliberately
+bounded to one qualified engine and one page. Self-hosting does not keep the query local: the
+engine receives an external disclosure. Scout must mediate those requests before transmission,
+including any auxiliary contact; installing SearXNG and setting its retry count is insufficient.
+An engine failure remains visible alongside any results, and zero results never claims the web
+has no answer. No compliant engine profile or transport integration ships yet.
+
+For implementation, start with the [static qualification envelope](../../adr/30-webcrawler.md#initial-qualification-envelope)
+and [adversarial acceptance cases](../../adr/30-webcrawler.md#qualification-evidence). Extraction
+is designed to run in a bounded, network-denied process to contain parser resource use. The limits are
+design targets awaiting qualification, not measured safety or coverage. Search can be designed
+alongside that passage; JavaScript rendering retains its separate admission and isolation gate.
+
 ## The laws of the road
 
 - **Pin before connecting.** Reauthorize every connection and redirect; forbidden or mixed DNS,
