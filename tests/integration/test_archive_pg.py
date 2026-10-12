@@ -408,8 +408,11 @@ async def test_namespace_lock_timeout_is_failure_and_rolls_back_request(
         await session.scalar(
             select(ArchiveNamespace).where(ArchiveNamespace.id == PROFILE.namespace_id).with_for_update()
         )
-        with pytest.raises(DBAPIError, match="lock timeout"):
+        with pytest.raises(ArchiveRefused, match="storage") as failure:
             await archive.recall(SUBJECT, query(), purpose=PURPOSE)
+        assert failure.value.__suppress_context__ is True
+        assert isinstance(failure.value.__context__, DBAPIError)
+        assert "lock timeout" in str(failure.value.__context__)
     async with factory() as session:
         assert await session.scalar(select(func.count()).select_from(ArchiveRecall)) == 0
         assert await session.scalar(text("SHOW lock_timeout")) == "0"
@@ -435,8 +438,11 @@ async def test_lexical_statement_timeout_is_local_failure_not_a_miss(factory: as
     slow_factory = async_sessionmaker[AsyncSession](
         factory.kw["bind"], class_=SlowRecallSession, expire_on_commit=False
     )
-    with pytest.raises(DBAPIError, match="statement timeout"):
+    with pytest.raises(ArchiveRefused, match="storage") as failure:
         await service(slow_factory).recall(SUBJECT, query(), purpose=PURPOSE)
+    assert failure.value.__suppress_context__ is True
+    assert isinstance(failure.value.__context__, DBAPIError)
+    assert "statement timeout" in str(failure.value.__context__)
     assert observed == [("5s", "2s")]
     async with factory() as session:
         assert await session.scalar(select(func.count()).select_from(ArchiveRecall)) == 0

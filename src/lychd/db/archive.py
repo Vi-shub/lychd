@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import SQLAlchemyError
 
 from lychd.db.archive_derivation_lifecycle import invalidate_derivations
 from lychd.db.archive_namespace import lock_archive_namespace
@@ -75,10 +78,20 @@ class DbArchiveStore:
         """Bind the already admitted application session factory."""
         self._session_factory = session_factory
 
+    @asynccontextmanager
+    async def _transaction(self) -> AsyncGenerator[AsyncSession]:
+        """Keep source and query SQL parameters out of propagated failures."""
+        try:
+            async with self._session_factory() as session, session.begin():
+                yield session
+        except SQLAlchemyError:
+            msg = "storage"
+            raise ArchiveRefused(msg) from None
+
     async def admit(self, profile: ArchiveProfile, proposal: NoteProposal, check: AuthorizationCheck) -> NoteRecord:
         request_digest = digest(proposal)
         revision_digest = digest(proposal.source_binding())
-        async with self._session_factory() as session, session.begin():
+        async with self._transaction() as session:
             await lock_archive_namespace(session, profile, create=True)
             check(proposal.request_id, request_digest)
             intake = await session.scalar(
@@ -148,7 +161,7 @@ class DbArchiveStore:
         target: Lifecycle,
         check: AuthorizationCheck,
     ) -> NoteRecord:
-        async with self._session_factory() as session, session.begin():
+        async with self._transaction() as session:
             await lock_archive_namespace(session, profile)
             check(
                 record_id, digest({"record_id": str(record_id), "expected_version": expected_version, "target": target})
@@ -222,7 +235,7 @@ class DbArchiveStore:
                 "profile": profile.model_dump(mode="json"),
             }
         )
-        async with self._session_factory() as session, session.begin():
+        async with self._transaction() as session:
             await lock_archive_namespace(session, profile, create=True)
             check(request.request_id, request_digest)
             existing = await session.scalar(
@@ -320,7 +333,7 @@ class DbArchiveStore:
         purpose: str,
         check: AuthorizationCheck,
     ) -> RecallProjection:
-        async with self._session_factory() as session, session.begin():
+        async with self._transaction() as session:
             await lock_archive_namespace(session, profile)
             check(receipt_id, receipt_digest)
             row = await session.scalar(
