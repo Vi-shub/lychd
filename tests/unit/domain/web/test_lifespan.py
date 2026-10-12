@@ -417,6 +417,122 @@ async def test_terminal_checkpoint_reconciliation_retries_every_terminal_status(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("required", [False, True])
+async def test_terminal_checkpoint_cleanup_failure_retains_debt_and_advances_pages(
+    mocker: MockerFixture, *, required: bool
+) -> None:
+    from datetime import UTC, datetime, timedelta
+
+    from lychd.domain.cortex.runs import TERMINAL_STATUSES, RunStatus
+    from lychd.domain.cortex.stasis import InMemoryStasisStore
+
+    mocker.patch("lychd.interface.web.lifespan._STARTUP_RECONCILIATION_PAGE_SIZE", 2)
+    startup_logger = mocker.patch("lychd.interface.web.lifespan.logger")
+    now = datetime.now(UTC)
+    runs_by_status = {
+        status: [
+            SimpleNamespace(run_id=f"{status.value}-{index}", created_at=now + timedelta(seconds=index))
+            for index in range(3)
+        ]
+        for status in TERMINAL_STATUSES
+    }
+    run_ids = [row.run_id for rows in runs_by_status.values() for row in rows]
+    retained = {rows[0].run_id for rows in runs_by_status.values()}
+    stasis = InMemoryStasisStore()
+    for run_id in run_ids:
+        await stasis.replace(run_id, [])
+
+    async def list_by_status(
+        status: RunStatus,
+        *,
+        after: tuple[datetime, str] | None,
+        limit: int,
+    ) -> list[SimpleNamespace]:
+        rows = runs_by_status[status]
+        if after is not None:
+            rows = [row for row in rows if (row.created_at, row.run_id) > after]
+        return rows[:limit]
+
+    ensure_terminal_evidence = AsyncMock()
+    original_delete = stasis.delete
+
+    async def fail_selected_deletions(run_id: str) -> None:
+        assert ensure_terminal_evidence.await_args_list[-1].args == (run_id,)
+        if run_id in retained:
+            msg = "checkpoint deletion unavailable"
+            raise RuntimeError(msg)
+        await original_delete(run_id)
+
+    delete = mocker.patch.object(stasis, "delete", side_effect=fail_selected_deletions)
+    engine = SimpleNamespace(
+        ledger=SimpleNamespace(list_by_status=list_by_status),
+        stasis_store=stasis,
+        ensure_terminal_evidence=ensure_terminal_evidence,
+    )
+
+    await _reconcile_terminal_checkpoints_at_startup(engine, required=required)
+
+    assert [call.args[0] for call in ensure_terminal_evidence.await_args_list] == run_ids
+    assert [call.args[0] for call in delete.await_args_list] == run_ids
+    assert {call.kwargs["run_id"] for call in startup_logger.warning.call_args_list} == retained
+    startup_logger.exception.assert_not_called()
+    for run_id in run_ids:
+        assert await stasis.exists(run_id) is (run_id in retained)
+
+    delete.side_effect = original_delete
+    await _reconcile_terminal_checkpoints_at_startup(engine, required=required)
+    for run_id in run_ids:
+        assert not await stasis.exists(run_id)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("required", [False, True])
+@pytest.mark.parametrize("failure_stage", ["ledger", "evidence"])
+async def test_terminal_checkpoint_authority_failure_preserves_startup_gate(
+    failure_stage: str, *, required: bool
+) -> None:
+    failure = RuntimeError(f"terminal {failure_stage} unavailable")
+    ledger = SimpleNamespace(list_by_status=AsyncMock(return_value=[SimpleNamespace(run_id="unproved")]))
+    evidence = AsyncMock()
+    if failure_stage == "ledger":
+        ledger.list_by_status.side_effect = failure
+    else:
+        evidence.side_effect = failure
+    stasis = SimpleNamespace(delete=AsyncMock())
+    engine = SimpleNamespace(ledger=ledger, stasis_store=stasis, ensure_terminal_evidence=evidence)
+
+    if required:
+        with pytest.raises(RuntimeError, match=f"terminal {failure_stage} unavailable") as raised:
+            await _reconcile_terminal_checkpoints_at_startup(engine, required=required)
+        assert raised.value is failure
+    else:
+        await _reconcile_terminal_checkpoints_at_startup(engine, required=required)
+
+    stasis.delete.assert_not_awaited()
+    assert evidence.await_count == int(failure_stage == "evidence")
+    assert ledger.list_by_status.await_count == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("required", [False, True])
+async def test_terminal_checkpoint_cleanup_cancellation_propagates(*, required: bool) -> None:
+    cancellation = asyncio.CancelledError()
+    ledger = SimpleNamespace(
+        list_by_status=AsyncMock(return_value=[SimpleNamespace(run_id="cancelled"), SimpleNamespace(run_id="later")])
+    )
+    evidence = AsyncMock()
+    stasis = SimpleNamespace(delete=AsyncMock(side_effect=cancellation))
+    engine = SimpleNamespace(ledger=ledger, stasis_store=stasis, ensure_terminal_evidence=evidence)
+
+    with pytest.raises(asyncio.CancelledError) as raised:
+        await _reconcile_terminal_checkpoints_at_startup(engine, required=required)
+
+    assert raised.value is cancellation
+    evidence.assert_awaited_once_with("cancelled")
+    stasis.delete.assert_awaited_once_with("cancelled")
+
+
+@pytest.mark.asyncio
 async def test_cancellation_reconciliation_pages_both_statuses(mocker: MockerFixture) -> None:
     from datetime import UTC, datetime, timedelta
 

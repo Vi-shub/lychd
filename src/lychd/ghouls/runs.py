@@ -971,7 +971,7 @@ async def _delivery_target(  # noqa: PLR0911 - each rejected invariant has disti
     *,
     refuse_held: bool,
 ) -> tuple[RunDeliveryRecord, RunQueue] | _DeliveryFlushOutcome:
-    """Validate one Run/delivery projection and resolve its physical queue."""
+    """Resolve delivery authority and preserve terminal evidence if cleanup fails."""
     ledger = substrate.ledger
     delivery = await ledger.get_delivery(run.run_id, enqueue_seq=run.enqueue_seq)
     if delivery is None:
@@ -987,7 +987,7 @@ async def _delivery_target(  # noqa: PLR0911 - each rejected invariant has disti
         )
         if not refused:
             return _DeliveryFlushOutcome()
-        await substrate.stasis_store.delete(run.run_id)
+        await _cleanup_claim_resources(substrate, run, persistence=None)
         await _emit_terminal(substrate, run.run_id)
         return _DeliveryFlushOutcome(repaired=1)
     if delivery.state not in {RunDeliveryState.PENDING, RunDeliveryState.PUBLISHED}:
@@ -1426,7 +1426,7 @@ async def reconcile_runs(ctx: dict[str, Any], *, boot_cutoff: datetime | None = 
 
 
 async def _reconcile_orphaned_run(substrate: RunSubstrate, run: RunRecord) -> bool:
-    """Fence one pre-boot worker, recover an exact park, or contain before failure."""
+    """Fence or recover an orphan; checkpoint cleanup cannot hide terminal failure."""
     consent_id = await _recoverable_consent_park(substrate, run)
     delegated_job_id = await _recoverable_delegate_park(substrate, run)
     if not await _fence_orphaned_job(substrate, run):
@@ -1457,7 +1457,7 @@ async def _reconcile_orphaned_run(substrate: RunSubstrate, run: RunRecord) -> bo
             )
         return False
     await substrate.ledger.set_status(run.run_id, RunStatus.FAILED, error="ghoul lost")
-    await substrate.stasis_store.delete(run.run_id)
+    await _cleanup_claim_resources(substrate, run, persistence=None)
     await _emit_terminal(substrate, run.run_id)
     return True
 

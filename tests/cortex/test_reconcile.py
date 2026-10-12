@@ -237,6 +237,62 @@ async def test_reconcile_runs_never_touches_awaiting_consent() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("initial_status", [RunStatus.QUEUED, RunStatus.RUNNING, RunStatus.AWAITING_HARDWARE])
+async def test_reconcile_cleanup_failure_preserves_terminal_evidence_and_later_progress(
+    monkeypatch: pytest.MonkeyPatch, initial_status: RunStatus
+) -> None:
+    """A failed checkpoint deletion retains debt without blocking settled Runs."""
+    substrate, ledger, _consents = _substrate()
+    substrate.queues = {"runs": _OrphanQueue("cleanup-debt")}
+    run_ids = ("cleanup-debt", "later-orphan")
+    for run_id in run_ids:
+        intent = Intent(session_id="s", run_id=run_id, prompt="p", source="bridge")
+        await ledger.create(
+            intent,
+            workflow_name="bridge_chat",
+            queue_name="runs",
+            priority=50,
+            hold_delivery=initial_status is RunStatus.QUEUED,
+        )
+        if initial_status is not RunStatus.QUEUED:
+            await ledger.set_status(run_id, RunStatus.RUNNING)
+            if initial_status is RunStatus.AWAITING_HARDWARE:
+                await ledger.set_status(run_id, initial_status)
+        await substrate.stasis_store.replace(run_id, [])
+        substrate.bus.emitter(run_id).status(initial_status.value)
+        await substrate.bus.wait_persisted(run_id)
+
+    original_delete = substrate.stasis_store.delete
+
+    async def fail_first_delete(run_id: str) -> None:
+        current = await ledger.get(run_id)
+        assert current is not None
+        assert current.status is RunStatus.FAILED
+        if run_id == run_ids[0]:
+            msg = "checkpoint store unavailable"
+            raise RuntimeError(msg)
+        await original_delete(run_id)
+
+    monkeypatch.setattr(substrate.stasis_store, "delete", fail_first_delete)
+
+    result = await reconcile_runs({"run_substrate": substrate})
+
+    assert result == {"status": "reconciled", "count": 2, "probe_errors": 0}
+    for run_id in run_ids:
+        current = await ledger.get(run_id)
+        assert current is not None
+        assert current.status is RunStatus.FAILED
+        events = await ledger.list_events(run_id)
+        assert [(event.seq, event.kind, event.data) for event in events] == [
+            (0, RunEventKind.STATUS, initial_status.value),
+            (1, RunEventKind.DONE, RunStatus.FAILED.value),
+        ]
+        assert substrate.bus.snapshot(run_id) is None
+    assert await substrate.stasis_store.exists(run_ids[0])
+    assert not await substrate.stasis_store.exists(run_ids[1])
+
+
+@pytest.mark.asyncio
 async def test_reconcile_recovers_checkpointed_pending_consent_park() -> None:
     """Restart closes the checkpoint→Run-status crash window without rerunning work."""
     substrate, ledger, consents = _substrate()

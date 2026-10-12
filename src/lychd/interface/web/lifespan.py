@@ -471,7 +471,7 @@ async def _reconcile_terminal_checkpoints_at_startup(
     *,
     required: bool,
 ) -> None:
-    """Idempotently remove checkpoints retained after terminal commit failures."""
+    """Require terminal evidence, then retry checkpoint cleanup without blocking later Runs."""
     from lychd.domain.cortex.runs import TERMINAL_STATUSES
 
     try:
@@ -485,7 +485,14 @@ async def _reconcile_terminal_checkpoints_at_startup(
                 )
                 for run in runs:
                     await engine.ensure_terminal_evidence(run.run_id)
-                    await engine.stasis_store.delete(run.run_id)
+                    try:
+                        await engine.stasis_store.delete(run.run_id)
+                    except Exception as exc:  # noqa: BLE001 - terminal truth and evidence already settled
+                        logger.warning(
+                            "terminal_checkpoint_cleanup_failed",
+                            run_id=run.run_id,
+                            error=str(exc),
+                        )
                 if len(runs) < _STARTUP_RECONCILIATION_PAGE_SIZE:
                     break
                 cursor = (runs[-1].created_at, runs[-1].run_id)
