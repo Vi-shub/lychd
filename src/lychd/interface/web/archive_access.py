@@ -40,6 +40,7 @@ class LocalArchivePolicy:
             return request.purpose == "archive:manage"
         if self.derivations:
             purposes = {
+                "generation_discover": "archive:derive:manage",
                 "generation_register": "archive:derive:manage",
                 "generation_retire": "archive:derive:manage",
                 "derive": "archive:derive",

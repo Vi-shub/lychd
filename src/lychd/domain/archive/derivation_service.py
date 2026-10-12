@@ -58,6 +58,12 @@ class ArchiveDerivationService:
             msg = "generation_binding"
             raise ArchiveRefused(msg)
 
+    async def discover(self, subject: ArchiveSubject, *, purpose: str) -> GenerationRef:
+        """Authorize configured identity only; make no storage or runtime observation."""
+        check = authorization_check(self.manifest.archive, self._authorizer, subject, "generation_discover", purpose)
+        check(self.reference.generation_id, digest(self.reference))
+        return self.reference
+
     async def register(self, subject: ArchiveSubject, reference: GenerationRef, *, purpose: str) -> GenerationStatus:
         check = authorization_check(self.manifest.archive, self._authorizer, subject, "generation_register", purpose)
         check(reference.generation_id, digest(reference))

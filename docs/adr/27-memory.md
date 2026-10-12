@@ -81,6 +81,11 @@ registers rows or starts a model. Its immutable manifest binds namespace ownersh
 Core profile/binding, whole-note chunking, cosine metric, float32 storage and a fixed 60-second
 attempt lifetime. Retiring a generation is irreversible; replay cannot reactivate it.
 
+An authorized caller may discover the configured generation identifier and manifest digest before
+registration. Discovery checks current namespace policy and the generation-discovery action with
+the management purpose. It returns configuration metadata only: no registration or eligibility
+claim, source material, database access, lease, readiness probe or model activation follows.
+
 The first derivation stores one whole promoted note as one 1024-dimensional pgvector value.
 Core measures tokens and refuses its fixed byte/token limits; neither caller truncates or splits
 oversize notes. The profile binds float32 little-endian encoding and the accepted L2 tolerance.

@@ -202,6 +202,7 @@ type ArchiveAction = Literal[
     "revoke",
     "recall",
     "resolve",
+    "generation_discover",
     "generation_register",
     "generation_retire",
     "derive",

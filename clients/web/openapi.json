@@ -3501,6 +3501,26 @@
         "summary": "Derive"
       }
     },
+    "/api/v1/archive/derivations/generations/configured": {
+      "get": {
+        "deprecated": false,
+        "operationId": "discoverArchiveGeneration",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerationRef"
+                }
+              }
+            },
+            "description": "Request fulfilled, document follows",
+            "headers": {}
+          }
+        },
+        "summary": "Discover"
+      }
+    },
     "/api/v1/archive/derivations/generations/register": {
       "post": {
         "deprecated": false,

@@ -1,10 +1,10 @@
-"""Explicit local generation registration, derivation and metadata-only status."""
+"""Authorized generation discovery, registration, derivation and metadata-only status."""
 
 from __future__ import annotations
 
 from typing import Any, cast
 
-from litestar import Controller, Request, post
+from litestar import Controller, Request, get, post
 from litestar.datastructures import State
 from litestar.exceptions import HTTPException, NotFoundException
 from pydantic import Field
@@ -37,6 +37,11 @@ def _derivation_access(
 class ArchiveDerivationController(Controller):
     path = "/api/v1/archive/derivations"
     guards = (requires_scopes("altar:read"),)
+
+    @get("/generations/configured", name="archive:derivation:discover", operation_id="discoverArchiveGeneration")
+    async def discover(self, request: Request[Any, Any, Any], state: State) -> GenerationRef:
+        service, subject = _derivation_access(request, state)
+        return await archive_result(service.discover(subject, purpose="archive:derive:manage"))
 
     @post("/generations/register", name="archive:derivation:register", operation_id="registerArchiveGeneration")
     async def register(self, data: GenerationRef, request: Request[Any, Any, Any], state: State) -> GenerationStatus:

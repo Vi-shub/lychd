@@ -26,7 +26,7 @@ from lychd.domain.animation.embeddings import EmbeddingBinding
 from lychd.domain.animation.services.declarations import AnimatorDeclarations
 from lychd.domain.animation.services.registry import AnimatorRegistry
 from lychd.domain.archive import ArchiveService
-from lychd.domain.archive.derivation import DerivationRequest
+from lychd.domain.archive.derivation import DerivationRequest, GenerationRef
 from lychd.domain.codex.middleware import SigilAuthMiddleware
 from lychd.domain.codex.sigil import default_local_sigil
 from lychd.domain.cortex.leases import LeaseLedger
@@ -126,16 +126,26 @@ async def test_http_factory_uses_shared_leases_without_run_event_authority(  # n
     respx_mock.post("http://127.0.0.1:8080/tokenize").mock(side_effect=model)
     respx_mock.post("http://127.0.0.1:8080/v1/embeddings").mock(side_effect=model)
     foreign_run = uuid4()
-    request = DerivationRequest(generation=service.reference, source=note.reference, run_id=foreign_run)
-    body = request.model_dump(mode="json")
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=cast("Any", app)),
         base_url="http://testserver.local",
         headers={"authorization": TEST_AUTHORIZATION},
     ) as client:
-        registered = await client.post(
-            "/api/v1/archive/derivations/generations/register", json=service.reference.model_dump(mode="json")
+        discovery_path = "/api/v1/archive/derivations/generations/configured"
+        assert (await client.get(discovery_path, headers={"authorization": ""})).status_code == 401
+        discovered = await client.get(discovery_path)
+        assert discovered.status_code == 200, discovered.text
+        assert discovered.json() == service.reference.model_dump(mode="json")
+        assert not respx_mock.calls
+        assert leases.active() == []
+        async with factory() as session:
+            assert list(await session.scalars(select(ArchiveEmbeddingGeneration))) == []
+            assert list(await session.scalars(select(ArchiveNoteEmbedding))) == []
+        request = DerivationRequest(
+            generation=GenerationRef.model_validate(discovered.json()), source=note.reference, run_id=foreign_run
         )
+        body = request.model_dump(mode="json")
+        registered = await client.post("/api/v1/archive/derivations/generations/register", json=discovered.json())
         assert registered.status_code == 201, registered.text
         leases.begin_drain(["embedding"])
         waiting = await client.post("/api/v1/archive/derivations/derive", json=body)
@@ -155,8 +165,10 @@ async def test_http_factory_uses_shared_leases_without_run_event_authority(  # n
             await client.post("/api/v1/archive/derivations/derive", json={**body, "manifest": {}})
         ).status_code == 400
         caller[0] = replace(caller[0], name="foreign")
+        assert (await client.get(discovery_path)).status_code == 403
         assert (await client.post("/api/v1/archive/derivations/status", json=body)).status_code == 403
         services.archive_derivation = None
+        assert (await client.get(discovery_path)).status_code == 404
         assert (await client.post("/api/v1/archive/derivations/status", json=body)).status_code == 404
     async with factory() as session:
         row = await session.scalar(select(ArchiveNoteEmbedding))

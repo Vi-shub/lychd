@@ -1429,15 +1429,18 @@ and replays no settled history. PostgreSQL tests cover real HTTP controllers, Ru
 worker execution, typed checkpoint reconstruction, stale-source refusal, migration lineage and
 the actual restricted runtime database role. Earlier Bridge manifests remain retained unchanged.
 
-An independent optional Archive configuration now registers one exact local embedding generation
-and derives promoted notes into 1024-dimensional pgvector values. Each explicit attempt retains
+An independent optional Archive configuration exposes its exact generation reference through
+the authorized `GET /api/v1/archive/derivations/generations/configured` route. Discovery checks
+current policy without reading storage, registering rows, acquiring a lease or probing a model.
+The caller can then explicitly register that generation and derive promoted notes into
+1024-dimensional pgvector values. Each explicit attempt retains
 its source, profile and generation identity, with a database deadline and conditional completion.
 Archive, revocation, supersession and generation retirement clear affected vectors and prevent
 late results from restoring them. Status exposes metadata only; expired work requires an explicit
 retry. PostgreSQL tests cover concurrency, expiry, lifecycle races, float32 round trips, migration
 rollback and restricted runtime permissions. The configured HTTP test uses the real Core driver
-with substituted model responses and shares the application's lease ledger without emitting Run
-events for caller-supplied Run identifiers.
+with substituted model responses, covers discovery through registration and derivation, and
+shares the application's lease ledger without emitting Run events for caller-supplied Run identifiers.
 
 **Boundary — Not yet:** This is lexical RAG for explicit same-host public notes, without semantic
 retrieval, general `CandidateArchivePort`, automatic conversation retention, extraction, Curator,
