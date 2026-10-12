@@ -23,7 +23,7 @@ from lychd.domain.orchestration.actuator import (
 )
 from lychd.domain.orchestration.policies import DeclaredConflictPolicy, SwitchPolicy
 from lychd.system.constants import PATH_REACTOR_INBOX_DIR, PATH_REACTOR_JOURNAL_DIR
-from lychd.system.schemas import systemd_environment_assignment
+from lychd.system.schemas import systemd_environment_assignment, systemd_executable_token
 from lychd.system.services.runtime import SystemdRuntimeActuator, validate_reactor_boundaries
 
 if TYPE_CHECKING:
@@ -84,7 +84,7 @@ class _ExpectedStateView:
 
 
 def render_reactor_service_unit(*, executable: Path, environment: dict[str, str]) -> str:
-    """Render the host-only oneshot consumer unit with deterministic environment."""
+    """Render one literal host executable token and deterministic environment."""
     lines = [
         "[Unit]",
         "Description=LychD Host Reactor",
@@ -92,7 +92,7 @@ def render_reactor_service_unit(*, executable: Path, environment: dict[str, str]
         "",
         "[Service]",
         "Type=oneshot",
-        f"ExecStart={executable} reactor consume",
+        f"ExecStart={systemd_executable_token(executable)} reactor consume",
         *(f"Environment={systemd_environment_assignment(key, value)}" for key, value in sorted(environment.items())),
         "Restart=on-failure",
         "RestartSec=1s",

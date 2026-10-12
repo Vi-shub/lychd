@@ -71,7 +71,7 @@ def test_compile_emits_uncaged_vessel_unit_from_injected_settings() -> None:
 
     rendered = request.plain_unit_mapping()["lychd-uncaged-vessel.service"]
     executable = Path(sys.prefix) / "bin" / "lychd"
-    assert f"ExecStart={executable} serve --host 127.0.0.1 --port 9999" in rendered
+    assert f'ExecStart="{executable}" serve --host 127.0.0.1 --port 9999' in rendered
     assert 'Environment="LYCHD_MODE=uncaged"' in rendered
 
 

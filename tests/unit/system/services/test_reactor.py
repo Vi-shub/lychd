@@ -861,7 +861,7 @@ def test_reactor_units_are_narrow_and_host_triggered(tmp_path: Path) -> None:
         journal_dir=tmp_path / "journal",
     )
 
-    assert f"ExecStart={tmp_path}/bin/lychd reactor consume" in service
+    assert f'ExecStart="{tmp_path}/bin/lychd" reactor consume' in service
     assert "Type=oneshot" in service
     assert "Restart=on-failure" in service
     assert "RestartSec=1s" in service

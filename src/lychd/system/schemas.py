@@ -83,6 +83,19 @@ def systemd_environment_assignment(key: str, value: str) -> str:
     return f'"{escaped}"'
 
 
+def systemd_executable_token(executable: Path) -> str:
+    """Quote one literal absolute executable, refusing unsupported escaping."""
+    value = str(executable)
+    _validate_unit_text(value, field_name="systemd executable")
+    if not executable.is_absolute():
+        msg = "systemd executable must be an absolute path"
+        raise ValueError(msg)
+    if any(character in value for character in "'\"%;"):
+        msg = "systemd executable cannot contain quotes, percent expansion or command separators"
+        raise ValueError(msg)
+    return f'"{value}"'
+
+
 def quadlet_environment_assignment(key: str, value: str) -> str:
     """Quote a Quadlet assignment and neutralize later systemd ``$`` expansion."""
     assignment = systemd_environment_assignment(key, value)

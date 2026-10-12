@@ -8,7 +8,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from lychd.system.schemas import QuadletContainer, SystemdService, podman_secret_source
+from lychd.system.schemas import QuadletContainer, SystemdService, podman_secret_source, systemd_executable_token
 from lychd.system.services.bind import BindRequest
 
 if TYPE_CHECKING:
@@ -153,12 +153,12 @@ def _host_reactor_units(*, settings: Settings) -> dict[str, str]:
 
 
 def _compile_uncaged_vessel_unit(*, settings: Settings) -> SystemdService:
-    """Compile the host-native Vessel unit owned by the binding boundary."""
+    """Compile the host-native Vessel with one literal installed executable token."""
     executable = Path(sys.prefix) / "bin" / "lychd"
     return SystemdService(
         name="lychd-uncaged-vessel",
         description="LychD Vessel (uncaged)",
-        exec_start=f"{executable} serve --host 127.0.0.1 --port {settings.server.port}",
+        exec_start=f"{systemd_executable_token(executable)} serve --host 127.0.0.1 --port {settings.server.port}",
     )
 
 
