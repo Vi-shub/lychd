@@ -276,12 +276,17 @@ def _assert_done_projection(projection: dict[str, Any]) -> None:
 
 
 def _assert_orb_done(client: Any, run_id: str) -> None:
-    """Require the durable Orb page to retain a gapless terminal trail."""
-    response = client.get(f"/api/v1/orb/runs/{run_id}?limit=100")
-    assert response.status_code == 200
-    evidence = response.json()["evidence"]
-    assert [event["seq"] for event in evidence] == list(range(len(evidence)))
-    assert evidence[-1]["kind"] == "done"
+    """Wait for the asynchronous Step tee after the authoritative Run commit."""
+    deadline = time.monotonic() + 15
+    while time.monotonic() < deadline:
+        response = client.get(f"/api/v1/orb/runs/{run_id}?limit=100")
+        assert response.status_code == 200
+        evidence = response.json()["evidence"]
+        assert [event["seq"] for event in evidence] == list(range(len(evidence)))
+        if evidence and evidence[-1]["kind"] == "done":
+            return
+        time.sleep(0.05)
+    pytest.fail("Orb did not retain the terminal DONE evidence within 15 seconds.")
 
 
 @pytest.mark.asyncio
