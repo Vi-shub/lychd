@@ -11,6 +11,10 @@ Set `JAVA_HOME` and `ANDROID_HOME` to those installations, or configure `sdk.dir
 `local.properties`. Android Studio is optional. No NDK, Google account, Play Services, Firebase,
 backend service, or model download is needed. The official Gradle wrapper checks the distribution
 SHA-256; dependency versions live in `gradle/libs.versions.toml` and resolved versions in lockfiles.
+Project configurations and buildscript classpaths use strict dependency locking: resolution fails
+when its lock state is missing or inconsistent. The root `buildscript-gradle.lockfile` pins the
+plugin dependency graph; module buildscript locks record their empty classpaths because the root
+already supplies those plugins.
 Artifact hashes live in `gradle/verification-metadata.xml`; they check integrity against this
 initial build, not upstream authorship or an independently audited supply chain.
 
@@ -42,7 +46,10 @@ Protocol and generator tests can run without an Android SDK:
 ```
 
 Use `--offline` after dependencies and the wrapper distribution have been cached. Updating the
-dependency graph deliberately uses `--write-locks`; inspect the resulting lockfile changes.
+dependency graph deliberately uses `--write-locks` with the relevant check tasks; inspect the
+resulting lockfile changes. To regenerate buildscript locks for every module, including the
+optional prototype, run `./gradlew --write-locks -PincludeOfflineApp=true help`. This resolves the
+existing plugin graph without building an APK; it does not regenerate ordinary module locks.
 
 ## Source
 

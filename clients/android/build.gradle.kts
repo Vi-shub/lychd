@@ -1,3 +1,8 @@
+buildscript {
+    configurations.classpath { resolutionStrategy.activateDependencyLocking() }
+    dependencyLocking { lockMode.set(LockMode.STRICT) }
+}
+
 plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.kotlin.android) apply false
@@ -7,5 +12,14 @@ plugins {
 }
 
 allprojects {
-    dependencyLocking { lockAllConfigurations() }
+    dependencyLocking {
+        lockAllConfigurations()
+        lockMode.set(LockMode.STRICT)
+    }
+    if (this != rootProject) {
+        buildscript {
+            configurations.classpath { resolutionStrategy.activateDependencyLocking() }
+            dependencyLocking { lockMode.set(LockMode.STRICT) }
+        }
+    }
 }
