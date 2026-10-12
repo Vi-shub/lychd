@@ -127,19 +127,12 @@ class OperatorInventoryService:
         self._animators = animators
 
     def inspect(self, selector: OperatorTarget = OperatorTarget.SYSTEM) -> InventoryReport:
-        """Build a report for one stable selector, degrading instead of guessing."""
+        """Build a report after collecting every warning for one stable selector."""
         warnings: list[str] = []
         receipt_present, receipt_valid = self._receipt_state(warnings)
         catalog = self._units.inspect()
         if catalog.warning:
             warnings.append(catalog.warning)
-        summary = self._summary(
-            receipt_present=receipt_present,
-            receipt_valid=receipt_valid,
-            catalog=catalog,
-            warnings=warnings,
-        )
-
         if selector is OperatorTarget.SYSTEM:
             items = self._system_items(
                 receipt_present=receipt_present,
@@ -164,6 +157,12 @@ class OperatorInventoryService:
         else:
             message = f"Unsupported operator inventory selector: {selector!r}"
             raise ValueError(message)
+        summary = self._summary(
+            receipt_present=receipt_present,
+            receipt_valid=receipt_valid,
+            catalog=catalog,
+            warnings=warnings,
+        )
         return InventoryReport(
             selector=selector,
             summary=summary,

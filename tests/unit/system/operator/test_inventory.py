@@ -3,6 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
+import pytest
+
 from lychd.system.operator import (
     DeclaredAnimator,
     MountObservation,
@@ -52,6 +54,12 @@ class _Animators:
 
     def declarations(self) -> tuple[DeclaredAnimator, ...]:
         return self._declarations
+
+
+class _InvalidAnimators(_Animators):
+    def declarations(self) -> tuple[DeclaredAnimator, ...]:
+        message = "Malformed TOML in declared Rune"
+        raise ValueError(message)
 
 
 def _paths(tmp_path: Path) -> OperatorPaths:
@@ -203,6 +211,26 @@ def test_animator_selector_cross_checks_declaration_against_exact_owned_unit(tmp
         ("other", ObservationState.ABSENT),
     ]
     assert "model-level warmth is not yet projected" in report.items[0].detail
+
+
+@pytest.mark.parametrize("initialized", [False, True])
+def test_animator_declaration_failure_degrades_report_and_json(
+    tmp_path: Path,
+    *,
+    initialized: bool,
+) -> None:
+    units = (OwnedUnit(name="lychd-vessel.service", sources=(), state=ObservationState.ACTIVE),) if initialized else ()
+    report = _service(
+        tmp_path,
+        receipt=_Receipt(exists=initialized),
+        catalog=OwnedUnitCatalog(receipt_present=initialized, units=units),
+        animators=_InvalidAnimators(),
+    ).inspect(OperatorTarget.ANIMATORS)
+
+    assert report.summary is SystemSummary.DEGRADED
+    assert report.as_dict()["summary"] == "degraded"
+    assert report.items[0].state is ObservationState.UNKNOWN
+    assert report.warnings == ("Cannot load Animator declarations: Malformed TOML in declared Rune",)
 
 
 def test_workers_never_infer_readiness_from_active_vessel(tmp_path: Path) -> None:
