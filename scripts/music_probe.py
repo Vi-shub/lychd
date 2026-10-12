@@ -216,12 +216,12 @@ def prepare(profile: Path, request: Path, workspace: Path) -> None:
 
 
 @comfy.command()
-@click.argument("operation", type=click.Choice(("submit", "reconcile", "fetch")))
+@click.argument("operation", type=click.Choice(("submit", "reconcile", "fetch", "repair")))
 @click.argument("occurrence", type=click.UUID)
 @click.option("--profile", required=True, type=click.Path(path_type=Path, dir_okay=False))
 @click.option("--workspace", required=True, type=click.Path(path_type=Path, file_okay=False))
 def attempt(
-    operation: Literal["submit", "reconcile", "fetch"], occurrence: UUID, profile: Path, workspace: Path
+    operation: Literal["submit", "reconcile", "fetch", "repair"], occurrence: UUID, profile: Path, workspace: Path
 ) -> None:
     """Advance or inspect the exact existing occurrence, with no implicit replay."""
     from lychd.domain.comfy_probe import ComfyProfile
@@ -229,6 +229,9 @@ def attempt(
 
     selected = ComfyProfile.model_validate_json(read_json_file(profile))
     probe = ComfyProbe(selected, external_path(workspace), checkout_roots=(CHECKOUT_ROOT,))
+    if operation == "repair":
+        click.echo(probe.repair_materialization(occurrence).model_dump_json())
+        return
     current = probe.load(occurrence)
     operation_call = {"submit": probe.submit, "reconcile": probe.reconcile, "fetch": probe.fetch_outputs}[operation]
     click.echo(asyncio.run(operation_call(current)).model_dump_json())

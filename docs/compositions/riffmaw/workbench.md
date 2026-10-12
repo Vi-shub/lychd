@@ -72,10 +72,12 @@ Empty history never proves no submission occurred. Verify the exact
 a real model trial. HTTP acknowledgement alone does not establish containment or useful output.
 
 Fetched bytes become immutable for that occurrence; repeating retrieval verifies and reuses
-retained files. A later-file failure preserves earlier files and their technical receipts. A crash
-between pinning a digest and installing its file leaves interrupted materialization: missing or
-damaged bytes refuse and require separate reconciliation/manual repair. Extension and digest
-checks alone do not establish a valid image, video or audio format.
+retained files. A later-file failure preserves earlier files and their technical receipts. Publication
+first retains deterministic staging, then pins its digest before installing the final file. An
+interruption after that pin can be repaired using only the exact local stage; normal load still
+refuses a missing final file. Unpinned staging, lost or damaged bytes, and conflicting final files
+refuse and require manual reconciliation. Repair never replaces bytes from the server or repeats
+generation. Extension and digest checks alone do not establish a valid image, video or audio format.
 
 ## Development operations
 
@@ -117,8 +119,12 @@ assumed stable and operator-owned, not hostile mutable mounts.
 profile and request files, then run `comfy prepare --profile PROFILE --request REQUEST --workspace
 WORKSPACE`. `comfy attempt submit UUID --profile PROFILE --workspace WORKSPACE` crosses the submit
 fence once; later `reconcile` queries the same occurrence and `fetch` retains its reviewed outputs.
-The workspace must already exist. No live profile, model, server launch or MiniMax generation is
-supplied by these commands. Unknown submission stays unknown; cancellation refuses.
+The workspace must already exist. After interrupted file installation, `comfy attempt repair UUID
+--profile PROFILE --workspace WORKSPACE` verifies pinned staging and installs only matching bytes.
+It makes no HTTP requests, leaves receipt identity unchanged, and can be repeated. A pre-pin stage
+blocks further fetching until manually reconciled; old receipts whose bytes were lost cannot be
+repaired by this command. No live profile, model, server launch or MiniMax generation is supplied
+by these commands. Unknown submission stays unknown; cancellation refuses.
 
 ## Native implementation stages
 

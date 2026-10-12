@@ -1,6 +1,8 @@
+import fcntl
 import hashlib
 import json
 import os
+import stat
 from collections.abc import Callable
 from pathlib import Path
 from uuid import uuid4
@@ -10,6 +12,8 @@ import pytest
 from pydantic import ValidationError
 
 from lychd.domain.comfy_probe import (
+    ComfyArtifact,
+    ComfyAttempt,
     ComfyProfile,
     ComfyRequest,
     MutableInput,
@@ -478,9 +482,13 @@ async def test_interrupted_materialization_receipt_never_claims_retained_bytes(
             )
         return httpx.Response(200, content=b"WAVE")
 
-    def interrupted_link(*args: object, **kwargs: object) -> None:
-        msg = "publication interrupted"
-        raise OSError(msg)
+    real_link = os.link
+
+    def interrupted_link(source: Path, destination: Path, *, follow_symlinks: bool = True) -> None:
+        if destination.suffix == ".wav":
+            msg = "publication interrupted"
+            raise OSError(msg)
+        real_link(source, destination, follow_symlinks=follow_symlinks)
 
     probe = probe_for(probe_path, profile, handler)
     attempt = await probe.reconcile(await probe.submit(probe.prepare(request_for(profile), occurrence)))
@@ -491,6 +499,18 @@ async def test_interrupted_materialization_receipt_never_claims_retained_bytes(
     assert receipt["artifacts"][0]["sha256"] == hashlib.sha256(b"WAVE").hexdigest()
     with pytest.raises(ProbeRefusedError, match="missing"):
         probe.load(occurrence)
+    stage = probe_path / f".comfy-stage-v1-{occurrence}-0"
+    assert stage.read_bytes() == b"WAVE"
+    receipt_bytes = (probe_path / f"{occurrence}.json").read_bytes()
+    monkeypatch.setattr(os, "link", real_link)
+    restarted = probe_for(probe_path, profile, lambda _: pytest.fail("repair must not use HTTP"))
+    repaired = restarted.repair_materialization(occurrence)
+    assert repaired.model_dump(mode="json") == receipt
+    assert (probe_path / f"{occurrence}.json").read_bytes() == receipt_bytes
+    assert restarted.load(occurrence) == repaired
+    assert restarted.repair_materialization(occurrence) == repaired
+    assert (probe_path / receipt["artifacts"][0]["local_filename"]).read_bytes() == b"WAVE"
+    assert not stage.exists()
 
 
 @pytest.mark.asyncio
@@ -578,3 +598,257 @@ def test_copied_unvalidated_profile_refused_before_binding(probe_path: Path, pro
     with pytest.raises(ValueError, match="loopback"):
         probe_for(probe_path, invalid, lambda _: httpx.Response(200))
     assert not list(probe_path.glob("*.json"))
+
+
+def staged_attempt(probe_path: Path, profile: ComfyProfile) -> tuple[ComfyProbe, ComfyAttempt, Path, Path]:
+    """Reconstruct a post-pin receipt and its exact local publication stage."""
+    probe = probe_for(probe_path, profile, lambda _: pytest.fail("local repair must not use HTTP"))
+    attempt = probe.prepare(request_for(profile))
+    digest = hashlib.sha256(b"WAVE").hexdigest()
+    local = f"{attempt.occurrence_id}-0-{digest}.wav"
+    artifact = ComfyArtifact(
+        node_id="1",
+        kind="audio",
+        receiving_owner="riffmaw.music",
+        filename="sound.wav",
+        subfolder="",
+        storage_type="output",
+        local_filename=local,
+        sha256=digest,
+        size_bytes=4,
+    )
+    attempt = attempt.model_copy(
+        update={"state": "succeeded", "provider_id": str(attempt.occurrence_id), "artifacts": (artifact,)}
+    )
+    (probe_path / f"{attempt.occurrence_id}.json").write_text(attempt.model_dump_json())
+    stage = probe_path / f".comfy-stage-v1-{attempt.occurrence_id}-0"
+    stage.write_bytes(b"WAVE")
+    return probe, attempt, stage, probe_path / local
+
+
+@pytest.mark.parametrize("damage", ["missing", "corrupt", "symlink", "directory", "fifo", "oversized"])
+def test_repair_refuses_invalid_stage_without_mutating_receipt(
+    probe_path: Path, profile: ComfyProfile, damage: str
+) -> None:
+    probe, attempt, stage, destination = staged_attempt(probe_path, profile)
+    stage.unlink()
+    if damage == "corrupt":
+        stage.write_bytes(b"EDIT")
+    elif damage == "symlink":
+        foreign = probe_path / "foreign.wav"
+        foreign.write_bytes(b"WAVE")
+        stage.symlink_to(foreign)
+    elif damage == "directory":
+        stage.mkdir()
+    elif damage == "fifo":
+        os.mkfifo(stage)
+    elif damage == "oversized":
+        stage.write_bytes(b"TOO-LARGE")
+    receipt = probe_path / f"{attempt.occurrence_id}.json"
+    original = receipt.read_bytes()
+    with pytest.raises(ProbeRefusedError, match="Retained"):
+        probe.repair_materialization(attempt.occurrence_id)
+    assert receipt.read_bytes() == original
+    assert not destination.exists()
+    assert stage.exists() == (damage != "missing")
+
+
+@pytest.mark.parametrize("damage", ["corrupt", "symlink", "directory", "fifo"])
+def test_repair_preserves_conflicting_final_and_exact_stage(
+    probe_path: Path, profile: ComfyProfile, damage: str
+) -> None:
+    probe, attempt, stage, destination = staged_attempt(probe_path, profile)
+    if damage == "corrupt":
+        destination.write_bytes(b"EDIT")
+    elif damage == "symlink":
+        destination.symlink_to(stage)
+    elif damage == "directory":
+        destination.mkdir()
+    else:
+        os.mkfifo(destination)
+    original_inode = destination.lstat().st_ino
+    with pytest.raises(ProbeRefusedError, match="Retained"):
+        probe.repair_materialization(attempt.occurrence_id)
+    assert destination.lstat().st_ino == original_inode
+    assert stage.read_bytes() == b"WAVE"
+
+
+@pytest.mark.asyncio
+async def test_pre_pin_stage_refuses_repair_and_refetch_before_http(probe_path: Path, profile: ComfyProfile) -> None:
+    probe, attempt, stage, destination = staged_attempt(probe_path, profile)
+    unpinned = attempt.artifacts[0].model_copy(update={"local_filename": None, "sha256": None, "size_bytes": None})
+    attempt = attempt.model_copy(update={"artifacts": (unpinned,)})
+    receipt = probe_path / f"{attempt.occurrence_id}.json"
+    receipt.write_text(attempt.model_dump_json())
+    original = receipt.read_bytes()
+    with pytest.raises(ProbeRefusedError, match="Unpinned"):
+        probe.repair_materialization(attempt.occurrence_id)
+    with pytest.raises(ProbeRefusedError, match="Unpinned"):
+        await probe.fetch_outputs(probe.load(attempt.occurrence_id))
+    assert stage.read_bytes() == b"WAVE"
+    assert receipt.read_bytes() == original
+    assert not destination.exists()
+
+
+@pytest.mark.parametrize(
+    "changed", ["occurrence_id", "profile_sha256", "request_sha256", "prompt_sha256", "local_filename", "filename"]
+)
+def test_repair_revalidates_receipt_identity_before_installing(
+    probe_path: Path, profile: ComfyProfile, changed: str
+) -> None:
+    probe, attempt, stage, destination = staged_attempt(probe_path, profile)
+    receipt = probe_path / f"{attempt.occurrence_id}.json"
+    raw = json.loads(receipt.read_text())
+    if changed in {"local_filename", "filename"}:
+        raw["artifacts"][0][changed] = "foreign.txt"
+    else:
+        raw[changed] = str(uuid4()) if changed == "occurrence_id" else "0" * 64
+    receipt.write_text(json.dumps(raw))
+    original = receipt.read_bytes()
+    with pytest.raises(ProbeRefusedError):
+        probe.repair_materialization(attempt.occurrence_id)
+    assert receipt.read_bytes() == original
+    assert stage.read_bytes() == b"WAVE"
+    assert not destination.exists()
+
+
+@pytest.mark.asyncio
+async def test_repair_and_fetch_share_exclusive_lock(probe_path: Path, profile: ComfyProfile) -> None:
+    probe, attempt, stage, destination = staged_attempt(probe_path, profile)
+    with (probe_path / f"{attempt.occurrence_id}.fetch.lock").open("w") as lock:
+        fcntl.flock(lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        with pytest.raises(BlockingIOError):
+            probe.repair_materialization(attempt.occurrence_id)
+        with pytest.raises(BlockingIOError):
+            await probe.fetch_outputs(attempt)
+    assert stage.read_bytes() == b"WAVE"
+    assert not destination.exists()
+
+
+@pytest.mark.asyncio
+async def test_repair_preserves_prior_files_then_fetches_only_unpinned_output(
+    probe_path: Path, profile: ComfyProfile, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from lychd.system.services import comfy_probe
+
+    opening = profile.outputs[0].model_copy(update={"max_files": 3})
+    profile = ComfyProfile.model_validate({**profile.model_dump(), "outputs": (opening,)})
+    probe, attempt, stage, destination = staged_attempt(probe_path, profile)
+    stage.rename(destination)
+    first = attempt.artifacts[0]
+    second = first.model_copy(
+        update={"filename": "second.wav", "local_filename": f"{attempt.occurrence_id}-1-{first.sha256}.wav"}
+    )
+    third = first.model_copy(
+        update={"filename": "third.wav", "local_filename": None, "sha256": None, "size_bytes": None}
+    )
+    attempt = attempt.model_copy(update={"artifacts": (first, second, third)})
+    receipt = probe_path / f"{attempt.occurrence_id}.json"
+    receipt.write_text(attempt.model_dump_json())
+    second_stage = probe_path / f".comfy-stage-v1-{attempt.occurrence_id}-1"
+    second_stage.write_bytes(b"WAVE")
+    monkeypatch.setattr(comfy_probe, "MAX_OUTPUT_BYTES", 12)
+    original = receipt.read_bytes()
+    repaired = probe.repair_materialization(attempt.occurrence_id)
+    assert repaired == attempt
+    assert receipt.read_bytes() == original
+    calls: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "GET"
+        assert request.url.path == "/view"
+        calls.append(request.url.params["filename"])
+        return httpx.Response(200, content=b"GOOD")
+
+    result = await probe_for(probe_path, profile, handler).fetch_outputs(repaired)
+    assert calls == ["third.wav"]
+    assert result.artifacts[:2] == repaired.artifacts[:2]
+    assert result.artifacts[2].sha256 == hashlib.sha256(b"GOOD").hexdigest()
+    assert destination.read_bytes() == b"WAVE"
+
+
+def test_repair_does_not_advance_unknown_submission(probe_path: Path, profile: ComfyProfile) -> None:
+    probe = probe_for(probe_path, profile, lambda _: pytest.fail("repair must not use HTTP"))
+    attempt = probe.prepare(request_for(profile)).model_copy(update={"state": "indeterminate"})
+    receipt = probe_path / f"{attempt.occurrence_id}.json"
+    receipt.write_text(attempt.model_dump_json())
+    original = receipt.read_bytes()
+    with pytest.raises(ProbeRefusedError, match="technical success"):
+        probe.repair_materialization(attempt.occurrence_id)
+    assert receipt.read_bytes() == original
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "fault", ["stage_sync", "receipt_replace", "receipt_sync", "final_sync", "stage_unlink", "cleanup_sync"]
+)
+async def test_publication_faults_preserve_repairable_or_ambiguous_evidence(  # noqa: C901 - explicit publication fault matrix
+    probe_path: Path, profile: ComfyProfile, monkeypatch: pytest.MonkeyPatch, fault: str
+) -> None:
+    occurrence = uuid4()
+    prompt = profile.prompt(request_for(profile))
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/prompt":
+            return httpx.Response(200, json={"prompt_id": str(occurrence)})
+        if request.url.path.startswith("/history/"):
+            return httpx.Response(
+                200,
+                json={
+                    str(occurrence): {
+                        "prompt": [0, str(occurrence), prompt],
+                        "status": {"completed": True, "status_str": "success"},
+                        "outputs": {"1": {"audio": [{"filename": "sound.wav", "subfolder": "", "type": "output"}]}},
+                    }
+                },
+            )
+        return httpx.Response(200, content=b"WAVE")
+
+    probe = probe_for(probe_path, profile, handler)
+    attempt = await probe.reconcile(await probe.submit(probe.prepare(request_for(profile), occurrence)))
+    real_sync, real_replace, real_unlink = os.fsync, Path.replace, Path.unlink
+    directory_syncs = 0
+    sync_faults = {"stage_sync": 1, "receipt_sync": 2, "final_sync": 3, "cleanup_sync": 4}
+    stage = probe_path / f".comfy-stage-v1-{occurrence}-0"
+    failure = "publication interrupted"
+
+    def interrupted_sync(fd: int) -> None:
+        nonlocal directory_syncs
+        if stat.S_ISDIR(os.fstat(fd).st_mode):
+            directory_syncs += 1
+            if directory_syncs == sync_faults.get(fault):
+                raise OSError(failure)
+        real_sync(fd)
+
+    def interrupted_replace(source: Path, target: Path) -> Path:
+        if fault == "receipt_replace":
+            raise OSError(failure)
+        return real_replace(source, target)
+
+    def interrupted_unlink(path: Path, *, missing_ok: bool = False) -> None:
+        if fault == "stage_unlink" and path == stage:
+            raise OSError(failure)
+        real_unlink(path, missing_ok=missing_ok)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(os, "fsync", interrupted_sync)
+        patch.setattr(Path, "replace", interrupted_replace)
+        patch.setattr(Path, "unlink", interrupted_unlink)
+        with pytest.raises(OSError, match="publication interrupted"):
+            await probe.fetch_outputs(attempt)
+    receipt = probe_path / f"{occurrence}.json"
+    original = receipt.read_bytes()
+    restarted = probe_for(probe_path, profile, lambda _: pytest.fail("recovery must not use HTTP"))
+    if fault in {"stage_sync", "receipt_replace"}:
+        with pytest.raises(ProbeRefusedError, match="Unpinned"):
+            restarted.repair_materialization(occurrence)
+        with pytest.raises(ProbeRefusedError, match="Unpinned"):
+            await restarted.fetch_outputs(restarted.load(occurrence))
+        assert stage.read_bytes() == b"WAVE"
+    else:
+        repaired = restarted.repair_materialization(occurrence)
+        assert restarted.load(occurrence) == repaired
+        assert restarted.repair_materialization(occurrence) == repaired
+        assert repaired.artifacts[0].sha256 == hashlib.sha256(b"WAVE").hexdigest()
+        assert not stage.exists()
+    assert receipt.read_bytes() == original

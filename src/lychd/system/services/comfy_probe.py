@@ -91,13 +91,17 @@ class ComfyProbe:
                 output.flush()
                 os.fsync(output.fileno())
             Path(temporary).replace(path)
-            directory = os.open(self.workspace, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
-            try:
-                os.fsync(directory)
-            finally:
-                os.close(directory)
+            self._sync_workspace()
         finally:
             Path(temporary).unlink(missing_ok=True)
+
+    def _sync_workspace(self) -> None:
+        self._fence()
+        directory = os.open(self.workspace, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
 
     def _read(self, path: Path) -> ComfyAttempt:
         fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
@@ -113,6 +117,14 @@ class ComfyProbe:
         return ComfyAttempt.model_validate_json(raw)
 
     def _current(self, attempt: ComfyAttempt, path: Path) -> ComfyAttempt:
+        current = self._bound_current(attempt, path)
+        for index, artifact in enumerate(current.artifacts):
+            if artifact.local_filename is not None:
+                self._verify_local(current.occurrence_id, index, artifact)
+        return current
+
+    def _bound_current(self, attempt: ComfyAttempt, path: Path) -> ComfyAttempt:
+        """Validate immutable receipt identity separately from installed bytes."""
         current = self._read(path)
         request = ComfyRequest(profile_sha256=current.profile_sha256, inputs_json=current.inputs_json)
         if current.profile_sha256 != self.profile.digest:
@@ -156,7 +168,7 @@ class ComfyProbe:
                     msg = "Receipt output bytes exceed the reviewed profile"
                     raise ProbeRefusedError(msg)
                 total += artifact.size_bytes
-                self._verify_local(current.occurrence_id, index, artifact)
+                self._local_path(current.occurrence_id, index, artifact)
         if total > MAX_OUTPUT_BYTES:
             msg = "Retained artifact bytes exceed the total bound"
             raise ProbeRefusedError(msg)
@@ -165,7 +177,7 @@ class ComfyProbe:
             raise ProbeRefusedError(msg)
         return current
 
-    def _verify_local(self, occurrence: UUID, index: int, artifact: ComfyArtifact) -> None:
+    def _local_path(self, occurrence: UUID, index: int, artifact: ComfyArtifact) -> Path:
         if artifact.local_filename is None or artifact.sha256 is None or artifact.size_bytes is None:
             msg = "Fetched artifact metadata is incomplete"
             raise ProbeRefusedError(msg)
@@ -173,9 +185,18 @@ class ComfyProbe:
         if artifact.local_filename != expected:
             msg = "Retained filename is not bound to occurrence, index, digest and extension"
             raise ProbeRefusedError(msg)
+        return self.workspace / expected
+
+    def _verify_local(self, occurrence: UUID, index: int, artifact: ComfyArtifact) -> None:
+        self._verify_file(self._local_path(occurrence, index, artifact), artifact)
+
+    def _verify_file(self, path: Path, artifact: ComfyArtifact) -> None:
+        if artifact.size_bytes is None or artifact.sha256 is None:
+            msg = "Fetched artifact metadata is incomplete"
+            raise ProbeRefusedError(msg)
         self._fence()
         try:
-            fd = os.open(self.workspace / expected, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+            fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
             with os.fdopen(fd, "rb") as source:
                 info = os.fstat(source.fileno())
                 if not stat.S_ISREG(info.st_mode) or info.st_size != artifact.size_bytes:
@@ -411,15 +432,70 @@ class ComfyProbe:
         return current
 
     async def fetch_outputs(self, attempt: ComfyAttempt) -> ComfyAttempt:
+        with self._fetch_locked(attempt.occurrence_id):
+            return await self._fetch_outputs(attempt)
+
+    @contextmanager
+    def _fetch_locked(self, occurrence: UUID) -> Generator[None]:
         self._fence()
-        fd = os.open(
-            self.workspace / f"{attempt.occurrence_id}.fetch.lock", os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600
-        )
+        fd = os.open(self.workspace / f"{occurrence}.fetch.lock", os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
         try:
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            return await self._fetch_outputs(attempt)
+            yield
         finally:
             os.close(fd)
+
+    def _stage_path(self, occurrence: UUID, index: int) -> Path:
+        return self.workspace / f".comfy-stage-v1-{occurrence}-{index}"
+
+    def _require_pinned_stages(self, attempt: ComfyAttempt) -> None:
+        for index, artifact in enumerate(attempt.artifacts):
+            stage = self._stage_path(attempt.occurrence_id, index)
+            if artifact.local_filename is None and (stage.exists() or stage.is_symlink()):
+                msg = "Unpinned staging bytes require manual reconciliation; refetch is forbidden"
+                raise ProbeRefusedError(msg)
+
+    def _install_staged(self, occurrence: UUID, index: int, artifact: ComfyArtifact) -> None:
+        """Install only exact pinned bytes; preserve conflicting evidence on failure."""
+        destination = self._local_path(occurrence, index, artifact)
+        stage = self._stage_path(occurrence, index)
+        staged = stage.exists() or stage.is_symlink()
+        if staged:
+            self._verify_file(stage, artifact)
+        if destination.exists() or destination.is_symlink():
+            self._verify_local(occurrence, index, artifact)
+        else:
+            if not staged:
+                msg = "Retained artifact and its pinned staging bytes are missing"
+                raise ProbeRefusedError(msg)
+            os.link(stage, destination, follow_symlinks=False)
+        # Also settle a prior link whose directory fsync acknowledgement was lost.
+        self._sync_workspace()
+        self._verify_local(occurrence, index, artifact)
+        if staged:
+            stage.unlink()
+            self._sync_workspace()
+
+    def repair_materialization(self, occurrence_id: UUID) -> ComfyAttempt:
+        """Reconcile exact pinned local staging without HTTP or receipt mutation.
+
+        Missing or damaged bytes and pre-pin staging ambiguity remain refusals.
+        This repairs file installation, never provider execution or media meaning.
+        """
+        with self._fetch_locked(occurrence_id), self._locked(occurrence_id) as path:
+            attempt = self._read(path)
+            if attempt.occurrence_id != occurrence_id:
+                msg = "Receipt occurrence does not match its durable filename"
+                raise ProbeRefusedError(msg)
+            current = self._bound_current(attempt, path)
+            if current.state != "succeeded":
+                msg = "Materialization repair requires reconciled technical success"
+                raise ProbeRefusedError(msg)
+            self._require_pinned_stages(current)
+            for index, artifact in enumerate(current.artifacts):
+                if artifact.local_filename is not None:
+                    self._install_staged(occurrence_id, index, artifact)
+            return self._current(current, path)
 
     def _publish_artifact(
         self, attempt: ComfyAttempt, index: int, artifact: ComfyArtifact, temporary: Path, size: int, digest: str
@@ -440,15 +516,13 @@ class ComfyProbe:
             artifacts = list(current.artifacts)
             artifacts[index] = fetched
             current = current.model_copy(update={"artifacts": tuple(artifacts)})
-            # A crash before file installation leaves a pinned interrupted-materialization
-            # record. Resume refuses its missing bytes; metadata never proves retention.
+            # Retain deterministic bytes before pinning the receipt. A pre-pin crash
+            # remains ambiguous; a post-pin crash can repair exactly this local stage.
+            stage = self._stage_path(attempt.occurrence_id, index)
+            os.link(temporary, stage, follow_symlinks=False)
+            self._sync_workspace()
             self._write(path, current)
-            os.link(temporary, destination, follow_symlinks=False)
-            directory = os.open(self.workspace, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
-            try:
-                os.fsync(directory)
-            finally:
-                os.close(directory)
+            self._install_staged(attempt.occurrence_id, index, fetched)
 
     async def _fetch_outputs(self, attempt: ComfyAttempt) -> ComfyAttempt:
         with self._locked(attempt.occurrence_id) as path:
@@ -456,6 +530,7 @@ class ComfyProbe:
         if current.state != "succeeded":
             msg = "Outputs require reconciled technical success"
             raise ProbeRefusedError(msg)
+        self._require_pinned_stages(current)
         total = sum(item.size_bytes or 0 for item in current.artifacts)
         for index, artifact in enumerate(current.artifacts):
             if artifact.local_filename is not None:

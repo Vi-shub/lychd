@@ -1081,14 +1081,17 @@ refuse corrupted/incomplete entries. A standalone read-only audition shows the e
 timeline and verified mix/stems without a native editor or independent synthesis. A classic
 loopback Comfy probe pins reviewed workflow/input declarations, persists an indeterminate submit
 fence before POST, reconciles exact prompt identity,
-and retains bounded immutable artifacts with partial-download receipts. Focused tests exercise real
+and retains bounded immutable artifacts with partial-download receipts. Deterministic local staging
+supports explicit digest-verified repair after interrupted file installation, without HTTP or
+receipt identity changes. Unpinned staging blocks refetch. Focused tests exercise real
 DawDreamer 0.9.0 audio and MockTransport Comfy failure paths.
 
 **Boundary — Not yet:** These are finite engineering mechanisms, not a native Riffmaw or Atelier
 application, canonical musical project, registered Pattern, Invocation, ServiceJob, media custody
 or semantic acceptance path. There is no shipped studio API/editor, live input, plug-in loading,
 realtime/latency proof, engine containment, Comfy deployment, loaded-model attestation or real
-MiniMax generation. Interrupted Comfy materialization can require manual reconciliation; targeted
+MiniMax generation. Lost, damaged or unpinned Comfy staging and conflicting final files still
+require manual reconciliation; targeted
 cancellation refuses. Stable operator-owned external directories and the optional native profile
 remain explicit prerequisites. Portfolio and general-service delivery stay Designed.
 

@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
+from typing import Never
 
+import httpx
 import pytest
 from click import ClickException
 from click.testing import CliRunner
@@ -56,3 +59,82 @@ def test_json_reads_bound_input_bytes(probe_path: Path) -> None:
     oversized.write_bytes(b" " * (1024 * 1024 + 1))
     with pytest.raises(ClickException, match="byte limit"):
         read_json_file(oversized)
+
+
+def test_comfy_cli_repairs_pinned_stage_without_load_or_http(probe_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from lychd.domain.comfy_probe import (
+        ComfyArtifact,
+        ComfyProfile,
+        ComfyRequest,
+        OutputOpening,
+        canonical_json,
+        json_digest,
+    )
+    from lychd.system.services.comfy_probe import ComfyProbe, ProbeRefusedError
+
+    graph = canonical_json({"1": {"class_type": "AudioSave", "inputs": {"seed": 1}}})
+    profile = ComfyProfile(
+        endpoint="http://127.0.0.1:8188",
+        deployment_revision="test-only",
+        review_reference="no-live-authority",
+        workflow_json=graph,
+        workflow_sha256=json_digest(graph),
+        allowed_node_classes=("AudioSave",),
+        models=(),
+        mutable_inputs=(),
+        outputs=(
+            OutputOpening(
+                node_id="1", kind="audio", receiving_owner="riffmaw.music", extensions=(".wav",), max_bytes=8
+            ),
+        ),
+    )
+    probe = ComfyProbe(profile, probe_path, (CHECKOUT_ROOT,))
+    attempt = probe.prepare(ComfyRequest(profile_sha256=profile.digest, inputs_json="{}"))
+    digest = hashlib.sha256(b"WAVE").hexdigest()
+    local = f"{attempt.occurrence_id}-0-{digest}.wav"
+    artifact = ComfyArtifact(
+        node_id="1",
+        kind="audio",
+        receiving_owner="riffmaw.music",
+        filename="sound.wav",
+        subfolder="",
+        storage_type="output",
+        local_filename=local,
+        sha256=digest,
+        size_bytes=4,
+    )
+    attempt = attempt.model_copy(
+        update={"state": "succeeded", "provider_id": str(attempt.occurrence_id), "artifacts": (artifact,)}
+    )
+    receipt = probe_path / f"{attempt.occurrence_id}.json"
+    receipt.write_text(attempt.model_dump_json())
+    original = receipt.read_bytes()
+    stage = probe_path / f".comfy-stage-v1-{attempt.occurrence_id}-0"
+    stage.write_bytes(b"WAVE")
+    with pytest.raises(ProbeRefusedError, match="missing"):
+        probe.load(attempt.occurrence_id)
+    profile_path = probe_path / "profile.json"
+    profile_path.write_text(profile.model_dump_json())
+
+    def forbid_http_client(**_options: object) -> Never:
+        pytest.fail("repair must not construct an HTTP client")
+
+    monkeypatch.setattr(httpx, "AsyncClient", forbid_http_client)
+    result = CliRunner().invoke(
+        cli,
+        [
+            "comfy",
+            "attempt",
+            "repair",
+            str(attempt.occurrence_id),
+            "--profile",
+            str(profile_path),
+            "--workspace",
+            str(probe_path),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.output) == attempt.model_dump(mode="json")
+    assert receipt.read_bytes() == original
+    assert (probe_path / local).read_bytes() == b"WAVE"
+    assert not stage.exists()
