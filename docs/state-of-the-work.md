@@ -474,8 +474,9 @@ shapes, and a no-effect reference adapter exist.
 
 The reference adapter reconstructs its deterministic projection for refresh and cancellation after
 coordinator/runtime restart without replaying an external effect, retains it across failed durable
-adoption, and retires it after terminal settlement. Oversized reference replies settle as bounded
-failed results, including when reconstructed for cancellation. Oversized start-error diagnostics
+adoption, and retires it after terminal settlement. Oversized reference echoes retain a successful
+effect-free result with an explicit truncation marker, including after reconstruction. This does
+not qualify truncated output from a foreign runtime. Oversized start-error diagnostics
 retain an explicit truncation marker without preventing `LOST` settlement.
 
 An unclassified runtime-start exception now
@@ -535,6 +536,11 @@ Inert hard-swap and soft-reload cases verify refusal without a lease or dispatch
 cleanup, and fresh redispatch; an unrelated Animator's drain does not invalidate the grant.
 OpenAI-shaped clients discard ambient SDK account, admin, webhook, and custom-header configuration;
 request tests prove that only the declared credential reaches the configured endpoint.
+Model, readiness, and local control-plane clients also ignore ambient HTTP proxies and refuse
+redirect following. Inert transport tests observe direct routing for local prompts and TabbyAPI
+admin credentials, including streaming load requests. Model clients preserve that policy after
+close and re-entry and make no implicit SDK retransmission after a server error or lost response.
+These checks do not implement anonymization, a Provider Gate, or remote fallback.
 
 A non-empty Soulstone `[[models]]`
 catalogue is an ordered exact allowlist, capability concurrency must match its Rune,
@@ -589,6 +595,8 @@ benchmark.
   [fixed-runtime projection](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/animation/services/adapters/runtimes/openai_compat.py),
   and [bounded embedding driver](https://github.com/hexanomicon/lychd/blob/main/src/lychd/extensions/builtin/animator/llamacpp/embedding.py)
 - **Verification:** [Registry tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/animation/test_registry.py),
+  [model transport tests](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_model_transport.py),
+  [control-plane transport tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/lib/test_control_plane_transport.py),
   [grant lifecycle tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_dispatcher.py),
   [admission-generation tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_dispatcher_admission_generation.py),
   [runtime adapter tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/animation/test_adapters.py),

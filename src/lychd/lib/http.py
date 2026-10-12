@@ -41,7 +41,7 @@ async def request_json(
     headers: Mapping[str, str] | None = None,
     timeout: float = DEFAULT_TIMEOUT_SECONDS,  # noqa: ASYNC109 - httpx owns the request timeout natively
 ) -> dict[str, object]:
-    """Issue an async JSON request and normalize the response into a dict.
+    """Issue a direct, non-redirecting JSON request and normalize its response.
 
     Lists are wrapped as ``{"data": [...]}``; empty bodies become ``{}``. Raises
     ``HttpJsonError`` on transport failure, HTTP status >= 400, or invalid JSON —
@@ -53,7 +53,7 @@ async def request_json(
         request_headers.setdefault("Content-Type", "application/json")
 
     try:
-        async with httpx.AsyncClient(timeout=timeout) as client:
+        async with httpx.AsyncClient(timeout=timeout, trust_env=False, follow_redirects=False) as client:
             response = await client.request(
                 method,
                 url,

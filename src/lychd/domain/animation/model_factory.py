@@ -10,7 +10,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, cast
 
+import httpx2
 from openai import AsyncOpenAI
+from pydantic_ai._http import ConnectPoolTimeoutCap
+from pydantic_ai.models import get_user_agent
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.profiles import DEFAULT_PROFILE, InlineDefsJsonSchemaTransformer
 from pydantic_ai.profiles.openai import OpenAIModelProfile
@@ -44,6 +47,31 @@ LOCAL_COMPAT_PROFILE = OpenAIModelProfile(
 def _local_compat_profile(_resolved: ModelProfile) -> ModelProfile:
     """Replace provider defaults: a local model alias does not identify OpenAI policy."""
     return {**DEFAULT_PROFILE, **LOCAL_COMPAT_PROFILE}
+
+
+def _model_http_client() -> httpx2.AsyncClient:
+    """Keep the pinned provider's timeout policy without ambient network routing."""
+    return httpx2.AsyncClient(
+        trust_env=False,
+        follow_redirects=False,
+        timeout=httpx2.Timeout(600, connect=5),
+        limits=httpx2.Limits(max_connections=1000, max_keepalive_connections=100),
+        headers={"User-Agent": get_user_agent()},
+        event_hooks={"request": [ConnectPoolTimeoutCap(connect=5, pool=600)]},
+    )
+
+
+class _BoundOpenAIProvider(OpenAIProvider):
+    """Own and recreate the declared transport under Pydantic AI's model lifecycle."""
+
+    def __init__(self, *, base_url: str, api_key: str) -> None:
+        http_client = _model_http_client()
+        super().__init__(base_url=base_url, api_key=api_key, http_client=http_client)
+        # The pinned provider treats supplied HTTP clients as caller-owned. Retain
+        # its existing counted enter/exit and reopen behavior for this owned client.
+        self._own_http_client = http_client
+        self._http_client_factory = _model_http_client
+        self.client.max_retries = 0
 
 
 class _ProfiledOpenAIProvider(Provider[AsyncOpenAI]):
@@ -109,10 +137,10 @@ def openai_compatible_provider(
     api_key: str | None = None,
     default_query: Mapping[str, str] | None = None,
 ) -> OpenAIProvider:
-    """Bind only the declared endpoint and credential before exposing the SDK client."""
+    """Bind one endpoint, credential, and transmission without ambient SDK authority."""
     # The SDK reads OPENAI_API_KEY when no key is passed. A local runtime or
     # credential-free Portal has no authority to receive that unrelated secret.
-    provider = OpenAIProvider(base_url=base_url, api_key=api_key if api_key is not None else "api-key-not-set")
+    provider = _BoundOpenAIProvider(base_url=base_url, api_key=api_key if api_key is not None else "api-key-not-set")
     # The SDK imports account metadata, admin credentials, and custom headers.
     # This endpoint is authorized only for its declared credential. The pinned
     # provider has no constructor seam to suppress ambient SDK headers.

@@ -38,6 +38,7 @@ dependencies = [
     "asyncpg>=0.29.0",
     "click>=8.1.0",
     "httpx>=0.28.1",
+    "httpx2>=2.12.0,<3",
     "jinja2>=3.1.6",
     "litestar[sqlalchemy,structlog,pydantic,opentelemetry]>=2.24.0,<3", # v3 migration not audited
     "litestar-granian>=0.14.2",

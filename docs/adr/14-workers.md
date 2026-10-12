@@ -450,9 +450,10 @@ Delegated work is neither Tomb execution nor a broker retry. The coordinator has
 bounded hop. The selectable `reference` adapter is deterministic and effect-free; it may rebuild
 its process-local result projection from the persisted request before restart-time refresh or
 cancellation, retains that projection across a failed store adoption, and retires it only after
-authoritative terminal settlement. If its generated reply exceeds the result text limit, the
-reference adapter retains a bounded `FAILED` result that can still be reconstructed for
-cancellation. Effectful runtimes cannot use that seam: they require lookup by
+authoritative terminal settlement. Its effect-free echo remains `SUCCEEDED` when the generated
+text exceeds the result limit: the retained text is bounded with an explicit truncation marker
+and can still be reconstructed for cancellation. This demonstration does not permit truncating
+an effectful runtime's required result or terminal evidence into success. Effectful runtimes require lookup by
 durable provider/executor identity and must never replay submission. Database shapes, a migration,
 and a PostgreSQL adapter exist, but no real provider launch, Coffin supervisor, effectful child,
 cross-process pickup, or durable artifact custody is proved. [State of

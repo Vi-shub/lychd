@@ -126,7 +126,7 @@ async def test_router_inference_cannot_autoload_after_losing_warmth(
         return httpx2.Response(400, json={"error": {"message": "model is not loaded"}})
 
     monkeypatch.setattr(
-        "pydantic_ai.providers._openai_compatible.create_async_httpx2_client",
+        "lychd.domain.animation.model_factory._model_http_client",
         lambda: httpx2.AsyncClient(transport=httpx2.MockTransport(reject_unloaded)),
     )
     registry = _router_registry()

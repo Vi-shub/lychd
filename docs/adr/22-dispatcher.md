@@ -114,6 +114,12 @@ as `WARM`, so it cannot receive a grant.
 OpenAI-shaped transport construction binds only the declared endpoint and API credential. It
 does not retain ambient SDK organization, project, webhook, admin credential, or custom-header
 configuration. Environment headers cannot override the declared credential or reach another endpoint.
+Model, readiness, and local control-plane HTTP clients ignore ambient proxy configuration and do
+not follow redirects. Model transport performs one physical transmission per invocation: implicit
+SDK retries are disabled, including after a lost acknowledgement. Agent validation repair remains
+an explicit model round under its existing budget; this transport rule authorizes neither another
+provider nor blind replay of an ambiguous effect. Model-client close and re-entry retain the same
+transport policy.
 
 ### Runtime hydration
 

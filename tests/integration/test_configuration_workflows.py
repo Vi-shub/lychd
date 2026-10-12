@@ -484,7 +484,7 @@ temperature = 0.2
         )
 
     monkeypatch.setattr(
-        "pydantic_ai.providers._openai_compatible.create_async_httpx2_client",
+        "lychd.domain.animation.model_factory._model_http_client",
         lambda: httpx2.AsyncClient(transport=httpx2.MockTransport(answer)),
     )
     monkeypatch.setattr(pydantic_ai.models, "ALLOW_MODEL_REQUESTS", True)

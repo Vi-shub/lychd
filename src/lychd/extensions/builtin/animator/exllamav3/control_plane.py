@@ -173,14 +173,14 @@ class TabbyAPIControlPlane:
         base_url: str,
         operation: _LoadOperation,
     ) -> None:
-        """Consume every SSE stage; only EOF after a terminal frame is success."""
+        """Consume SSE directly from the bound endpoint; only terminal EOF succeeds."""
         acceptance = operation.acceptance
         key = self._runtime_key(base_url)
         url = self._build_url(base_url, "/v1/model/load")
         timeout = httpx.Timeout(connect=self._timeout, read=None, write=self._timeout, pool=self._timeout)
         try:
             async with (
-                httpx.AsyncClient(timeout=timeout) as client,
+                httpx.AsyncClient(timeout=timeout, trust_env=False, follow_redirects=False) as client,
                 client.stream(
                     "POST",
                     url,

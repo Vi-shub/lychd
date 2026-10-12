@@ -109,7 +109,7 @@ class _ResponsesEndpoint:
 def endpoint(monkeypatch: pytest.MonkeyPatch) -> _ResponsesEndpoint:
     endpoint = _ResponsesEndpoint()
     monkeypatch.setattr(
-        "pydantic_ai.providers._openai_compatible.create_async_httpx2_client",
+        "lychd.domain.animation.model_factory._model_http_client",
         lambda: httpx2.AsyncClient(transport=httpx2.MockTransport(endpoint)),
     )
     return endpoint

@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 def _model_transport(monkeypatch: pytest.MonkeyPatch, handler: Callable[[httpx2.Request], httpx2.Response]) -> None:
     """Keep production provider ownership while every model request stays in memory."""
     monkeypatch.setattr(
-        "pydantic_ai.providers._openai_compatible.create_async_httpx2_client",
+        "lychd.domain.animation.model_factory._model_http_client",
         lambda: httpx2.AsyncClient(transport=httpx2.MockTransport(handler)),
     )
 

@@ -150,14 +150,44 @@ budget accounting, or artifact custody already exists.
 
 ### Compare actual integration surfaces { #cli-integration-references }
 
-The following primary documentation was inspected for this design. It supplies implementation
+The following primary documentation was checked on 2026-10-12 for this design. It supplies implementation
 leads, not LychD acceptance receipts or a reason to adopt a provider's default permissions.
 
 | External surface | Useful mechanism | LychD still has to establish |
 | --- | --- | --- |
 | [Codex non-interactive mode](https://learn.chatgpt.com/docs/non-interactive-mode) | `codex exec --json` emits JSONL events; `--output-schema` requests a structured final result. | Exact event/terminal interpretation, effective configuration, artifact custody, and host verification. |
+| [Codex app-server](https://learn.chatgpt.com/docs/app-server) | Bidirectional stdio JSONL supports explicit approval requests, thread/turn identity, and interruption. | Pin the binary's generated protocol schema and admitted methods; exclude `thread/shellCommand` and experimental `process/*`, which run outside its sandbox. |
 | [Claude Code programmatic mode](https://code.claude.com/docs/en/headless) | Print mode offers JSON, streamed events, and schema-constrained output. `--allowedTools` controls auto-approval; bare mode limits ambient discovery. | Tool availability and OS containment separately; required task context; pinned behavior when schemas, streams, or background work fail. |
+| [Claude Agent SDK configuration](https://code.claude.com/docs/en/agent-sdk/configuration) | Explicit settings sources, tools, model, turn limits, and spending limits configure its runtime loop. | Python's `env` merges with the inherited environment; supply a clean supervisor environment rather than assuming a small dictionary removes secrets. |
 | [nono's D-Bus advisory](https://github.com/nolabs-ai/nono/security/advisories/GHSA-27vp-2mmc-vmh3) | A documented local IPC escape in CLI profiles before the listed fix demonstrates why a sandbox name is insufficient. | Current patched implementation and policy, with negative tests for host IPC and descendant escape on the admitted platform. |
+
+For the first bounded job, prefer one machine-readable invocation over terminal scraping. Use
+app-server when approval and continuation require a bidirectional protocol. Each runtime keeps a
+thin adapter; the supervisor, Provider Gate, budget accounting, and artifact admission remain
+shared owners. This is an implementation recommendation, not a selected or installed runtime.
+
+### Pin effective configuration
+
+Current Settings exposes no `claude`, `codex_cli`, `fallback`, or `anonymization` switch. Unknown
+fields are rejected; adding a TOML example would not make an adapter executable. A future typed
+selection must resolve an exact registered adapter/profile and retain its effective configuration
+with the job: runtime and protocol revision, model and Gate endpoint, isolated configuration and
+session roots, available tools, hooks/MCP/plugins, allowed environment, output contract, and finite
+time, token, spend, process and artifact limits. A resumed job retains that selection; changing
+operator settings does not rewrite an admitted occurrence.
+
+Disable implicit provider fallback in each harness. A configured alternate belongs to the pinned
+[execution-road policy](execution-roads.md#failure-stays-on-the-score), with separate privacy,
+destination and budget admission. A timeout after submission requires reconciliation before an
+alternate can start. Even a same-model retry is another physical disclosure: Claude's documented
+[gateway protocol](https://code.claude.com/docs/en/llm-gateway-protocol) can retry with changed request
+fields, so a retry label cannot establish identical bytes. Test every child request at the Gate.
+
+Supported account integration is a separate compatibility decision. OpenAI documents an
+[app-server plan-usage integration](https://developers.openai.com/siwc/token-sharing-open-source/codex-app-server);
+its existence does not admit a LychD route or authorize copying an operator's login store. Bind any
+future supported account flow to its actual application, entitlement and credential custodian.
+[Portal Roads](../../animator/portal-roads.md) retains the current direct-server-API starting point.
 
 ### Prepare the adapter before remote labor { #cli-adapter-acceptance }
 
