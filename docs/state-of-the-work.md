@@ -315,6 +315,10 @@ Unresolved child containment stays nonterminal rather than claiming false `FAILE
 out cancellation remains `CANCELLING`. Exact revision lookup validates the persisted v2 Pattern
 snapshot and digest against the registered manifest, including its reviewed implementation
 revision; retained inactive revisions remain executable through that same check.
+Registry assembly also freezes a private `legacy_inline` contract, placement and implementation
+binding for each executable station. Exact lookup compares the current local binding with its
+boot-derived `internal-v0` lock; a mismatch refuses execution and active routing cannot fall back
+to the default. Terminal stations remain declarative. Public v2 snapshots and digests are unchanged.
 
 Failed claim acknowledgements retain an immutable attempt outcome. Recovery waits for the original
 mutator to finish and keeps the same per-Run guard from the unclaimed prestate through exceptional
@@ -323,9 +327,10 @@ settlement; that winner never enters Graph. Corrupt exact `QUEUED` delivery pair
 mutation. In-process fault tests cover ownership, error precedence and these effect boundaries.
 
 **Boundary:** This does not prove automatic source compatibility, a transactional event outbox,
-separate-worker truth, multi-process streaming, federation, or producer backpressure. No private
-`legacy_inline` boot adapter, Resolution Lock, or public Spell or Scroll contribution store is
-delivered.
+separate-worker truth, multi-process streaming, federation, or producer backpressure. The private
+binding lock is not persisted on Run or exposed by Loom/Orb; it proves neither Python source
+equivalence nor compatibility across boots. No portable Resolution Lock or public Spell or Scroll
+contribution store is delivered.
 
 The exceptional native observer has a five-second cooperative acceptance budget and terminates
 acquired handles synchronously; its control flow is tested with substituted driver connections.
@@ -338,6 +343,7 @@ transports, callbacks or DNS work.
 
 - **Source:** [Run engine](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/cortex/engine.py), [worker and recovery](https://github.com/hexanomicon/lychd/blob/main/src/lychd/ghouls/runs.py), [claim coordination](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/cortex/claims.py), [claim ledger](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/cortex/ledger.py), [native claim observer](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/claim_observer.py), [event bus](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/cortex/events.py), [workflow resolution](https://github.com/hexanomicon/lychd/blob/main/src/lychd/agents/workflows/__init__.py), and [startup relay](https://github.com/hexanomicon/lychd/blob/main/src/lychd/interface/web/lifespan.py)
 - **Verification:** [Run engine tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_engine.py), [worker ownership tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_perform_run.py), [claim ledger tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_ledger.py), [native observer control-flow tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/db/test_claim_observer.py), [consent park tests](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_consent_resume.py), [consent reconciliation tests](https://github.com/hexanomicon/lychd/blob/main/tests/cortex/test_reconcile.py), [event-bus tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_events.py), [workflow identity tests](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_state_serializable.py), and [lifespan tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/web/test_lifespan.py)
+- **Verification:** [Private v2 bindings](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_legacy_inline.py) and [exact lookup and routing](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_router.py)
 - **Law:** [Workers](./adr/14-workers.md) and [Workflow](./adr/28-workflow.md)
 
 ### Configured Bridge casting {#configured-bridge-casting}

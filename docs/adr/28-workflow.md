@@ -93,7 +93,7 @@ report** with grey placements and redacted reasons, but such a view is not an ex
 The current fixed manifests expose station key, label, kind, one workflow-wide implementation
 closure, and edges, with each executable station bound one-to-one to a Python Graph node. A current
 station therefore behaves like a legacy inline Spell placement plus implementation binding, but it
-has no independent Spell identity. The runtime does not ship a Spell catalogue, Resolution Lock,
+has no independent public Spell identity. The runtime does not ship a Spell catalogue, persisted Resolution Lock,
 portable Scroll ABI, remote compatibility negotiation, teaching surface, or package contribution
 store.
 
@@ -256,9 +256,9 @@ Portable Spells and Scrolls arrive additively:
 No compatibility shim may present a v2 Python node as a canonical public Spell merely because its
 label resembles one.
 
-### Private v2 adapter (Designed)
+### Private v2 adapter
 
-The first internal adapter for steps 2–3 remains undelivered. It must give every executable v2
+The internal adapter for steps 2–3 gives every executable v2
 station a deliberately private identity: derive a Scroll-private contract from `(pattern_id,
 pattern_revision, manifest_digest, station_id, legacy_inline)`, place it under the station key and
 kind, and bind it to the manifest's exact `implementation_revision`, `checkpoint_schema`, and Python
@@ -311,8 +311,9 @@ node execution, including hardware re-entry. A differing key, Run/session identi
 admitted priority refuses the checkpoint. Retried admissions first read
 existing Run truth, so configuration changes cannot rewrite queued or parked work. Revision 1
 applies the same admitted-state checks while keeping its eligible-pool behavior and manifest.
-Private `legacy_inline` adaptation, portable stores, Resolution Lock persistence, placement
-profiles, and dynamic registration remain undelivered.
+Private `legacy_inline` assembly now binds in-process exact lookup while preserving v2 snapshots.
+Portable stores, Resolution Lock persistence, placement profiles, and dynamic registration remain
+undelivered.
 
 ## Execution-road planning
 

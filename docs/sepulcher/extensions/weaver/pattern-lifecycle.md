@@ -30,22 +30,23 @@ change it or the public Pattern revision when new behavior cannot safely resume 
 not automatically detect source edits. Edge parity and return semantics must still be established
 by source review and tests.
 
-The [private v2 adapter](../../../adr/28-workflow.md#private-v2-adapter-designed) remains Designed.
-It would derive a Scroll-private `legacy_inline` identity for each executable station and fingerprint
-its Python node binding in an internal Resolution Lock. The terminal would remain Graph `End`.
-This lock would leave the frozen v2 manifest snapshot and digest unchanged. It would not be
-persisted on Run, portable, configurable from TOML, or exposed by Loom/Orb; the portable Spell
-catalogue would remain a separate contract.
+The [private v2 adapter](../../../adr/28-workflow.md#private-v2-adapter) derives a Scroll-private
+`legacy_inline` identity for each executable station and fingerprints its Python node binding in
+a boot-local `internal-v0` lock. Exact lookup refuses a binding that differs from that assembly.
+The terminal remains Graph `End`, and the frozen v2 manifest snapshot and digest stay unchanged.
+This lock is neither persisted on Run nor exposed by Loom/Orb. It does not establish source
+equivalence or compatibility across boots; the portable Spell catalogue remains a separate contract.
 
 The catalogue is immutable after construction. It rejects duplicate `(key, revision)` pairs,
 requires an explicit active revision when one name has alternatives, requires explicit non-default
-route precedence, and names its default. Construction performs no package scan. Three current
+route precedence, and names its default. Construction performs no package scan. Four current
 source-defined manifests retain these routes:
 
 | Pattern revision | Admission route | Checkpoint schema |
 | --- | --- | --- |
 | `bridge_chat@1` | Unconfigured default | `bridge-chat-state-v1` |
 | `bridge_chat@2` | [Configured exact capability](index.md#choose-a-bridge-capability) | `bridge-chat-state-v2` |
+| `bridge_chat@3` | Configured public Archive and exact capability | `bridge-archive-state-v1` |
 | `delegated_rite@1` | Exact `/delegate` command token | `delegated-rite-state-v1` |
 
 [The owning registry source](https://github.com/hexanomicon/lychd/blob/main/src/lychd/agents/workflows/__init__.py)

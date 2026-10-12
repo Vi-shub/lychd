@@ -4,14 +4,16 @@ RunEngine routes each new Intent to an active revision and pins its full manifes
 Worker execution resolves that exact snapshot; inactive retained revisions remain
 available for replay. Changing active routes never reroutes an admitted Run.
 
-The application assembly root supplies one registry to all consumers.
+The application assembly root supplies one registry to all consumers. Private
+legacy_inline locks keep exact local lookup bound to that immutable assembly.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 
+from lychd.agents.workflows._legacy_inline import LegacyInlineLock, legacy_inline_lock
 from lychd.agents.workflows.archive_chat import BRIDGE_CHAT_ARCHIVE
 from lychd.agents.workflows.base import Trigger, Workflow, pattern_snapshot_is_valid
 from lychd.agents.workflows.bridge_chat import BRIDGE_CHAT, BRIDGE_CHAT_BOUND
@@ -94,15 +96,16 @@ def resolve_pinned_workflow(
 
 @dataclass(frozen=True)
 class BuiltinWorkflowRegistry:
-    """Immutable revision catalogue with explicit active routing policy."""
+    """Immutable local bindings with explicit active revision routing policy."""
 
     workflows: tuple[Workflow, ...]
     active_revisions: tuple[tuple[str, str], ...] = ()
     route_precedence: tuple[str, ...] = ()
     default_name: str | None = None
+    _assemblies: tuple[tuple[Workflow, LegacyInlineLock], ...] = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
-        """Validate exact identities and freeze one unambiguous active route set."""
+        """Freeze exact local bindings and one unambiguous active route set."""
         if not self.workflows:
             msg = "WorkflowRegistry requires at least one workflow (the default)."
             raise ValueError(msg)
@@ -115,6 +118,9 @@ class BuiltinWorkflowRegistry:
         active_revisions = self._normalize_active_revisions(registered_names, identities)
         default_name = self._normalize_default_name(active_revisions)
         self._normalize_route_precedence(active_revisions, default_name)
+        object.__setattr__(
+            self, "_assemblies", tuple((workflow, legacy_inline_lock(workflow.manifest)) for workflow in self.workflows)
+        )
 
     def _normalize_active_revisions(
         self,
@@ -176,8 +182,8 @@ class BuiltinWorkflowRegistry:
     def default(self) -> Workflow:
         """Return the explicitly active route floor."""
         workflow = self.get(self.default_name or "")
-        if workflow is None:  # pragma: no cover - constructor proves this invariant
-            msg = "WorkflowRegistry default workflow disappeared after construction."
+        if workflow is None:
+            msg = "WorkflowRegistry default workflow binding is unavailable."
             raise RuntimeError(msg)
         return workflow
 
@@ -185,8 +191,9 @@ class BuiltinWorkflowRegistry:
         """Return the first workflow whose trigger matches, else the default."""
         for name in self.route_precedence:
             workflow = self.get(name)
-            if workflow is None:  # pragma: no cover - constructor proves this invariant
-                continue
+            if workflow is None:
+                msg = f"WorkflowRegistry active workflow binding is unavailable: {name}."
+                raise RuntimeError(msg)
             if workflow.trigger.match(intent):
                 return workflow
         return self.default
@@ -199,11 +206,11 @@ class BuiltinWorkflowRegistry:
         return None
 
     def get_revision(self, pattern_id: str, revision: str, /) -> Workflow | None:
-        """Return one exact registered Pattern revision, or ``None``."""
-        for workflow in self.workflows:
+        """Resolve an exact revision only while its frozen local binding agrees."""
+        for workflow, lock in self._assemblies:
             manifest = workflow.manifest
             if manifest.key == pattern_id and manifest.revision == revision:
-                return workflow
+                return workflow if legacy_inline_lock(manifest).digest == lock.digest else None
         return None
 
     def all(self) -> tuple[Workflow, ...]:

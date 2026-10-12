@@ -6,6 +6,7 @@ from dataclasses import replace
 
 import pytest
 from pydantic import ValidationError
+from pydantic_graph import BaseNode, End, GraphRunContext
 
 from lychd.agents.router import Intent
 from lychd.agents.workflows import (
@@ -16,7 +17,9 @@ from lychd.agents.workflows import (
     builtin_workflow_registry,
     resolve_pinned_workflow,
 )
-from lychd.agents.workflows.base import Workflow
+from lychd.agents.workflows.base import PatternEdge, PatternManifest, PatternNode, Trigger, Workflow
+from lychd.agents.workflows.bridge_chat import BridgeChatState
+from lychd.domain.cortex.graph import build_serial_graph
 
 
 @pytest.mark.parametrize(
@@ -114,3 +117,71 @@ def test_intent_is_an_immutable_closed_admission_value() -> None:
         intent.prompt = "changed after routing"
     with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
         Intent.model_validate({"session_id": "s", "prompt": "p", "unknown": True})
+
+
+@pytest.fixture
+def local_workflow() -> Workflow:
+    class LocalNode(BaseNode[BridgeChatState, None, None]):
+        async def run(self, ctx: GraphRunContext[BridgeChatState, None]) -> End[None]:  # noqa: ARG002
+            return End(None)
+
+    return Workflow(
+        name="local",
+        title="Local",
+        description="Disposable binding fixture",
+        trigger=Trigger(hint="/local", match=lambda intent: intent.prompt == "/local"),
+        graph=build_serial_graph(
+            nodes=(LocalNode,), state_type=BridgeChatState, deps_type=type(None), output_type=type(None)
+        ),
+        start_node=LocalNode,
+        make_state=lambda _intent: BridgeChatState(session_id="s", run_id="r", prompt="p"),
+        manifest=PatternManifest(
+            key="local",
+            revision="1",
+            implementation_revision="py.local.1",
+            checkpoint_schema="local-v1",
+            entry_node="local",
+            nodes=(
+                PatternNode(key="local", label="Local", implementation=LocalNode),
+                PatternNode(key="end", label="End", kind="terminal"),
+            ),
+            edges=(PatternEdge(key="local-to-end", source="local", target="end"),),
+        ),
+    )
+
+
+@pytest.mark.parametrize("attribute", ["__module__", "__qualname__"])
+def test_exact_lookup_refuses_changed_local_binding(local_workflow: Workflow, attribute: str) -> None:
+    registry = BuiltinWorkflowRegistry(workflows=(local_workflow,))
+    snapshot = local_workflow.manifest.snapshot()
+    assert registry.get_revision("local", "1") is local_workflow
+
+    previous = getattr(local_workflow.start_node, attribute)
+    try:
+        setattr(local_workflow.start_node, attribute, "changed_binding")
+        assert local_workflow.manifest.snapshot() == snapshot
+        assert registry.get_revision("local", "1") is None
+        assert resolve_pinned_workflow(registry, workflow_name="local", snapshot=snapshot) is None
+        assert tuple(workflow.manifest.snapshot() for workflow in registry.all()) == (snapshot,)
+        with pytest.raises(RuntimeError, match=r"binding.*unavailable"):
+            registry.route(Intent(session_id="s", prompt="/local"))
+    finally:
+        setattr(local_workflow.start_node, attribute, previous)
+
+    assert registry.get_revision("local", "1") is local_workflow
+
+
+def test_unavailable_active_binding_cannot_fall_through_to_default(
+    local_workflow: Workflow, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    registry = BuiltinWorkflowRegistry(
+        workflows=(local_workflow, BRIDGE_CHAT),
+        route_precedence=("local",),
+        default_name=BRIDGE_CHAT.name,
+    )
+    intent = Intent(session_id="s", prompt="/local")
+    assert registry.route(intent) is local_workflow
+    monkeypatch.setattr(local_workflow.start_node, "__module__", "changed_local_module")
+
+    with pytest.raises(RuntimeError, match=r"binding.*unavailable"):
+        registry.route(intent)
