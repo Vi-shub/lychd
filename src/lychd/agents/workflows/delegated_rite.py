@@ -1,13 +1,13 @@
-"""A reference Pattern proving durable delegation without a provider call.
+"""Durable delegated Patterns with fixed occurrence identity.
 
-The Pattern deliberately targets the inert ``reference`` runtime.  It exercises the
-same AgentJob, checkpoint, resume, evidence, and projection paths that effectful CLI
-adapters use, but it has no network, subprocess, workspace, or credential authority.
+Revision 1 targets the effect-free reference runtime. Opt-in revision 2 retains one
+configured adapter and profile at admission; the adapter still owns host refusal.
+Neither revision retries a failed start or chooses an alternate runtime.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -33,6 +33,7 @@ from lychd.domain.delegation.models import (
     DelegatedAgentProfile,
     DelegatedAgentRequest,
 )
+from lychd.domain.delegation.routing import DelegatedRuntimeBinding
 from lychd.domain.delegation.signals import DelegatedAgentPending
 from lychd.domain.web.schemas import BridgeTurn
 
@@ -41,8 +42,11 @@ if TYPE_CHECKING:
 
 __all__ = [
     "DELEGATED_RITE",
+    "DELEGATED_RITE_BOUND",
     "DELEGATED_RITE_GRAPH",
+    "BoundDelegatedRiteState",
     "DelegatedRiteState",
+    "DispatchBoundDelegate",
     "DispatchDelegate",
     "ProjectDelegatedReply",
 ]
@@ -81,6 +85,16 @@ def _matches_delegate_command(prompt: str) -> bool:
 class DispatchDelegate(DelegatedAgentNode, BaseNode[DelegatedRiteState, WorkflowServices, str]):
     """Submit once, then resume this same station from durable AgentJob truth."""
 
+    def _request(self, state: DelegatedRiteState) -> DelegatedAgentRequest:
+        return DelegatedAgentRequest(
+            request_id=state.request_id,
+            run_id=state.run_id,
+            step_id="dispatch_delegate",
+            runtime=_REFERENCE_RUNTIME,
+            profile=_REFERENCE_PROFILE,
+            prompt=_delegated_prompt(state.prompt),
+        )
+
     async def run(
         self,
         ctx: GraphRunContext[DelegatedRiteState, WorkflowServices],
@@ -90,14 +104,7 @@ class DispatchDelegate(DelegatedAgentNode, BaseNode[DelegatedRiteState, Workflow
             msg = "Delegated labor is unavailable: the composition root did not bind a coordinator."
             raise RuntimeError(msg)
 
-        request = DelegatedAgentRequest(
-            request_id=ctx.state.request_id,
-            run_id=ctx.state.run_id,
-            step_id="dispatch_delegate",
-            runtime=_REFERENCE_RUNTIME,
-            profile=_REFERENCE_PROFILE,
-            prompt=_delegated_prompt(ctx.state.prompt),
-        )
+        request = self._request(ctx.state)
         if ctx.state.job_id is None:
             job = await delegates.submit(request)
             ctx.state.job_id = job.job_id
@@ -213,6 +220,70 @@ DELEGATED_RITE = Workflow(
             PatternEdge(key="delegate-waits", source="dispatch_delegate", target="dispatch_delegate"),
             PatternEdge(key="delegate-to-project", source="dispatch_delegate", target="project_reply"),
             PatternEdge(key="project-to-end", source="project_reply", target="end"),
+        ),
+    ),
+)
+
+
+class BoundDelegatedRiteState(DelegatedRiteState):
+    """Exact server-admitted runtime retained through every checkpoint."""
+
+    binding: DelegatedRuntimeBinding
+
+
+@dataclass
+class DispatchBoundDelegate(DispatchDelegate):
+    """Submit only the retained route; any start failure stops this occurrence."""
+
+    def _request(self, state: DelegatedRiteState) -> DelegatedAgentRequest:
+        if not isinstance(state, BoundDelegatedRiteState):
+            msg = "delegated_rite@2 requires its retained runtime binding."
+            raise TypeError(msg)
+        return (
+            super()
+            ._request(state)
+            .model_copy(update={"runtime": state.binding.runtime, "profile": state.binding.profile})
+        )
+
+
+def _make_bound_state(intent: Intent) -> BoundDelegatedRiteState:
+    if intent.admitted_delegation is None:
+        msg = "delegated_rite@2 requires its admitted Run binding."
+        raise ValueError(msg)
+    return BoundDelegatedRiteState(**_make_state(intent).model_dump(), binding=intent.admitted_delegation)
+
+
+def _validate_bound_state(intent: Intent, state: BaseModel) -> None:
+    _validate_state(intent, state)
+    if not isinstance(state, BoundDelegatedRiteState) or state.binding != intent.admitted_delegation:
+        msg = "delegated_rite@2 checkpoint does not match its admitted runtime binding."
+        raise ValueError(msg)
+
+
+_BOUND_GRAPH: Graph[DelegatedRiteState, WorkflowServices, BaseNode[DelegatedRiteState, WorkflowServices, str], str] = (
+    build_serial_graph(
+        nodes=(DispatchBoundDelegate, ProjectDelegatedReply),
+        state_type=BoundDelegatedRiteState,
+        deps_type=WorkflowServices,
+        output_type=str,
+        name="delegated_rite_bound",
+    )
+)
+
+DELEGATED_RITE_BOUND = replace(
+    DELEGATED_RITE,
+    description="Submit one configured runtime under a retained exact binding; host admission remains mandatory.",
+    graph=_BOUND_GRAPH,
+    start_node=DispatchBoundDelegate,
+    make_state=_make_bound_state,
+    validate_state=_validate_bound_state,
+    manifest=replace(
+        DELEGATED_RITE.manifest,
+        revision="2",
+        checkpoint_schema="delegated-rite-state-v2",
+        nodes=tuple(
+            replace(node, implementation=DispatchBoundDelegate) if node.key == "dispatch_delegate" else node
+            for node in DELEGATED_RITE.manifest.nodes
         ),
     ),
 )

@@ -61,6 +61,20 @@ custody profile. The whole binding is retained at Run admission; changed setting
 an admitted casting. This selector grants no remote identity, namespace access, ingestion, or
 embedding capability. Intake and promotion remain separate explicit Archive operations.
 
+### Exact delegated casting selection
+
+Optional `[weaver.delegation]` selects `revision = "2"`, one exact registered `runtime`, and
+`profile` (`read`, `candidate`, or `verify`) for new `/delegate` admissions. Omission retains
+the effect-free `delegated_rite@1` reference route. The configured revision retains its runtime
+binding in Run intent and Graph state; idempotent admission and restart use that retained binding,
+not the current Settings generation. Unknown adapter names refuse assembly. Registration and
+selection do not establish host readiness, containment, privacy, or permission to launch.
+
+This section accepts no command, executable, environment, provider credential, model alias,
+alternate list, or fallback switch. An adapter's trusted host still owns effect-time admission.
+Failure, policy refusal, or an uncertain start never redirects this exact casting to a different
+runtime. Provider/Gate configuration and compatible-road fallback need their own admitted contracts.
+
 ### Independent public Archive selection
 
 Optional `[archive]` selects `profile` independently of Bridge. Its profile retains the exact

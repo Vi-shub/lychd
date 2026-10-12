@@ -209,11 +209,27 @@ attachment are disabled; bounded buffers are zeroized; and traces, allocator dia
 support bundles exclude the map. Acceptance tests exercise crash and memory-pressure paths. Failure
 to prove this profile disables reversible Cuts rather than weakening the erasure claim.
 
-Current `Block` and `AssembledContext` carry no labels or source-lineage records. Conservative
-aggregate labels, deterministic Censor, governed SQL/tool/artifact source adapters, immutable
-end-to-end lineage, transformation receipts, semantic Privacy Agent, secret-free receipt
-projection, Disclosure Plan, Cut Verification, pseudonym-map vault, sanitized Context branch, and
-trusted Egress Gate remain undelivered.
+The first bounded implementation profile is `closed-diagnostic@1`. It accepts a complete typed
+projection of blocks, history, continuation, query, tools, and artifacts. Every character must
+belong either to an explicitly sensitive span or to an independently checked item from a closed
+public diagnostic vocabulary. The complete grammar fixes dependency, status, diagnostic and
+citation positions; only the declared owner-value slot admits a sensitive span. Bounded metadata
+joins refuse excess ancestry rather than dropping references. Uncovered text, unknown lineage,
+prohibited categories, ambiguous spans, or lost utility refuse preparation. This profile cannot classify arbitrary prose or code;
+adding a detector does not turn a missed identifier into evidence of safety.
+
+Its deterministic Censor creates an irreversible candidate, and a separate verifier checks exact
+reconstruction, utility, plan, and ordered receipts before an in-memory authority seals the Cut.
+The seal is process-local preparation evidence, not a durable disclosure grant. Restart requires
+new preparation. Source influence remains unchanged; broadly visible evidence contains only a
+random event identifier. No source digest or candidate body is a public receipt.
+
+Context Blocks default to unknown, restricted influence. Assembly joins block influence and treats
+ungoverned query, history, and continuation conservatively. These labels do not qualify governed
+SQL/tool/artifact source adapters or end-to-end derivation lineage. The semantic Privacy Agent,
+pseudonym-map vault, provider-specific sanitized branch, and trusted Egress Gate remain
+undelivered; [State of Work](../state-of-the-work.md#context-privatization-and-portal-egress) owns
+the executable evidence boundary.
 
 ## Typed Codex material projections
 

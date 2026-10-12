@@ -1,13 +1,14 @@
-"""Bounded selection of the source-registered Core Bridge casting."""
+"""Bounded selection of source-registered Bridge and delegated castings."""
 
 from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from lychd.config.settings.section import SettingsSection
 from lychd.domain.archive import ArchiveProfile
+from lychd.domain.delegation.routing import DelegatedRuntimeBinding
 
 
 class BridgeCastingSettings(SettingsSection):
@@ -36,8 +37,22 @@ class BridgeCastingSettings(SettingsSection):
         return value
 
 
+class DelegationCastingSettings(DelegatedRuntimeBinding):
+    """Opt into delegated_rite@2; registration never grants host execution authority."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, hide_input_in_errors=True)
+    revision: Literal["2"]
+
+    def binding(self) -> DelegatedRuntimeBinding:
+        """Retain only the exact execution identity in the admitted Run."""
+        return DelegatedRuntimeBinding(runtime=self.runtime, profile=self.profile)
+
+
 class WeaverSettings(SettingsSection):
-    """Opt-in casting configuration; omission preserves the legacy Bridge route."""
+    """Opt-in casting configuration; omission preserves each legacy route."""
+
+    delegation: DelegationCastingSettings | None = None
+    """Select one exact runtime for delegated_rite@2; omission preserves reference-only @1."""
 
     bridge: BridgeCastingSettings | None = None
     """Select an exact Bridge revision; omission keeps bridge_chat@1 active."""

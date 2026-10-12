@@ -57,6 +57,7 @@ if TYPE_CHECKING:
     from lychd.domain.cortex.engine import RunQueue
     from lychd.domain.cortex.ledger import RunLedger
     from lychd.domain.delegation.ports import DelegatedAgentRuntime
+    from lychd.domain.delegation.routing import DelegatedRuntimeBinding
     from lychd.domain.orchestration.actuator import RuntimeActuator
     from lychd.domain.orchestration.containment import SoftActivationGuard
     from lychd.domain.web.atlas import AtlasStorePort
@@ -188,6 +189,10 @@ def _build_delegation_coordinator(
     """Compose one AgentJob coordinator only when an admitted adapter exists."""
     if not runtimes:
         return None
+    adapters = {runtime.name: runtime for runtime in runtimes}
+    if len(adapters) != len(runtimes):
+        msg = "Duplicate delegated runtime identities cannot own retained jobs."
+        raise ValueError(msg)
     if profile == "memory":
         store = InMemoryDelegatedAgentJobStore()
     else:
@@ -196,7 +201,7 @@ def _build_delegation_coordinator(
 
         store = DbDelegatedAgentJobStore(get_session_factory())
     return DelegatedAgentCoordinator(
-        runtimes={runtime.name: runtime for runtime in runtimes},
+        runtimes=adapters,
         store=store,
     )
 
@@ -220,6 +225,24 @@ def _build_archive(
     return ArchiveService(
         profile=binding, store=DbArchiveStore(get_session_factory()), authorizer=policy
     ), policy.subject_for
+
+
+def _configured_delegation_binding(
+    settings: Settings,
+    runtimes: Sequence[DelegatedAgentRuntime],
+    workflows: WorkflowRegistry | None,
+) -> DelegatedRuntimeBinding | None:
+    """Validate exact registration without claiming runtime or host admission."""
+    selection = settings.weaver.delegation
+    if selection is None:
+        return None
+    if workflows is not None:
+        msg = "Explicit workflow registry injection cannot be combined with [weaver.delegation] configuration."
+        raise ValueError(msg)
+    if sum(runtime.name == selection.runtime for runtime in runtimes) != 1:
+        msg = "Configured delegation requires exactly one registered adapter matching its runtime."
+        raise ValueError(msg)
+    return selection.binding()
 
 
 def build_altar_services(
@@ -250,6 +273,7 @@ def build_altar_services(
     if settings is None:
         settings = get_settings()
     bridge_casting = settings.weaver.bridge
+    delegation_binding = _configured_delegation_binding(settings, delegated_runtime_adapters, workflows)
     if workflows is not None and bridge_casting is not None:
         msg = "Explicit workflow registry injection cannot be combined with [weaver.bridge] configuration."
         raise ValueError(msg)
@@ -359,6 +383,7 @@ def build_altar_services(
         release_context=context_orchestrator.release,
         bridge_capability_key=bridge_casting.capability_key if bridge_casting is not None else None,
         bridge_archive=bridge_casting.archive if bridge_casting is not None else None,
+        delegation_binding=delegation_binding,
     )
     return AltarServices(
         archive_derivation=archive_derivation,

@@ -182,6 +182,9 @@ only after containment returns, as required by [Workers](14-workers.md#delegated
 delegated_rite@1 proves no-effect reference submit, park, adoption, re-admission, and projection.
 It performs no subprocess, provider, network, credential, or workspace effect. Runtime selection is
 exact-name only, not Dispatcher grant or Orchestrator capacity; memory store is process-local.
+Optional delegated_rite@2 retains the configured exact runtime/profile in admitted Run intent and
+state. Its checkpoint must match that binding; current Settings cannot redirect resumed work.
+It preserves the same no-replay and uncertain-outcome rules, with no automatic fallback.
 The [artifact-reference receipt](../state-of-the-work.md#artifact-reference-contract) covers a
 bounded PostgreSQL metadata round-trip through job creation and result adoption, using tables
 created from schema metadata. It does not establish migration execution, process restart,

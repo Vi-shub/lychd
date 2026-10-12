@@ -39,6 +39,7 @@ if TYPE_CHECKING:
     from lychd.domain.cortex.runs import RunRecord
     from lychd.domain.delegation.models import DelegatedAgentJob
     from lychd.domain.delegation.ports import DelegatedAgentCoordinatorPort
+    from lychd.domain.delegation.routing import DelegatedRuntimeBinding
 
 __all__ = [
     "QueueRouter",
@@ -393,6 +394,7 @@ class RunEngine:
         "cancellations",
         "consents",
         "delegates",
+        "delegation_binding",
         "ledger",
         "queue_router",
         "queues",
@@ -416,6 +418,7 @@ class RunEngine:
         release_context: Callable[[str], None] | None = None,
         bridge_capability_key: str | None = None,
         bridge_archive: ArchiveProfile | None = None,
+        delegation_binding: DelegatedRuntimeBinding | None = None,
     ) -> None:
         """Bind the already-constructed run collaborators."""
         self.ledger = ledger
@@ -423,6 +426,7 @@ class RunEngine:
         self.workflows = workflows
         self.bridge_capability_key = bridge_capability_key
         self.bridge_archive = bridge_archive
+        self.delegation_binding = delegation_binding
         self.queue_router = queue_router
         self.queues = queues
         self.admissions = admissions or RunAdmissionCoordinator()
@@ -453,8 +457,12 @@ class RunEngine:
         the same session. Terminal ledger truth releases the fence naturally; no
         process-local active marker becomes recovery authority.
         """
-        if intent.admitted_capability_key is not None or intent.admitted_archive is not None:
-            msg = "Capability and Archive bindings are server-owned admission metadata, not caller Intent."
+        if (
+            intent.admitted_capability_key is not None
+            or intent.admitted_archive is not None
+            or intent.admitted_delegation is not None
+        ):
+            msg = "Capability, Archive and delegation bindings are server-owned admission metadata, not caller Intent."
             raise ValueError(msg)
         if exclusive_session:
             session_key = ("exclusive_session", intent.session_id)
@@ -578,6 +586,11 @@ class RunEngine:
 
     def _bind_workflow_intent(self, intent: Intent, workflow: Workflow) -> Intent:
         """Stamp selected bindings only for a fresh explicitly configured admission."""
+        if workflow.manifest.key == "delegated_rite" and workflow.manifest.revision == "2":
+            if self.delegation_binding is None:
+                msg = "delegated_rite@2 requires its configured runtime binding before admission."
+                raise ValueError(msg)
+            return intent.model_copy(update={"admitted_delegation": self.delegation_binding})
         if workflow.manifest.key != "bridge_chat" or workflow.manifest.revision not in {"2", "3"}:
             return intent
         if not self.bridge_capability_key or not self.bridge_capability_key.strip():

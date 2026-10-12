@@ -19,6 +19,7 @@ from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal
 
 from lychd.domain.archive import ArchiveProfile  # runtime annotation for retained RunRecord serialization
+from lychd.domain.delegation.routing import DelegatedRuntimeBinding
 
 if TYPE_CHECKING:
     from lychd.agents.router import Intent
@@ -174,6 +175,7 @@ class RunRecord:
     requested_priority: int | None = None
     admitted_capability_key: str | None = None
     admitted_archive: ArchiveProfile | None = None
+    admitted_delegation: DelegatedRuntimeBinding | None = None
     attempt: int = 0
     enqueue_seq: int = 0
     error: str | None = None
@@ -200,6 +202,7 @@ class RunRecord:
             priority=self.priority,
             admitted_capability_key=self.admitted_capability_key,
             admitted_archive=self.admitted_archive,
+            admitted_delegation=self.admitted_delegation,
         )
 
 

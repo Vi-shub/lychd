@@ -181,7 +181,8 @@ Fixed source registry retains bridge_chat@1 (Bridge conversation, context, Agent
 Gate, reply), adds bridge_chat@2 with an admission-pinned exact capability key and bridge_chat@3
 with that key plus an explicit public-note Archive profile, and retains
 delegated_rite@1 (exact `/delegate` command token, reference job, Durable Stasis,
-result/reply). The latter proves no external coding-agent/Tomb plane. One boot-composed catalogue
+result/reply). Optional delegated_rite@2 retains one configured runtime/profile through Run admission
+and checkpoint validation; neither revision supplies an external coding-agent/Tomb plane. One boot-composed catalogue
 is shared by admission, workers, Bridge, Loom, and Orb. It freezes after construction, rejects
 duplicate exact revisions, requires an explicit active revision when alternatives exist, permits
 registered revisions or whole names to remain retained but inactive, requires explicit non-default
@@ -191,7 +192,7 @@ without making retained revisions admissible.
 
 This is a retained Core-owned legacy Pattern registry, not Extension contribution, Composition or
 Suite publication, scheduler, editor, or durable Pattern store. The `bridge_chat` lineage and
-`delegated_rite@1` are the explicit pre-Portfolio exception: new application Patterns require a
+`delegated_rite` lineage are the explicit pre-Portfolio exception: new application Patterns require a
 Composition owner, while a Suite may publish only its coordination Pattern. State separately owns
 v1 adapter, delegation, stasis, and Loom.
 

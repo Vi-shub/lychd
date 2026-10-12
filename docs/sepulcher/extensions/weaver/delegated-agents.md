@@ -11,8 +11,9 @@ icon: material/account-arrow-right-outline
 holds station state; the Run ledger binds its wait. An adapter receives a frozen request, never
 the live Run, and the Pattern parks for one terminal adoption.
 
-Today only the deterministic, effect-free `reference` adapter runs. Foreign CLI execution, Coffin
-containment, and provider effects remain undelivered; [the delivered boundary](#name-the-delivered-truth)
+Today only the deterministic, effect-free `reference` adapter runs by default. Codex and Claude
+have one-shot protocol adapters behind an unimplemented, refusing-by-default host port. Foreign
+CLI execution, Coffin containment, and provider effects remain undelivered; [the delivered boundary](#name-the-delivered-truth)
 below separates the current job mechanics from those designs.
 
 [ADR 28](../../../adr/28-workflow.md#parallelism-and-delegation) owns delegation law.
@@ -114,7 +115,7 @@ it translates an admitted task into one runtime invocation and translates observ
 into a result. A separate native Agent may prepare or review that task. The wrapper does not
 become another sefirah, coordinator, or source of permission.
 
-The future adapter needs these five passages under the existing Coffin contract:
+An effectful adapter needs these five passages under the existing Coffin contract:
 
 1. **Prepare.** Pin the base, task projection, allowed paths, runtime/adapter versions, output
    contract, limits, and authorized downstream use. Resolve effective configuration explicitly,
@@ -148,6 +149,21 @@ An adapter-specific rejection receipt can establish that nothing started; uncert
 The current request/result types are a starting envelope, not evidence that this richer binding,
 budget accounting, or artifact custody already exists.
 
+The current protocol implementation pins Codex 0.159.2 and Claude Code 2.1.296. It builds literal
+commands with prompt bytes on stdin, isolated configuration roots and an allowlisted replacement
+environment, then parses bounded JSONL. Incomplete lines, malformed or duplicate terminal evidence,
+oversized output, and success paired with a failing process exit remain `lost`. Raw provider errors
+and stderr do not enter retained diagnostics. Polling consumes the original host-retained launch
+specification and limits, and checks matching job and launch-digest evidence. Cancellation needs
+the retained launch specification and its matching whole-job containment receipt, including before
+the first poll. Claude accepts a reviewed core event subset with one initialized session; unknown
+event variants refuse until their envelopes and ordering are reviewed.
+
+No host implementation or authentication bridge ships, and neither adapter is automatically
+registered. The installed nono 0.73 series has not replaced Security's audited-series contract;
+CLI help and advertised limits do not qualify a host. The required outer service, network,
+resource, credential, Gate and artifact boundaries must all be proved before any real launch.
+
 ### Compare actual integration surfaces { #cli-integration-references }
 
 The following primary documentation was checked on 2026-10-12 for this design. It supplies implementation
@@ -168,9 +184,23 @@ shared owners. This is an implementation recommendation, not a selected or insta
 
 ### Pin effective configuration
 
-Current Settings exposes no `claude`, `codex_cli`, `fallback`, or `anonymization` switch. Unknown
-fields are rejected; adding a TOML example would not make an adapter executable. A future typed
-selection must resolve an exact registered adapter/profile and retain its effective configuration
+Current Settings accepts one exact delegated casting selection:
+
+```toml
+[weaver.delegation]
+revision = "2"
+runtime = "reference"
+profile = "read"
+```
+
+This executable example selects the inert reference runtime through `delegated_rite@2`. Omission
+keeps revision 1. Another runtime must already be explicitly registered; an unknown name refuses
+assembly. New admissions retain the selected runtime/profile in Run intent and checkpoints.
+Changing configuration or retrying an idempotency key does not redirect an existing Run.
+The selector supplies no host, privacy, provider or execution authority.
+
+There is no `claude`, `codex_cli`, `fallback`, or `anonymization` activation switch. Unknown
+fields are rejected. A future effectful selection must also retain its effective configuration
 with the job: runtime and protocol revision, model and Gate endpoint, isolated configuration and
 session roots, available tools, hooks/MCP/plugins, allowed environment, output contract, and finite
 time, token, spend, process and artifact limits. A resumed job retains that selection; changing
@@ -191,7 +221,7 @@ future supported account flow to its actual application, entitlement and credent
 
 ### Prepare the adapter before remote labor { #cli-adapter-acceptance }
 
-Build the future capability in independently reviewable slices:
+Complete the capability in independently reviewable slices:
 
 | Slice | Evidence needed before advancing |
 | --- | --- |
@@ -203,8 +233,8 @@ Build the future capability in independently reviewable slices:
 Adversarial checks include a process that prints success before failing, a valid result whose
 artifact belongs to another job or base, a background child that outlives its parent, and a patch
 that targets a path outside the admitted workspace. Pair them with successful controls so refusal
-cannot masquerade as a working adapter. These slices prepare future work; no CLI, sanitizer, or
-new runtime adapter is implemented by this page.
+cannot masquerade as a working adapter. The bounded protocol slice has offline tests; contained
+execution, provider crossing and candidate custody still need their own acceptance evidence.
 
 ## Name the delivered truth
 
@@ -213,8 +243,8 @@ Work](../../../state-of-the-work.md#delegated-agent-execution). The only runnabl
 `reference`: process-local, deterministic, and performing no model, filesystem, subprocess, or
 network work.
 
-Codex CLI (`codex-cli`), Claude Code (`claude-code`), and OpenCode Go (`opencode-go`) are
-declared-only examples; none launches. No effectful
+Codex CLI (`codex`) and Claude Code (`claude`) have unregistered protocol adapters whose default
+host refuses execution. OpenCode Go (`opencode-go`) remains a declared-only example. No effectful
 Coffin supervisor or CLI/provider process, credential isolation, or durable artifact custody is
 delivered. Database shapes and a PostgreSQL store exist without a real provider or two-process
 PostgreSQL recovery receipt; exact pre-park recovery is proved only with focused in-memory tests.

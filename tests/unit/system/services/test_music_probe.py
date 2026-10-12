@@ -7,6 +7,7 @@ import io
 import json
 import os
 import struct
+import subprocess
 import sys
 import time
 import wave
@@ -309,3 +310,141 @@ def test_partial_pcm_frame_refused_before_native_work(probe_path: Path, target: 
         output.write_bytes(malformed)
         with pytest.raises(music_probe.MusicProbeError, match="incomplete frame"):
             music_probe._observe(output, _synth())
+
+
+def test_group_settlement_observes_descendant_after_leader_exit(monkeypatch: pytest.MonkeyPatch) -> None:
+    from unittest.mock import Mock
+
+    process = Mock(pid=987654)
+    observed: list[int] = []
+    responses = iter((True, True, False))
+
+    def group_alive(group_id: int, deadline: float) -> bool:
+        assert deadline > time.monotonic()
+        observed.append(group_id)
+        return next(responses)
+
+    kill = Mock()
+    monkeypatch.setattr(music_probe.os, "killpg", kill)
+    monkeypatch.setattr(music_probe, "_group_has_live_processes", group_alive)
+    music_probe._settle_process_group(process)
+    process.wait.assert_called_once()
+    assert process.wait.call_args.kwargs["timeout"] > 0
+    kill.assert_called_once_with(process.pid, music_probe.signal.SIGKILL)
+    assert observed == [process.pid, process.pid, process.pid]
+
+
+def test_group_settlement_refuses_unresolved_descendant_within_budget(monkeypatch: pytest.MonkeyPatch) -> None:
+    from unittest.mock import Mock
+
+    process = Mock(pid=987654)
+    ticks = iter((0.0, 0.0, 2.0))
+    monkeypatch.setattr(music_probe.time, "monotonic", lambda: next(ticks))
+    monkeypatch.setattr(music_probe.os, "killpg", Mock())
+
+    def group_alive(group_id: int, deadline: float) -> bool:
+        _ = (group_id, deadline)
+        return True
+
+    monkeypatch.setattr(music_probe, "_group_has_live_processes", group_alive)
+    with pytest.raises(music_probe.MusicProbeError, match="settlement exceeded its cleanup bound"):
+        music_probe._settle_process_group(process)
+
+
+@pytest.mark.parametrize(
+    ("state", "thread_count", "alive"),
+    [(b"R", 1, True), (b"D", 1, True), (b"Z", 1, False), (b"X", 1, False), (b"Z", 2, True)],
+)
+def test_group_observer_parses_comm_and_ignores_stopped_tasks(
+    probe_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    state: bytes,
+    thread_count: int,
+    *,
+    alive: bool,
+) -> None:
+    proc = probe_path / "proc"
+    proc.mkdir()
+    own = proc / "123"
+    own.mkdir()
+    fields = [state, b"10", b"456", b"456", *([b"0"] * 13), str(thread_count).encode()]
+    (own / "stat").write_bytes(b"123 (odd ) command) " + b" ".join(fields))
+    monkeypatch.setattr(music_probe, "_PROC_ROOT", proc)
+
+    def group_id(pid: int) -> int:
+        assert pid == 123
+        return 456
+
+    monkeypatch.setattr(music_probe.os, "getpgid", group_id)
+    assert music_probe._group_has_live_processes(456, time.monotonic() + 1.0) is alive
+
+
+def test_group_observer_keeps_zombie_leader_with_running_thread_unsettled(probe_path: Path) -> None:
+    code = """
+import ctypes
+import threading
+import time
+
+ready = threading.Event()
+
+def heartbeat():
+    with open('heartbeat', 'ab', buffering=0) as stream:
+        ready.set()
+        while True:
+            stream.write(b'x')
+            time.sleep(0.001)
+
+threading.Thread(target=heartbeat).start()
+ready.wait()
+ctypes.CDLL(None).pthread_exit(None)
+"""
+    process = subprocess.Popen(  # noqa: S603 - The test launches only its literal synthetic worker.
+        [sys.executable, "-c", code],
+        cwd=probe_path,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
+    try:
+        deadline = time.monotonic() + 2.0
+        while True:
+            fields = Path(f"/proc/{process.pid}/stat").read_bytes().rsplit(b")", 1)[1].split()
+            if fields[0] == b"Z" and int(fields[17]) > 1:
+                break
+            assert time.monotonic() < deadline, "Synthetic leader did not reach its zombie/thread state"
+            time.sleep(0.001)
+        heartbeat = probe_path / "heartbeat"
+        initial_size = heartbeat.stat().st_size
+        while heartbeat.stat().st_size == initial_size:
+            assert time.monotonic() < deadline, "Synthetic worker thread did not advance its heartbeat"
+            time.sleep(0.001)
+        assert music_probe._group_has_live_processes(process.pid, deadline)
+    finally:
+        os.killpg(process.pid, music_probe.signal.SIGKILL)
+        process.wait(timeout=1.0)
+
+
+def test_cleanup_timeout_does_not_enter_unbounded_popen_exit(
+    probe_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from unittest.mock import MagicMock, Mock
+
+    process = MagicMock(pid=987654)
+    process.wait.side_effect = music_probe.subprocess.TimeoutExpired(cmd="owned", timeout=1)
+    monkeypatch.setattr(music_probe.subprocess, "Popen", Mock(return_value=process))
+    monkeypatch.setattr(music_probe, "_drain_process", Mock(side_effect=music_probe.MusicProbeError("time bound")))
+    monkeypatch.setattr(music_probe.os, "killpg", Mock())
+    with pytest.raises(music_probe.MusicProbeError, match="settlement exceeded its cleanup bound"):
+        music_probe._run_process([sys.executable], 0.2, probe_path)
+    process.wait.assert_called_once()
+    assert 0 < process.wait.call_args.kwargs["timeout"] <= 1.0
+    process.__exit__.assert_not_called()
+    process.stdout.close.assert_called_once()
+    process.stderr.close.assert_called_once()
+
+
+def test_group_observer_refuses_missing_proc_observation(probe_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(music_probe, "_PROC_ROOT", probe_path / "unavailable")
+    with pytest.raises(music_probe.MusicProbeError, match="could not be observed"):
+        music_probe._group_has_live_processes(456, time.monotonic() + 1.0)

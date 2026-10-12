@@ -17,7 +17,7 @@ from lychd.agents.workflows._legacy_inline import LegacyInlineLock, legacy_inlin
 from lychd.agents.workflows.archive_chat import BRIDGE_CHAT_ARCHIVE
 from lychd.agents.workflows.base import Trigger, Workflow, pattern_snapshot_is_valid
 from lychd.agents.workflows.bridge_chat import BRIDGE_CHAT, BRIDGE_CHAT_BOUND
-from lychd.agents.workflows.delegated_rite import DELEGATED_RITE
+from lychd.agents.workflows.delegated_rite import DELEGATED_RITE, DELEGATED_RITE_BOUND
 
 if TYPE_CHECKING:
     from lychd.agents.router import Intent
@@ -28,6 +28,7 @@ __all__ = [
     "BRIDGE_CHAT_ARCHIVE",
     "BRIDGE_CHAT_BOUND",
     "DELEGATED_RITE",
+    "DELEGATED_RITE_BOUND",
     "BuiltinWorkflowRegistry",
     "Trigger",
     "Workflow",
@@ -240,15 +241,16 @@ class BuiltinWorkflowRegistry:
 
 
 def builtin_workflow_registry(*, weaver: WeaverSettings | None = None) -> BuiltinWorkflowRegistry:
-    """Select the active Bridge revision while retaining prior executable revisions."""
+    """Select active configured revisions while retaining prior executable revisions."""
     bridge = BRIDGE_CHAT_BOUND if weaver is not None and weaver.bridge is not None else BRIDGE_CHAT
     if weaver is not None and weaver.bridge is not None and weaver.bridge.revision == "3":
         bridge = BRIDGE_CHAT_ARCHIVE
+    delegate = DELEGATED_RITE_BOUND if weaver is not None and weaver.delegation is not None else DELEGATED_RITE
     return BuiltinWorkflowRegistry(
-        workflows=(BRIDGE_CHAT, BRIDGE_CHAT_BOUND, BRIDGE_CHAT_ARCHIVE, DELEGATED_RITE),
+        workflows=(BRIDGE_CHAT, BRIDGE_CHAT_BOUND, BRIDGE_CHAT_ARCHIVE, DELEGATED_RITE, DELEGATED_RITE_BOUND),
         active_revisions=(
             (bridge.name, bridge.manifest.revision),
-            (DELEGATED_RITE.name, DELEGATED_RITE.manifest.revision),
+            (delegate.name, delegate.manifest.revision),
         ),
         route_precedence=(DELEGATED_RITE.name,),
         default_name=BRIDGE_CHAT.name,

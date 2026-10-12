@@ -7,6 +7,8 @@ from copy import deepcopy
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, Any, cast
 
+from lychd.domain.privacy.labels import PrivatizationLabel, join_labels
+
 if TYPE_CHECKING:
     from lychd.domain.animation.capabilities import CapabilityGrant
     from lychd.domain.animation.services.registry import AnimatorRegistry
@@ -23,11 +25,12 @@ class ContextBudgetExceededError(RuntimeError):
 
 @dataclass(frozen=True, kw_only=True)
 class Block:
-    """One ordered context block."""
+    """One ordered context block with conservative, non-authorizing influence."""
 
     layer: int
     key: str
     text: str
+    label: PrivatizationLabel = field(default_factory=PrivatizationLabel, repr=False)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -42,6 +45,20 @@ class AssembledContext:
     continuation: list[Any]
     query: str
     context_window: int | None = None
+
+    @property
+    def influence_label(self) -> PrivatizationLabel:
+        """Join actual contributors without inferring lineage from copied block text.
+
+        Query, history, and continuation have no governed source adapters yet.
+        Their presence therefore adds unknown influence, even if a caller labels
+        a matching display block public. Message/tool mutation cannot retain a
+        stale, less restrictive cached aggregate.
+        """
+        labels = tuple(block.label for block in self.blocks)
+        if self.query or self.state_window or self.continuation:
+            labels = (*labels, PrivatizationLabel())
+        return join_labels(labels)
 
     def floor_text(self) -> str:
         """Render layers 2-4 in (layer, key) order for the dynamic instructions hook."""

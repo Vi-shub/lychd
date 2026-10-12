@@ -14,10 +14,34 @@ Cut; [Security](../../../adr/09-security.md#portal-privatization-and-egress) own
 and refusal; this page owns the journey through the score.
 
 !!! warning "Egress remains closed"
-    Context Blocks do not yet carry Privatization Labels or conservative aggregate joins, and no
-    deterministic local Censor is delivered. The Privacy Agent, verified Privacy Cut, sanitized
-    provider branch, and Portal Egress Gate are also undelivered. Portal declarations and probes
-    remain observable, but Dispatcher still quarantines both family and direct-key Portal dispatch.
+    Context Blocks now carry conservative influence labels. A bounded offline diagnostic profile
+    can redact, independently verify, and seal an irreversible candidate in memory. It cannot
+    anonymize arbitrary private context or authorize its transmission. The semantic Privacy Agent,
+    provider-specific sanitized branch, and Portal Egress Gate remain undelivered. Dispatcher
+    still quarantines both family and direct-key Portal dispatch.
+
+## Run the bounded offline proof
+
+From a development checkout with its dependencies installed:
+
+```sh
+uv run --locked python scripts/privacy_probe.py --show-candidate
+```
+
+The probe uses only a public synthetic fixture, touches all six outbound lanes, verifies the
+sealed candidate, and prints an opaque event identifier and the sanitized fixture. Omitting
+`--show-candidate` prints only the identifier. It reads no private files, runs no model and sends
+nothing. It is an engineering probe outside Pulse's closed command grammar.
+
+The `closed-diagnostic@1` API accepts one sensitive owner-value slot inside an exact public
+diagnostic grammar. Every character must be covered; dependency, diagnostic, status and citation
+positions must survive. Lineage metadata is bounded without dropping ancestry. Unknown lineage,
+forbidden categories, uncovered text, altered evidence or expired seals
+refuse preparation. A caller cannot substitute a successful detector scan for these checks.
+The raw branch stays unchanged and labelled; the authority and its seals are process-local.
+Restart, real provider serialization, transmission budgets and semantic privacy need their
+separate owners. [State of Work](../../../state-of-the-work.md#context-privatization-and-portal-egress)
+records the tested boundary.
 
 ## Labels begin at the source
 
@@ -150,10 +174,16 @@ becoming anonymous.
 
 Deterministic work runs first in the designed sequence. A future Censor rebuilds bounded JSON-like
 values and redacts secret-shaped fields, JWTs, PEM private keys, emails, telephones, IPv4 addresses,
-and UUIDs with typed placeholders. No such Censor is delivered today. Bank and payment identifiers,
+and UUIDs with typed placeholders. That general detector-backed Censor is not delivered; the
+current closed diagnostic profile uses explicitly partitioned spans. Bank and payment identifiers,
 IPv6, long numeric ids, suspicious high-entropy strings, normalization policy, and semantic
 combinations remain later detector work. Typed placeholders matter: an amount, date, telephone,
 and order id do not carry the same meaning.
+
+Presidio's [official FAQ](https://github.com/data-privacy-stack/presidio/blob/main/docs/faq.md)
+explicitly identifies false negatives and makes no promise to find every sensitive value. Its
+detectors and operators can inform later profiles; a detector result cannot certify this whole
+disclosure boundary.
 
 A local Privacy Agent handles semantic and quasi-identifiers that rules may miss. It can say
 “this combination still identifies a household” and propose a narrower representation. It cannot

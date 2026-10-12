@@ -53,7 +53,7 @@ WeaveContext → Converse → AwaitConsent? → ProjectReply → End
 bridge_chat@3 (configured public Archive and exact capability)
 RecallNotes → AnswerNotes → SettleNoteAnswer → End
 
-delegated_rite@1
+delegated_rite@1 (default) / delegated_rite@2 (configured exact runtime)
 DispatchDelegate ⇢ ProjectDelegatedReply → End
 ```
 
@@ -61,8 +61,10 @@ Admission chooses once. The registered workflow name and exact manifest snapshot
 with the Run; resume looks up that stored choice and never routes the Intent again.
 
 The registry is executable substrate, not a general workflow platform. `delegated_rite@1`
-exercises only the deterministic reference adapter; it delivers no foreign runtime or execution
-plane.
+exercises only the deterministic reference adapter. Revision 2 pins an
+[explicit registered runtime and profile](delegated-agents.md#pin-effective-configuration) for new
+admissions and retains that selection across resume. Neither revision supplies foreign-runtime
+containment or an execution plane.
 
 ## Choose a Bridge capability
 

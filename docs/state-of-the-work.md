@@ -470,7 +470,16 @@ currently originates approval.
 **Proved now:** Typed requests without credential or ambient-authority fields, artifact references, process-local job
 submission/adoption/cancellation serialized with runtime-start acceptance, exact wait ownership,
 terminal-evidenced Graph parking and re-admission, typed containment-profile intent, PostgreSQL
-shapes, and a no-effect reference adapter exist.
+shapes, and a no-effect reference adapter exist. Optional `weaver.delegation` selects
+`delegated_rite@2` with one exact registered runtime/profile. Admission, persisted intent and
+checkpoint validation retain that binding across configuration changes; omission preserves
+reference-only revision 1. Refusal and uncertain start never select an alternate runtime.
+
+Codex 0.159.2 and Claude Code 2.1.296 have bounded one-shot command/protocol adapters behind a
+refusing-by-default host port. Offline fixtures exercise complete JSONL outcomes, exact launch
+identity, persisted limits, malformed/truncated output, uncertain lookup and cancellation. The
+adapters are not registered by default and contain no subprocess launcher. These are protocol and
+correlation tests, not an executed Coffin or Provider Gate.
 
 The reference adapter reconstructs its deterministic projection for refresh and cancellation after
 coordinator/runtime restart without replaying an external effect, retains it across failed durable
@@ -503,6 +512,12 @@ definite-rejection evidence, and reconciliation of ambiguous start outcomes.
 - **Source:** [Delegation coordinator](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/delegation/services.py), [delegated job store](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/delegation.py), [Graph runner](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/cortex/graph_runner.py), [reference runtime](https://github.com/hexanomicon/lychd/blob/main/src/lychd/extensions/builtin/delegation/reference.py), and [reference adapter catalogue](https://github.com/hexanomicon/lychd/blob/main/src/lychd/extensions/builtin/delegation/register.py)
 - **Verification:** [Delegation tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/delegation/test_coordinator.py), [ambiguous-start tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/delegation/test_start_outcomes.py), [acceptance-write recovery](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/delegation/test_acceptance_failure.py), [acceptance through Graph and worker](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_delegate_acceptance.py), [modeled DB acceptance](https://github.com/hexanomicon/lychd/blob/main/tests/unit/db/test_delegation_acceptance.py), [restart-resume tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_delegate_resume.py), [delegation schema tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/db/test_delegation_schema.py), and [extension-policy tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/extensions/test_delegation.py)
 - **Law:** [Workers](./adr/14-workers.md)
+
+Additional source and verification for the exact selection and closed adapters:
+[runtime protocols](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/delegation/cli_protocol.py),
+[runtime boundary](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/delegation/cli_runtime.py),
+[adapter tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/delegation/test_cli_runtime.py), and
+[configured casting tests](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_delegated_routing.py).
 
 ### Durable in-app Attention {#durable-attention}
 
@@ -1038,7 +1053,8 @@ forced-collection qualification and complete production-browser acceptance remai
 **State:** Designed
 
 **Proved now:** The Portfolio publishes Native Reference Composition contracts and examples; the
-boot catalogue contains only the Core `bridge_chat` lineage (revisions 1, 2 and 3) and `delegated_rite@1`.
+boot catalogue contains only the Core `bridge_chat` lineage (revisions 1, 2 and 3) and
+`delegated_rite` lineage (revisions 1 and 2).
 The accepted designs include [Health](./compositions/health/index.md) for attributable personal
 clinical records and bounded diagnostic and care proposals,
 [Keeper](./compositions/keeper/index.md) for animal and colony care,
@@ -1267,17 +1283,27 @@ does not own its lifecycle or state, require it for Oculus, or prove application
 
 ### Context privatization and Portal egress {#context-privatization-and-portal-egress}
 
-**State:** Designed
+**State:** Partial
 
-**Proved now:** Context and Security law define privatization labels, source lineage,
-consumer-specific Privacy Cuts, independent verification, and a separate egress decision.
+**Proved now:** Immutable influence labels and conservative joins exist. Context Blocks default to
+unknown/restricted; assembly accounts for ungoverned query, history and continuation without
+lowering known ancestry. The offline `closed-diagnostic@1` profile prepares one complete typed
+projection through deterministic redaction, ordered receipts, independent reconstruction and
+utility verification, and a process-local authenticated Cut. Its closed vocabulary and exact
+sensitive spans cover a synthetic diagnostic fixture, not arbitrary text or code. The public
+event projection exposes only an opaque random identifier. Changed bytes, evidence, policy,
+identity, target, expiry, unknown lineage and meaningless redaction refuse verification.
 
-**Do not expect yet:** There is no label or lineage implementation, deterministic Censor,
-transformation-receipt chain, verified Privacy Cut, sanitized Context branch, pseudonym map, Egress
-Gate, transmission check, or deletion propagation.
+**Boundary — Not yet:** No governed SQL/tool/artifact adapters, end-to-end source lineage, semantic
+Privacy Agent, general PII detector, reversible map/Vault, provider-specific sanitized wire branch,
+Egress Gate, transmission accounting, cumulative-disclosure policy or deletion propagation ships.
+An in-memory Cut neither survives restart nor grants disclosure. Normal private Context and
+effectful delegated execution remain ineligible for remote use.
 
 **Evidence**
 
+- **Source:** [Privacy preparation](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/privacy/preparation.py), [independent verifier](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/privacy/verification.py), and [Context integration](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/cortex/context.py)
+- **Verification:** [Adversarial preparation fixtures](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/privacy/test_preparation.py), [Context influence tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_context_privacy.py), and [offline probe output](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/privacy/test_probe.py)
 - **Topic:** [Portal](./sepulcher/animator/portal.md)
 - **Law:** [Context](./adr/21-context.md#privatization-and-the-privacy-cut) and [Security](./adr/09-security.md#portal-privatization-and-egress)
 

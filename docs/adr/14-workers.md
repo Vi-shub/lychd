@@ -459,6 +459,15 @@ and a PostgreSQL adapter exist, but no real provider launch, Coffin supervisor, 
 cross-process pickup, or durable artifact custody is proved. [State of
 Work](../state-of-the-work.md#delegated-agent-execution) owns the Partial claim.
 
+Codex and Claude have bounded one-shot protocol adapters behind a refusing-by-default host port.
+The command intent pins the CLI version, exact request and job, literal argv, stdin, isolated
+environment and roots, and finite capture/wall limits. It is not an execution permit. A future
+trusted host must retain that exact launch identity before effects and return its original limits
+and matching whole-job containment evidence on lookup. Changed configuration cannot rewrite a
+retained launch. Malformed, incomplete, conflicting or oversized protocol output cannot become
+success; a timeout requires containment before terminal classification. Neither adapter is
+registered by default, and no subprocess launcher or Provider Gate bridge is delivered.
+
 `LOST` is terminal for result adoption and ordinary polling, but it is not evidence that an external
 process stopped. Parent cancellation must still call the owning runtime's containment operation and
 may record `LOST → CANCELLED` only after that operation returns.

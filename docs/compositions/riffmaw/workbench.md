@@ -110,7 +110,9 @@ the native studio editor.
 The cache binds exact recipe, processor, renderer/model source, installed DawDreamer/NumPy
 executable artifacts, their versions and runtime platform. Repeats on that pinned runtime are
 verified; cross-platform bit identity is not promised. A 30-second child deadline bounds native
-execution and settles its owned process group, not descendants that escape into a new session.
+execution. Cleanup has a separate one-second budget to kill the owned process group and observe
+its stopped state through Linux `/proc`; unavailable or unresolved observation refuses completion.
+This does not cover descendants that escape into a new session.
 This is process separation rather than Coffin containment. Publication uses exclusive hard links,
 fsync and a receipt committed last; interrupted/incomplete cache entries refuse. Directories are
 assumed stable and operator-owned, not hostile mutable mounts.

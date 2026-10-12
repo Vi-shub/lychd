@@ -28,6 +28,7 @@ from lychd.agents.workflows import (
     BRIDGE_CHAT_ARCHIVE,
     BRIDGE_CHAT_BOUND,
     DELEGATED_RITE,
+    DELEGATED_RITE_BOUND,
     builtin_workflow_registry,
 )
 from lychd.agents.workflows.base import (
@@ -45,6 +46,7 @@ from lychd.domain.archive import ArchiveProfile, ArchiveSubject
 from lychd.domain.cortex.graph import build_serial_graph
 from lychd.domain.cortex.runs import RunRecord, RunStatus
 from lychd.domain.cortex.stasis import DurableStasisPhylactery, InMemoryStasisStore, LiveStasisPhylactery
+from lychd.domain.delegation.routing import DelegatedRuntimeBinding
 from lychd.ghouls.runs import _phylactery_for
 
 pydantic_ai.models.ALLOW_MODEL_REQUESTS = False
@@ -57,6 +59,8 @@ def _intent() -> Intent:
 def test_every_workflow_state_round_trips() -> None:
     for workflow in builtin_workflow_registry().all():
         intent = _intent()
+        if workflow is DELEGATED_RITE_BOUND:
+            intent = intent.model_copy(update={"admitted_delegation": DelegatedRuntimeBinding(runtime="reference")})
         if workflow is BRIDGE_CHAT_BOUND:
             intent = intent.model_copy(update={"admitted_capability_key": "chat:offline"})
         if workflow is BRIDGE_CHAT_ARCHIVE:

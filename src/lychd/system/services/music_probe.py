@@ -46,6 +46,9 @@ if TYPE_CHECKING:
 
 BLOCK_SIZE = 64
 MAX_TIMEOUT_SECONDS = 30.0
+_PROCESS_SETTLEMENT_SECONDS = 1.0
+_PROCESS_SETTLEMENT_POLL_SECONDS = 0.001
+_PROC_ROOT = Path("/proc")
 MAX_LOG_BYTES = 65536
 MAX_REQUEST_BYTES = 2 * 1024 * 1024
 PCM_WIDTH = 2
@@ -352,30 +355,85 @@ def _drain_process(process: subprocess.Popen[bytes], deadline: float) -> bytearr
     return logs
 
 
+def _group_has_live_processes(group_id: int, deadline: float) -> bool:
+    """Observe the owned Linux group, including a dead leader's live threads."""
+    try:
+        for entry in _PROC_ROOT.iterdir():
+            if time.monotonic() >= deadline:
+                _refuse("Native process-group settlement exceeded its cleanup bound.")
+            if not entry.name.isdecimal():
+                continue
+            try:
+                if os.getpgid(int(entry.name)) != group_id:
+                    continue
+                # comm may contain spaces and ')'; kernel fields follow the last ')'.
+                fields = (entry / "stat").read_bytes().rsplit(b")", 1)[1].split()
+                observed_group = int(fields[2])
+                thread_count = int(fields[17])
+            except (FileNotFoundError, ProcessLookupError):
+                continue
+            except (IndexError, ValueError) as error:
+                msg = "Native process-group state could not be decoded."
+                raise MusicProbeError(msg) from error
+            # pthread_exit can leave a zombie leader while other threads still run.
+            if observed_group == group_id and (fields[0] not in {b"Z", b"X", b"x"} or thread_count > 1):
+                return True
+    except OSError as error:
+        msg = "Native process-group settlement could not be observed."
+        raise MusicProbeError(msg) from error
+    return False
+
+
+def _settle_process_group(process: subprocess.Popen[bytes]) -> None:
+    """Kill and observe this owned group within a separate finite cleanup budget.
+
+    Waiting for its direct leader alone does not settle descendants. This observes
+    the original group only; it does not reap unrelated children or cover processes
+    that escaped into another session.
+    """
+    deadline = time.monotonic() + _PROCESS_SETTLEMENT_SECONDS
+    with suppress(ProcessLookupError):
+        os.killpg(process.pid, signal.SIGKILL)
+    try:
+        process.wait(timeout=max(0.0, deadline - time.monotonic()))
+    except subprocess.TimeoutExpired as error:
+        msg = "Native process-group settlement exceeded its cleanup bound."
+        raise MusicProbeError(msg) from error
+    while _group_has_live_processes(process.pid, deadline):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            _refuse("Native process-group settlement exceeded its cleanup bound.")
+        time.sleep(min(remaining, _PROCESS_SETTLEMENT_POLL_SECONDS))
+
+
 def _run_process(command: list[str], timeout_seconds: float, directory: Path) -> None:
-    """Drain bounded native diagnostics and settle the owned process group."""
+    """Drain bounded native diagnostics and observe settlement of the owned group."""
     deadline = time.monotonic() + timeout_seconds
     # Internal callers supply sys.executable and an owned worker module only.
-    with subprocess.Popen(  # noqa: S603 - Only the owned executable/module enter production calls.
+    process = subprocess.Popen(  # noqa: S603 - Only the owned executable/module enter production calls.
         command, cwd=directory, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True
-    ) as process:
+    )
+    try:
+        logs = _drain_process(process, deadline)
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            _refuse("Native render exceeded its process time bound.")
         try:
-            logs = _drain_process(process, deadline)
-            remaining = deadline - time.monotonic()
-            if remaining <= 0:
-                _refuse("Native render exceeded its process time bound.")
-            try:
-                result = process.wait(timeout=remaining)
-            except subprocess.TimeoutExpired as error:
-                msg = "Native render exceeded its process time bound."
-                raise MusicProbeError(msg) from error
-            if result:
-                msg = f"Native render failed ({result}): {logs[-4096:].decode(errors='replace')}"
-                raise MusicProbeError(msg)
+            result = process.wait(timeout=remaining)
+        except subprocess.TimeoutExpired as error:
+            msg = "Native render exceeded its process time bound."
+            raise MusicProbeError(msg) from error
+        if result:
+            msg = f"Native render failed ({result}): {logs[-4096:].decode(errors='replace')}"
+            raise MusicProbeError(msg)
+    finally:
+        try:
+            _settle_process_group(process)
         finally:
-            with suppress(ProcessLookupError):
-                os.killpg(process.pid, signal.SIGKILL)
-            process.wait()
+            # Popen.__exit__ waits without a bound, so close pipes explicitly.
+            for stream in (process.stdout, process.stderr):
+                if stream is not None:
+                    stream.close()
 
 
 def _sync_path(path: Path, *, directory: bool = False) -> None:

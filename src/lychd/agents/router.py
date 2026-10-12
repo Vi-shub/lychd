@@ -10,6 +10,7 @@ from __future__ import annotations
 from pydantic import BaseModel, ConfigDict, Field
 
 from lychd.domain.archive import ArchiveProfile
+from lychd.domain.delegation.routing import DelegatedRuntimeBinding
 
 __all__ = ["Intent"]
 
@@ -33,3 +34,4 @@ class Intent(BaseModel):
     # admission path and RunRecord.to_intent may populate it for durable execution.
     admitted_capability_key: str | None = Field(default=None, min_length=1)
     admitted_archive: ArchiveProfile | None = None
+    admitted_delegation: DelegatedRuntimeBinding | None = None

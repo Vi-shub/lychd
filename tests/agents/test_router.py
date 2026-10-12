@@ -51,6 +51,7 @@ def test_builtin_registry_has_the_exact_ordered_boot_inventory() -> None:
         ("bridge_chat", "2"),
         ("bridge_chat", "3"),
         ("delegated_rite", "1"),
+        ("delegated_rite", "2"),
     ]
 
 
