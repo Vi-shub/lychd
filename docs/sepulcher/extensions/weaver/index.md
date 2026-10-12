@@ -50,6 +50,9 @@ The current registry is fixed and source-defined:
 bridge_chat@1 (default) / bridge_chat@2 (configured exact capability)
 WeaveContext → Converse → AwaitConsent? → ProjectReply → End
 
+bridge_chat@3 (configured public Archive and exact capability)
+RecallNotes → AnswerNotes → SettleNoteAnswer → End
+
 delegated_rite@1
 DispatchDelegate ⇢ ProjectDelegatedReply → End
 ```
@@ -84,6 +87,10 @@ Changing or removing the setting does not redirect an existing Run or an idempot
 the section keeps revision 1's eligible-pool selection for new turns. Both revisions stay registered
 for retained work. This key pins capability identity, not a model artifact or runtime configuration
 fingerprint; the general Resolution Lock remains a separate contract.
+
+Revision 3 adds bounded public-note recall with transient Context injection and no tools. Its
+[Archive configuration and authority checks](../../../divination/altar/bridge.md#public-note-answers) are separate from
+revision 2's tool-capable conversation.
 
 ## Follow the Scroll
 

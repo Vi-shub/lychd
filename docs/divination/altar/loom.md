@@ -9,14 +9,16 @@ Loom lets you read a Pattern revision as a declared Scroll: the stations it cont
 
 ## Find the exact score
 
-After [Altar setup](index.md#bring-one-intent), open `http://127.0.0.1:7134/loom`. The catalogue retains `bridge_chat@1`, `bridge_chat@2`, and
+After [Altar setup](index.md#bring-one-intent), open `http://127.0.0.1:7134/loom`. The catalogue retains `bridge_chat@1`, `bridge_chat@2`, `bridge_chat@3`, and
 `delegated_rite@1`; the rail pairs each title with its `pattern_id@revision` and marks the default,
 other active routes, and retained revisions.
 
 Opening `/loom` selects the configured default and replaces the URL with its exact route. Without
 `weaver.bridge`, that is `/loom/bridge_chat/1`; configuring the
 [Bridge capability selector](../../sepulcher/extensions/weaver/index.md#choose-a-bridge-capability)
-selects `/loom/bridge_chat/2`. An exact revision link continues to open that retained score.
+selects `/loom/bridge_chat/2`; the
+[public-note configuration](bridge.md#public-note-answers) selects
+`/loom/bridge_chat/3`. An exact revision link continues to open that retained score.
 
 A direct link takes the form `/loom/{pattern_id}/{revision}`. Both parts are required: `/loom/{pattern_id}` is rejected. This lets a review name the revision it concerns instead of leaving its identity to a later selection.
 

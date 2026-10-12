@@ -36,7 +36,7 @@
   "profile_digest": "2370deea59ae390441f84d46a3b52aad7ba33fd89449800f5741e71b029bf968",
   "quality_boundary": "The two-document cosine comparison is only a synthetic sanity check, not a retrieval-quality benchmark.",
   "record_kind": "sanitized_public_dispatch_qualification",
-  "reproduction_boundary": "Recorded one-off isolated host acceptance. The maintained portable live harness remains separate work; ordinary integration tests substitute HTTP.",
+  "reproduction_boundary": "Historical one-off isolated host acceptance. The subsequent maintained test and receipt are test_llamacpp_embedding_runtime.py and qwen3-06b-q8-b9445-runtime.json; ordinary integration tests substitute HTTP.",
   "runtime_observation": {
     "observed_server_limits": [
       "Max cpu time              60                   60                   seconds",

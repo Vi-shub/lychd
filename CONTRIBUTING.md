@@ -237,6 +237,29 @@ Choose a fresh, short `PYTEST_BASETEMP` path. The proof needs up to 1 GiB of tem
 explicitly required. It does not start production units, load a model or qualify the full
 Orchestrator/Host Reactor path. Without the opt-in flag, the live case skips.
 
+The separate embedding transport proof requires Linux, a working ordinary rootless Podman
+cache with the exact image pinned by the tracked public embedding fixture, and the already
+available public Qwen3-Embedding-0.6B Q8_0 file. It verifies the file size and SHA-256 before
+Podman access; it never downloads, copies, relabels or modifies the model file. Keep that file
+quiescent throughout the run. On SELinux hosts, prepare a dedicated public fixture with a
+container-readable shared context (`container_file_t:s0`); a private MCS label left by another
+container is insufficient. The test neither disables SELinux nor relabels the supplied file.
+
+```bash
+LYCHD_REQUIRE_EMBEDDING_PROOF=1 LYCHD_EMBEDDING_FIXTURE=/absolute/path/Qwen3-Embedding-0.6B-Q8_0.gguf make test M=container N=0 PYTEST_TARGETS=tests/integration/test_llamacpp_embedding_runtime.py PYTEST_BASETEMP=/tmp/lychd-embedding-proof
+```
+
+Choose a fresh basetemp path. Without the flag, the live case skips before artifact or engine
+access; with it, missing prerequisites fail. The proof creates one uniquely owned disposable
+container with no network, host ports or GPU, then enters only its network namespace to exercise
+the actual registry, Dispatcher and HTTPX embedding driver. The server has a CPU limit of 60 seconds and
+an address-space limit of 4 GiB, the child 30 seconds/2 GiB, and bounded output. These
+are process limits, not cgroup quotas. Work is bounded to 175 seconds and cleanup has 30 seconds;
+artifact hashing is outside that work clock. Inspect `embedding-runtime/receipt.json` beneath
+the test's basetemp directory for both proof and cleanup success. This qualifies transport
+against an externally started runtime; it does not prove Orchestrator activation or Archive
+semantic recall. The ordinary image cache and its shared helper lifetime remain operator-owned.
+
 The optional offline music engineering profile runs without the Vessel or a native Composition:
 
 ```bash

@@ -547,11 +547,12 @@ An explicitly configured local `model.embed@1` compatibility path now leases the
 Qwen3-Embedding-0.6B Q8_0/llama.cpp b9445 profile. It accepts one bounded document or query,
 reauthorizes before each source-bearing request, validates canonical float32 vectors, and closes
 active requests before releasing the ordinary lease. Unsupported profile selectors refuse before
-readiness. A recorded CPU-only isolated runtime check exercised the real registry, Dispatcher and
+readiness. A maintained opt-in CPU-only isolated runtime check exercised the real registry, Dispatcher and
 HTTPX driver for two documents and one query, plus byte/token/authority/scope refusals; leases and
 owned runtime processes were cleaned up. This was an externally started fixture, not an
-Orchestrator activation or Archive derivation test. The portable opt-in live harness remains work
-to complete; ordinary integration tests substitute HTTP.
+Orchestrator activation or Archive derivation test. The Linux harness requires an existing pinned
+image and public model fixture; it verifies artifact hashes and owned-process cleanup without
+downloading or relabeling inputs. Ordinary integration tests substitute HTTP.
 
 Unregistered runtime aliases, including generic OpenAI-shaped labels, retain inert command planning
 but cannot create a capability-bearing runtime; Bind and registry load reject their missing
@@ -587,7 +588,9 @@ benchmark.
   [Portal tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/animation/test_portals.py),
   [configured embedding dispatch tests](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_llamacpp_embedding_dispatch.py),
   [embedding dialect receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/embeddings/qwen3-06b-q8-b9445.json),
-  and [recorded real-driver receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/embeddings/qwen3-06b-q8-b9445-dispatch.json)
+  [recorded real-driver receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/embeddings/qwen3-06b-q8-b9445-dispatch.json),
+  [opt-in runtime test](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_llamacpp_embedding_runtime.py),
+  and [maintained runtime receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/embeddings/qwen3-06b-q8-b9445-runtime.json)
 - **Law:** [Dispatcher](./adr/22-dispatcher.md)
 
 ### General service capability substrate {#general-service-capabilities}
