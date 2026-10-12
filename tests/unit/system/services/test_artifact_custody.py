@@ -261,8 +261,15 @@ def test_reopen_preserves_unsafe_objects_as_recovery(root: Path, policy: Policy,
         with path.open("r+b") as stream:
             stream.seek(8)
             stream.write(b"!" * 32)
+    elif kind == "replacement":
+        # Allocate before unlinking the original so its inode cannot be reused.
+        replacement = root.parent / "replacement.artifact"
+        replacement.write_bytes(path.read_bytes())
+        replacement.chmod(0o600)
+        replacement.replace(path)
+        metadata = path.stat()
+        assert (metadata.st_dev, metadata.st_ino) != (record.envelope.device, record.envelope.inode)
     else:
-        original = path.read_bytes()
         path.unlink()
         if kind == "fifo":
             os.mkfifo(path, 0o600)
@@ -270,9 +277,6 @@ def test_reopen_preserves_unsafe_objects_as_recovery(root: Path, policy: Policy,
             path.symlink_to(root.parent / "foreign")
         elif kind == "oversize":
             path.write_bytes(b"x" * (1_048_576 + 16_384 + 41))
-            path.chmod(0o600)
-        elif kind == "replacement":
-            path.write_bytes(original)
             path.chmod(0o600)
     before = set(root.iterdir())
     with pytest.raises(RecoveryRequired):
