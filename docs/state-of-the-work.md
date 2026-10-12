@@ -299,6 +299,11 @@ inference-engine, or browser receipt.
 Runs against immutable Pattern revisions. Durable publication intent, replay repair, external-wait
 relays with capped restart backoff, terminal-evidence repair, bounded identity fencing, bounded
 slow-reader resynchronization, and orderly shutdown are tested.
+Terminal checkpoint deletion is best-effort after durable terminal evidence. A disposable
+[PostgreSQL receipt](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_terminal_checkpoint_recovery_pg.py)
+injects an actual deletion failure, verifies later Run evidence and cleanup,
+and removes retained debt through replacement adapters without duplicate Steps. It uses the
+startup helper and ORM-created tables, not a replacement application process or migrations.
 Per-Run claim and park coordination prevents stale failure cleanup from touching a successor or a
 committed wait. Consent and delegate recovery bound each owner's lookup and re-admission,
 preserving the wait or exact pending delivery on timeout while later owners progress. Early
