@@ -260,6 +260,58 @@ Dispatcher filters explicitly supplied modality requirements. A separate, unregi
 retention under an injected current authorizer. Bridge artifact admission, credential-backed
 authority, and provider materialization remain separate work.
 
+## Explicit local embedding compatibility profile
+
+An exact configured `embedding` family/model pair may additionally declare an immutable
+`model.embed@1` profile. This does not change `lease_grant`: unprofiled embedding labels and
+embedding requests through the chat/tool grant path still refuse before readiness or host work.
+The separate `lease_embedding` entry requires the canonical capability key, profile digest and
+operation (`embed_document` or `embed_query`). It admits only local Soulstones, reuses fresh
+issue-time readiness, drain generations and lease accounting, and exposes only a bounded driver.
+Provider entry precedes lease registration; cleanup completes before release, including cancellation.
+A driver cannot execute outside its entered lease or execute another operation than its grant.
+
+The first explicitly selected profile is one fixed Qwen3-Embedding-0.6B Q8_0 artifact and llama.cpp
+b9445 dialect, with last pooling, 1024 dimensions and L2 normalization. Its immutable manifest
+binds model/image/build digests, exact query/document rendering, tokenizer options, conformance
+receipt and input/output/deadline bounds. It accepts one input per call, at most 4096 rendered UTF-8
+bytes and 511 runtime tokens. Oversize input refuses; truncation is forbidden. Runtime configuration
+selects a managed single-model command with no passthrough, router, environment, model or profile
+overrides. Configuration and a prior conformance receipt establish admission, not fresh attestation
+of a mutable externally replaced process or artifact.
+
+A source-bearing call requires a current-authority callback immediately before tokenization and
+embedding transmission. Source eligibility and stale-completion fencing remain the caller's domain
+obligations; no database lock spans runtime work. The local dialect accepts only a literal loopback
+HTTP endpoint, disables ambient proxies and redirects, bounds raw response bytes before parsing,
+and validates indexed output identity, count, dimension, finite numbers, nonzero norm and usage.
+Returned execution values contain vectors and digests, not original text or raw provider responses.
+Errors expose safe codes. No Portal, general SpecV2, detached job, semantic recall, ANN or training
+operation is authorized by this compatibility profile.
+
+The fixed profile requires an explicit port and literal-loopback `base_url` so it does not
+inherit hostname resolution or generic endpoint allocation. For example, a local Soulstone
+may select `embedding_profile = "qwen3-06b-q8-b9445@1"`, `port = 8080`,
+`base_url = "http://127.0.0.1:8080/v1"`, `model_path = "/models/embedding.gguf"`, and
+`quadlet.image = "ghcr.io/ggml-org/llama.cpp@sha256:39f4f2c5fd4537f85208f905e70269b5b691fbc6de00fd916c37a60a710b7d52"`.
+The operator supplies the public artifact through the existing mount configuration. Model path,
+image and profile are configured admission evidence: replacing a mounted file is not detected by
+health/inventory probes. The retained public manual fixture in
+[`tests/fixtures/embeddings/qwen3-06b-q8-b9445.json`](../../tests/fixtures/embeddings/qwen3-06b-q8-b9445.json)
+is dialect qualification, not fresh runtime attestation or proof of Orchestrator activation.
+Its laboratory RLIMIT and network isolation do not become general deployment resource guarantees.
+
+The output scalar encoding is `float32-le`: provider numbers are explicitly projected to IEEE754
+binary32, then checked for finite values, dimension 1024 and L2 norm within `1e-4`, without
+renormalization. Vector digests hash the concatenated little-endian binary32 bytes. This same
+canonicalizer is required at a durable pgvector handoff and after reload; JSON decimal formatting
+is not the storage identity. Receipts bind vector digests and input/rendered digests without raw
+source text or duplicate vector coordinates.
+
+A driver closes admission and joins or cancels its outstanding requests before Dispatcher releases
+the lease. Failing or cancelled driver entry owns its own partial cleanup; the fixed driver entry
+has no suspension. Safe refusal codes replace provider bodies and transport exception causes.
+
 ## Policy boundary
 
 Selection is mostly a future enforcement seam, not a complete policy engine. One coarse rule is
@@ -299,6 +351,8 @@ Current Dispatcher unit tests cover v1 matching, deterministic preference, gener
 and frozen compatibility grants. The current dispatch decision table covers every readiness row,
 grant/drain race, event ordering, and release on failure; registry, Portal, adapter, and lease tests
 cover v1 synthesis, fresh pre-issue probing, fail-closed family surfaces, opt-in probes, hydration,
-and drain accounting. Interface/profile records, general grant variants, service attempts, and
-capability-set placement require source and receipts before promotion. [State of
+and drain accounting. The fixed embedding profile additionally has configured registry/Dispatcher
+HTTP integration tests for exact wire bytes, bounded responses, stale authority, cancellation and
+float32 identity, plus a retained manual dialect fixture. General interface/profile catalogs, grant
+variants, service attempts, and capability-set placement remain Designed. [State of
 Work](../state-of-the-work.md#animator-dispatch-spine) owns delivery claims.

@@ -1,0 +1,92 @@
+{
+  "candidate_patch_sha256": "0f800456adc1470e4737d045bc1e75cdf5e5446fe4cf4c01fc1a0137ed252b18",
+  "cleanup": "passed",
+  "cleanup_budget_seconds": 30,
+  "container_network": "none",
+  "container_wall_limit_seconds": 180,
+  "driver_calls_completed": 3,
+  "elapsed_seconds_including_cleanup": 4.427,
+  "evidence_boundary": "Actual registered Dispatcher and HTTPX driver against externally started isolated runtime; no Archive or Orchestrator activation proof.",
+  "fixture_kind": "public_synthetic",
+  "gpu_devices": [],
+  "helper_limits": {
+    "address_space_bytes": 2147483648,
+    "cpu_seconds": 30,
+    "parent_deadline_seconds": 65
+  },
+  "host_ports": [],
+  "image_content_id": "sha256:364346159fa6b62dc8b6e0324f5d5aa537a5824971434d36c139adcb2b3b592e",
+  "image_manifest": "ghcr.io/ggml-org/llama.cpp@sha256:39f4f2c5fd4537f85208f905e70269b5b691fbc6de00fd916c37a60a710b7d52",
+  "leases_remaining": 0,
+  "model_bytes": 639150592,
+  "model_sha256": "06507c7b42688469c4e7298b0a1e16deff06caf291cf0a5b278c308249c3e439",
+  "negative_controls": [
+    "input_digest_or_size",
+    "input_tokens",
+    "escaped_driver",
+    "authority_before_embedding"
+  ],
+  "negative_fixtures": {
+    "authority": "deny second callback after real tokenization",
+    "tokens": "512 copies of the literal string \" apple\"",
+    "utf8_bytes": "2049 copies of U+00E9; 4098 bytes"
+  },
+  "observed_on": "2026-10-12",
+  "parent_work_cutoff_seconds": 175,
+  "profile_digest": "2370deea59ae390441f84d46a3b52aad7ba33fd89449800f5741e71b029bf968",
+  "quality_boundary": "The two-document cosine comparison is only a synthetic sanity check, not a retrieval-quality benchmark.",
+  "record_kind": "sanitized_public_dispatch_qualification",
+  "reproduction_boundary": "Recorded one-off isolated host acceptance. The maintained portable live harness remains separate work; ordinary integration tests substitute HTTP.",
+  "runtime_observation": {
+    "observed_server_limits": [
+      "Max cpu time              60                   60                   seconds",
+      "Max address space         4294967296           4294967296           bytes"
+    ],
+    "observed_version": "version: 9445 (af6528e6d)",
+    "resource_verification": {
+      "cgroup_memory_cpu_claim": false,
+      "pids": 64,
+      "rlimit_as_bytes": 4294967296,
+      "rlimit_cpu_seconds": 60
+    },
+    "server_argv_sha256": "6eaabdcde56c24950ecb0259475b051e2c3bea57f77661099bfcd7253b603cab"
+  },
+  "sanity_cosines": [
+    0.7300133679110136,
+    0.15078257429280234
+  ],
+  "schema": 1,
+  "source_identity_boundary": "Nine observed implementation hashes plus independently frozen and reviewed candidate; not an atomic snapshot of transitive imports.",
+  "source_request_authorizations": [
+    3,
+    3,
+    3
+  ],
+  "source_sha256": {
+    "domain/animation/embeddings.py": "a80d6def54bf29d8c1be10b3e34f4d0da7ac449afefdc86811f053ec6c74ed94",
+    "domain/animation/services/registry.py": "5a0699603e7e70f9724b479cd141c819d18cc604adde3977b69569563d51a88b",
+    "domain/cortex/dispatcher.py": "648b0b36315622b54bae87f4342d66d2db187c0e15ca6563659316b016575713",
+    "domain/cortex/leases.py": "29a1fc205fedd317b1814e635e7198b3cfc66fa6d7e2cfa64357c3ca21d8bbf2",
+    "extensions/builtin/animator/llamacpp/connector.py": "d377c6a62e8dd63bfae6a166ef3eb5a6cca13aa115a314b7374ab27f0427453e",
+    "extensions/builtin/animator/llamacpp/embedding.py": "853d8ec8b7a02a4babb76c809d2d71ab126bc7e278e47cac2fb869899ea55e91",
+    "extensions/builtin/animator/llamacpp/embedding_profile.py": "b93e3c9283062adc11508633085ad4a950b28330699d39443e3bf0d82d6967bd",
+    "extensions/builtin/animator/runtimes/llamacpp.py": "21e47f5e742dd5a0c50589b9b490cb1c9aceab9d97fabb95f2b5ceb231b8b0ca",
+    "extensions/builtin/animator/soulstones/llamacpp.py": "cf522f7a55fbc093ffc1ffb73877b45b133ad191baa24e502b3244f9868b6cff"
+  },
+  "status": "passed",
+  "synthetic_documents": [
+    "Paris is the capital of France.",
+    "A guitar has vibrating strings and produces music."
+  ],
+  "synthetic_query": "What is the capital of France?",
+  "tokens": [
+    8,
+    10,
+    27
+  ],
+  "vector_digests": [
+    "ceb4101a1a251d402897d6243f29f32069711541586714a7034826edb92b516d",
+    "d9c098a1dc376e7421cca7defa50029d8f895a832f89224d7eeeae6729db81c8",
+    "696698315caac88e2268c7332a0c74b21c7a9226e42f8537714531850ca2a932"
+  ]
+}

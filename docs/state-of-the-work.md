@@ -543,16 +543,30 @@ only declared agent-loop toolsets, `tool_execution` requires a non-empty toolset
 metadata-only families fail closed. There is no public registry handle-binding bypass around grant
 issue. Registry and Dispatcher both quarantine Portal issue.
 
+An explicitly configured local `model.embed@1` compatibility path now leases the exact
+Qwen3-Embedding-0.6B Q8_0/llama.cpp b9445 profile. It accepts one bounded document or query,
+reauthorizes before each source-bearing request, validates canonical float32 vectors, and closes
+active requests before releasing the ordinary lease. Unsupported profile selectors refuse before
+readiness. A recorded CPU-only isolated runtime check exercised the real registry, Dispatcher and
+HTTPX driver for two documents and one query, plus byte/token/authority/scope refusals; leases and
+owned runtime processes were cleaned up. This was an externally started fixture, not an
+Orchestrator activation or Archive derivation test. The portable opt-in live harness remains work
+to complete; ordinary integration tests substitute HTTP.
+
 Unregistered runtime aliases, including generic OpenAI-shaped labels, retain inert command planning
 but cannot create a capability-bearing runtime; Bind and registry load reject their missing
 capability coverage.
 
 **Boundary:** This is the v1 `{animator}:{family}:{model_id}` catalogue with one chat-model/toolset
-compatibility grant, not the general discriminated grant union. The catalogue has no in-process
-hot reload; lease expiry is recorded but not enforced; current Soulstone/Portal inheritance and raw
+compatibility grant plus the explicitly selected embedding path, not the general discriminated
+grant union. The catalogue has no in-process hot reload; lease expiry is recorded but not enforced;
+current Soulstone/Portal inheritance and raw
 Quadlet contribution remain. General interface/profile compilation, call/job/session grants,
-`[[capabilities]]`, service-job attempts, per-dialect OpenAI-compatible drivers, and secret-vault
-integration are not delivered.
+`[[capabilities]]`, service-job attempts, general per-dialect OpenAI-compatible drivers, and
+secret-vault integration are not delivered. The fixed embedding profile is configured admission;
+health/inventory does not attest a replaced model file or process. Its laboratory resource and
+network limits are not general deployment guarantees, and its tiny cosine check is not a quality
+benchmark.
 
 **Evidence**
 
@@ -560,7 +574,8 @@ integration are not delivered.
   [grant lifecycle](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/cortex/dispatcher.py),
   [Soulstone Rune schema](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/animation/schemas/runes/animators.py),
   [OpenAI-compatible probe](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/animation/services/adapters/runtimes/shared.py),
-  and [fixed-runtime projection](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/animation/services/adapters/runtimes/openai_compat.py)
+  [fixed-runtime projection](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/animation/services/adapters/runtimes/openai_compat.py),
+  and [bounded embedding driver](https://github.com/hexanomicon/lychd/blob/main/src/lychd/extensions/builtin/animator/llamacpp/embedding.py)
 - **Verification:** [Registry tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/animation/test_registry.py),
   [grant lifecycle tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_dispatcher.py),
   [admission-generation tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_dispatcher_admission_generation.py),
@@ -569,7 +584,10 @@ integration are not delivered.
   [catalogue tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/animation/test_catalog.py),
   [endpoint-policy tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/animation/test_soulstone_endpoint_policy.py),
   [declaration-compiler tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/animation/test_declarations.py),
-  and [Portal tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/animation/test_portals.py)
+  [Portal tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/animation/test_portals.py),
+  [configured embedding dispatch tests](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_llamacpp_embedding_dispatch.py),
+  [embedding dialect receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/embeddings/qwen3-06b-q8-b9445.json),
+  and [recorded real-driver receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/embeddings/qwen3-06b-q8-b9445-dispatch.json)
 - **Law:** [Dispatcher](./adr/22-dispatcher.md)
 
 ### General service capability substrate {#general-service-capabilities}

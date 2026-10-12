@@ -44,6 +44,8 @@ class LlamaCppSoulstoneConfig(SoulstoneConfig):
         default_factory=lambda: QuadletConfig(image="ghcr.io/ggml-org/llama.cpp:server-cuda")
     )
 
+    embedding_profile: Literal["qwen3-06b-q8-b9445@1"] | None = None
+
     startup_mode: LlamaCppMode = LlamaCppMode.AUTO
     models_dir: str | None = None
     models_preset: str | None = None
@@ -150,6 +152,11 @@ class LlamaCppSoulstoneConfig(SoulstoneConfig):
     @model_validator(mode="after")
     def _validate_runtime_contract(self) -> LlamaCppSoulstoneConfig:
         """Reject mixed command authority and enforce mode prerequisites."""
+        if self.embedding_profile is not None:
+            from lychd.extensions.builtin.animator.llamacpp.embedding_profile import require_profile_config
+
+            require_profile_config(self)
+            return self
         self._validate_endpoint_port()
         if self.exec:
             conflicting = sorted(field for field in self._PASSTHROUGH_CONFLICT_FIELDS if field in self.model_fields_set)

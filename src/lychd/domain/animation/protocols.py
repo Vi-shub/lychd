@@ -28,6 +28,7 @@ if TYPE_CHECKING:
         CapabilitySpec,
         CapabilityState,
     )
+    from lychd.domain.animation.embeddings import EmbeddingBinding, EmbeddingGrant, EmbeddingOperation
     from lychd.domain.animation.schemas import SoulstoneConfig
 
 __all__ = ["CapabilityRegistry", "require_capability_record"]
@@ -79,6 +80,16 @@ class CapabilityRegistry(Protocol):
         holder: str,
         scope: Literal["step", "run"] = "step",
     ) -> CapabilityGrant: ...
+
+    def require_embedding(self, binding: EmbeddingBinding, operation: EmbeddingOperation) -> CapabilitySpec: ...
+
+    async def issue_embedding_grant(
+        self,
+        binding: EmbeddingBinding,
+        *,
+        operation: EmbeddingOperation,
+        holder: str,
+    ) -> EmbeddingGrant: ...
 
 
 async def require_capability_record(

@@ -8,9 +8,10 @@ from lychd.domain.animation.capabilities import (
     CapabilityPhase,
     CapabilitySpec,
     CapabilityState,
+    SourceKind,
 )
 from lychd.domain.animation.links import Link
-from lychd.domain.animation.schemas import GenerationProfile, SoulstoneConfig
+from lychd.domain.animation.schemas import CapabilityFamily, GenerationProfile, ModelInfo, SoulstoneConfig
 from lychd.domain.animation.services.adapters.catalog import (
     capability_specs_from_model_infos,
     model_infos_from_soulstone,
@@ -24,6 +25,11 @@ from lychd.domain.animation.services.adapters.runtimes.shared import require_run
 from lychd.domain.animation.services.adapters.surfaces import SoulstoneAnimator, local_link_default
 from lychd.extensions.builtin.animator.llamacpp.connector import LlamacppConnector
 from lychd.extensions.builtin.animator.llamacpp.control_plane import LlamaCppControlPlane, LlamaCppControlPlaneError
+from lychd.extensions.builtin.animator.llamacpp.embedding_profile import (
+    PROFILE,
+    profile_command,
+    require_profile_config,
+)
 from lychd.extensions.builtin.animator.llamacpp.parser_cli import LlamaCppCliInferenceParser
 from lychd.extensions.builtin.animator.llamacpp.parser_models import LlamaCppRuntimeInference
 from lychd.extensions.builtin.animator.llamacpp.runtime import LlamaCppDescriptor, LlamaCppRuntimePlanner
@@ -57,6 +63,19 @@ class LlamaCppRuntimeAdapter:
             expected_type=LlamaCppSoulstoneConfig,
             runtime=self.runtime,
         )
+        if stone.embedding_profile is not None:
+            require_profile_config(stone)
+            connector = LlamacppConnector(
+                link=local_link_default(runtime=self.runtime),
+                base_url=str(stone.base_url) if stone.base_url is not None else f"http://127.0.0.1:{stone.port}/v1",
+                model_infos=[ModelInfo(id=PROFILE.model_id, modalities_in=("text",), supports_tools=False)],
+                default_model_id=PROFILE.model_id,
+                mode="single",
+                router_query_model_id=None,
+                generation_defaults=GenerationProfile(),
+                embedding_profile=PROFILE,
+            )
+            return SoulstoneAnimator(rune=stone, connector=connector)
         descriptor = self._describe_runtime(stone)
         model_infos = model_infos_from_soulstone(stone, discovered=descriptor.model_infos)
         base_url = str(stone.base_url) if stone.base_url is not None else f"http://localhost:{stone.port}/v1"
@@ -80,6 +99,22 @@ class LlamaCppRuntimeAdapter:
             runtime=self.runtime,
         )
         connector = cast("LlamacppConnector", animator.connector)
+        if stone.embedding_profile is not None:
+            return [
+                CapabilitySpec(
+                    key=f"{stone.name}:embedding:{PROFILE.model_id}",
+                    animator_name=stone.name,
+                    runtime=self.runtime,
+                    source_kind=SourceKind.SOULSTONE,
+                    family=CapabilityFamily.EMBEDDING,
+                    model_id=PROFILE.model_id,
+                    max_context=512,
+                    modalities_in=("text",),
+                    supports_tools=False,
+                    embedding_profile=PROFILE,
+                    concurrency=stone.concurrency,
+                )
+            ]
         return capability_specs_from_model_infos(
             stone,
             connector.model_infos,
@@ -250,6 +285,9 @@ class LlamaCppRuntimeAdapter:
 
     def _planned_inference(self, soulstone: LlamaCppSoulstoneConfig) -> tuple[list[str], LlamaCppRuntimeInference]:
         """Keep AUTO planning precedence while classifying the actual emitted inputs."""
+        if soulstone.embedding_profile is not None:
+            command = profile_command(soulstone)
+            return command, self._parser.infer_args(command)
         command = list(soulstone.exec or soulstone.extra_args)
         command_inference = self._parser.infer_args(command)
         env_inference = self._parser.infer_env(soulstone.inference_env())

@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from pydantic_ai.settings import ModelSettings
     from pydantic_ai.toolsets import AbstractToolset
 
+from lychd.domain.animation.embeddings import EmbeddingProfile
 from lychd.domain.animation.errors import CapabilityUnavailable
 from lychd.domain.animation.schemas.capability_family import CapabilityFamily
 from lychd.domain.animation.schemas.concurrency import ConcurrencyIntent
@@ -56,6 +57,7 @@ class CapabilitySpec(BaseModel):
     # The most operationally important model fact — promoted to a real field (a metadata
     # key read by domain code must be a field). Overlaid by generation_profile.max_context.
     max_context: int | None = None
+    embedding_profile: EmbeddingProfile | None = None
     modalities_in: tuple[str, ...] = Field(default_factory=tuple)
     supports_tools: bool | None = None
     generation_profile: GenerationProfile = Field(default_factory=GenerationProfile)

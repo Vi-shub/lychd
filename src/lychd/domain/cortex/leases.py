@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     from lychd.domain.animation.capabilities import CapabilityGrant
+    from lychd.domain.animation.embeddings import EmbeddingGrant
 
 __all__ = ["AnimatorAdmission", "LeaseAdmissionChanged", "LeaseAdmissionClosed", "LeaseLedger", "LeaseRow"]
 
@@ -83,7 +84,7 @@ class LeaseLedger:
         # every waiter on release.
         self._release_waiters: set[asyncio.Event] = set()
 
-    def acquire(self, grant: CapabilityGrant, *, priority: int, admission_generation: int) -> None:
+    def acquire(self, grant: CapabilityGrant | EmbeddingGrant, *, priority: int, admission_generation: int) -> None:
         """Register only in the open generation captured before grant preparation.
 
         Reopening after drain cannot validate a pre-drain observation. Duplicate

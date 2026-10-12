@@ -24,6 +24,8 @@ if TYPE_CHECKING:
     from pydantic_ai.models import Model
     from pydantic_ai.toolsets import AbstractToolset
 
+    from lychd.domain.animation.embeddings import EmbeddingBinding, EmbeddingDriver, EmbeddingOperation
+
 
 class Connector(ABC):
     """Base connector for a runtime animator.
@@ -89,4 +91,18 @@ class ToolConnector(ABC):
 
         Return an empty sequence when no tools are currently exposed.
         """
+        ...
+
+
+class EmbeddingConnector(ABC):
+    """Exact typed embedding surface supplied by an admitted runtime extension."""
+
+    @abstractmethod
+    def require_embedding(self, binding: EmbeddingBinding, operation: EmbeddingOperation) -> None:
+        """Refuse unsupported identity before readiness or source-bearing work."""
+        ...
+
+    @abstractmethod
+    def get_embedding(self, binding: EmbeddingBinding, operation: EmbeddingOperation) -> EmbeddingDriver:
+        """Build a lease-scoped driver after exact admission."""
         ...

@@ -1,0 +1,470 @@
+{
+  "calls": [
+    {
+      "input_sha256": "c2f7981cefb90632fd51b0496ce84e9ae609b57d4940fbd47d31664f103edea2",
+      "kind": "tokenize",
+      "token_ids_sha256": "f968e197718f0a741a56a72996c258f06dcd6421fb9d3c31451cb1055c9c7727",
+      "tokens": 10
+    },
+    {
+      "input_sha256": [
+        "c2f7981cefb90632fd51b0496ce84e9ae609b57d4940fbd47d31664f103edea2"
+      ],
+      "kind": "embedding",
+      "norms": [
+        0.9999999974871145
+      ],
+      "status": 200,
+      "usage_tokens": 10,
+      "vector_sha256": [
+        "1ebe851bffc38c9ada0bc96916d211acb13ae32c81261c4ea458657b32cacc4c"
+      ]
+    },
+    {
+      "input_sha256": "a6c66428d61f0349f43b4c9727183bd1ba6190de3863c3e794696e486b0ff6e9",
+      "kind": "tokenize",
+      "token_ids_sha256": "7b3c9f900f7d060e7f1d6e2daf5ab8a7323b051b0bc7f150a72ccb476e4798e7",
+      "tokens": 9
+    },
+    {
+      "input_sha256": [
+        "a6c66428d61f0349f43b4c9727183bd1ba6190de3863c3e794696e486b0ff6e9"
+      ],
+      "kind": "embedding",
+      "norms": [
+        0.9999999580117688
+      ],
+      "status": 200,
+      "usage_tokens": 9,
+      "vector_sha256": [
+        "bfbcbb7d4c44589d23e90f9a6c6aab082902a5af1e2a8ade23328d39d6644b07"
+      ]
+    },
+    {
+      "input_sha256": "6e9b16e3413eed9d0086861edf6136e903d27cb44411f311eadbe9a09a3fab93",
+      "kind": "tokenize",
+      "token_ids_sha256": "02ea2d2e90ea0035761a623cf978e1900899977d56f9d27d6d419e3b9b8a8722",
+      "tokens": 22
+    },
+    {
+      "input_sha256": [
+        "6e9b16e3413eed9d0086861edf6136e903d27cb44411f311eadbe9a09a3fab93"
+      ],
+      "kind": "embedding",
+      "norms": [
+        0.9999999934054393
+      ],
+      "status": 200,
+      "usage_tokens": 22,
+      "vector_sha256": [
+        "81909213dba318e143f77679cb403c2b71275e9a0353ebfe0da90a42bee3c836"
+      ]
+    },
+    {
+      "input_sha256": "2b14f6779a4301d1d4754f21c7057cc07d119a7c47cfc70804e03fd0ecbb226e",
+      "kind": "tokenize",
+      "token_ids_sha256": "6babcbe0d30faa4ebd3655677efc12443042f9ba1b216c2a9b54671b85090a72",
+      "tokens": 18
+    },
+    {
+      "input_sha256": [
+        "2b14f6779a4301d1d4754f21c7057cc07d119a7c47cfc70804e03fd0ecbb226e"
+      ],
+      "kind": "embedding",
+      "norms": [
+        1.0000000243321634
+      ],
+      "status": 200,
+      "usage_tokens": 18,
+      "vector_sha256": [
+        "9e626ab9fedf786bf088b0ae6443bdb08ca6b977443fccb7ae90e60c5b498120"
+      ]
+    },
+    {
+      "input_sha256": "d100466050bbb11bcb77f9384d81c5f7baba450002a756b8a7279befd1619ad3",
+      "kind": "tokenize",
+      "token_ids_sha256": "f382a7804577e8bf4a8e38bddf1e5939a67b4e17f7df6d941016d9ce8a83c986",
+      "tokens": 29
+    },
+    {
+      "input_sha256": [
+        "d100466050bbb11bcb77f9384d81c5f7baba450002a756b8a7279befd1619ad3"
+      ],
+      "kind": "embedding",
+      "norms": [
+        0.9999999801410596
+      ],
+      "status": 200,
+      "usage_tokens": 29,
+      "vector_sha256": [
+        "77d77724a1229897d3378afc63a365762835fa2415425f29886a5986cf023f6f"
+      ]
+    },
+    {
+      "input_sha256": "9a9faff1f6a429f22dc0a999279b32f6fedb7420331c85e2aaab0f163dfdad55",
+      "kind": "tokenize",
+      "token_ids_sha256": "37479b46de969b64a9414b89a0b0033de94b39b23ff399683beb289ef4c4aef5",
+      "tokens": 28
+    },
+    {
+      "input_sha256": [
+        "9a9faff1f6a429f22dc0a999279b32f6fedb7420331c85e2aaab0f163dfdad55"
+      ],
+      "kind": "embedding",
+      "norms": [
+        1.000000017913382
+      ],
+      "status": 200,
+      "usage_tokens": 28,
+      "vector_sha256": [
+        "79ca962c25724037cb4d0aaf3a9e87693131a9c50b4cbd347486f4782ae63901"
+      ]
+    },
+    {
+      "input_sha256": "c2f7981cefb90632fd51b0496ce84e9ae609b57d4940fbd47d31664f103edea2",
+      "kind": "tokenize",
+      "token_ids_sha256": "f968e197718f0a741a56a72996c258f06dcd6421fb9d3c31451cb1055c9c7727",
+      "tokens": 10
+    },
+    {
+      "input_sha256": [
+        "c2f7981cefb90632fd51b0496ce84e9ae609b57d4940fbd47d31664f103edea2"
+      ],
+      "kind": "embedding",
+      "norms": [
+        0.9999999974871145
+      ],
+      "status": 200,
+      "usage_tokens": 10,
+      "vector_sha256": [
+        "1ebe851bffc38c9ada0bc96916d211acb13ae32c81261c4ea458657b32cacc4c"
+      ]
+    },
+    {
+      "input_sha256": "c2f7981cefb90632fd51b0496ce84e9ae609b57d4940fbd47d31664f103edea2",
+      "kind": "tokenize",
+      "token_ids_sha256": "f968e197718f0a741a56a72996c258f06dcd6421fb9d3c31451cb1055c9c7727",
+      "tokens": 10
+    },
+    {
+      "input_sha256": "a6c66428d61f0349f43b4c9727183bd1ba6190de3863c3e794696e486b0ff6e9",
+      "kind": "tokenize",
+      "token_ids_sha256": "7b3c9f900f7d060e7f1d6e2daf5ab8a7323b051b0bc7f150a72ccb476e4798e7",
+      "tokens": 9
+    },
+    {
+      "input_sha256": [
+        "c2f7981cefb90632fd51b0496ce84e9ae609b57d4940fbd47d31664f103edea2",
+        "a6c66428d61f0349f43b4c9727183bd1ba6190de3863c3e794696e486b0ff6e9"
+      ],
+      "kind": "embedding",
+      "norms": [
+        1.0000000249583432,
+        0.9999999580117688
+      ],
+      "status": 200,
+      "usage_tokens": 19,
+      "vector_sha256": [
+        "8f2902d29e679f8487d3c7d4da355a4994e9f102119eb308c198accc3f16e91e",
+        "bfbcbb7d4c44589d23e90f9a6c6aab082902a5af1e2a8ade23328d39d6644b07"
+      ]
+    },
+    {
+      "input_sha256": "b0baf1d47c7e4d6664a856fedb81e40a44c022bba01b0489a268073f6d0d2236",
+      "kind": "tokenize",
+      "token_ids_sha256": "e4d70eb438b9d9520c2ae1c6ef10b53d3db48223c2c3cf58bd0bfc7f5ae5bb19",
+      "tokens": 8
+    },
+    {
+      "input_sha256": "c7fd20df5e80c6a71398727c405e2b15a16a70c522772081270b74c311711ce8",
+      "kind": "tokenize",
+      "token_ids_sha256": "4e9a4284ca3b7abd9a50a249399fb75eed2226f12dd5b8593baca160ff5f950e",
+      "tokens": 1031
+    },
+    {
+      "input_sha256": "afad75bd6e0eda88c5da61a940098aab32da0e27ca4c12b5eb712c4bdb3721fa",
+      "kind": "tokenize",
+      "token_ids_sha256": "2d76be7e1d296e2dcca457cb7851125ff456b86188ee245a31c5abe19721f478",
+      "tokens": 519
+    },
+    {
+      "input_sha256": "6c0e8431ed9b694b56eabde2fe6ea266dd1e435bbd49f3e954c00b0fb74eb7de",
+      "kind": "tokenize",
+      "token_ids_sha256": "f37ba7f71ee31da3c092461fc07ace6c7a779aae55912563841de0ace16edcd9",
+      "tokens": 263
+    },
+    {
+      "input_sha256": "6900697da141e3fac07b340e7cd5eb2298d8179c50cec8f2820c0aa81125c4fd",
+      "kind": "tokenize",
+      "token_ids_sha256": "57e3ce3246f3e857d9e937eb39807d569cdb57b794a6fb666d66da1daceb7c7d",
+      "tokens": 391
+    },
+    {
+      "input_sha256": "fdc63b838168f12a68a7a68630ed8d5a41e20dfa36cd356c7c3b0ae6fc7afa0f",
+      "kind": "tokenize",
+      "token_ids_sha256": "d650406b701b2f347d18350456e549be7f376a3e3aa9e66759d13a710a5884de",
+      "tokens": 455
+    },
+    {
+      "input_sha256": "d387e3322703f1c3386d410b88614c705c8040c103f1a6a634ccd250c0e15cf2",
+      "kind": "tokenize",
+      "token_ids_sha256": "23c79e8725699390c64eb680472c8b70cbf3929bebb27c81e23ba0202fd71b50",
+      "tokens": 487
+    },
+    {
+      "input_sha256": "5123d0eb0e869c5bfd1187ec09e815ebd1ebf8f15340b8aa291348bb3231a311",
+      "kind": "tokenize",
+      "token_ids_sha256": "95a82661d9e2296ff4732761b589d3188055185812d7afa86eb6aa18eef38603",
+      "tokens": 503
+    },
+    {
+      "input_sha256": "62d23e7cc332977c56d978f1911b24a6d26b15d510cbc08107f0d4ff3f260bb0",
+      "kind": "tokenize",
+      "token_ids_sha256": "0cb46d75ede544e5d94952212e365f8a2324395dab80fa606721ef5df32a6c67",
+      "tokens": 511
+    },
+    {
+      "input_sha256": "13741f721fcb78af9f803ae3e3c9d71f4255bed46ee6078a6d49e8aa1c7c9275",
+      "kind": "tokenize",
+      "token_ids_sha256": "3d525dd3544ef93213012508c4683e63ce2b3520a47634ce7857596350f08b1b",
+      "tokens": 515
+    },
+    {
+      "input_sha256": "88e2dc371b39bccdb2df67c7f98b9d41e36abde55b4e80f266667bf239c72c5c",
+      "kind": "tokenize",
+      "token_ids_sha256": "7aa7bd156e8eb3e60e5e4651b24b2f5eeef4863eedde68d566626a000113f65f",
+      "tokens": 513
+    },
+    {
+      "input_sha256": "e5a1d5794f3d05dc994b9baf352279083f974f5a07ea3f5888db47c2eec013cf",
+      "kind": "tokenize",
+      "token_ids_sha256": "9956767e85c9a842bf3e3b13941cff5f3d854228d2ab368df6188db832d1cd03",
+      "tokens": 512
+    },
+    {
+      "input_sha256": "6b4818eb1cf93c5cfe8dd2491456b8b6a646be1461086f62a89118e83ccc4657",
+      "kind": "tokenize",
+      "token_ids_sha256": "128a51b59d20e8e294800f165228f4bf44b9d62c932de8099999d2ced137bb68",
+      "tokens": 514
+    },
+    {
+      "input_sha256": [
+        "62d23e7cc332977c56d978f1911b24a6d26b15d510cbc08107f0d4ff3f260bb0"
+      ],
+      "kind": "embedding",
+      "norms": [
+        0.999999969104326
+      ],
+      "status": 200,
+      "usage_tokens": 511,
+      "vector_sha256": [
+        "41ccd566a8d5369820968a2d15bbcd8a3012d1fff11bd8d014dc5ed1d6ca037d"
+      ]
+    },
+    {
+      "input_sha256": [
+        "6b4818eb1cf93c5cfe8dd2491456b8b6a646be1461086f62a89118e83ccc4657"
+      ],
+      "kind": "embedding",
+      "refused_oversize": true,
+      "status": 400
+    },
+    {
+      "input_sha256": "c2f7981cefb90632fd51b0496ce84e9ae609b57d4940fbd47d31664f103edea2",
+      "kind": "tokenize",
+      "token_ids_sha256": "f968e197718f0a741a56a72996c258f06dcd6421fb9d3c31451cb1055c9c7727",
+      "tokens": 10
+    },
+    {
+      "input_sha256": [
+        "c2f7981cefb90632fd51b0496ce84e9ae609b57d4940fbd47d31664f103edea2"
+      ],
+      "kind": "embedding",
+      "norms": [
+        0.9999999974871145
+      ],
+      "status": 200,
+      "usage_tokens": 10,
+      "vector_sha256": [
+        "1ebe851bffc38c9ada0bc96916d211acb13ae32c81261c4ea458657b32cacc4c"
+      ]
+    }
+  ],
+  "configured_profile_max_batch_items": 1,
+  "delivery_boundary": "Manual CPU runtime dialect only; this receipt is not fresh artifact/process attestation, configured runtime isolation or Dispatcher/Archive proof. Existing live fixture was cleaned up by the coordinator.",
+  "diagnostic_batch_items": 2,
+  "document_prefix": "",
+  "embedding_calls": 11,
+  "engine_revision": "af6528e6df5d798f7f1363ec1141699be0f638e2",
+  "evidence_boundary": "Manual runtime conformance; no Dispatcher, Archive or orchestration delivery proof.",
+  "fixture_kind": "public_synthetic",
+  "image_id": "sha256:364346159fa6b62dc8b6e0324f5d5aa537a5824971434d36c139adcb2b3b592e",
+  "image_manifest": "ghcr.io/ggml-org/llama.cpp@sha256:39f4f2c5fd4537f85208f905e70269b5b691fbc6de00fd916c37a60a710b7d52",
+  "limits": {
+    "dimension": 1024,
+    "embedding_calls": 12,
+    "max_tokens": 511,
+    "profile_bytes": 4096,
+    "tokenizer_calls": 24,
+    "wall_seconds": 120
+  },
+  "managed_command_at_port8080": [
+    "--sleep-idle-seconds",
+    "-1",
+    "-m",
+    "/models/embedding.gguf",
+    "--alias",
+    "lychd-qwen3-embedding-06b-q8",
+    "--host",
+    "127.0.0.1",
+    "--port",
+    "8080",
+    "--pooling",
+    "last",
+    "--embd-normalize",
+    "2",
+    "-ngl",
+    "0",
+    "-t",
+    "2",
+    "-tb",
+    "2",
+    "-c",
+    "512",
+    "-np",
+    "1",
+    "-b",
+    "512",
+    "-ub",
+    "512",
+    "--cache-type-k",
+    "f16",
+    "--cache-type-v",
+    "f16",
+    "--cache-ram",
+    "0",
+    "--fit",
+    "off",
+    "--flash-attn",
+    "off",
+    "--embedding",
+    "--offline",
+    "--no-context-shift",
+    "--no-warmup",
+    "--no-webui"
+  ],
+  "model_bytes": 639150592,
+  "model_revision": "370f27d7550e0def9b39c1f16d3fbaa13aa67728",
+  "model_sha256": "06507c7b42688469c4e7298b0a1e16deff06caf291cf0a5b278c308249c3e439",
+  "model_source": "https://huggingface.co/Qwen/Qwen3-Embedding-0.6B-GGUF/resolve/370f27d7550e0def9b39c1f16d3fbaa13aa67728/Qwen3-Embedding-0.6B-Q8_0.gguf",
+  "network_scope": {
+    "gpu_devices": [],
+    "host_ports": [],
+    "host_resource_scope": "manual laboratory only; no application deployment assertion",
+    "mounts": "one public model file readonly at /models/embedding.gguf; readonly container root",
+    "network_mode": "none"
+  },
+  "normalization_tolerance": 0.0001,
+  "observed_server_argv": [
+    "/app/llama-server",
+    "-m",
+    "/models/embedding.gguf",
+    "--alias",
+    "lychd-qwen3-embedding-06b-q8",
+    "--host",
+    "127.0.0.1",
+    "--port",
+    "8080",
+    "--pooling",
+    "last",
+    "--embd-normalize",
+    "2",
+    "--sleep-idle-seconds",
+    "-1",
+    "-ngl",
+    "0",
+    "-t",
+    "2",
+    "-tb",
+    "2",
+    "-c",
+    "512",
+    "-np",
+    "1",
+    "-b",
+    "512",
+    "-ub",
+    "512",
+    "--cache-type-k",
+    "f16",
+    "--cache-type-v",
+    "f16",
+    "--cache-ram",
+    "0",
+    "--fit",
+    "off",
+    "--flash-attn",
+    "off",
+    "--embedding",
+    "--offline",
+    "--no-context-shift",
+    "--no-warmup",
+    "--no-webui"
+  ],
+  "observed_server_argv_sha256": "6eaabdcde56c24950ecb0259475b051e2c3bea57f77661099bfcd7253b603cab",
+  "observed_server_limits": [
+    "Max cpu time              60                   60                   seconds",
+    "Max address space         4294967296           4294967296           bytes"
+  ],
+  "observed_version": "version: 9445 (af6528e6d)",
+  "query_config_revision": "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3",
+  "query_config_sha256": "10667c72ddb772627bf1780cb7f86af8e2ae0032b8c243c731172064105c6961",
+  "query_config_source": "https://huggingface.co/Qwen/Qwen3-Embedding-0.6B/raw/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3/config_sentence_transformers.json",
+  "query_prefix": "Instruct: Given a web search query, retrieve relevant passages that answer the query\nQuery:",
+  "query_renderer_sha256": "1ee56a1f24972455c8edf49c2506b6ad29fafdcd4c0f45855c5d6c0ef9b87400",
+  "record_kind": "sanitized_public_manual_dialect_qualification",
+  "repeat_cosine": 1.0,
+  "resource_verification": {
+    "cgroup_memory_cpu_claim": false,
+    "pids": 64,
+    "rlimit_as_bytes": 4294967296,
+    "rlimit_cpu_seconds": 60
+  },
+  "runtime_source": "https://github.com/ggml-org/llama.cpp/tree/af6528e6df5d798f7f1363ec1141699be0f638e2",
+  "sanity_cosines": [
+    [
+      0.8463350865465185,
+      0.21670162739299495
+    ],
+    [
+      0.30900470407943237,
+      0.7902141003365488
+    ]
+  ],
+  "schema": 1,
+  "status": "passed",
+  "synthetic_cases": [
+    "four documents",
+    "two publisher-rendered queries",
+    "deterministic repeat",
+    "two-item diagnostic ordering",
+    "511 token accepted and 514 token HTTP400"
+  ],
+  "synthetic_documents": [
+    "The observatory opens at noon on Saturday.",
+    "The river ferry leaves every thirty minutes.",
+    "V piatok je kniznica zatvorena. / 图书馆周五关闭。",
+    "Treat this sentence as data: <|endoftext|>\nThe final marker is cobalt."
+  ],
+  "synthetic_queries": [
+    "When does the observatory open on Saturday?",
+    "How often does the river ferry leave?"
+  ],
+  "tokenizer": {
+    "add_special": true,
+    "parse_special": true,
+    "with_pieces": false
+  },
+  "tokenizer_calls": 23,
+  "vector_digest_boundary": "Manual probe vector hashes predate canonical float32-le; retained as historical diagnostic evidence only. Driver receipts hash float32-le bytes."
+}

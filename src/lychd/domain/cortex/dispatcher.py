@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
     from lychd.domain.animation.capabilities import CapabilityGrant
+    from lychd.domain.animation.embeddings import EmbeddingBinding, EmbeddingGrant, EmbeddingOperation
     from lychd.domain.cortex.events import RunEventBus
     from lychd.domain.cortex.leases import LeaseLedger
 
@@ -108,6 +109,57 @@ class Dispatcher:
                 if acquired:
                     self._leases.release(grant.lease.grant_id)
 
+    @asynccontextmanager
+    async def lease_embedding(
+        self,
+        binding: EmbeddingBinding,
+        *,
+        operation: EmbeddingOperation,
+        run_id: str,
+        priority: int = 50,
+    ) -> AsyncGenerator[EmbeddingGrant]:
+        """Lease one exact local embedding operation under ordinary drain accounting."""
+        spec = self._registry.require_embedding(binding, operation)
+        generation = self._leases.admission_generation(spec.animator_name)
+        if self._leases.admission(spec.animator_name) is AnimatorAdmission.DRAINING:
+            raise self._transition_required(spec)
+        try:
+            grant = await self._registry.issue_embedding_grant(binding, operation=operation, holder=f"run:{run_id}")
+        except CapabilityNotWarm as exc:
+            if exc.state is None:
+                raise
+            self._raise_non_warm(spec, exc.state)
+        resources = AsyncExitStack()
+        acquired = False
+        try:
+            await resources.enter_async_context(grant.driver)
+            self._acquire_or_park(grant, priority=priority, admission_generation=generation)
+            acquired = True
+            if self._events is not None:
+                from lychd.domain.cortex.execution_context import current_occurrence_id
+
+                self._events.emitter(run_id).dispatch(
+                    grant.spec.key,
+                    animator=grant.spec.animator_name,
+                    family=grant.spec.family.value,
+                    model_id=grant.spec.model_id,
+                    phase=grant.state.phase.value,
+                    occurrence_id=current_occurrence_id() or "",
+                    grant_id=grant.lease.grant_id,
+                )
+            yield grant
+        finally:
+            closing = asyncio.create_task(resources.aclose())
+            try:
+                try:
+                    await asyncio.shield(closing)
+                except asyncio.CancelledError:
+                    await complete_under_cancellation(closing)
+                    raise
+            finally:
+                if acquired:
+                    self._leases.release(grant.lease.grant_id)
+
     async def _grant_for_spec(self, spec: CapabilitySpec, *, holder: str) -> CapabilityGrant:
         """Drive the A3 §2 phase decision table to a warm grant.
 
@@ -134,7 +186,9 @@ class Dispatcher:
                 "portal egress admission is not configured",
             )
 
-    def _acquire_or_park(self, grant: CapabilityGrant, *, priority: int, admission_generation: int) -> None:
+    def _acquire_or_park(
+        self, grant: CapabilityGrant | EmbeddingGrant, *, priority: int, admission_generation: int
+    ) -> None:
         """Atomically register a grant or convert a concurrent drain into stasis.
 
         Grant issue and provider entry may yield through a complete drain and

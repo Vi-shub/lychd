@@ -22,7 +22,8 @@ from lychd.domain.animation.capabilities import (
     SourceKind,
 )
 from lychd.domain.animation.conflicts import require_soulstone_capability_coverage
-from lychd.domain.animation.connectors import ModelConnector, ToolConnector
+from lychd.domain.animation.connectors import EmbeddingConnector, ModelConnector, ToolConnector
+from lychd.domain.animation.embeddings import EmbeddingBinding, EmbeddingGrant, EmbeddingOperation, EmbeddingRefused
 from lychd.domain.animation.errors import ActivationFailed, ActivationTimeout, CapabilityNotWarm, CapabilityUnavailable
 from lychd.domain.animation.schemas import CapabilityFamily, PortalConfig, SoulstoneConfig
 from lychd.domain.animation.services.adapters.registry import runtime_provenance
@@ -441,6 +442,50 @@ class AnimatorRegistry:
                 model=model,
                 toolsets=toolsets,
             )
+
+    def require_embedding(self, binding: EmbeddingBinding, operation: EmbeddingOperation) -> CapabilitySpec:
+        """Validate the exact local executable profile before any readiness request."""
+        if not self._loaded:
+            self.load(probe_readiness=False)
+        spec = self._capabilities.get(binding.capability_key)
+        if (
+            spec is None
+            or binding.interface != "model.embed@1"
+            or spec.source_kind is not SourceKind.SOULSTONE
+            or spec.family is not CapabilityFamily.EMBEDDING
+            or spec.is_dynamic
+            or spec.embedding_profile is None
+            or spec.embedding_profile.digest != binding.profile_digest
+            or spec.model_id != spec.embedding_profile.model_id
+        ):
+            raise EmbeddingRefused("binding")  # noqa: EM101 - closed machine-readable refusal code
+        animator = self._animators.get(spec.animator_name)
+        if animator is None or not isinstance(animator.connector, EmbeddingConnector):
+            raise EmbeddingRefused("connector")  # noqa: EM101 - closed machine-readable refusal code
+        animator.connector.require_embedding(binding, operation)
+        return spec
+
+    async def issue_embedding_grant(
+        self,
+        binding: EmbeddingBinding,
+        *,
+        operation: EmbeddingOperation,
+        holder: str,
+    ) -> EmbeddingGrant:
+        """Issue the explicitly profiled callable after a fresh exact observation."""
+        spec = self.require_embedding(binding, operation)
+        await self.refresh_capability_state(spec.key)
+        async with self._probe_lock:
+            spec = self.require_embedding(binding, operation)
+            state = self._capability_states.get(spec.key)
+            if state is None or state.phase is not CapabilityPhase.WARM:
+                raise CapabilityNotWarm(spec.key, state)
+            connector = self._animators[spec.animator_name].connector
+            if not isinstance(connector, EmbeddingConnector):
+                raise EmbeddingRefused("connector")  # noqa: EM101 - closed refusal code
+            driver = connector.get_embedding(binding, operation)
+            lease = GrantLease(grant_id=uuid4().hex, holder=holder, issued_at=datetime.now(UTC))
+            return EmbeddingGrant(spec, state, lease, binding, operation, driver)
 
     @staticmethod
     def _grant_surface(
