@@ -21,6 +21,7 @@ class ArchiveNamespace(UUIDAuditBase):
 class ArchiveNote(UUIDAuditBase):
     __tablename__ = "archive_note"
     __table_args__ = (
+        UniqueConstraint("namespace_id", "id", name="uq_archive_note_namespace_id"),
         UniqueConstraint("namespace_id", "source_key", "source_revision", name="uq_archive_note_source_revision"),
         CheckConstraint("lifecycle IN ('candidate','promoted','archived','revoked')", name="lifecycle"),
         CheckConstraint("lifecycle_version >= 1", name="lifecycle_version"),

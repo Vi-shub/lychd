@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal
 
+from lychd.domain.archive.authorization import authorization_check
 from lychd.domain.archive.contracts import (
-    ArchiveAuthorization,
     ArchiveProfile,
     ArchiveRefused,
     ArchiveSubject,
@@ -44,22 +44,7 @@ class ArchiveService:
             msg = "namespace"
             raise ArchiveRefused(msg)
 
-        def check(object_id: UUID | None, binding_digest: str) -> None:
-            request = ArchiveAuthorization(
-                subject=subject,
-                namespace_id=namespace_id,
-                owner_subject=self.profile.owner_subject,
-                policy_revision=self.profile.policy_revision,
-                action=action,
-                purpose=purpose,
-                object_id=object_id,
-                binding_digest=binding_digest,
-            )
-            if self._authorizer.authorize(request) is not True:
-                msg = "authority"
-                raise ArchiveRefused(msg)
-
-        return check
+        return authorization_check(self.profile, self._authorizer, subject, action, purpose)
 
     async def admit(self, subject: ArchiveSubject, proposal: NoteProposal, *, purpose: str) -> NoteRecord:
         check = self._check(subject, proposal.namespace_id, "admit", purpose)

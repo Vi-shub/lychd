@@ -131,6 +131,7 @@ class AppInit(InitPluginProtocol):
         from lychd.interface.web import (
             AltarController,
             ArchiveController,
+            ArchiveDerivationController,
             AtlasController,
             BridgeController,
             LoomController,
@@ -149,6 +150,7 @@ class AppInit(InitPluginProtocol):
                 AltarController,
                 AtlasController,
                 ArchiveController,
+                ArchiveDerivationController,
                 BridgeController,
                 NexusController,
                 LoomController,

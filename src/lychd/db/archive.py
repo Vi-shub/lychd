@@ -6,10 +6,11 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
-from sqlalchemy import func, select, text
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy import func, select
 
-from lychd.db.models.archive import ArchiveIntake, ArchiveNamespace, ArchiveNote, ArchiveRecall
+from lychd.db.archive_derivation_lifecycle import invalidate_derivations
+from lychd.db.archive_namespace import lock_archive_namespace
+from lychd.db.models.archive import ArchiveIntake, ArchiveNote, ArchiveRecall
 from lychd.domain.archive.contracts import (
     ArchiveProfile,
     ArchiveRefused,
@@ -49,31 +50,6 @@ def _record(note: ArchiveNote) -> NoteRecord:
     )
 
 
-async def _namespace(session: AsyncSession, profile: ArchiveProfile, *, create: bool = False) -> None:
-    # Fixed local-public-notes@1 execution bounds; never change connection defaults.
-    await session.execute(text("SET LOCAL statement_timeout = '5s'"))
-    await session.execute(text("SET LOCAL lock_timeout = '2s'"))
-    if create:
-        await session.execute(
-            insert(ArchiveNamespace)
-            .values(
-                id=profile.namespace_id,
-                owner_subject=profile.owner_subject.identity,
-                policy_revision=profile.policy_revision,
-            )
-            .on_conflict_do_nothing(index_elements=[ArchiveNamespace.id])
-        )
-    row = await session.scalar(
-        select(ArchiveNamespace).where(ArchiveNamespace.id == profile.namespace_id).with_for_update()
-    )
-    if row is None:
-        msg = "namespace_missing"
-        raise ArchiveRefused(msg)
-    if (row.owner_subject, row.policy_revision) != (profile.owner_subject.identity, profile.policy_revision):
-        msg = "namespace_binding"
-        raise ArchiveRefused(msg)
-
-
 async def _note(session: AsyncSession, namespace_id: UUID, record_id: UUID) -> ArchiveNote:
     note = await session.scalar(
         select(ArchiveNote).where(ArchiveNote.namespace_id == namespace_id, ArchiveNote.id == record_id)
@@ -103,7 +79,7 @@ class DbArchiveStore:
         request_digest = digest(proposal)
         revision_digest = digest(proposal.source_binding())
         async with self._session_factory() as session, session.begin():
-            await _namespace(session, profile, create=True)
+            await lock_archive_namespace(session, profile, create=True)
             check(proposal.request_id, request_digest)
             intake = await session.scalar(
                 select(ArchiveIntake).where(
@@ -173,7 +149,7 @@ class DbArchiveStore:
         check: AuthorizationCheck,
     ) -> NoteRecord:
         async with self._session_factory() as session, session.begin():
-            await _namespace(session, profile)
+            await lock_archive_namespace(session, profile)
             check(
                 record_id, digest({"record_id": str(record_id), "expected_version": expected_version, "target": target})
             )
@@ -221,6 +197,11 @@ class DbArchiveStore:
             note.lifecycle_version += 1
             if target is Lifecycle.REVOKED:
                 note.content = None
+            invalidated = tuple(prior.id for prior in predecessors)
+            if target in {Lifecycle.ARCHIVED, Lifecycle.REVOKED}:
+                invalidated += (note.id,)
+            if invalidated:
+                await invalidate_derivations(session, profile.namespace_id, reason=target.value, note_ids=invalidated)
             await session.flush()
             check(note.id, binding)
             return _record(note)
@@ -242,7 +223,7 @@ class DbArchiveStore:
             }
         )
         async with self._session_factory() as session, session.begin():
-            await _namespace(session, profile, create=True)
+            await lock_archive_namespace(session, profile, create=True)
             check(request.request_id, request_digest)
             existing = await session.scalar(
                 select(ArchiveRecall).where(
@@ -340,7 +321,7 @@ class DbArchiveStore:
         check: AuthorizationCheck,
     ) -> RecallProjection:
         async with self._session_factory() as session, session.begin():
-            await _namespace(session, profile)
+            await lock_archive_namespace(session, profile)
             check(receipt_id, receipt_digest)
             row = await session.scalar(
                 select(ArchiveRecall).where(

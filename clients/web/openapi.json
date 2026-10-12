@@ -1140,6 +1140,160 @@
         "title": "DelegatedRuntimeObservation",
         "type": "object"
       },
+      "DerivationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "generation": {
+            "$ref": "#/components/schemas/GenerationRef"
+          },
+          "run_id": {
+            "oneOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source": {
+            "$ref": "#/components/schemas/RecordRef"
+          }
+        },
+        "required": [
+          "generation",
+          "source"
+        ],
+        "title": "DerivationRequest",
+        "type": "object"
+      },
+      "DerivationStatus": {
+        "additionalProperties": false,
+        "properties": {
+          "attempt_version": {
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "completed_at": {
+            "oneOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "derivation_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "expires_at": {
+            "oneOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "failure_code": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "generation": {
+            "$ref": "#/components/schemas/GenerationRef"
+          },
+          "invalidated_reason": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "namespace_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "receipt_digest": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "row_version": {
+            "minimum": 1.0,
+            "type": "integer"
+          },
+          "source": {
+            "$ref": "#/components/schemas/RecordRef"
+          },
+          "source_digest": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "prepared",
+              "running",
+              "expired",
+              "complete",
+              "failed",
+              "invalidated"
+            ],
+            "type": "string"
+          },
+          "vector_digest": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "attempt_version",
+          "completed_at",
+          "derivation_id",
+          "expires_at",
+          "failure_code",
+          "generation",
+          "invalidated_reason",
+          "namespace_id",
+          "observed_at",
+          "receipt_digest",
+          "row_version",
+          "source",
+          "source_digest",
+          "state",
+          "vector_digest"
+        ],
+        "title": "DerivationStatus",
+        "type": "object"
+      },
       "EvidenceGap": {
         "additionalProperties": false,
         "properties": {
@@ -1320,6 +1474,90 @@
           "status_code"
         ],
         "title": "FrameworkError",
+        "type": "object"
+      },
+      "GenerationRef": {
+        "additionalProperties": false,
+        "properties": {
+          "generation_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "manifest_digest": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "generation_id",
+          "manifest_digest"
+        ],
+        "title": "GenerationRef",
+        "type": "object"
+      },
+      "GenerationRetireIntent": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_version": {
+            "minimum": 1.0,
+            "type": "integer"
+          },
+          "reference": {
+            "$ref": "#/components/schemas/GenerationRef"
+          }
+        },
+        "required": [
+          "expected_version",
+          "reference"
+        ],
+        "title": "GenerationRetireIntent",
+        "type": "object"
+      },
+      "GenerationStatus": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "namespace_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "reference": {
+            "$ref": "#/components/schemas/GenerationRef"
+          },
+          "retired_at": {
+            "oneOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "state": {
+            "enum": [
+              "active",
+              "retired"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "minimum": 1.0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "created_at",
+          "namespace_id",
+          "reference",
+          "retired_at",
+          "state",
+          "version"
+        ],
+        "title": "GenerationStatus",
         "type": "object"
       },
       "Lifecycle": {
@@ -3193,6 +3431,278 @@
           }
         },
         "summary": "Status"
+      }
+    },
+    "/api/v1/archive/derivations/derive": {
+      "post": {
+        "deprecated": false,
+        "operationId": "deriveArchiveNote",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DerivationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DerivationStatus"
+                }
+              }
+            },
+            "description": "Document created, URL follows",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "detail": "Bad Request",
+                      "extra": {},
+                      "status_code": 400
+                    }
+                  ],
+                  "properties": {
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    },
+                    "status_code": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Bad request syntax or unsupported method"
+          }
+        },
+        "summary": "Derive"
+      }
+    },
+    "/api/v1/archive/derivations/generations/register": {
+      "post": {
+        "deprecated": false,
+        "operationId": "registerArchiveGeneration",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerationRef"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerationStatus"
+                }
+              }
+            },
+            "description": "Document created, URL follows",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "detail": "Bad Request",
+                      "extra": {},
+                      "status_code": 400
+                    }
+                  ],
+                  "properties": {
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    },
+                    "status_code": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Bad request syntax or unsupported method"
+          }
+        },
+        "summary": "Register"
+      }
+    },
+    "/api/v1/archive/derivations/generations/retire": {
+      "post": {
+        "deprecated": false,
+        "operationId": "retireArchiveGeneration",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerationRetireIntent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerationStatus"
+                }
+              }
+            },
+            "description": "Document created, URL follows",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "detail": "Bad Request",
+                      "extra": {},
+                      "status_code": 400
+                    }
+                  ],
+                  "properties": {
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    },
+                    "status_code": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Bad request syntax or unsupported method"
+          }
+        },
+        "summary": "Retire"
+      }
+    },
+    "/api/v1/archive/derivations/status": {
+      "post": {
+        "deprecated": false,
+        "operationId": "inspectArchiveDerivation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DerivationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DerivationStatus"
+                }
+              }
+            },
+            "description": "Document created, URL follows",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "detail": "Bad Request",
+                      "extra": {},
+                      "status_code": 400
+                    }
+                  ],
+                  "properties": {
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    },
+                    "status_code": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Bad request syntax or unsupported method"
+          }
+        },
+        "summary": "Inspect"
       }
     },
     "/api/v1/archive/notes": {

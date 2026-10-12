@@ -23,7 +23,7 @@ Soulforge corpora stay distinct and cite by stable ref.
 
 !!! warning "Delivery boundary"
     The bounded public-note profile below does not deliver the general Archive contract.
-    Automatic intake, semantic embeddings, cross-namespace sharing, Curator, and private-material
+    Automatic intake, semantic retrieval, cross-namespace sharing, Curator, and private-material
     recall remain separate work. Existing Karma rows are not a usable memory corpus. State owns
     the profile's exact executable and acceptance boundary.
 
@@ -48,7 +48,7 @@ Each note revision starts as a candidate. Explicit promotion makes it eligible a
 archives any earlier promoted revision of that source. Archive and revoke remove ordinary recall
 eligibility; revoke additionally clears controlled text. Lifecycle versions fence stale changes
 and retained recall. PostgreSQL `simple` text search supplies lexical matching and ranking, with
-finite input, result, and character bounds and a stable UUID tie break. No embedding is executed.
+finite input, result, and character bounds and a stable UUID tie break. Lexical recall executes no embedding.
 Every Archive transaction sets its own five-second statement timeout and two-second lock timeout
 before namespace work; these bounds never change the connection's defaults. Timeout is an
 operation failure that rolls back undecided work, never a lexical miss.
@@ -72,6 +72,47 @@ the notes: source revocation cannot erase that recorded influence.
 This profile establishes a bounded lexical path, not semantic retrieval, automatic retention,
 Curator judgment, shared namespaces, remote IAM, private-material egress, or training. Old Karma
 rows remain inert and are not silently admitted. State owns the implementation evidence.
+
+## Explicit local derivation
+
+An independent optional Archive selection may bind one configured generation and the exact local
+Core `model.embed@1` profile. Generation registration is explicit and authorized; startup never
+registers rows or starts a model. Its immutable manifest binds namespace ownership and policy,
+Core profile/binding, whole-note chunking, cosine metric, float32 storage and a fixed 60-second
+attempt lifetime. Retiring a generation is irreversible; replay cannot reactivate it.
+
+The first derivation stores one whole promoted note as one 1024-dimensional pgvector value.
+Core measures tokens and refuses its fixed byte/token limits; neither caller truncates or splits
+oversize notes. The profile binds float32 little-endian encoding and the accepted L2 tolerance.
+Core and persistence use the same canonical float32 digest without renormalization; an actual
+PostgreSQL round trip must preserve it, including signed zero. The execution receipt retains
+only bounded identities, digests and usage, never source text or a second copy of vector coordinates.
+
+Durable identity is namespace, generation, exact source revision and whole-note chunk. Status
+exposes the latest attempt only: prepared, running, expired, complete, failed or invalidated.
+A DB-clock deadline makes an abandoned running attempt visibly expired; only an explicit retry
+may claim it. No background job, automatic retry, semantic coverage or query eligibility follows.
+Exact completed replay performs no embedding while current source and generation remain eligible.
+
+All state changes take the existing namespace lock first. Preparation retains only metadata;
+the caller acquires its ordinary Core lease before claiming source. Claim creates a fresh token
+and increments attempt and row versions. Concurrent callers may acquire leases, but only the
+winning claim discloses source and calls embedding; losers close their leases. No database lock
+spans inference or lease cleanup. Completion follows cleanup and conditionally matches the exact
+generation, source, live token, versions and unexpired DB deadline. Late results cannot upsert or
+resurrect retired data. A cleanup failure cannot publish complete.
+
+Archive, revoke, superseding promotion and generation retirement atomically invalidate affected
+derivations across generations, clear all vector columns and live attempt tokens, and advance
+fences. Authorized status can still inspect the retained historical source reference after
+revocation; that reference is not permission to resolve source bytes. Revocation cannot retract
+bytes already accepted at the locked source handoff, or remove WAL, backups and earlier outputs.
+Current policy is checked before source handoff, after session cleanup and before each source-bearing
+Core request; these synchronous checks do not claim an atomic socket-write/lifecycle transaction.
+
+This derivation API adds no semantic recall, ANN index, Bridge revision, model tool or receipt-v2
+format. Existing lexical receipts and Bridge3 behavior remain unchanged. Model conformance,
+PostgreSQL race tests and live host acceptance are separate evidence boundaries recorded by State.
 
 ## Framework boundary and Memori
 
@@ -149,7 +190,7 @@ must neither overwrite it nor mix the spaces.
 
 pgvector gives this substrate one governed database backup target. A coherent snapshot of
 artifacts, models and services still requires their own owners. The public-note profile uses a
-PostgreSQL lexical index. Vector generations, HNSW and hybrid retrieval remain separate
+PostgreSQL lexical index. The explicit derivation path above retains generations; HNSW and hybrid retrieval remain separate
 implementation work; an installed pgvector extension does not establish that delivery.
 
 ## Ingestion

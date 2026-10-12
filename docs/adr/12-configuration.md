@@ -12,7 +12,7 @@ icon: material/cog-box
 ## Settings: one immutable generation
 
 `lychd.toml` is the global Settings document under the Codex. Its only top-level sections are
-`server`, `orchestration`, `extensions`, and `weaver`. `Settings` is the sole `BaseSettings` model; nested
+`server`, `orchestration`, `extensions`, `weaver`, and optional `archive`. `Settings` is the sole `BaseSettings` model; nested
 strict `BaseModel` sections reject unknown and obsolete fields. The public Python entry is
 `lychd.config.settings`, not its internal section modules.
 
@@ -60,6 +60,24 @@ local subject, and policy revision. It is valid only with PostgreSQL and the sam
 custody profile. The whole binding is retained at Run admission; changed settings cannot rewrite
 an admitted casting. This selector grants no remote identity, namespace access, ingestion, or
 embedding capability. Intake and promotion remain separate explicit Archive operations.
+
+### Independent public Archive selection
+
+Optional `[archive]` selects `profile` independently of Bridge. Its profile retains the exact
+`local-public-notes@1` schema. Existing `weaver.bridge.archive` configuration remains valid;
+when both are supplied they must match exactly, and assembly uses one effective binding.
+Omission preserves the existing Bridge selection and disables independent derivation.
+
+Optional `archive.derivation` supplies a generation UUID and an exact Core `EmbeddingBinding`
+(capability key, profile digest, `model.embed@1`). The configured registry must admit that local
+static profile before assembly succeeds. An HTTP caller cannot provide an endpoint, model,
+manifest or fallback. Loading settings and assembling services neither registers a generation
+in PostgreSQL nor prepares a model. Explicit authorized registration retains the configured
+manifest; explicit derivation requests perform bounded synchronous work.
+
+The derivation Dispatcher shares the application's exact registry and lease ledger but has no
+Run event sink. A supplied Run UUID is caller attribution only: it neither establishes a Run
+relationship nor permits events or writes to that Run. The existing Graph dispatcher is unchanged.
 
 ## Runes: location, provenance, semantics
 

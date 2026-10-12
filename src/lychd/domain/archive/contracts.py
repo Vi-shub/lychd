@@ -195,12 +195,26 @@ class RecallProjection(ArchiveValue):
     items: Annotated[tuple[RecallItem, ...], Field(max_length=MAX_RESULTS)]
 
 
+type ArchiveAction = Literal[
+    "admit",
+    "promote",
+    "archive",
+    "revoke",
+    "recall",
+    "resolve",
+    "generation_register",
+    "generation_retire",
+    "derive",
+    "derive_status",
+]
+
+
 class ArchiveAuthorization(ArchiveValue):
     subject: ArchiveSubject
     namespace_id: UUID
     owner_subject: ArchiveSubject
     policy_revision: Label
-    action: Literal["admit", "promote", "archive", "revoke", "recall", "resolve"]
+    action: ArchiveAction
     purpose: Label
     object_id: UUID | None
     binding_digest: Digest

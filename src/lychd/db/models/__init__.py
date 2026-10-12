@@ -5,6 +5,7 @@ alembic autogenerate and ``target_metadata`` see the full schema.
 """
 
 from lychd.db.models.archive import ArchiveIntake, ArchiveNamespace, ArchiveNote, ArchiveRecall
+from lychd.db.models.archive_derivation import ArchiveEmbeddingGeneration, ArchiveNoteEmbedding
 from lychd.db.models.atlas import AtlasProjectRecord, AtlasRequestRecord
 from lychd.db.models.blockworld import BlockworldPlacementAction, BlockworldPlacementMission
 from lychd.db.models.checkpoint import RunCheckpoint
@@ -20,9 +21,11 @@ from lychd.db.models.soulstone import SoulstoneRecord
 from lychd.db.models.step import Step
 
 __all__ = [
+    "ArchiveEmbeddingGeneration",
     "ArchiveIntake",
     "ArchiveNamespace",
     "ArchiveNote",
+    "ArchiveNoteEmbedding",
     "ArchiveRecall",
     "AtlasProjectRecord",
     "AtlasRequestRecord",

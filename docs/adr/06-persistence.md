@@ -47,6 +47,20 @@ refuses while notes, replay bindings, receipts, or namespace bindings remain; it
 rollback as permission to erase Archive history. Reconstruction uses retained rows and freshly
 injected current authority, never process-local cache or a previous authorization receipt.
 
+Optional Archive derivation adds immutable generation manifests/tombstones and one latest-attempt
+row per exact source and generation. Composite namespace foreign keys prevent cross-namespace
+pairs. A running row owns a token, version and fixed DB-clock expiry; a complete row alone owns
+its vector. Source lifecycle changes and retirement clear vectors and invalidate attempts within
+the same namespace transaction. Completion includes the exact source/generation/token/version/
+deadline predicate and checks the canonical float32 digest after pgvector reload. Source inference
+and lease cleanup happen outside database transactions. Status reads do not hydrate vectors.
+
+Migration 0013 adds no extension or automatic backfill. The normal bootstrap migration-then-grant
+sequence admits runtime DML on the new tables; runtime retains no DDL or extension privileges.
+Downgrade locks namespace, source, generation and derivation tables before checking emptiness and
+refuses any retained derivation history, including failed or retired tombstones. It never drops
+pgvector or older Archive history to make rollback succeed.
+
 Core owns the schema-admission seam across native and extension models. Every admitted model
 derives from Core's `UUIDBase`; an extension explicitly calls `register_model(MyModel)` during
 initialization; Core aggregates those references before Alembic derives migration order. Runtime

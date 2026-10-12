@@ -25,7 +25,7 @@ Different inscriptions answer different questions:
 | Consent and delegated-owner records | The exact authority whose settled result may permit a parked Run to return. |
 | Ordered `step` rows | Best-effort structural evidence; the Run ledger still owns lifecycle truth. |
 | `session`, `karma`, `soulstone_record`, `codex_preauthorization` | Domain records admitted by application migrations; each row establishes only its own contract. |
-| Public-note Archive | Explicit namespace ownership, note revisions and lifecycle, intake identities and text-free recall receipts. |
+| Public-note Archive | Explicit namespace ownership, note revisions and lifecycle, intake identities and text-free recall receipts; optional generation tombstones and latest derivation attempts. |
 | SAQ `saq_*` tables | Durable broker state through a separate autocommit pool. Queue publication and Run admission remain separate transactions. |
 
 Today these records use PostgreSQL's default schema and search path. [Persistence](../../adr/06-persistence.md)
@@ -61,9 +61,11 @@ First-light persistence is **Partial**. The maintained [receipt](../../state-of-
 proves a PostgreSQL lifecycle with offline collaborators. It does not establish a
 Consent-plus-Checkpoint restart or a real host, model or browser journey. General retention, compaction, and physical
 tiering are incomplete. The bounded [public-note Archive](../../state-of-the-work.md#karma-semantic-memory)
-adds explicit intake, lifecycle and lexical recall; old Karma rows remain inert. This profile does
-not establish [Memory's](../../adr/27-memory.md) semantic embeddings, automatic curation, sharing
-or formation path.
+adds explicit intake, lifecycle and lexical recall; old Karma rows remain inert. The independently
+selected [derivation path](../../adr/27-memory.md#explicit-local-derivation) retains bounded vectors
+and their invalidation fences. Its durable status reports only the latest attempt; expired work
+requires an explicit retry. It does not supply semantic retrieval, automatic curation, sharing
+or a formation path.
 
 Follow [Ghouls](../vessel/ghouls.md) to see the workers that write these records, or
 [Reanimation](reanimation.md) to cross the death of their process.

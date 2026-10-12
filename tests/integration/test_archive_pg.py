@@ -20,6 +20,7 @@ from testcontainers.community.postgres import PostgresContainer
 
 from lychd.db.archive import DbArchiveStore
 from lychd.db.models.archive import ArchiveIntake, ArchiveNamespace, ArchiveNote, ArchiveRecall
+from lychd.db.models.archive_derivation import ArchiveEmbeddingGeneration, ArchiveNoteEmbedding
 from lychd.domain.archive import (
     ArchiveAuthorization,
     ArchiveProfile,
@@ -50,9 +51,17 @@ async def factory(pg_url: str) -> AsyncIterator[async_sessionmaker[AsyncSession]
     engine = create_async_engine(pg_url)
     tables = cast(
         "list[Table]",
-        [ArchiveNamespace.__table__, ArchiveNote.__table__, ArchiveIntake.__table__, ArchiveRecall.__table__],
+        [
+            ArchiveNamespace.__table__,
+            ArchiveNote.__table__,
+            ArchiveIntake.__table__,
+            ArchiveRecall.__table__,
+            ArchiveEmbeddingGeneration.__table__,
+            ArchiveNoteEmbedding.__table__,
+        ],
     )
     async with engine.begin() as connection:
+        await connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         await connection.run_sync(ArchiveNote.metadata.drop_all, tables=tables)
         await connection.run_sync(ArchiveNote.metadata.create_all, tables=tables)
     yield async_sessionmaker(engine, expire_on_commit=False)

@@ -7,15 +7,17 @@ from dataclasses import dataclass, field
 from functools import lru_cache
 from typing import override
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict, TomlConfigSettingsSource
 
+from lychd.config.settings.archive import ArchiveSettings
 from lychd.config.settings.extensions import ExtensionSettings
 from lychd.config.settings.orchestration import OrchestrationSettings
 from lychd.config.settings.section import SettingsSection
 from lychd.config.settings.server import ServerSettings
 from lychd.config.settings.sources import RuntimeSecretsSource
 from lychd.config.settings.weaver import WeaverSettings
+from lychd.domain.archive import ArchiveProfile
 from lychd.system.constants import PATH_LYCHD_TOML
 
 
@@ -30,6 +32,21 @@ class _SettingsValues(SettingsSection):
     """Explicitly activated optional extensions."""
     weaver: WeaverSettings = Field(default_factory=WeaverSettings)
     """Exact source-registered Bridge casting selection."""
+    archive: ArchiveSettings | None = None
+    """Independent public-note profile; omission preserves the Bridge-only configuration."""
+
+    @model_validator(mode="after")
+    def _archive_binding(self) -> _SettingsValues:
+        _ = self.archive_profile
+        return self
+
+    @property
+    def archive_profile(self) -> ArchiveProfile | None:
+        legacy = self.weaver.bridge.archive if self.weaver.bridge is not None else None
+        if self.archive is not None and legacy is not None and self.archive.profile != legacy:
+            msg = "archive.profile and weaver.bridge.archive must match exactly."
+            raise ValueError(msg)
+        return self.archive.profile if self.archive is not None else legacy
 
 
 class Settings(_SettingsValues, BaseSettings):

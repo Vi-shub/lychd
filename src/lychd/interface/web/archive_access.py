@@ -18,6 +18,7 @@ class LocalArchivePolicy:
 
     profile: ArchiveProfile
     caller: Sigil
+    derivations: bool = False
 
     def subject_for(self, caller: Sigil) -> ArchiveSubject:
         """Refuse persisted callers outside the exact composed bootstrap binding."""
@@ -37,4 +38,13 @@ class LocalArchivePolicy:
             return False
         if request.action in {"admit", "promote", "archive", "revoke"}:
             return request.purpose == "archive:manage"
+        if self.derivations:
+            purposes = {
+                "generation_register": "archive:derive:manage",
+                "generation_retire": "archive:derive:manage",
+                "derive": "archive:derive",
+                "derive_status": "archive:derive:status",
+            }
+            if request.action in purposes:
+                return request.purpose == purposes[request.action]
         return request.action in {"recall", "resolve"} and request.purpose == "archive:answer"

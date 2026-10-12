@@ -31,7 +31,7 @@ from pydantic_ai.messages import ModelMessage, ModelMessagesTypeAdapter, ModelRe
 from pydantic_ai.models import Model
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_graph import GraphRunContext
-from sqlalchemy import Table, select
+from sqlalchemy import Table, select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from testcontainers.community.postgres import PostgresContainer
 
@@ -53,6 +53,7 @@ from lychd.db.archive import DbArchiveStore
 from lychd.db.checkpoints import PostgresStasisStore
 from lychd.db.models import CodexPreauthorization, Consent, Run, RunCheckpoint, RunDelivery, Session, Step
 from lychd.db.models.archive import ArchiveIntake, ArchiveNamespace, ArchiveNote, ArchiveRecall
+from lychd.db.models.archive_derivation import ArchiveEmbeddingGeneration, ArchiveNoteEmbedding
 from lychd.db.sessions import DbBridgeSessionStore
 from lychd.domain.archive import ArchiveProfile, ArchiveRefused, ArchiveService, ArchiveSubject, text_digest
 from lychd.domain.codex.ledger import CodexConsentLedger
@@ -163,9 +164,12 @@ async def pg_factory(pg_url: str) -> AsyncIterator[async_sessionmaker[AsyncSessi
             ArchiveNote.__table__,
             ArchiveIntake.__table__,
             ArchiveRecall.__table__,
+            ArchiveEmbeddingGeneration.__table__,
+            ArchiveNoteEmbedding.__table__,
         ],
     )
     async with engine.begin() as connection:
+        await connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         await connection.run_sync(Run.metadata.drop_all, tables=tables)
         await connection.run_sync(Run.metadata.create_all, tables=tables)
     try:

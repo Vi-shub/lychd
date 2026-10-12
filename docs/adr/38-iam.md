@@ -156,6 +156,18 @@ resolution, a Ward session, cross-namespace sharing, or isolation from trusted s
 An unconfigured profile has no Archive authority. The separate read-only Bridge revision can
 consume authorized notes but grants no model tool or effect authority.
 
+Optional local derivation requires separate generation-registration, generation-retirement,
+derive and status actions with dedicated purposes. Recall or ingestion permission alone does not
+authorize embedding. Authority binds the configured generation and exact source/attempt identity;
+post-commit response refusal does not claim rollback. Status contains no text, vector coordinates
+or live token and can report an invalidated historical reference under current authority.
+
+Source eligibility linearizes under the shared namespace lock. Current authority is checked again
+after database cleanup and before each tokenizer/embedding request. No lock spans inference, so
+later revocation cannot retract accepted source bytes; it does atomically invalidate controlled
+vectors and fence late completion. A caller-supplied Run UUID is attribution, never a Run grant,
+relationship assertion or authority to emit events into that Run.
+
 ## Thresholds and delivery
 
 [Veil](40-proxy.md) owns hostile ingress and trusted-proxy canonicalization; [Tether](39-vpn.md)

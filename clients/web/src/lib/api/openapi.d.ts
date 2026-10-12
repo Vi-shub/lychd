@@ -21,6 +21,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/archive/derivations/derive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Derive */
+        post: operations["deriveArchiveNote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/archive/derivations/generations/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Register */
+        post: operations["registerArchiveGeneration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/archive/derivations/generations/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retire */
+        post: operations["retireArchiveGeneration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/archive/derivations/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Inspect */
+        post: operations["inspectArchiveDerivation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/archive/notes": {
         parameters: {
             query?: never;
@@ -866,6 +934,34 @@ export interface components {
             runtime_id: string;
             transport: string;
         };
+        /** DerivationRequest */
+        DerivationRequest: {
+            generation: components["schemas"]["GenerationRef"];
+            run_id?: string | null;
+            source: components["schemas"]["RecordRef"];
+        };
+        /** DerivationStatus */
+        DerivationStatus: {
+            attempt_version: number;
+            completed_at: string | null;
+            /** Format: uuid */
+            derivation_id: string;
+            expires_at: string | null;
+            failure_code: string | null;
+            generation: components["schemas"]["GenerationRef"];
+            invalidated_reason: string | null;
+            /** Format: uuid */
+            namespace_id: string;
+            /** Format: date-time */
+            observed_at: string;
+            receipt_digest: string | null;
+            row_version: number;
+            source: components["schemas"]["RecordRef"];
+            source_digest: string;
+            /** @enum {string} */
+            state: "prepared" | "running" | "expired" | "complete" | "failed" | "invalidated";
+            vector_digest: string | null;
+        };
         /** EvidenceGap */
         EvidenceGap: {
             /**
@@ -903,6 +999,29 @@ export interface components {
                 [key: string]: unknown;
             } | unknown[] | null;
             status_code: number;
+        };
+        /** GenerationRef */
+        GenerationRef: {
+            /** Format: uuid */
+            generation_id: string;
+            manifest_digest: string;
+        };
+        /** GenerationRetireIntent */
+        GenerationRetireIntent: {
+            expected_version: number;
+            reference: components["schemas"]["GenerationRef"];
+        };
+        /** GenerationStatus */
+        GenerationStatus: {
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            namespace_id: string;
+            reference: components["schemas"]["GenerationRef"];
+            retired_at: string | null;
+            /** @enum {string} */
+            state: "active" | "retired";
+            version: number;
         };
         /**
          * Lifecycle
@@ -1394,6 +1513,162 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AltarStatus"];
+                };
+            };
+        };
+    };
+    deriveArchiveNote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DerivationRequest"];
+            };
+        };
+        responses: {
+            /** @description Document created, URL follows */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DerivationStatus"];
+                };
+            };
+            /** @description Bad request syntax or unsupported method */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                        extra?: null | {
+                            [key: string]: unknown;
+                        } | unknown[];
+                        status_code: number;
+                    };
+                };
+            };
+        };
+    };
+    registerArchiveGeneration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerationRef"];
+            };
+        };
+        responses: {
+            /** @description Document created, URL follows */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerationStatus"];
+                };
+            };
+            /** @description Bad request syntax or unsupported method */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                        extra?: null | {
+                            [key: string]: unknown;
+                        } | unknown[];
+                        status_code: number;
+                    };
+                };
+            };
+        };
+    };
+    retireArchiveGeneration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerationRetireIntent"];
+            };
+        };
+        responses: {
+            /** @description Document created, URL follows */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerationStatus"];
+                };
+            };
+            /** @description Bad request syntax or unsupported method */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                        extra?: null | {
+                            [key: string]: unknown;
+                        } | unknown[];
+                        status_code: number;
+                    };
+                };
+            };
+        };
+    };
+    inspectArchiveDerivation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DerivationRequest"];
+            };
+        };
+        responses: {
+            /** @description Document created, URL follows */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DerivationStatus"];
+                };
+            };
+            /** @description Bad request syntax or unsupported method */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                        extra?: null | {
+                            [key: string]: unknown;
+                        } | unknown[];
+                        status_code: number;
+                    };
                 };
             };
         };

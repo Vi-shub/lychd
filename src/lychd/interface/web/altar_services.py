@@ -51,6 +51,7 @@ if TYPE_CHECKING:
     from lychd.domain.animation.extension import RegisteredPortalDefinition, RegisteredSoulstoneDefinition
     from lychd.domain.animation.services.adapters.contracts import PortalDefinition, SoulstoneRuntimeAdapter
     from lychd.domain.archive import ArchiveProfile, ArchiveService, ArchiveSubject
+    from lychd.domain.archive.derivation_service import ArchiveDerivationService
     from lychd.domain.codex.ledger import ConsentLedger
     from lychd.domain.codex.sigil import Sigil
     from lychd.domain.cortex.engine import RunQueue
@@ -87,6 +88,7 @@ class AltarServices:
     bus: InProcessEventBus
     substrate: RunSubstrate
     archive: ArchiveService | None = None
+    archive_derivation: ArchiveDerivationService | None = None
     delegates: DelegatedAgentCoordinator | None
     delegated_runtime_catalog: tuple[RegisteredDelegatedRuntime, ...]
 
@@ -253,9 +255,7 @@ def build_altar_services(
         raise ValueError(msg)
     if profile is None:
         profile = settings.server.database.profile
-    archive, archive_subject_resolver = _build_archive(
-        profile, bridge_casting.archive if bridge_casting is not None else None
-    )
+    archive, archive_subject_resolver = _build_archive(profile, settings.archive_profile)
     queues = protect_run_queues(queues)
     routing = {
         source: RouteRule(queue=rule.queue, priority=rule.priority)
@@ -277,6 +277,9 @@ def build_altar_services(
     ledger = _build_run_ledger(profile, settings)
     bus = InProcessEventBus(ledger=ledger)
     dispatcher = Dispatcher(registry=registry, leases=leases, events=bus)
+    from lychd.interface.web.archive_derivation_factory import build_archive_derivation
+
+    archive_derivation = build_archive_derivation(settings, registry, leases, default_sigil())
     switching = settings.orchestration.switching
     if soft_activation_guard is None:
         from lychd.system.constants import PATH_RUNTIME_GUARD_DIR
@@ -358,6 +361,7 @@ def build_altar_services(
         bridge_archive=bridge_casting.archive if bridge_casting is not None else None,
     )
     return AltarServices(
+        archive_derivation=archive_derivation,
         registry=registry,
         dispatcher=dispatcher,
         orchestrator=orchestrator,

@@ -1426,18 +1426,33 @@ and replays no settled history. PostgreSQL tests cover real HTTP controllers, Ru
 worker execution, typed checkpoint reconstruction, stale-source refusal, migration lineage and
 the actual restricted runtime database role. Earlier Bridge manifests remain retained unchanged.
 
+An independent optional Archive configuration now registers one exact local embedding generation
+and derives promoted notes into 1024-dimensional pgvector values. Each explicit attempt retains
+its source, profile and generation identity, with a database deadline and conditional completion.
+Archive, revocation, supersession and generation retirement clear affected vectors and prevent
+late results from restoring them. Status exposes metadata only; expired work requires an explicit
+retry. PostgreSQL tests cover concurrency, expiry, lifecycle races, float32 round trips, migration
+rollback and restricted runtime permissions. The configured HTTP test uses the real Core driver
+with substituted model responses and shares the application's lease ledger without emitting Run
+events for caller-supplied Run identifiers.
+
 **Boundary — Not yet:** This is lexical RAG for explicit same-host public notes, without semantic
-embeddings, general `CandidateArchivePort`, automatic conversation retention, extraction, Curator,
+retrieval, general `CandidateArchivePort`, automatic conversation retention, extraction, Curator,
 GraphRAG, shared namespaces, remote IAM, private-material egress or training. There is no Archive
 browser editor. Ordinary revision 3 execution uses live Graph persistence; separately proved typed
 checkpoint reconstruction does not establish automatic recovery after worker death. The model and
 resource seams in the vertical receipt are controlled fixtures, not a live GPU/model qualification.
+The derivation path has no background worker, automatic model activation, chunking or ANN index;
+oversize notes refuse. The separate live Core embedding proof does not qualify the combined
+Archive/database/model path.
 Generated answers can quote sources; later revocation does not erase earlier output or influence.
 
 **Evidence**
 
 - **Source:** [Archive contracts and service](https://github.com/hexanomicon/lychd/tree/main/src/lychd/domain/archive), [PostgreSQL adapter](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/archive.py), [migration](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/migrations/versions/0012_archive_public_notes.py), [Archive API](https://github.com/hexanomicon/lychd/blob/main/src/lychd/interface/web/archive.py), [transient projection](https://github.com/hexanomicon/lychd/blob/main/src/lychd/agents/archive_context.py), and [public-note workflow](https://github.com/hexanomicon/lychd/blob/main/src/lychd/agents/workflows/archive_chat.py)
+- **Source:** [Derivation service](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/archive/derivation_service.py), [derivation store](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/archive_derivation.py), [migration 0013](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/migrations/versions/0013_archive_derivations.py), and [configured derivation API](https://github.com/hexanomicon/lychd/blob/main/src/lychd/interface/web/archive_derivation.py)
 - **Verification:** [Domain tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/test_archive.py), [PostgreSQL lifecycle](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_pg.py), [migrations](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_migrations_pg.py), [runtime role](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_runtime_pg.py), [worker and typed continuation](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_vertical_pg.py), and [projection tests](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_archive_context.py)
+- **Verification:** [Derivation races](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_derivation_pg.py), [configured HTTP and lease integration](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_derivation_http_pg.py), [migration rollback](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_derivation_migrations_pg.py), and [derivation runtime role](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_derivation_runtime_pg.py)
 - **Topic:** [Public-note answers](./divination/altar/bridge.md#public-note-answers)
 - **Law:** [Memory](./adr/27-memory.md)
 
