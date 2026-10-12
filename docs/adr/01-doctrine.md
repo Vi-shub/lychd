@@ -174,9 +174,9 @@ enters `src/lychd/compositions/<identity>/**`; a Portfolio page alone remains de
 A delivery client keeps its complete project root under `clients/<target>/**`. It may own presentation,
 platform integration, connection mechanics, and bounded local interaction state, but its separate
 toolchain does not grant it Composition records, policy, effect authority, or finish judgment. The
-web project lives at `clients/web/**`; `clients/android/**` is the reserved Android project root.
+web project lives at `clients/web/**`; the Android project lives at `clients/android/**`.
 Each project keeps the source layout native to its toolchain. The current web source lives at
-`clients/web/src/**`; when Android implementation begins, its application module will use
+`clients/web/src/**`; the Android application module uses
 `clients/android/app/src/main/**`. Repeated inner `src` names express separate build ownership
 rather than one mixed repository source tree.
 

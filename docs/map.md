@@ -57,7 +57,8 @@ flowchart TD
 [Dispatcher](./adr/22-dispatcher.md) chooses an eligible capability; [Orchestrator](./adr/23-orchestrator.md)
 makes managed local substrate ready. A warm capability can be granted directly. The waiting Run
 holds no capability lease while Orchestrator converges readiness. Current grants serve the
-narrow v1 chat and non-empty toolset path; general call, job, and session grants remain designed.
+narrow v1 chat and non-empty toolset path, plus the exact local embedding profile through its
+dedicated counted lease. General call, job, and session grants remain designed.
 
 An [Animator](./sepulcher/animator/index.md) presents a local Soulstone or a remote Portal through
 an exact Connector. Remote work additionally follows its own

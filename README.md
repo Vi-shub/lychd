@@ -98,7 +98,7 @@ The Daemon utilizes the finest instruments of this age to fulfill its **[Prophec
 
 ### 👁️ Sight
 
-- **[OpenTelemetry](https://opentelemetry.io/)** traces the apparition.
+- **[OpenTelemetry](https://opentelemetry.io/)** is planned for tracing the apparition; [Observability](docs/adr/29-observability.md) defines the current evidence boundary.
 - **[Structlog](https://www.structlog.org/)** records its internal monologue.
 
 ### 🛠️ Forge
