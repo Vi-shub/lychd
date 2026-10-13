@@ -41,8 +41,18 @@ _PATTERN_SNAPSHOT_FIELDS = (
 )
 
 
+def _snapshot_string_fields(candidate: object, fields: tuple[str, ...]) -> dict[str, str]:
+    """Read required semantic strings before any hashing or set construction."""
+    if isinstance(candidate, dict):
+        record = cast("dict[str, object]", candidate)
+        if all(isinstance(record.get(field), str) for field in fields):
+            return {field: cast("str", record[field]) for field in fields}
+    msg = "Pattern snapshot records require string semantic fields."
+    raise ValueError(msg)
+
+
 def pattern_snapshot_is_valid(snapshot: dict[str, Any]) -> bool:
-    """Validate a persisted declarative score fingerprint and its checksum."""
+    """Validate persisted v2 score shape and checksum without resolving executable code."""
     digest = snapshot.get("digest")
     if (
         not isinstance(digest, str)
@@ -66,13 +76,27 @@ def pattern_snapshot_is_valid(snapshot: dict[str, Any]) -> bool:
     edges = snapshot.get("edges")
     if not isinstance(nodes, list) or not isinstance(edges, list):
         return False
-    entry_nodes: list[dict[str, object]] = []
-    for candidate in cast("list[object]", nodes):
-        if isinstance(candidate, dict):
-            node = cast("dict[str, object]", candidate)
-            if node.get("key") == entry_node:
-                entry_nodes.append(node)
-    if len(entry_nodes) != 1 or entry_nodes[0].get("kind") == "terminal":
+    stations: list[tuple[str, str]] = []
+    permissions: list[PatternEdge] = []
+    try:
+        for candidate in cast("list[object]", nodes):
+            node_fields = _snapshot_string_fields(candidate, ("key", "label", "kind"))
+            _validate_pattern_node_fields(node_fields["key"], node_fields["label"], node_fields["kind"])
+            stations.append((node_fields["key"], node_fields["kind"]))
+        for candidate in cast("list[object]", edges):
+            edge_fields = _snapshot_string_fields(candidate, ("key", "source", "target", "relation"))
+            permissions.append(
+                PatternEdge(
+                    key=edge_fields["key"],
+                    source=edge_fields["source"],
+                    target=edge_fields["target"],
+                    relation=cast("Literal['permits']", edge_fields["relation"]),
+                )
+            )
+        _validate_pattern_score(
+            cast("str", key), cast("str", revision), cast("str", entry_node), tuple(stations), tuple(permissions)
+        )
+    except ValueError:
         return False
     unsigned = {field: snapshot[field] for field in _PATTERN_SNAPSHOT_FIELDS}
     encoded = json.dumps(unsigned, sort_keys=True, separators=(",", ":")).encode()
@@ -95,6 +119,16 @@ class DelegatedAgentNode:
 type PatternNodeKind = Literal["step", "gate", "delegate", "terminal"]
 
 
+def _validate_pattern_node_fields(key: str, label: str, kind: str) -> None:
+    """Check declarative station meaning independently of executable bindings."""
+    if kind not in {"step", "gate", "delegate", "terminal"}:
+        msg = f"Unknown Pattern node kind: {kind!r}."
+        raise ValueError(msg)
+    if not key or not label:
+        msg = "Pattern nodes require non-empty keys and labels."
+        raise ValueError(msg)
+
+
 @dataclass(frozen=True, kw_only=True)
 class PatternNode:
     """One stable semantic station in an immutable Weaver Pattern revision."""
@@ -106,12 +140,7 @@ class PatternNode:
 
     def __post_init__(self) -> None:
         """Require a known station kind, stable identity, and its declared implementation."""
-        if self.kind not in {"step", "gate", "delegate", "terminal"}:
-            msg = f"Unknown Pattern node kind: {self.kind!r}."
-            raise ValueError(msg)
-        if not self.key or not self.label:
-            msg = "Pattern nodes require non-empty keys and labels."
-            raise ValueError(msg)
+        _validate_pattern_node_fields(self.key, self.label, self.kind)
         if self.kind == "terminal" and self.implementation is not None:
             msg = f"Terminal Pattern node '{self.key}' must remain declarative."
             raise ValueError(msg)
@@ -167,6 +196,36 @@ class PatternEdge:
         }
 
 
+def _validate_pattern_score(
+    key: str,
+    revision: str,
+    entry_node: str,
+    stations: tuple[tuple[str, str], ...],
+    edges: tuple[PatternEdge, ...],
+) -> None:
+    """Require unique semantic stations and permissions with closed references."""
+    node_keys = [node_key for node_key, _kind in stations]
+    if len(node_keys) != len(set(node_keys)):
+        msg = f"Pattern '{key}@{revision}' has duplicate node keys."
+        raise ValueError(msg)
+    entry_nodes = [kind for node_key, kind in stations if node_key == entry_node]
+    if len(entry_nodes) != 1 or entry_nodes[0] == "terminal":
+        msg = f"Pattern '{key}@{revision}' entry node must name one executable station."
+        raise ValueError(msg)
+    edge_keys = [edge.key for edge in edges]
+    if len(edge_keys) != len(set(edge_keys)):
+        msg = f"Pattern '{key}@{revision}' has duplicate edge keys."
+        raise ValueError(msg)
+    edge_pairs = [(edge.source, edge.target) for edge in edges]
+    if len(edge_pairs) != len(set(edge_pairs)):
+        msg = f"Pattern '{key}@{revision}' has duplicate semantic edges."
+        raise ValueError(msg)
+    unknown = {endpoint for edge in edges for endpoint in (edge.source, edge.target) if endpoint not in node_keys}
+    if unknown:
+        msg = f"Pattern '{key}@{revision}' edges reference unknown nodes: {sorted(unknown)}"
+        raise ValueError(msg)
+
+
 @dataclass(frozen=True, kw_only=True)
 class PatternManifest:
     """Immutable Weaver-owned identity and score pinned to every admitted Run.
@@ -199,28 +258,13 @@ class PatternManifest:
         if any(not value or not _ROUTE_IDENTIFIER.fullmatch(value) for value in identifiers):
             msg = "Pattern identity fields and entry node must be URL-safe identifiers."
             raise ValueError(msg)
-        node_keys = [node.key for node in self.nodes]
-        if len(node_keys) != len(set(node_keys)):
-            msg = f"Pattern '{self.key}@{self.revision}' has duplicate node keys."
-            raise ValueError(msg)
-        entry_nodes = [node for node in self.nodes if node.key == self.entry_node]
-        if len(entry_nodes) != 1 or entry_nodes[0].kind == "terminal":
-            msg = f"Pattern '{self.key}@{self.revision}' entry node must name one executable station."
-            raise ValueError(msg)
-        edge_keys = [edge.key for edge in self.edges]
-        if len(edge_keys) != len(set(edge_keys)):
-            msg = f"Pattern '{self.key}@{self.revision}' has duplicate edge keys."
-            raise ValueError(msg)
-        edge_pairs = [(edge.source, edge.target) for edge in self.edges]
-        if len(edge_pairs) != len(set(edge_pairs)):
-            msg = f"Pattern '{self.key}@{self.revision}' has duplicate semantic edges."
-            raise ValueError(msg)
-        unknown = {
-            endpoint for edge in self.edges for endpoint in (edge.source, edge.target) if endpoint not in node_keys
-        }
-        if unknown:
-            msg = f"Pattern '{self.key}@{self.revision}' edges reference unknown nodes: {sorted(unknown)}"
-            raise ValueError(msg)
+        _validate_pattern_score(
+            self.key,
+            self.revision,
+            self.entry_node,
+            tuple((node.key, node.kind) for node in self.nodes),
+            self.edges,
+        )
 
     @property
     def digest(self) -> str:

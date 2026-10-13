@@ -151,6 +151,18 @@ def test_command_and_admission_nested_values_are_immutable() -> None:
     assert canonical_bytes(command) == canonical_bytes(prepare_command(fixture, identity(11)))
 
 
+@pytest.mark.parametrize("node", [7, {"key": "bad", "label": "Bad", "kind": "unknown_kind"}])
+def test_admission_rejects_rehashed_malformed_pattern_before_freezing(node: object) -> None:
+    document = admitted_document()
+    snapshot = document["pattern_snapshot"]
+    snapshot["nodes"].append(node)
+    unsigned = {key: value for key, value in snapshot.items() if key != "digest"}
+    snapshot["digest"] = sha256(json.dumps(unsigned, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+    with pytest.raises(ValidationError, match="Invalid immutable Pattern snapshot"):
+        AdmittedPlacementV1.model_validate(document)
+
+
 def test_actual_type_adapter_checks_before_coercion_and_serialization() -> None:
     document = {
         "schema_version": 1,

@@ -21,6 +21,13 @@ opaque reviewed implementation revision; checkpoint-schema identifier; declared 
 label, and kind; permitted edges with declared endpoints; and a deterministic SHA-256 digest. The workflow lookup name is persisted
 separately, although the current `Workflow` binding requires it to equal the manifest key.
 
+Retained v2 snapshots must pass the shared declarative checks as well as their checksum: typed
+station and edge fields, known kinds and permission relations, unique keys and semantic edges,
+one executable entry, and declared endpoints. A recomputed digest cannot make malformed score
+data valid. Blockworld admission refuses it before freezing, and Orb withholds Pattern exactness.
+Those checks do not resolve executable implementations; execution still requires exact registry
+equality. Additional top-level metadata remains outside the v2 checksum and prevents that equality.
+
 Executable stations bind one-to-one to Python Graph node types, and the declared entry must bind the
 actual Graph start node. The manifest is authored beside
 that Python and fingerprints the declared score; it is not a canonical intermediate

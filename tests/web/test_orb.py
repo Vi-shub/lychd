@@ -6,7 +6,9 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from contextlib import ExitStack
+from hashlib import sha256
 from typing import TYPE_CHECKING
 
 import pytest
@@ -164,6 +166,37 @@ def test_selected_run_requires_full_pattern_equality_for_loom_link(
     body = altar_client.get("/api/v1/orb/runs/run-full-pattern-mismatch").json()
 
     assert body["pattern"]["exact"] is True
+    assert body["pattern"]["loom_path"] is None
+    assert body["workflow"] is None
+
+
+@pytest.mark.parametrize("node", [7, {"key": "bad", "label": "Bad", "kind": "unknown_kind"}])
+def test_selected_run_refuses_rehashed_malformed_pattern_exactness(
+    altar_client: TestClient[Litestar],
+    fake_services: SimpleNamespace,
+    node: object,
+) -> None:
+    manifest = BRIDGE_CHAT.manifest.snapshot()
+    manifest["nodes"].append(node)
+    unsigned = {key: value for key, value in manifest.items() if key != "digest"}
+    manifest["digest"] = sha256(json.dumps(unsigned, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+    async def seed() -> None:
+        await fake_services.ledger.create(
+            Intent(session_id="session-1", run_id="run-malformed-pattern", prompt="raise", source="bridge"),
+            workflow_name=BRIDGE_CHAT.name,
+            pattern_manifest=manifest,
+            queue_name="runs",
+            priority=70,
+        )
+
+    asyncio.run(seed())
+    response = altar_client.get("/api/v1/orb/runs/run-malformed-pattern")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["pattern"]["exact"] is False
+    assert body["pattern"]["digest"] is None
     assert body["pattern"]["loom_path"] is None
     assert body["workflow"] is None
 

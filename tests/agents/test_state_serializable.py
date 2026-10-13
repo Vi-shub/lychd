@@ -10,7 +10,9 @@ tier-selection unit: a Gate-bearing workflow → Durable, a linear one → Live.
 # pyright: reportPrivateUsage=false
 from __future__ import annotations
 
+import json
 from dataclasses import replace
+from hashlib import sha256
 from types import SimpleNamespace
 from typing import Any
 from uuid import uuid4
@@ -108,6 +110,54 @@ def test_pattern_rejects_unknown_station_kind() -> None:
 def test_pattern_rejects_non_permission_edge() -> None:
     with pytest.raises(ValueError, match="must declare relation='permits'"):
         replace(BRIDGE_CHAT.manifest.edges[0], relation="forbids")
+
+
+@pytest.mark.parametrize(
+    ("collection", "replacement"),
+    [
+        ("nodes", 7),
+        ("nodes", {"kind": "unknown_kind"}),
+        ("nodes", {"kind": []}),
+        ("nodes", {"key": ""}),
+        ("nodes", {"key": []}),
+        ("nodes", {"label": ""}),
+        ("nodes", {"label": 7}),
+        ("edges", 7),
+        ("edges", {"key": []}),
+        ("edges", {"source": []}),
+        ("edges", {"target": "unknown"}),
+        ("edges", {"relation": "forbids"}),
+    ],
+)
+def test_pattern_snapshot_rejects_rehashed_malformed_score(collection: str, replacement: Any) -> None:
+    snapshot = BRIDGE_CHAT.manifest.snapshot()
+    snapshot[collection][-1] = (
+        {**snapshot[collection][-1], **replacement} if isinstance(replacement, dict) else replacement
+    )
+    unsigned = {key: value for key, value in snapshot.items() if key != "digest"}
+    snapshot["digest"] = sha256(json.dumps(unsigned, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+    assert not pattern_snapshot_is_valid(snapshot)
+
+
+@pytest.mark.parametrize("duplicate", ["node", "edge_key", "semantic_edge"])
+def test_pattern_snapshot_rejects_rehashed_duplicate_score(duplicate: str) -> None:
+    snapshot = BRIDGE_CHAT.manifest.snapshot()
+    if duplicate == "node":
+        snapshot["nodes"].append(dict(snapshot["nodes"][-1]))
+    else:
+        edge = dict(snapshot["edges"][0])
+        edge.update({"target": edge["source"]} if duplicate == "edge_key" else {"key": "different-edge"})
+        snapshot["edges"].append(edge)
+    unsigned = {key: value for key, value in snapshot.items() if key != "digest"}
+    snapshot["digest"] = sha256(json.dumps(unsigned, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+    assert not pattern_snapshot_is_valid(snapshot)
+
+
+def test_all_registered_pattern_snapshots_remain_valid() -> None:
+    for workflow in builtin_workflow_registry().all():
+        assert pattern_snapshot_is_valid(workflow.manifest.snapshot())
 
 
 @pytest.mark.asyncio

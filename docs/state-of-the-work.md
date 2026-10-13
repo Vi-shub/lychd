@@ -319,6 +319,9 @@ Registry assembly also freezes a private `legacy_inline` contract, placement and
 binding for each executable station. Exact lookup compares the current local binding with its
 boot-derived `internal-v0` lock; a mismatch refuses execution and active routing cannot fall back
 to the default. Terminal stations remain declarative. Public v2 snapshots and digests are unchanged.
+The retained-snapshot validator shares declarative station and score checks with construction;
+rehashed malformed nodes, edges, duplicates and undeclared endpoints refuse before Blockworld
+freezing or Orb exactness. This does not replace exact registered execution lookup.
 
 Failed claim acknowledgements retain an immutable attempt outcome. Recovery waits for the original
 mutator to finish and keeps the same per-Run guard from the unclaimed prestate through exceptional
@@ -344,6 +347,7 @@ transports, callbacks or DNS work.
 - **Source:** [Run engine](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/cortex/engine.py), [worker and recovery](https://github.com/hexanomicon/lychd/blob/main/src/lychd/ghouls/runs.py), [claim coordination](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/cortex/claims.py), [claim ledger](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/cortex/ledger.py), [native claim observer](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/claim_observer.py), [event bus](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/cortex/events.py), [workflow resolution](https://github.com/hexanomicon/lychd/blob/main/src/lychd/agents/workflows/__init__.py), and [startup relay](https://github.com/hexanomicon/lychd/blob/main/src/lychd/interface/web/lifespan.py)
 - **Verification:** [Run engine tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_engine.py), [worker ownership tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_perform_run.py), [claim ledger tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_ledger.py), [native observer control-flow tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/db/test_claim_observer.py), [consent park tests](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_consent_resume.py), [consent reconciliation tests](https://github.com/hexanomicon/lychd/blob/main/tests/cortex/test_reconcile.py), [event-bus tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_events.py), [workflow identity tests](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_state_serializable.py), and [lifespan tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/web/test_lifespan.py)
 - **Verification:** [Private v2 bindings](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_legacy_inline.py) and [exact lookup and routing](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_router.py)
+- **Verification:** [Retained-score validation](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_state_serializable.py), [Blockworld admission](https://github.com/hexanomicon/lychd/blob/main/tests/unit/compositions/blockworld/test_placement.py), and [Orb exactness](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_orb.py)
 - **Law:** [Workers](./adr/14-workers.md) and [Workflow](./adr/28-workflow.md)
 
 ### Configured Bridge casting {#configured-bridge-casting}
