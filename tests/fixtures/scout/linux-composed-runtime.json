@@ -1,0 +1,133 @@
+{
+  "schema": "scout-composed-local-proof@1",
+  "status": "passed",
+  "kernel": "7.1.8-1-default",
+  "python": "3.15.0",
+  "openssl": "OpenSSL 3.5.9 29 Sep 2026",
+  "dependency_versions": {
+    "asyncpg": "0.32.0",
+    "sqlalchemy": "2.0.54",
+    "docker": "7.2.0",
+    "h11": "0.16.0",
+    "dnspython": "2.8.0",
+    "pydantic": "2.14.0",
+    "pydantic-ai-slim": "2.55.0",
+    "pydantic-graph": "2.55.0"
+  },
+  "network": "isolated-loopback-only",
+  "admission": "credential-consent-store-issued-claim",
+  "execution": "explicit-service-and-node-choreography",
+  "model": "deterministic-FunctionModel",
+  "unexercised": [
+    "HTTP-routes",
+    "SAQ-worker-process",
+    "Graph-checkpoint-resume",
+    "model-inference",
+    "public-Internet"
+  ],
+  "source_fingerprints": {
+    "src/lychd/domain/codex/local_access.py": "4617db35469740582fb947ff96a98d6c5b7c90a85af027c4b8f115c715d68de3",
+    "src/lychd/domain/codex/ledger.py": "9deb0e385b96a7b6ab9f6a844564c1ae1edd2feced68794de361b08868d00d17",
+    "src/lychd/domain/cortex/cancellation.py": "e98663a9cd73aa256842429b039c9ca554905255bd24b786ba70db56b910b2e6",
+    "src/lychd/domain/cortex/engine.py": "2276bced167e86019f0c366111030a0c42206981999aa76fe4a274a238091fc7",
+    "src/lychd/domain/cortex/ledger.py": "d25b769d89f7098a1c902ae45f3ce5664309ad49ca1acc9f187809e9e9930597",
+    "src/lychd/domain/scout/attempts.py": "b446ad02a0ffed58648a92bfa3bbfa3c8cb9033a5e38786e9529e8a99e819a99",
+    "src/lychd/domain/scout/authority.py": "8c804d9f78c26dd7460738d09ce8e1b083497c8a88767204de5ed0513e70f3c7",
+    "src/lychd/domain/scout/destination.py": "5cd67b1be68397673b86982afe5b36f2d3fbf26ef8c64da4397dc15d0edf683f",
+    "src/lychd/domain/scout/transport.py": "301869408a134330354419508d789de5a561d3d31f08564876a66714d4b3517e",
+    "src/lychd/domain/scout/extraction.py": "403cc56c1f8890a99ae2d744b558e9eb45042cf8403ad9f7102fa75aeeb93da8",
+    "src/lychd/domain/scout/profile.py": "92fee092e4b741941b92c04ae0dca5977528fbd0db24031d44b19a8c1bd3a03a",
+    "src/lychd/domain/scout/review.py": "18b70408758ad408d3a251206050ced422979308cd25f9d6c35bbc82ad4764d7",
+    "src/lychd/db/scout.py": "83403dfb258c46f417ae370136e9359e4c0b712170f7dc117f61b1fb81f740d3",
+    "src/lychd/db/models/scout.py": "ba8eb631f8b2ee5ab72770271d4505f2ea3637723d6e191e2e0869251f1fc3cb",
+    "src/lychd/db/sessions.py": "8938fb9a3d00dc2fa1a63faaa08cfe5a1d4e420ce2cc9543eb3cb6d99679c8f9",
+    "src/lychd/interface/web/scout_admission.py": "d62c34baa5503126ad9365f87ff55e0dccfd77bd5aae340343837ac22e232fd2",
+    "src/lychd/interface/web/scout_review.py": "9333e6efcc1b5fa9dad0c5e383d145afbbd5b163b6f278324abc573e876a087d",
+    "src/lychd/agents/workflows/scout_chat.py": "2d4c6a8993b571128152682b32e142e17193b22550ba40a5473a3cc02ac9d939",
+    "src/lychd/agents/scout_context.py": "28ac0738e34463565957959180539a5734e659065dc615974db36ba68730733f",
+    "src/lychd/system/scout_worker.py": "b1cd9ba101653e276ff66847419f07b24589dcc5b76d92df867fc115475d2f66",
+    "src/lychd/system/services/scout_workflow.py": "e0d66589855a0daa258e653474b82e706e43ef42a147f67b88d57ff8695a6aee",
+    "src/lychd/system/services/scout_dns.py": "9bb3842fd92f35c99331aa14bb46f1250be700de599679454c061e9fba40acc9",
+    "src/lychd/system/services/scout_socket.py": "aa1e0cfefc62fb58368251ce479d3f1219f9ff3d5c976e72fe070689f2d88672",
+    "src/lychd/system/services/scout_http.py": "91ef0647841b5c9f35c7aa02e85ec3a2c06c5c86a9563e0e1f6a6f89f65dcefe",
+    "src/lychd/system/services/scout_fetch.py": "7b4102ecf198a796a88e8cedba74025f54937015385c11f34ba5a10ee336c14e",
+    "src/lychd/system/services/scout_extraction.py": "803dbcec9c5031ed2c05eb258146a8df0f0c5cb572a9306c31032f3d4079732a",
+    "tests/agents/fakes.py": "c73e07fa778217f69ce1e31bf0cad1210f8544fe1f020573e155c2f25e70af9d",
+    "tests/agents/conftest.py": "fed84a8f94cb0f3e5166fc0e54b611e1086e17c08c9c879cb31b179cc6656adb",
+    "tests/scout_fixtures.py": "5576575bbf46c91f4ecbab340ead8eba26ea1a5ff671c247f49b636e4f8345c9",
+    "tests/scout_network_fixture.py": "07ef869bfc257e10b4a09b4d59ac0a5bcf9d0845ea8d7cf88de8994036c03868",
+    "tests/scout_postgres_fixture.py": "664645a1c51686828e5046ac9048e34cb74f819dfe10b67c6122e0e0dd899123",
+    "tests/scout_workflow_fixture.py": "317d5be7775c565155241034cda6df7ffd2c463d6977e1a7c50bee881fbf925c",
+    "tests/integration/test_scout_extraction_runtime.py": "6a7967b36c56eb97977a025302e6c6163d3bbb76699a9546e2586ada1ce12920",
+    "tests/integration/test_scout_composed_runtime.py": "87184fabee8e92c8a768db5d8af6404b11709135c2ccd7a33893ff59b934ef64"
+  },
+  "runtime_identity": {
+    "bubblewrap_digest": "64501f97e29203f11d1eaa9e897e441ef92f200c0a1eb891aed5d07f780034f2",
+    "python_tree_digest": "750356e48774e9f293a87a358a7df2e89a168fd56be95219794802594bece180",
+    "python_tree_bytes": 113924361,
+    "python_tree_entries": 5147,
+    "library_digests": {
+      "libpthread.so.0": "a8294c61875f0dd96d9e233f9ec3caf0513c3a957c8e69a22a674e3d2c765a1f",
+      "libdl.so.2": "63bd4f1cbaf5a6b04127fdf3236842b82f00814a57d75daeabf311302cf43e6b",
+      "libutil.so.1": "b1ac84b9ee01ef65761dc768d6c320cfe38cc21645519b7a991cdc2d039f307a",
+      "libm.so.6": "e5c9c200788060abf69bc820a72e0747c076184a8d7377cb560b3e305d404639",
+      "librt.so.1": "d1508af6aa94a0e93125e0580a0f875662e4db4696757c2df17bb529aeb44b1f",
+      "libgcc_s.so.1": "5778a7f283887fc36d9a943b1574f1dca1554d5f71c28cf34e7626aff1d09c22",
+      "libc.so.6": "090f858814642a3f28e5f4ae6499667e7901e47902ca3e72fb9c8a1967a3b8df",
+      "ld-linux-x86-64.so.2": "1f36b4d1ad5b25dc469e317e02f1bf26dfb0043c68d40e30f6c519a2b036f52f"
+    },
+    "code": {
+      "scout_worker.py": "b1cd9ba101653e276ff66847419f07b24589dcc5b76d92df867fc115475d2f66",
+      "scout_extraction.py": "803dbcec9c5031ed2c05eb258146a8df0f0c5cb572a9306c31032f3d4079732a",
+      "extraction.py": "403cc56c1f8890a99ae2d744b558e9eb45042cf8403ad9f7102fa75aeeb93da8",
+      "test_scout_extraction_runtime.py": "6a7967b36c56eb97977a025302e6c6163d3bbb76699a9546e2586ada1ce12920"
+    }
+  },
+  "identity_boundary": "Critical source and test closure plus selected extractor runtime; not an atomic transitive environment snapshot or repeated hostile-runtime qualification.",
+  "passages": {
+    "success": {
+      "outcome": "succeeded",
+      "usage": {
+        "connects": 3,
+        "transmissions": 5,
+        "wire_bytes": 1862
+      },
+      "child": "reaped",
+      "extraction_processes": 1,
+      "model_requests": 1,
+      "http_requests": 1,
+      "tls_versions": [
+        "TLSv1.3"
+      ]
+    },
+    "revoked_at_sni": {
+      "outcome": "refused",
+      "usage": {
+        "connects": 3,
+        "transmissions": 3,
+        "wire_bytes": 1617
+      },
+      "child": "not_started",
+      "extraction_processes": 0,
+      "model_requests": 0,
+      "http_requests": 0,
+      "tls_versions": []
+    }
+  },
+  "database": {
+    "daemon": "local-docker-unix-socket",
+    "ambient_configuration": "disabled",
+    "image": "pgvector/pgvector:pg18-trixie",
+    "container_created": true,
+    "container_removed": true,
+    "anonymous_volumes_removed": true,
+    "socket_directory_removed": true,
+    "image_id": "sha256:1963bc48febf543433baa1ce3edcc6cc08154de722e22495f86681cc9a849026",
+    "network": "none",
+    "published_ports": false,
+    "ready": true,
+    "anonymous_volume_count": 1
+  },
+  "record_kind": "sanitized_public_composed_qualification",
+  "observed_on": "2026-10-13"
+}

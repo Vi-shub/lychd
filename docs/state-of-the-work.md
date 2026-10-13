@@ -1434,12 +1434,25 @@ An assembled PostgreSQL fixture additionally crosses actual credential admission
 native consent and resumed claim, owned settlement and persisted turns. Its transport, child
 process and model are controlled substitutes, distinct from the separately qualified mechanisms.
 
+A maintained composed Linux receipt now joins actual credential admission, PostgreSQL native
+consent and a store-issued claim to the real current-authority DNS/TLS/HTTP path and fixed
+supervised extraction child. The disposable database has no IP network or published port;
+its dedicated pathname socket remains reachable from the isolated acquisition namespace.
+The passage checks the exact request, all settled host/binding counters, reference-to-receipt
+identity, ordinary answer retention and absence of transient source input from retained state,
+history and settlement. Reconstructing the service cannot refetch consumed material. Revoking
+access during TLS prevents HTTP application bytes, extraction and the deterministic model call,
+while retaining a refused settlement. Container, anonymous volume and socket-directory removal
+are observed before the receipt passes. Nodes and services are invoked explicitly; queue,
+dispatcher, events and model remain controlled adapters.
+
 **Boundary — Not yet:** No SearXNG or Crawl4AI Rune/adapter, general Scout provider store,
 effect-scoped Agent tool, download quarantine, website authentication/session custody, or Smith
 ingestion path ships. No Search engine has passed qualification. The transport/extraction proof
 uses a synthetic audit gate; the additional current-authority network proof uses fixture admission
-data. These receipts do not prove a deployed PostgreSQL/HTTP/model/network combination or arbitrary
-host compatibility. The first workflow accepts only its explicit public-page command, follows no
+data. The composed receipt adds real PostgreSQL and extraction but does not exercise HTTP routing,
+a SAQ worker process, durable Graph checkpoint/resume or model inference. These receipts do not
+prove a deployed combination or arbitrary host compatibility. The first workflow accepts only its explicit public-page command, follows no
 redirects, and requires a qualified local extractor and exact local model. Budget reset and
 unknown-attempt reconciliation have no automatic operational path. Rendering remains separately
 unimplemented outside the shared Pod.
@@ -1455,6 +1468,7 @@ unimplemented outside the shared Pod.
 - **Source:** [Current authority](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/scout/authority.py), [durable attempts](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/scout.py), [owned coordinator](https://github.com/hexanomicon/lychd/blob/main/src/lychd/system/services/scout_workflow.py), and [public-page casting](https://github.com/hexanomicon/lychd/blob/main/src/lychd/agents/workflows/scout_chat.py)
 - **Verification:** [Authority contracts](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/scout/test_authority.py), [PostgreSQL attempts](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_scout_attempts_pg.py), [migration custody](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_scout_migrations_pg.py), [coordinator boundaries](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_scout_workflow.py), and [transient workflow projection](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_scout_chat.py)
 - **Verification:** [Assembled PostgreSQL workflow](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_scout_workflow_pg.py)
+- **Verification:** [Composed isolated passage](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_scout_composed_runtime.py), [maintained composed receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/scout/linux-composed-runtime.json), and [composed receipt freshness](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/scout/test_composed_receipt.py)
 - **Verification:** [Current-authority network proof](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_scout_authority_runtime.py), [maintained authority receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/scout/linux-authority-runtime.json), and [authority receipt freshness](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/scout/test_authority_receipt.py)
 
 ### Vision admission {#vision-admission}

@@ -318,6 +318,27 @@ claim values are explicit fixtures: this does not exercise database admission, e
 authorization or inference. Its [maintained receipt](tests/fixtures/scout/linux-authority-runtime.json)
 and freshness test bind the authority, transport, fixture and dependency versions actually tested.
 
+The composed Scout proof uses that same namespace command with
+`LYCHD_REQUIRE_SCOUT_COMPOSED_PROOF=1`,
+`PYTEST_TARGETS=tests/integration/test_scout_composed_runtime.py`, a fresh basetemp, and the
+required `LYCHD_SCOUT_EXTRACTION_PROFILE`. It also requires the installed `container-test`
+dependencies, the local `/var/run/docker.sock` daemon and an already cached
+`pgvector/pgvector:pg18-trixie` image. It selects the cached image ID without pulling and creates
+one uniquely owned PostgreSQL container with no IP network or published port, 512 MiB memory,
+one CPU and 128 PIDs. Only a dedicated temporary socket directory is mounted; any permission or
+SELinux label adaptation stays within that directory. Database API calls have ten-second
+timeouts and readiness has a thirty-second polling deadline; the composed async passage has
+sixty seconds, with bounded extraction and network cleanup. Runtime hashing is separate.
+
+The proof exercises real credential admission, durable native consent, store-issued claim,
+current network authority, fixed extraction, settlement and retained turns. It also challenges
+revocation during TLS and refetch after service reconstruction. Explicit node calls and a
+`FunctionModel` leave HTTP routing, SAQ process execution, durable Graph checkpoint/resume and
+model inference unqualified. The receipt passes only after database, volume and socket-directory
+cleanup. Inspect the generated `receipt.json`; its [sanitized maintained copy](tests/fixtures/scout/linux-composed-runtime.json)
+and freshness test bind the critical source and dependency identities. This does not repeat the
+extractor's separate adversarial qualification or establish general host compatibility.
+
 The optional offline music engineering profile runs without the Vessel or a native Composition:
 
 ```bash

@@ -11,68 +11,35 @@ from __future__ import annotations
 import asyncio
 import io
 import json
-from collections.abc import AsyncGenerator, AsyncIterator, Iterator
-from contextlib import asynccontextmanager
-from dataclasses import dataclass, replace
+from collections.abc import AsyncIterator, Iterator
 from datetime import UTC, datetime, timedelta
 from hashlib import sha256
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import AsyncMock, Mock
-from uuid import uuid4
 
 import pytest
 import pytest_asyncio
-from pydantic_ai.messages import ModelMessage, ModelMessagesTypeAdapter, ModelResponse, TextPart
-from pydantic_ai.models.function import AgentInfo, FunctionModel
-from pydantic_graph import GraphRunContext
 from sqlalchemy import Table, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from lychd.agents.router import Intent
-from lychd.agents.services import WorkflowServices
-from lychd.agents.workflows import builtin_workflow_registry
 from lychd.agents.workflows.scout_chat import (
-    BRIDGE_CHAT_SCOUT,
     AcquireAndAnswerPage,
-    AwaitPageConsent,
-    PreparePageReview,
-    ScoutChatState,
     SettlePageAnswer,
 )
-from lychd.config.settings import BridgeCastingSettings, WeaverSettings
 from lychd.db import scout as scout_db
 from lychd.db.models import Consent, Run, RunDelivery, ScoutAttempt, ScoutBudget, Session, Step
-from lychd.db.scout import DbScoutAttemptStore
-from lychd.db.sessions import DbBridgeSessionStore
-from lychd.domain.animation.capabilities import CapabilityGrant, SourceKind
-from lychd.domain.animation.schemas.capability_family import CapabilityFamily
-from lychd.domain.codex.ledger import CodexConsentLedger
-from lychd.domain.codex.local_access import LocalOperatorAccess, LocalOperatorAuthentication
-from lychd.domain.codex.sigil import default_local_sigil
-from lychd.domain.cortex.cancellation import RunEffectFence
-from lychd.domain.cortex.engine import QueueRouter, RouteRule, RunEngine
-from lychd.domain.cortex.events import InProcessEventBus
-from lychd.domain.cortex.ledger import DbRunLedger
-from lychd.domain.cortex.runs import ConsentPending
 from lychd.domain.scout.attempts import ScoutCommitUnknownError, ScoutSettlement
-from lychd.domain.scout.authority import ScoutAction, ScoutHostAuthorizer, ScoutHostPolicy
 from lychd.domain.scout.destination import DestinationCandidate
 from lychd.domain.scout.extraction import ExtractionCode, ExtractionError
-from lychd.domain.scout.profile import SCOUT_ANSWER_PURPOSE, ScoutProfile, ScoutWorkflowCode, ScoutWorkflowError
+from lychd.domain.scout.profile import ScoutProfile, ScoutWorkflowCode, ScoutWorkflowError
 from lychd.domain.scout.transport import FetchError, NetworkGate, NetworkHandoff, NetworkTarget
-from lychd.domain.web.consent_reviews import ConsentReviewForbiddenError
-from lychd.interface.web.scout_admission import ScoutAdmissionService
-from lychd.interface.web.scout_review import ScoutConsentReviews
 from lychd.system import scout_worker
 from lychd.system.services import scout_extraction, scout_workflow
 from lychd.system.services.scout_fetch import FetchedPage, FetchObservation
 from lychd.system.services.scout_http import serialize_get
-from lychd.system.services.scout_workflow import ScoutCompletions, ScoutWorkflowService
-from tests.agents.conftest import make_services
-from tests.agents.fakes import FakeConsents, FakeDispatcher, FakeEvents, FakeOrchestrator, FakeTurns
-from tests.scout_fixtures import CAPABILITY, scout_profile
+from tests.scout_fixtures import scout_profile
+from tests.scout_workflow_fixture import approve_workflow, assemble_workflow, workflow_service
 
 pytestmark = [pytest.mark.integration, pytest.mark.container]
 
@@ -134,60 +101,8 @@ async def factory(workflow_pg_url: str) -> AsyncIterator[async_sessionmaker[Asyn
         await engine.dispose()
 
 
-class _Queue:
-    async def enqueue(self, job_or_func: str, /, **kwargs: Any) -> Any:
-        _ = job_or_func
-        return SimpleNamespace(key=kwargs["key"])
-
-
-class _LocalDispatcher(FakeDispatcher):
-    @asynccontextmanager
-    async def lease_grant(self, **kwargs: Any) -> AsyncGenerator[CapabilityGrant]:
-        async with super().lease_grant(**kwargs) as grant:
-            grant.spec.source_kind = SourceKind.SOULSTONE
-            grant.spec.family = CapabilityFamily.CHAT
-            yield grant
-
-
-@dataclass
-class _Assembly:
-    access: LocalOperatorAccess
-    authentication: LocalOperatorAuthentication
-    profile: ScoutProfile
-    authorizer: ScoutHostAuthorizer
-    ledger: DbRunLedger
-    consents: CodexConsentLedger
-    store: DbScoutAttemptStore
-    service: ScoutWorkflowService
-    reviews: ScoutConsentReviews
-    context: GraphRunContext[ScoutChatState, WorkflowServices]
-    model_requests: list[bytes]
-    turns: DbBridgeSessionStore
-
-
-def _service(
-    factory: async_sessionmaker[AsyncSession],
-    profile: ScoutProfile,
-    authorizer: ScoutHostAuthorizer,
-    ledger: DbRunLedger,
-    consents: CodexConsentLedger,
-) -> tuple[DbScoutAttemptStore, ScoutWorkflowService]:
-    completions = ScoutCompletions()
-    store = DbScoutAttemptStore(factory, authorizer, profile.budget_limits, completions)
-    return store, ScoutWorkflowService(
-        store=store,
-        completions=completions,
-        ledger=ledger,
-        consents=consents,
-        profile=profile,
-        capability_key=CAPABILITY,
-        authorizer=authorizer,
-        fence=RunEffectFence(),
-    )
-
-
-async def _assemble(factory: async_sessionmaker[AsyncSession], tmp_path: Path) -> _Assembly:
-    """Keep real admission/claim owners around the inert execution adapters."""
+def _synthetic_extraction_profile(tmp_path: Path) -> ScoutProfile:
+    """Create placeholder runtime files for the substituted extraction child."""
     bwrap, python = tmp_path / "bwrap", tmp_path / "python"
     bwrap.touch()
     (python / "bin").mkdir(parents=True)
@@ -208,138 +123,7 @@ async def _assemble(factory: async_sessionmaker[AsyncSession], tmp_path: Path) -
     )
     for library in libraries:
         library.touch()
-    profile = scout_profile().model_copy(update={"bwrap": bwrap, "python_root": python, "libraries": libraries})
-    access = LocalOperatorAccess(access_password="fixture-secret")  # noqa: S106 - inert local test credential
-    authentication = access.authenticate(username=b"magus", password=b"fixture-secret")
-    assert authentication is not None
-    authorizer = ScoutHostAuthorizer(
-        access=access,
-        policy=ScoutHostPolicy(
-            policy_revision=profile.policy_revision,
-            revocation_generation=profile.revocation_generation,
-            actions=frozenset(ScoutAction),
-            purposes=frozenset({SCOUT_ANSWER_PURPOSE}),
-            categories=frozenset({"public-web-locator"}),
-            binding_digests=frozenset({profile.binding_digest}),
-            resolver_custody_digests=frozenset({profile.resolver_custody_digest}),
-        ),
-    )
-    admission = ScoutAdmissionService(access=access, authorizer=authorizer, profile=profile)
-    with pytest.raises(ScoutWorkflowError):
-        admission.declare(prompt=_PROMPT, request_id=uuid4(), authentication=replace(authentication))
-    proof = admission.declare(prompt=_PROMPT, request_id=uuid4(), authentication=authentication)
-    ledger, consents = DbRunLedger(session_factory=factory), CodexConsentLedger(session_factory=factory)
-    store, service = _service(factory, profile, authorizer, ledger, consents)
-    turns = DbBridgeSessionStore(factory, sigil_name=default_local_sigil().name)
-    session = await turns.create_session()
-    bus = InProcessEventBus()
-    engine = RunEngine(
-        ledger=ledger,
-        bus=bus,
-        workflows=builtin_workflow_registry(
-            weaver=WeaverSettings(
-                bridge=BridgeCastingSettings(
-                    revision="4",
-                    capability_key=CAPABILITY,
-                    scout=profile,
-                )
-            )
-        ),
-        queue_router=QueueRouter({"default": RouteRule(queue="runs", priority=50)}),
-        queues={"runs": cast("Any", _Queue())},
-        bridge_capability_key=CAPABILITY,
-        bridge_scout=profile,
-        scout_admission=admission,
-        effects=service,
-    )
-    try:
-        handle = await engine.submit(Intent(session_id=session.id, prompt=_PROMPT), scout_declaration=proof)
-    finally:
-        await bus.aclose()
-    assert (await ledger.try_claim_run(handle.run_id, enqueue_seq=0)).acknowledged is True
-    run = await ledger.get(handle.run_id)
-    assert run is not None
-    assert run.admitted_scout is not None
-    assert run.admitted_scout.declaration == proof.declaration
-    requests: list[bytes] = []
-
-    async def respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
-        assert not info.function_tools
-        requests.append(ModelMessagesTypeAdapter.dump_json(messages))
-        return ModelResponse(parts=[TextPart(_ANSWER)])
-
-    async def stream(messages: list[ModelMessage], info: AgentInfo) -> AsyncIterator[str]:
-        await respond(messages, info)
-        yield _ANSWER
-
-    model = FunctionModel(respond, stream_function=stream)
-    services = make_services(
-        model=model,
-        events=FakeEvents(),
-        turns=FakeTurns(),
-        consents=FakeConsents(),
-        orchestrator=FakeOrchestrator(),
-    )
-    services = replace(
-        services,
-        scout=service,
-        consents=consents,
-        turns=turns,
-        dispatcher=_LocalDispatcher(model=model, key=CAPABILITY),
-    )
-    state = cast("ScoutChatState", BRIDGE_CHAT_SCOUT.make_state(run.to_intent()))
-    return _Assembly(
-        access,
-        authentication,
-        profile,
-        authorizer,
-        ledger,
-        consents,
-        store,
-        service,
-        ScoutConsentReviews(access=access, authorizer=authorizer, store=store),
-        GraphRunContext(state=state, deps=services),
-        requests,
-        turns,
-    )
-
-
-async def _approve(assembly: _Assembly) -> None:
-    ctx = assembly.context
-    assert isinstance(await PreparePageReview().run(ctx), AwaitPageConsent)
-    assert ctx.state.review is not None
-    review = ctx.state.review
-    with pytest.raises(ConsentPending):
-        await AwaitPageConsent().run(ctx)
-    await assembly.ledger.park_consent(ctx.state.run_id, str(review.consent_id))
-    view = await assembly.consents.get(str(review.consent_id))
-    assert view is not None
-    assert view.status == "pending"
-    with pytest.raises(ConsentReviewForbiddenError):
-        await assembly.reviews.resolve(
-            consent=view,
-            reviewer=default_local_sigil(),
-            purpose="decide",
-            authentication=replace(assembly.authentication),
-        )
-    resolution = await assembly.reviews.resolve(
-        consent=view, reviewer=default_local_sigil(), purpose="decide", authentication=assembly.authentication
-    )
-    assert resolution.decision_allowed
-    assert resolution.document is not None
-    assert any(fact.value == _URL for fact in resolution.document.facts)
-    granted = await assembly.consents.decide(
-        str(review.consent_id),
-        approved=True,
-        decided_by=default_local_sigil().name,
-        expected_native_binding=resolution.binding,
-    )
-    assert granted is not None
-    assert granted.status == "granted"
-    seq = await assembly.ledger.try_admit_consent(ctx.state.run_id, consent_id=str(review.consent_id))
-    assert seq == 1
-    assert (await assembly.ledger.try_claim_run(ctx.state.run_id, enqueue_seq=seq)).acknowledged is True
-    assert isinstance(await AwaitPageConsent().run(ctx), AcquireAndAnswerPage)
+    return scout_profile().model_copy(update={"bwrap": bwrap, "python_root": python, "libraries": libraries})
 
 
 def _acquisition(monkeypatch: pytest.MonkeyPatch) -> tuple[list[str], AsyncMock]:
@@ -389,9 +173,11 @@ async def test_retained_consent_to_transient_answer_and_lost_material_refusal(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    assembly = await _assemble(factory, tmp_path)
+    assembly = await assemble_workflow(
+        factory, profile=_synthetic_extraction_profile(tmp_path), prompt=_PROMPT, answer=_ANSWER
+    )
     calls, launch = _acquisition(monkeypatch)
-    await _approve(assembly)
+    await approve_workflow(assembly, expected_url=_URL)
     assert calls == []
     ctx = assembly.context
     async with factory() as session:
@@ -430,7 +216,7 @@ async def test_retained_consent_to_transient_answer_and_lost_material_refusal(
         budgets = list((await session.scalars(select(ScoutBudget))).all())
         assert {row.scope for row in budgets} == {"host", "binding"}
         assert all(row.active_claims == 0 and row.connects_reserved == 0 and row.connects_used == 1 for row in budgets)
-    _, restarted = _service(factory, assembly.profile, assembly.authorizer, assembly.ledger, assembly.consents)
+    _, restarted = workflow_service(factory, assembly.profile, assembly.authorizer, assembly.ledger, assembly.consents)
     for owner in (assembly.service, restarted):
         with pytest.raises(ScoutWorkflowError) as error:
             await owner.acquire(run_id=ctx.state.run_id, binding=ctx.state.scout, review=ctx.state.review)
@@ -450,9 +236,11 @@ async def test_committed_claim_lost_acknowledgement_restarts_unknown_without_ref
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    assembly = await _assemble(factory, tmp_path)
+    assembly = await assemble_workflow(
+        factory, profile=_synthetic_extraction_profile(tmp_path), prompt=_PROMPT, answer=_ANSWER
+    )
     calls, launch = _acquisition(monkeypatch)
-    await _approve(assembly)
+    await approve_workflow(assembly, expected_url=_URL)
     ctx = assembly.context
     assert ctx.state.review is not None
     commit = scout_db._commit  # pyright: ignore[reportPrivateUsage] - inject loss after the actual commit
@@ -466,7 +254,7 @@ async def test_committed_claim_lost_acknowledgement_restarts_unknown_without_ref
         patch.setattr(scout_db, "_commit", lost_ack)
         with pytest.raises(ScoutCommitUnknownError):
             await assembly.service.acquire(run_id=ctx.state.run_id, binding=ctx.state.scout, review=ctx.state.review)
-    _, restarted = _service(factory, assembly.profile, assembly.authorizer, assembly.ledger, assembly.consents)
+    _, restarted = workflow_service(factory, assembly.profile, assembly.authorizer, assembly.ledger, assembly.consents)
     assert await restarted.reconcile_before(datetime.now(UTC) + timedelta(seconds=1)) == 1
     with pytest.raises(ScoutWorkflowError) as error:
         await restarted.acquire(run_id=ctx.state.run_id, binding=ctx.state.scout, review=ctx.state.review)
@@ -492,9 +280,11 @@ async def test_real_extractor_preflight_refusal_settles_not_started(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    assembly = await _assemble(factory, tmp_path)
+    assembly = await assemble_workflow(
+        factory, profile=_synthetic_extraction_profile(tmp_path), prompt=_PROMPT, answer=_ANSWER
+    )
     calls, launch = _acquisition(monkeypatch)
-    await _approve(assembly)
+    await approve_workflow(assembly, expected_url=_URL)
     assembly.profile.bwrap.unlink()
     ctx = assembly.context
     assert ctx.state.review is not None
