@@ -12,8 +12,9 @@ Composition decides what it means and whether it serves the work.
 
 > _Bring back the voice, and the trail that led you to it._
 
-Scout is Designed under [Webcrawler](../../adr/30-webcrawler.md).
-[State](../../state-of-the-work.md#scout-web-acquisition) records that no acquisition path ships.
+Scout follows [Webcrawler](../../adr/30-webcrawler.md).
+[State](../../state-of-the-work.md#scout-web-acquisition) distinguishes the verified destination
+preflight and local extraction mechanism from the acquisition path that remains unfinished.
 
 ## The first passage
 
@@ -139,10 +140,14 @@ An engine failure remains visible alongside any results, and zero results never 
 has no answer. No compliant engine profile or transport integration ships yet.
 
 For implementation, start with the [static qualification envelope](../../adr/30-webcrawler.md#initial-qualification-envelope)
-and [adversarial acceptance cases](../../adr/30-webcrawler.md#qualification-evidence). Extraction
-is designed to run in a bounded, network-denied process to contain parser resource use. The limits are
-design targets awaiting qualification, not measured safety or coverage. Search can be designed
-alongside that passage; JavaScript rendering retains its separate admission and isolation gate.
+and [adversarial acceptance cases](../../adr/30-webcrawler.md#qualification-evidence). The
+[native extractor](../../adr/30-webcrawler.md#native-text-extraction-profile) accepts already
+acquired UTF-8 HTML or plain text in a network-denied child. It returns an ephemeral text
+projection with declared transformations, not browser rendering, article understanding or removal
+of source-authored instructions. Its [host qualification procedure](https://github.com/hexanomicon/lychd/blob/main/CONTRIBUTING.md#quality-checks)
+uses an explicit runtime profile and synthetic fixtures. Passing it grants no Fetch, custody or
+workflow authority. Search and JavaScript rendering retain their separate admission and isolation
+gates.
 
 ## The laws of the road
 

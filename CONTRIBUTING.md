@@ -191,6 +191,7 @@ typing, followed by `make test-ci`. This explicit selection covers configuration
 contracts, release archive checks, native server admission, operator control, failed or masked unit
 deletion previews, credential and contributed-secret checks, init binding-site refusal,
 animation/dispatch/orchestration, core Run and delegated-job logic, extensions, agents and web contracts,
+Scout destination/parser/supervisor contracts and qualification-receipt freshness,
 plus configuration, extension contribution, reconstructed Bridge resume, and the inactive Blockworld
 placement workflow.
 It uses in-process substitutes, requires no container daemon, running database, systemd service,
@@ -259,6 +260,30 @@ artifact hashing is outside that work clock. Inspect `embedding-runtime/receipt.
 the test's basetemp directory for both proof and cleanup success. This qualifies transport
 against an externally started runtime; it does not prove Orchestrator activation or Archive
 semantic recall. The ordinary image cache and its shared helper lifetime remain operator-owned.
+
+Scout's separate Linux x86-64 extraction proof requires an already installed Bubblewrap and a
+reviewed dedicated CPython installation. Outside the checkout, prepare a JSON profile with
+absolute `bwrap` and `python_root` paths plus a `libraries` array containing the individual
+`ld-linux-x86-64.so.2`, `libc.so.6`, `libdl.so.2`, `libgcc_s.so.1`, `libm.so.6`,
+`libpthread.so.0`, `librt.so.1` and `libutil.so.1` paths. The interpreter root must contain
+`bin/python3` and `lib`, with no operator material or credentials. Keep these files quiescent.
+The proof fingerprints the dedicated runtime tree up to 512 MiB/20,000 entries; it neither
+installs a runtime nor mounts a broad host library directory.
+
+```bash
+LYCHD_REQUIRE_SCOUT_EXTRACTION_PROOF=1 LYCHD_SCOUT_EXTRACTION_PROFILE=/absolute/path/runtime.json make test M=container N=0 PYTEST_TARGETS=tests/integration/test_scout_extraction_runtime.py PYTEST_BASETEMP=/tmp/lychd-scout-extraction-proof
+```
+
+Use a fresh basetemp path. Without the flag this live test skips; with it, missing prerequisites
+fail. The proof uses synthetic bytes, a temporary local socket and disposable namespace workers.
+It verifies extraction, host-access denial, CPU/address-space/process limits, pipe flooding and
+termination after timeout, cancellation and supervisor death, including observed new-session
+descendants. It performs no external request. Each extraction has five seconds plus two seconds
+for cleanup; the complete proof includes several such cases and bounded runtime hashing. The
+generated `receipt.json` stays below basetemp; the sanitized maintained receipt is in
+[Scout's fixtures](tests/fixtures/scout/linux-extraction-runtime.json). A source change invalidates
+that receipt's freshness test and requires review and requalification. This proves only the
+identified local extractor, not Scout Fetch, workflow integration or the general Coffin boundary.
 
 The optional offline music engineering profile runs without the Vessel or a native Composition:
 

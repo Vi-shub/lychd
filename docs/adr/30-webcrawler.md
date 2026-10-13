@@ -291,6 +291,45 @@ contacted source or trigger another contact. Wire, decoded-body and output ident
 distinct. Readiness requires representative ordinary and hostile fixtures before any library or
 numerical envelope is qualified.
 
+### Native text extraction profile
+
+The first native extractor uses a fixed standard-library worker for strict UTF-8 `text/html`
+and `text/plain`. It accepts decoded bytes, not a locator, executable, parser plugin, credential,
+or network handle. HTML is projected to text without a document tree: element and nesting limits
+apply during parsing. Head, script, style, template, SVG, MathML and comment content is omitted;
+attributes and source-supplied base/canonical links confer no authority. A bare HTML5 doctype is
+inert; external or internal DTDs, processing instructions and other declarations refuse. The
+versioned strategy declares its whitespace and structural transformations. This is neither a
+browser's rendering nor article extraction, factual verification or prompt-injection removal.
+Malformed input outside that strategy refuses rather than being silently repaired into success.
+
+The private child protocol has one bounded header, an exact body length and EOF. Decoded input is
+at most 4 MiB. One UTF-8 JSON response is at most 240 KiB, leaving room within the passage's
+256 KiB return ceiling for host-authored attribution; the passage must still count its complete
+serialized return. Invalid encoding, trailing input, unsupported media, output overflow, child
+failure and malformed returns are terminal refusals. Errors use closed codes, never source text.
+The parent verifies returned structure and computes decoded-input and serialized-output digests;
+neither is a network-wire digest or permission to retain the material.
+
+The Linux host supplies an explicitly reviewed Bubblewrap executable, dedicated Python runtime
+and finite loader/library closure. The fixed worker receives an empty filesystem root with those
+read-only runtime mounts, fresh user, PID, network, IPC and UTS namespaces, cleared environment,
+dropped capabilities and closed unrelated descriptors. It receives no checkout, home, host proc
+mount, credentials or writable host directory. Namespace creation and disabling nested user
+namespaces are mandatory; there is no bare-process fallback. The assembled mount root is
+read-only. CPU and virtual address space are bounded before acquired input is processed; core
+dumps are disabled and the fixed worker cannot fork or create threads. `RLIMIT_AS` is an
+address-space ceiling, not an RSS measurement or cgroup memory guarantee. The supervisor bounds input/output, enforces the five-second
+wall deadline and separately bounds kill/reap cleanup; unknown cleanup cannot produce success.
+
+Qualification belongs to the actual host/runtime/profile combination. Tests of command assembly
+or substituted processes establish only those contracts. A live qualification must demonstrate
+network and host-file denial, descriptor/environment isolation, limit failures and termination of
+namespace descendants, including a new-session descendant. Availability of `bwrap`, an exit code,
+or a passing extraction fixture alone does not establish containment. This extractor is a local
+mechanism: Fetch/Extract grants, egress decisions, durable acquisition attempts, workflow binding
+and artifact custody remain separately owned prerequisites to a Scout passage.
+
 ## Destination and data boundary
 
 Every external acquisition URL, redirect, and new connection is independently authorized: canonical HTTPS

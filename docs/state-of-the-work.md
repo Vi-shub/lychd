@@ -1362,7 +1362,7 @@ unsupported.
 
 ### Scout web acquisition {#scout-web-acquisition}
 
-**State:** Designed
+**State:** Partial
 
 **Proved now:** Web-acquisition law separates search, fetch, render, extraction, destination
 pinning, quarantine, authentication, and paid effects. The accepted design selects native static
@@ -1370,7 +1370,7 @@ Fetch + Extract, a SearXNG Search Soulstone, and a later isolated Crawl4AI rende
 Firecrawl remains deferred and paid web-acquisition Portals remain private-extension territory.
 The design now binds Scout provider contributions, a narrow SearXNG query/result contract,
 per-transmission engine egress mediation, and static extraction qualification limits and cases.
-Those limits are unqualified design targets, not execution evidence.
+The complete acquisition envelope remains a design target.
 Pure destination preflight now validates bounded canonical HTTPS URLs and exact-host supplied
 address sets against an explicit conservative IP policy. Its tests cover ambiguous syntax,
 forbidden and mixed answers, caller-forged facts, bounds and absence of I/O. These facts establish
@@ -1378,18 +1378,28 @@ neither actual DNS resolution nor permission to connect. Workflow law now separa
 acquisition identity from Graph re-entry and requires separate custody before content can survive
 a workflow park or restart.
 
-**Do not expect yet:** There is no Scout provider, browser service, endpoint, Agent tool,
+The fixed native extractor now projects bounded UTF-8 HTML and plain text through a supervised
+Linux child. A maintained Linux x86-64/Bubblewrap 0.12.0/CPython 3.15.0 receipt proves that exact
+runtime's ordinary and hostile fixtures, host-network/filesystem/environment/descriptor denial,
+CPU/address-space/process limits, bounded pipes, and timeout/cancellation/parent-death cleanup
+with observed new-session descendants. It fingerprints the runtime closure and source; a freshness
+test prevents a historical pass from silently qualifying changed code. This proves the local
+extraction mechanism, not arbitrary host compatibility or acquisition authority.
+
+**Boundary — Not yet:** There is no Scout provider, browser service, endpoint, Agent tool,
 acquisition receipt, download quarantine, authenticated session, or Smith ingestion path. There is
 no SearXNG or Crawl4AI Rune/adapter, no Scout provider store or effect-scoped tool binding, and no
 renderer containment outside the shared Pod.
-No Search engine/transport profile or bounded extraction process has passed qualification.
+No Search engine or HTTPS acquisition transport has passed qualification. Extraction is not
+registered with a production workflow; current consent, egress, durable attempts, grants and
+complete attributed-return accounting remain required before enabling a passage.
 
 **Evidence**
 
 - **Topic:** [Scout](./sepulcher/extensions/scout.md)
 - **Law:** [Webcrawler](./adr/30-webcrawler.md)
-- **Source:** [Pure destination preflight](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/scout/destination.py)
-- **Verification:** [Destination boundary tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/scout/test_destination.py)
+- **Source:** [Pure destination preflight](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/scout/destination.py), [fixed extraction worker](https://github.com/hexanomicon/lychd/blob/main/src/lychd/system/scout_worker.py), and [Linux supervisor](https://github.com/hexanomicon/lychd/blob/main/src/lychd/system/services/scout_extraction.py)
+- **Verification:** [Destination boundary tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/scout/test_destination.py), [worker tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/test_scout_worker.py), [supervision and receipt-freshness tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_scout_extraction.py), [live host proof](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_scout_extraction_runtime.py), and [maintained qualification receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/scout/linux-extraction-runtime.json)
 
 ### Vision admission {#vision-admission}
 

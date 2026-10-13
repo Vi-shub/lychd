@@ -32,9 +32,10 @@ CI_PYTEST_TARGETS := tests/unit/config tests/unit/db \
 	tests/unit/system/services/test_init_binding_sites.py tests/unit/system/services/test_bind_compilation.py \
 	tests/unit/system/test_schemas.py tests/unit/system/services/test_artifact_custody.py \
 	tests/unit/system/services/test_artifact_publication.py \
+	tests/unit/system/test_scout_worker.py tests/unit/system/services/test_scout_extraction.py \
 	tests/unit/domain/test_artifact_custody.py \
 	tests/unit/domain/animation tests/unit/domain/cortex tests/unit/domain/delegation \
-	tests/unit/domain/orchestration tests/unit/domain/privacy tests/unit/domain/web \
+	tests/unit/domain/orchestration tests/unit/domain/privacy tests/unit/domain/web tests/unit/domain/scout \
 	tests/unit/extensions tests/unit/lib tests/unit/compositions tests/agents tests/web \
 	tests/integration/test_configuration_workflows.py \
 	tests/integration/test_bridge_casting_workflow.py \
