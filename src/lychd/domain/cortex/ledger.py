@@ -174,6 +174,7 @@ def _intent_payload(intent: Intent, *, idempotency_key: str | None = None) -> di
         "priority": intent.priority,
         "admitted_capability_key": intent.admitted_capability_key,
         "admitted_archive": intent.admitted_archive.model_dump(mode="json") if intent.admitted_archive else None,
+        "admitted_scout": intent.admitted_scout.model_dump(mode="json") if intent.admitted_scout else None,
         "admitted_delegation": intent.admitted_delegation.model_dump(mode="json")
         if intent.admitted_delegation
         else None,
@@ -566,6 +567,7 @@ class InMemoryRunLedger:
             admitted_capability_key=intent.admitted_capability_key,
             admitted_archive=intent.admitted_archive,
             admitted_delegation=intent.admitted_delegation,
+            admitted_scout=intent.admitted_scout,
         )
         stored = _copy_run_record(record)
         self._runs[stored.run_id] = stored
@@ -2071,6 +2073,7 @@ class DbRunLedger:
                 "admitted_capability_key": intent.get("admitted_capability_key"),
                 "admitted_archive": intent.get("admitted_archive"),
                 "admitted_delegation": intent.get("admitted_delegation"),
+                "admitted_scout": intent.get("admitted_scout"),
             }
         )
         return RunRecord(
@@ -2089,6 +2092,7 @@ class DbRunLedger:
             admitted_capability_key=parsed_intent.admitted_capability_key,
             admitted_archive=parsed_intent.admitted_archive,
             admitted_delegation=parsed_intent.admitted_delegation,
+            admitted_scout=parsed_intent.admitted_scout,
             attempt=int(row.attempt),  # type: ignore[attr-defined]
             enqueue_seq=int(row.enqueue_seq),  # type: ignore[attr-defined]
             error=row.error,  # type: ignore[attr-defined]

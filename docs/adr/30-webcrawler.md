@@ -495,23 +495,22 @@ dependency or deployment. Recheck the exact selected revision before implementat
 
 ## Delivery Boundary
 
-**State: Designed. Scout has no delivered acquisition capability.** There is no Scout built-in,
-configuration, provider, route, Agent tool, fetcher, extractor, robots/rate policy, SSRF pinning,
-receipt, browser, quarantine, or Reliquary. Installed `httpx` serves other control-plane calls;
-`selectolax` is test-only. Generic-runtime “crawler” tests prove only that no capability is
-invented. `ArtifactRef` proves metadata, not custody.
+The native public-page profile implements bounded Fetch and Extract through opt-in
+`bridge_chat@4`, with authenticated declaration, native consent and durable attempt accounting.
+It is distinct from the general provider, Search, Crawl and Render surfaces designed above.
+[State of Work](../state-of-the-work.md#scout-web-acquisition) owns its current evidence envelope:
+separately qualified network/extraction mechanisms and controlled workflow/PostgreSQL checks do
+not establish a deployed application-to-model passage or arbitrary host compatibility.
 
-The pure `public-https-destination@1` checks establish bounded URL and supplied-address facts only.
-They do not resolve DNS, contact a destination, pin a connected peer, issue a grant, or prepare an
-effect attempt. Their executable evidence is recorded in the State of Work.
+The pure `public-https-destination@1` checks remain preflight facts; only the admitted transport
+can establish connected-peer and transmission evidence. A locator, model declaration, generic
+runtime test or `ArtifactRef` cannot supply missing authority or custody.
 
-The current Extension Context has no Scout-owned provider contribution surface; Animator
-capability synthesis still requires a model-shaped identity; `ToolConnector` hydration is
-Animator-wide rather than capability/effect-scoped; and current Soulstone compilation joins the
-shared Pod. Those are implementation blockers, not permission to approximate the boundary with a
-raw provider tool. Source, configuration, adversarial network/parser/browser tests, and an updated
-[State of Work](../state-of-the-work.md#scout-web-acquisition) record are required before delivery.
-The [Scout topic](../sepulcher/extensions/scout.md) orients the reader.
+No Scout-owned general provider contribution, effect-scoped Agent tool, robots/rate scheduler,
+browser, download quarantine or Reliquary is delivered by that profile. Search mediation and
+renderer isolation require their own qualification; the native path cannot grant their effects
+or make the shared Pod an acceptable browser boundary. The
+[Scout topic](../sepulcher/extensions/scout.md#public-page-answers) owns configuration and operation.
 
 ## Consequences
 

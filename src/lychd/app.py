@@ -103,14 +103,16 @@ class AppInit(InitPluginProtocol):
         app_config.csrf_config = csrf_config
 
         # Local credential possession precedes the fixed Sigil; remote Ward is not delivered.
+        from lychd.domain.codex.local_access import LocalOperatorAccess
         from lychd.domain.codex.middleware import sigil_auth_middleware
 
         if settings.server.web.access_password is None:
             msg = "Required local access password is unavailable in Settings."
             raise ValueError(msg)
+        operator_access = LocalOperatorAccess(access_password=settings.server.web.access_password.get_secret_value())
         app_config.middleware.append(
             sigil_auth_middleware(
-                access_password=settings.server.web.access_password.get_secret_value(),
+                operator_access=operator_access,
                 allowed_origins=settings.server.web.allowed_cors_origins,
             )
         )
@@ -163,6 +165,7 @@ class AppInit(InitPluginProtocol):
             {
                 "extensions": extensions,
                 "runes": runes,
+                "local_operator_access": operator_access,
                 "csrf_contract": CsrfClientContract(
                     cookie_name=csrf_config.cookie_name,
                     header_name=csrf_config.header_name,

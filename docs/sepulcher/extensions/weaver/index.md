@@ -53,6 +53,9 @@ WeaveContext → Converse → AwaitConsent? → ProjectReply → End
 bridge_chat@3 (configured public Archive and exact capability)
 RecallNotes → AnswerNotes → SettleNoteAnswer → End
 
+bridge_chat@4 (configured Scout and exact local capability)
+PreparePageReview → AwaitPageConsent → AcquireAndAnswerPage → SettlePageAnswer → End
+
 delegated_rite@1 (default) / delegated_rite@2 (configured exact runtime)
 DispatchDelegate ⇢ ProjectDelegatedReply → End
 ```
@@ -93,6 +96,10 @@ fingerprint; the general Resolution Lock remains a separate contract.
 Revision 3 adds bounded public-note recall with transient Context injection and no tools. Its
 [Archive configuration and authority checks](../../../divination/altar/bridge.md#public-note-answers) are separate from
 revision 2's tool-capable conversation.
+
+Revision 4 adds one explicitly declared public page, native consent and transient local-model
+Context. Its [Scout configuration](../scout.md#public-page-answers) selects a qualified static
+runtime and finite budgets. Neither profile turns a Scroll or source-authored text into tool authority.
 
 ## Follow the Scroll
 

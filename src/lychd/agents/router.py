@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from lychd.domain.archive import ArchiveProfile
 from lychd.domain.delegation.routing import DelegatedRuntimeBinding
+from lychd.domain.scout.profile import ScoutBinding
 
 __all__ = ["Intent"]
 
@@ -35,3 +36,4 @@ class Intent(BaseModel):
     admitted_capability_key: str | None = Field(default=None, min_length=1)
     admitted_archive: ArchiveProfile | None = None
     admitted_delegation: DelegatedRuntimeBinding | None = None
+    admitted_scout: ScoutBinding | None = None

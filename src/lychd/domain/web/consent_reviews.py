@@ -101,10 +101,20 @@ class NativeReviewResolution:
 
 
 class ConsentReviewProducer(Protocol):
-    """Read committed owner records and check current reviewer authority last."""
+    """Read committed owner records and check current reviewer authority last.
+
+    Authentication is an ephemeral request marker from trusted middleware, never
+    a serialized client field or a Sigil-derived grant. Owners must validate it
+    against their actual credential issuer when their profile requires possession.
+    """
 
     async def resolve(
-        self, *, consent: ConsentView, reviewer: Sigil, purpose: Literal["view", "decide"]
+        self,
+        *,
+        consent: ConsentView,
+        reviewer: Sigil,
+        purpose: Literal["view", "decide"],
+        authentication: object | None = None,
     ) -> NativeReviewResolution:
         """Disclose a complete bound review or refuse without leaking owner details."""
         ...
@@ -116,13 +126,16 @@ async def resolve_native_review(
     consent: ConsentView,
     reviewer: Sigil,
     purpose: Literal["view", "decide"],
+    authentication: object | None = None,
 ) -> NativeReviewResolution:
     """Verify the same exact content and identity for disclosure and judgment."""
     if producer is None or not consent.native_review_required or consent.native_binding is None:
         message = "Native review is unavailable."
         raise ConsentReviewUnavailableError(message)
     try:
-        result = await producer.resolve(consent=consent, reviewer=reviewer, purpose=purpose)
+        result = await producer.resolve(
+            consent=consent, reviewer=reviewer, purpose=purpose, authentication=authentication
+        )
     except (ConsentReviewUnavailableError, ConsentReviewForbiddenError):
         raise
     except Exception as exc:

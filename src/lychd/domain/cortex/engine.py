@@ -19,6 +19,7 @@ from collections.abc import Awaitable, Callable, Mapping
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime
+from functools import partial
 from typing import TYPE_CHECKING, Any, Literal, Protocol, cast
 
 import structlog
@@ -28,6 +29,7 @@ from lychd.domain.cortex.admission import RunAdmissionCoordinator
 from lychd.domain.cortex.cancellation import RunCancellationCoordinator
 from lychd.domain.cortex.priority import saq_wire_priority, validate_priority
 from lychd.domain.cortex.runs import TERMINAL_STATUSES, RunDeliveryState, RunHandle, RunStatus
+from lychd.domain.scout.profile import ScoutBinding, ScoutWorkflowCode, ScoutWorkflowError, parse_page_question
 from lychd.lib.asyncio import complete_under_cancellation
 
 if TYPE_CHECKING:
@@ -41,6 +43,7 @@ if TYPE_CHECKING:
     from lychd.domain.delegation.models import DelegatedAgentJob
     from lychd.domain.delegation.ports import DelegatedAgentCoordinatorPort
     from lychd.domain.delegation.routing import DelegatedRuntimeBinding
+    from lychd.domain.scout.profile import ScoutAdmission, ScoutDeclarationProof, ScoutProfile
 
 __all__ = [
     "QueueRouter",
@@ -402,6 +405,7 @@ class RunEngine:
         "admissions",
         "bridge_archive",
         "bridge_capability_key",
+        "bridge_scout",
         "bus",
         "cancellations",
         "consents",
@@ -411,6 +415,7 @@ class RunEngine:
         "ledger",
         "queue_router",
         "queues",
+        "scout_admission",
         "stasis_store",
         "workflows",
     )
@@ -432,6 +437,8 @@ class RunEngine:
         release_context: Callable[[str], None] | None = None,
         bridge_capability_key: str | None = None,
         bridge_archive: ArchiveProfile | None = None,
+        bridge_scout: ScoutProfile | None = None,
+        scout_admission: ScoutAdmission | None = None,
         delegation_binding: DelegatedRuntimeBinding | None = None,
     ) -> None:
         """Bind the already-constructed run collaborators."""
@@ -440,6 +447,8 @@ class RunEngine:
         self.workflows = workflows
         self.bridge_capability_key = bridge_capability_key
         self.bridge_archive = bridge_archive
+        self.bridge_scout = bridge_scout
+        self.scout_admission = scout_admission
         self.delegation_binding = delegation_binding
         self.queue_router = queue_router
         self.queues = queues
@@ -463,6 +472,7 @@ class RunEngine:
         retain_before_publish: Callable[[str], Awaitable[None]] | None = None,
         idempotency_key: str | None = None,
         exclusive_session: bool = False,
+        scout_declaration: ScoutDeclarationProof | None = None,
     ) -> RunHandle:
         """Admit work, optionally allowing only one nonterminal Run per session.
 
@@ -476,8 +486,9 @@ class RunEngine:
             intent.admitted_capability_key is not None
             or intent.admitted_archive is not None
             or intent.admitted_delegation is not None
+            or intent.admitted_scout is not None
         ):
-            msg = "Capability, Archive and delegation bindings are server-owned admission metadata, not caller Intent."
+            msg = "Capability, Archive, Scout and delegation bindings are server-owned admission metadata, not caller Intent."
             raise ValueError(msg)
         if exclusive_session:
             session_key = ("exclusive_session", intent.session_id)
@@ -491,6 +502,7 @@ class RunEngine:
                             intent,
                             retain_before_publish=retain_before_publish,
                             idempotency_key=idempotency_key,
+                            scout_declaration=scout_declaration,
                         )
                 active = await self.ledger.get_nonterminal_for_session(intent.session_id)
                 if active is not None:
@@ -502,6 +514,7 @@ class RunEngine:
                     intent,
                     retain_before_publish=retain_before_publish,
                     idempotency_key=idempotency_key,
+                    scout_declaration=scout_declaration,
                 )
             finally:
                 self.admissions.finish(session_key)
@@ -509,6 +522,7 @@ class RunEngine:
             intent,
             retain_before_publish=retain_before_publish,
             idempotency_key=idempotency_key,
+            scout_declaration=scout_declaration,
         )
 
     async def _submit_singleflight(
@@ -517,6 +531,7 @@ class RunEngine:
         *,
         retain_before_publish: Callable[[str], Awaitable[None]] | None,
         idempotency_key: str | None,
+        scout_declaration: ScoutDeclarationProof | None,
     ) -> RunHandle:
         """Single-flight one optional durable admission identity."""
         if idempotency_key is None:
@@ -524,6 +539,7 @@ class RunEngine:
                 intent,
                 retain_before_publish=retain_before_publish,
                 idempotency_key=None,
+                scout_declaration=scout_declaration,
             )
         admission_key = ("idempotency", idempotency_key)
         while not self.admissions.begin(admission_key):
@@ -533,6 +549,7 @@ class RunEngine:
                 intent,
                 retain_before_publish=retain_before_publish,
                 idempotency_key=idempotency_key,
+                scout_declaration=scout_declaration,
             )
         finally:
             self.admissions.finish(admission_key)
@@ -543,6 +560,7 @@ class RunEngine:
         *,
         retain_before_publish: Callable[[str], Awaitable[None]] | None,
         idempotency_key: str | None,
+        scout_declaration: ScoutDeclarationProof | None,
     ) -> RunHandle:
         """Route once, persist QUEUED, retain admission context, then publish work.
 
@@ -562,12 +580,15 @@ class RunEngine:
         if idempotency_key is not None:
             existing = await self.ledger.get_idempotent(intent, idempotency_key=idempotency_key)
             if existing is not None:
-                if await self._repair_replayed_admission(existing, retain_before_publish):
+                self._validate_scout_replay(intent, existing, scout_declaration)
+                validate = partial(self._validate_scout_replay, intent, existing, scout_declaration)
+                if await self._repair_replayed_admission(existing, retain_before_publish, validate=validate):
+                    validate()
                     return await self._publish_admission(existing)
                 return await self._replayed_run_handle(existing)
 
         workflow = self.workflows.route(intent)
-        intent = self._bind_workflow_intent(intent, workflow)
+        intent = self._bind_workflow_intent(intent, workflow, scout_declaration)
         queue_name, priority = self.queue_router.resolve(intent)
         if queue_name not in self.queues:
             msg = f"Run queue {queue_name!r} is not configured."
@@ -580,7 +601,7 @@ class RunEngine:
                 pattern_manifest=workflow.manifest.snapshot(),
                 queue_name=queue_name,
                 priority=priority,
-                hold_delivery=retain_before_publish is not None,
+                hold_delivery=retain_before_publish is not None or intent.admitted_scout is not None,
             )
         )
         try:
@@ -589,18 +610,81 @@ class RunEngine:
             # The DB commit may have won the cancellation race. Learn the
             # canonical id, then refuse only a caller-context-gated admission.
             run, created = await complete_under_cancellation(create_task)
-            if created and retain_before_publish is not None:
+            if created and (retain_before_publish is not None or run.admitted_scout is not None):
+                await complete_under_cancellation(self._refuse_admission(run, exc))
+            raise
+        return await self._finish_admission(
+            intent, run, created=created, retain=retain_before_publish, proof=scout_declaration
+        )
+
+    async def _finish_admission(
+        self,
+        intent: Intent,
+        run: RunRecord,
+        *,
+        created: bool,
+        retain: Callable[[str], Awaitable[None]] | None,
+        proof: ScoutDeclarationProof | None,
+    ) -> RunHandle:
+        """Recheck authenticated admission after commit and around turn retention."""
+        validate = partial(self._validate_scout_replay, intent, run, proof)
+        try:
+            validate()
+        except ScoutWorkflowError as exc:
+            if created:
                 await complete_under_cancellation(self._refuse_admission(run, exc))
             raise
         if not created:
-            if not await self._repair_replayed_admission(run, retain_before_publish):
+            if not await self._repair_replayed_admission(run, retain, validate=validate):
                 return await self._replayed_run_handle(run)
-        elif retain_before_publish is not None:
-            await self._retain_and_release_admission(run, retain_before_publish)
+        elif retain is not None or run.admitted_scout is not None:
+            await self._retain_and_release_admission(run, retain, validate=validate)
+        validate()
         return await self._publish_admission(run)
 
-    def _bind_workflow_intent(self, intent: Intent, workflow: Workflow) -> Intent:
+    def _bind_scout(self, intent: Intent, proof: ScoutDeclarationProof | None) -> ScoutBinding:
+        """Validate live handler proof after waits and bind exact command operands."""
+        if proof is None or self.bridge_scout is None or self.scout_admission is None:
+            raise ScoutWorkflowError(ScoutWorkflowCode.ADMISSION)
+        if not self.bridge_capability_key or not self.bridge_capability_key.strip():
+            raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
+        command = parse_page_question(intent.prompt)
+        binding = self.scout_admission(intent, proof, self.bridge_scout)
+        if (
+            type(binding) is not ScoutBinding
+            or binding.profile != self.bridge_scout
+            or (binding.declaration.url, binding.question, binding.request_id)
+            != (command.url, command.question, proof.request_id)
+        ):
+            raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
+        return binding
+
+    def _validate_scout_replay(self, intent: Intent, run: RunRecord, proof: ScoutDeclarationProof | None) -> None:
+        """Fresh authentication cannot replace a replay's original declaration time."""
+        if run.admitted_scout is None:
+            if proof is not None:
+                raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
+            return
+        binding = self._bind_scout(intent, proof)
+        exclude = {"declaration": {"declared_at"}}
+        if run.admitted_capability_key != self.bridge_capability_key or binding.model_dump(
+            exclude=exclude
+        ) != run.admitted_scout.model_dump(exclude=exclude):
+            raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
+
+    def _bind_workflow_intent(
+        self, intent: Intent, workflow: Workflow, scout_declaration: ScoutDeclarationProof | None = None
+    ) -> Intent:
         """Stamp selected bindings only for a fresh explicitly configured admission."""
+        if workflow.manifest.key == "bridge_chat" and workflow.manifest.revision == "4":
+            return intent.model_copy(
+                update={
+                    "admitted_capability_key": self.bridge_capability_key,
+                    "admitted_scout": self._bind_scout(intent, scout_declaration),
+                }
+            )
+        if scout_declaration is not None:
+            raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
         if workflow.manifest.key == "delegated_rite" and workflow.manifest.revision == "2":
             if self.delegation_binding is None:
                 msg = "delegated_rite@2 requires its configured runtime binding before admission."
@@ -648,6 +732,8 @@ class RunEngine:
         self,
         run: RunRecord,
         retain: Callable[[str], Awaitable[None]] | None,
+        *,
+        validate: Callable[[], None] | None = None,
     ) -> bool:
         """Classify replay delivery truth and repair only work still needing publication."""
         delivery = await self.ledger.get_delivery(run.run_id, enqueue_seq=run.enqueue_seq)
@@ -658,10 +744,10 @@ class RunEngine:
             return True
         if delivery.state is not RunDeliveryState.HELD:
             return False
-        if retain is None:
+        if retain is None and run.admitted_scout is None:
             msg = f"Run {run.run_id!r} idempotent admission remains held without a retention owner."
             raise RuntimeError(msg)
-        await self._retain_and_release_admission(run, retain)
+        await self._retain_and_release_admission(run, retain, validate=validate)
         return True
 
     async def _create_run_admission(
@@ -727,10 +813,21 @@ class RunEngine:
     async def _retain_and_release_admission(
         self,
         run: RunRecord,
-        retain: Callable[[str], Awaitable[None]],
+        retain: Callable[[str], Awaitable[None]] | None,
+        *,
+        validate: Callable[[], None] | None = None,
     ) -> None:
         """Finish caller-owned retention and release its exact held delivery."""
-        retain_task = asyncio.ensure_future(retain(run.run_id))
+
+        async def guarded_retention() -> None:
+            if validate is not None:
+                validate()
+            if retain is not None:
+                await retain(run.run_id)
+            if validate is not None:
+                validate()
+
+        retain_task = asyncio.ensure_future(guarded_retention())
         try:
             await asyncio.shield(retain_task)
         except asyncio.CancelledError as cancellation:

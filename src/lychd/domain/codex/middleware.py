@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import base64
 import binascii
-import hmac
 from typing import TYPE_CHECKING, Any
 
 from litestar.enums import ScopeType
@@ -17,6 +16,7 @@ from litestar.exceptions import NotAuthorizedException, PermissionDeniedExceptio
 from litestar.middleware import DefineMiddleware
 from litestar.middleware.authentication import AbstractAuthenticationMiddleware, AuthenticationResult
 
+from lychd.domain.codex.local_access import LocalOperatorAccess
 from lychd.domain.codex.sigil import default_local_sigil
 
 if TYPE_CHECKING:
@@ -36,21 +36,19 @@ class SigilAuthMiddleware(AbstractAuthenticationMiddleware):
         self,
         app: ASGIApp,
         *,
-        access_password: str,
+        access_password: str | None = None,
+        operator_access: LocalOperatorAccess | None = None,
         allowed_origins: Sequence[str] = (),
     ) -> None:
         """Bind one startup credential generation and exact development origins."""
-        if not access_password:
-            msg = "Required local access password is unavailable."
-            raise ValueError(msg)
         super().__init__(app, exclude=[r"^/_app(?:/|$)", r"^/schema(?:/|$)"])
-        self._password = access_password.encode("utf-8")
+        self._operator_access = _operator_access(access_password, operator_access)
         self._allowed_origins = frozenset(allowed_origins)
 
     async def authenticate_request(self, connection: ASGIConnection[Any, Any, Any, Any]) -> AuthenticationResult:
         """Authenticate possession, then refuse foreign-origin mutations."""
         values = [value for name, value in connection.scope["headers"] if name.lower() == b"authorization"]
-        valid = False
+        authentication = None
         if len(values) == 1 and len(values[0]) <= _MAX_AUTHORIZATION_BYTES:
             scheme, separator, encoded = values[0].partition(b" ")
             if separator and scheme.lower() == b"basic":
@@ -59,8 +57,9 @@ class SigilAuthMiddleware(AbstractAuthenticationMiddleware):
                 except (ValueError, binascii.Error):
                     pass
                 else:
-                    valid = username == b"magus" and bool(colon) and hmac.compare_digest(password, self._password)
-        if not valid:
+                    if colon:
+                        authentication = self._operator_access.authenticate(username=username, password=password)
+        if authentication is None:
             raise NotAuthorizedException(
                 detail="Local operator authentication is required.",
                 headers={"WWW-Authenticate": 'Basic realm="LychD local operator", charset="UTF-8"'},
@@ -72,12 +71,24 @@ class SigilAuthMiddleware(AbstractAuthenticationMiddleware):
                 len(origins) != 1 or origins[0].decode("latin-1") not in {expected, *self._allowed_origins}
             ):
                 raise PermissionDeniedException(detail="This request Origin is not admitted.")
-        return AuthenticationResult(user=default_local_sigil(), auth=None)
+        return AuthenticationResult(user=default_local_sigil(), auth=authentication)
 
 
-def sigil_auth_middleware(*, access_password: str, allowed_origins: Sequence[str] = ()) -> DefineMiddleware:
+def _operator_access(password: str | None, access: LocalOperatorAccess | None) -> LocalOperatorAccess:
+    if access is not None:
+        if password is not None:
+            msg = "Local access accepts one credential owner."
+            raise ValueError(msg)
+        return access
+    return LocalOperatorAccess(access_password=password or "")
+
+
+def sigil_auth_middleware(
+    *,
+    access_password: str | None = None,
+    operator_access: LocalOperatorAccess | None = None,
+    allowed_origins: Sequence[str] = (),
+) -> DefineMiddleware:
     """Build local operator admission without reading ambient secrets."""
-    if not access_password:
-        msg = "Required local access password is unavailable."
-        raise ValueError(msg)
-    return DefineMiddleware(SigilAuthMiddleware, access_password=access_password, allowed_origins=allowed_origins)
+    access = _operator_access(access_password, operator_access)
+    return DefineMiddleware(SigilAuthMiddleware, operator_access=access, allowed_origins=allowed_origins)

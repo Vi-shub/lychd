@@ -48,7 +48,18 @@ def test_ungoverned_material_cannot_inherit_a_public_display_label(lane: str) ->
     assert original.influence_label.classification is PrivacyClass.PUBLIC
 
 
-def test_aggregate_preserves_all_known_influence_when_unknown_material_arrives() -> None:
+def test_transient_material_cannot_inherit_an_otherwise_public_context_label() -> None:
+    original = _public_context()
+    changed = replace(original, transient_chars=1)
+    assert changed.influence_label == PrivatizationLabel()
+    assert changed.blocks == original.blocks
+    assert changed.model_history() == []
+    assert changed.query == ""
+    assert original.influence_label.classification is PrivacyClass.PUBLIC
+
+
+@pytest.mark.parametrize("transient", [False, True])
+def test_aggregate_preserves_all_known_influence_when_unknown_material_arrives(*, transient: bool) -> None:
     subject, parent = uuid4(), uuid4()
     label = PrivatizationLabel(
         classification=PrivacyClass.PRIVATE,
@@ -66,7 +77,10 @@ def test_aggregate_preserves_all_known_influence_when_unknown_material_arrives()
     assert context.influence_label == label
     # AssembledContext deliberately detaches mutable history at its public seams.
     # A later mutation must not leave a lower cached label on the resulting value.
-    context.continuation.append({"tool_result": "unknown source"})
+    if transient:
+        context = replace(context, transient_chars=1)
+    else:
+        context.continuation.append({"tool_result": "unknown source"})
     aggregate = context.influence_label
     assert aggregate.classification is PrivacyClass.RESTRICTED
     assert aggregate.categories == label.categories

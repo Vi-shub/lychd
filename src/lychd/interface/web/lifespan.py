@@ -104,6 +104,7 @@ async def altar_services_lifespan(app: Litestar) -> AsyncGenerator[None]:
             settings=settings,
             systemctl_bin=systemctl_bin,
             soft_activation_guard=soft_activation_guard,
+            operator_access=getattr(app.state, "local_operator_access", None),
         )
 
         # Hydration and initial probes bridge synchronous work; keep them off the
@@ -442,6 +443,9 @@ async def _recover_durable_state(
     boot_cutoff: datetime,
 ) -> None:
     """Reconcile every durable authority before workers or HTTP can observe it."""
+    scout = getattr(services, "scout", None)
+    if scout is not None:
+        await scout.reconcile_before(boot_cutoff)
     await _sync_preauths_at_startup(runes=runes, settings=settings)
     required = settings.server.database.profile == "postgres"
     await _reconcile_cancellations_at_startup(

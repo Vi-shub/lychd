@@ -39,7 +39,7 @@ equivalence or compatibility across boots; the portable Spell catalogue remains 
 
 The catalogue is immutable after construction. It rejects duplicate `(key, revision)` pairs,
 requires an explicit active revision when one name has alternatives, requires explicit non-default
-route precedence, and names its default. Construction performs no package scan. Four current
+route precedence, and names its default. Construction performs no package scan. The current
 source-defined manifests retain these routes:
 
 | Pattern revision | Admission route | Checkpoint schema |
@@ -47,7 +47,9 @@ source-defined manifests retain these routes:
 | `bridge_chat@1` | Unconfigured default | `bridge-chat-state-v1` |
 | `bridge_chat@2` | [Configured exact capability](index.md#choose-a-bridge-capability) | `bridge-chat-state-v2` |
 | `bridge_chat@3` | Configured public Archive and exact capability | `bridge-archive-state-v1` |
+| `bridge_chat@4` | [Configured Scout](../scout.md#public-page-answers), authenticated command and exact local capability | `bridge-scout-state-v1` |
 | `delegated_rite@1` | Exact `/delegate` command token | `delegated-rite-state-v1` |
+| `delegated_rite@2` | Configured exact runtime and `/delegate` command token | `delegated-rite-state-v2` |
 
 [The owning registry source](https://github.com/hexanomicon/lychd/blob/main/src/lychd/agents/workflows/__init__.py)
 defines the retained revisions and their activation policy.

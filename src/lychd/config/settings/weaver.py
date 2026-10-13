@@ -9,22 +9,28 @@ from pydantic import ConfigDict, Field, field_validator, model_validator
 from lychd.config.settings.section import SettingsSection
 from lychd.domain.archive import ArchiveProfile
 from lychd.domain.delegation.routing import DelegatedRuntimeBinding
+from lychd.domain.scout.profile import ScoutProfile
 
 
 class BridgeCastingSettings(SettingsSection):
     """Select the configured Bridge revision and one exact capability identity."""
 
-    revision: Literal["2", "3"]
+    revision: Literal["2", "3", "4"]
     """The exact registered Bridge revision supporting a persisted capability binding."""
     capability_key: str = Field(min_length=1)
     """The exact animator:family:model capability key, never a model alias or pool."""
     archive: ArchiveProfile | None = None
     """Mandatory exact public-note binding for the read-only revision 3."""
+    scout: ScoutProfile | None = None
+    """Mandatory explicit public-page profile for revision 4 only."""
 
     @model_validator(mode="after")
     def _require_archive_binding(self) -> BridgeCastingSettings:
         if (self.revision == "3") != (self.archive is not None):
             msg = "Bridge revision 3 requires archive; revision 2 does not accept it."
+            raise ValueError(msg)
+        if (self.revision == "4") != (self.scout is not None):
+            msg = "Bridge revision 4 requires scout; other revisions do not accept it."
             raise ValueError(msg)
         return self
 

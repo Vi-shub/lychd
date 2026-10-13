@@ -31,6 +31,7 @@ from lychd.domain.cortex.engine import RunEngine
 from lychd.domain.cortex.events import InProcessEventBus, RunEvent, RunEventKind
 from lychd.domain.cortex.ledger import RunAdmissionConflictError
 from lychd.domain.cortex.runs import TERMINAL_STATUSES, RunRecord
+from lychd.domain.scout.profile import ScoutWorkflowError
 from lychd.domain.web.consent_reviews import (
     ConsentReviewFailureError,
     ConsentReviewForbiddenError,
@@ -103,6 +104,7 @@ async def _terminal_stream(
     *,
     cursor: int,
     reviewer: Sigil,
+    authentication: object | None = None,
 ) -> AsyncIterator[ServerSentEventMessage]:
     boundary = max(cursor, 0)
     reset_event = RunEvent(
@@ -112,7 +114,7 @@ async def _terminal_stream(
         kind=RunEventKind.RESYNC,
         data="snapshot_required",
     )
-    envelope = await projector.project(reset_event, reviewer=reviewer)
+    envelope = await projector.project(reset_event, reviewer=reviewer, authentication=authentication)
     yield ServerSentEventMessage(
         event=envelope.kind,
         data=envelope.model_dump_json(),
@@ -121,7 +123,12 @@ async def _terminal_stream(
 
 
 async def _reviewed_binding(
-    projector: EventProjector, view: ConsentView, *, reviewer: Sigil, digest: str | None
+    projector: EventProjector,
+    view: ConsentView,
+    *,
+    reviewer: Sigil,
+    digest: str | None,
+    authentication: object | None = None,
 ) -> NativeConsentBinding | None:
     """Refuse stale clients and current owner ineligibility before any verdict."""
     expected_binding = view.native_binding
@@ -129,7 +136,7 @@ async def _reviewed_binding(
         if expected_binding is None or digest != expected_binding.digest:
             raise ClientException(status_code=409, detail="Native review binding is unavailable or changed.")
         try:
-            await projector.native_review(view, reviewer=reviewer, purpose="decide")
+            await projector.native_review(view, reviewer=reviewer, purpose="decide", authentication=authentication)
         except ConsentReviewForbiddenError as exc:
             raise PermissionDeniedException(detail="Native review judgment is forbidden.") from exc
         except ConsentReviewUnavailableError as exc:
@@ -170,6 +177,7 @@ class BridgeController(Controller):
             workflows,
             state,
             reviewer=cast("Sigil", request.user),
+            authentication=request.auth,
         )
 
     @get(
@@ -204,6 +212,7 @@ class BridgeController(Controller):
             workflows,
             state,
             reviewer=cast("Sigil", request.user),
+            authentication=request.auth,
         )
 
     @get(
@@ -251,6 +260,7 @@ class BridgeController(Controller):
         session_id: FromPath[str],
         bridge_sessions: NamedDependency[SessionStorePort],
         run_engine: NamedDependency[RunEngine],
+        state: State,
     ) -> MessageAccepted:
         """Record a complete text command and admit one run."""
         session = await bridge_sessions.get_session(session_id)
@@ -269,6 +279,16 @@ class BridgeController(Controller):
             await bridge_sessions.add_turn(session_id, turn)
 
         try:
+            scout_admission = getattr(state.services, "scout_admission", None)
+            scout_declaration = (
+                scout_admission.declare(
+                    prompt=prompt,
+                    request_id=uuid5(NAMESPACE_URL, f"lychd:scout:bridge:{session_id}:{data.request_id}"),
+                    authentication=request.auth,
+                )
+                if scout_admission is not None
+                else None
+            )
             handle = await run_engine.submit(
                 Intent(
                     session_id=session_id,
@@ -280,8 +300,9 @@ class BridgeController(Controller):
                 retain_before_publish=retain_user_turn,
                 idempotency_key=f"bridge:{session_id}:{data.request_id}",
                 exclusive_session=True,
+                scout_declaration=scout_declaration,
             )
-        except RunAdmissionConflictError as exc:
+        except (RunAdmissionConflictError, ScoutWorkflowError) as exc:
             raise ValidationException(detail=str(exc)) from exc
         refreshed = await bridge_sessions.get_session(session_id)
         authoritative_turn = next(
@@ -337,6 +358,7 @@ class BridgeController(Controller):
             workflows,
             state,
             reviewer=cast("Sigil", request.user),
+            authentication=request.auth,
         )
 
     @post(
@@ -358,13 +380,10 @@ class BridgeController(Controller):
         workflows: NamedDependency[WorkflowRegistry],
         state: State,
     ) -> RunProjectionSnapshot:
-        """Idempotently cancel one Run and return its authoritative settled race."""
-        run = await state.services.ledger.get(run_id)
-        if run is None:
-            raise NotFoundException(detail="Unknown run.")
+        """Fence through the engine before reading or awaiting cancellation truth."""
         await run_engine.cancel(run_id)
         settled = await state.services.ledger.get(run_id)
-        if settled is None:  # pragma: no cover - the ledger cannot delete Runs
+        if settled is None:
             raise NotFoundException(detail="Unknown run.")
         return await self._run_projection(
             settled,
@@ -374,6 +393,7 @@ class BridgeController(Controller):
             workflows,
             state,
             reviewer=cast("Sigil", request.user),
+            authentication=request.auth,
         )
 
     async def _run_projection(
@@ -386,6 +406,7 @@ class BridgeController(Controller):
         state: State,
         *,
         reviewer: Sigil,
+        authentication: object | None = None,
     ) -> RunProjectionSnapshot:
         """Project Run evidence, preferring retained terminal replies over live deltas."""
         manifest = run.pattern_manifest
@@ -450,7 +471,10 @@ class BridgeController(Controller):
         delegated_profile = delegated_job.ref.profile if delegated_job is not None else None
         delegated_status = delegated_job.status.value if delegated_job is not None else None
         if live is not None:
-            fragments = [(await projector.project(fragment, reviewer=reviewer)).payload for fragment in live.fragments]
+            fragments = [
+                (await projector.project(fragment, reviewer=reviewer, authentication=authentication)).payload
+                for fragment in live.fragments
+            ]
             cursor, content, activity = (
                 live.cursor,
                 live.content,
@@ -528,6 +552,7 @@ class BridgeController(Controller):
     ) -> ServerSentEvent:
         """Stream versioned JSON envelopes with replay and terminal synthesis."""
         reviewer = cast("Sigil", request.user)
+        authentication = request.auth
         from_seq = _parse_last_event_id(request.headers.get("Last-Event-ID"))
         run = await state.services.ledger.get(run_id)
         if run is None:
@@ -539,6 +564,7 @@ class BridgeController(Controller):
                     run_id,
                     cursor=(await state.services.ledger.next_seq(run_id)) - 1,
                     reviewer=reviewer,
+                    authentication=authentication,
                 ),
                 bus=run_bus,
                 run_id=run_id,
@@ -561,7 +587,7 @@ class BridgeController(Controller):
                         return
                     finally:
                         pending = None
-                    envelope = await projector.project(event, reviewer=reviewer)
+                    envelope = await projector.project(event, reviewer=reviewer, authentication=authentication)
                     yield ServerSentEventMessage(
                         event=envelope.kind,
                         data=envelope.model_dump_json(),
@@ -601,8 +627,9 @@ class BridgeController(Controller):
         if view is None:
             raise NotFoundException(detail="Unknown consent.")
         reviewer = cast("Sigil", request.user)
+        authentication = request.auth
         expected_binding = await _reviewed_binding(
-            projector, view, reviewer=reviewer, digest=data.review_binding_digest
+            projector, view, reviewer=reviewer, digest=data.review_binding_digest, authentication=authentication
         )
         try:
             # Even settled retries check exact identity before repairing admission.
@@ -621,7 +648,7 @@ class BridgeController(Controller):
         if view.status != "pending":
             await run_engine.resume_consent(consent_id)
         return ConsentDecisionResult(
-            consent=await projector.consent_card_view(view, reviewer=reviewer),
+            consent=await projector.consent_card_view(view, reviewer=reviewer, authentication=authentication),
             pending_count=await consents.pending_count(),
         )
 
@@ -665,6 +692,7 @@ class BridgeController(Controller):
         state: State,
         *,
         reviewer: Sigil,
+        authentication: object | None = None,
     ) -> BridgeSnapshot:
         ledger = cast("RunLedger", state.services.ledger)
         session_runs = await ledger.list_for_session(session.id) if session is not None else []
@@ -687,11 +715,13 @@ class BridgeController(Controller):
                 workflows,
                 state,
                 reviewer=reviewer,
+                authentication=authentication,
             ),
             pending_consents=await self._pending_cards(
                 pending_views,
                 projector,
                 reviewer=reviewer,
+                authentication=authentication,
             ),
             pending_count=await consents.pending_count(),
         )
@@ -707,6 +737,7 @@ class BridgeController(Controller):
         state: State,
         *,
         reviewer: Sigil,
+        authentication: object | None = None,
     ) -> list[RunProjectionSnapshot]:
         """Project selected-session Runs not already represented by a settled turn."""
         if session is None:
@@ -726,6 +757,7 @@ class BridgeController(Controller):
                 workflows,
                 state,
                 reviewer=reviewer,
+                authentication=authentication,
             )
             for run in visible
         ]
@@ -736,5 +768,9 @@ class BridgeController(Controller):
         projector: EventProjector,
         *,
         reviewer: Sigil,
+        authentication: object | None = None,
     ) -> list[ConsentCard]:
-        return [await projector.consent_card_view(view, reviewer=reviewer) for view in pending_views]
+        return [
+            await projector.consent_card_view(view, reviewer=reviewer, authentication=authentication)
+            for view in pending_views
+        ]

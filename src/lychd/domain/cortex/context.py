@@ -45,18 +45,19 @@ class AssembledContext:
     continuation: list[Any]
     query: str
     context_window: int | None = None
+    transient_chars: int = 0
 
     @property
     def influence_label(self) -> PrivatizationLabel:
         """Join actual contributors without inferring lineage from copied block text.
 
-        Query, history, and continuation have no governed source adapters yet.
-        Their presence therefore adds unknown influence, even if a caller labels
-        a matching display block public. Message/tool mutation cannot retain a
-        stale, less restrictive cached aggregate.
+        Query, history, continuation, and reserved transient material have no
+        governed source adapters yet. Their presence therefore adds unknown
+        influence, even if a caller labels a matching display block public.
+        Message/tool mutation cannot retain a stale, less restrictive aggregate.
         """
         labels = tuple(block.label for block in self.blocks)
-        if self.query or self.state_window or self.continuation:
+        if self.query or self.state_window or self.continuation or self.transient_chars > 0:
             labels = (*labels, PrivatizationLabel())
         return join_labels(labels)
 
@@ -176,6 +177,7 @@ class ContextOrchestrator:
             continuation=current_chain,
             query=query,
             context_window=context_window,
+            transient_chars=transient_chars,
         )
         self._retain_environment_snapshot(
             run_id=run_id,

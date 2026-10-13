@@ -27,6 +27,7 @@ from lychd.agents.workflows import (
     BRIDGE_CHAT,
     BRIDGE_CHAT_ARCHIVE,
     BRIDGE_CHAT_BOUND,
+    BRIDGE_CHAT_SCOUT,
     DELEGATED_RITE,
     DELEGATED_RITE_BOUND,
     builtin_workflow_registry,
@@ -48,6 +49,7 @@ from lychd.domain.cortex.runs import RunRecord, RunStatus
 from lychd.domain.cortex.stasis import DurableStasisPhylactery, InMemoryStasisStore, LiveStasisPhylactery
 from lychd.domain.delegation.routing import DelegatedRuntimeBinding
 from lychd.ghouls.runs import _phylactery_for
+from tests.scout_fixtures import PROMPT, scout_binding
 
 pydantic_ai.models.ALLOW_MODEL_REQUESTS = False
 
@@ -73,6 +75,10 @@ def test_every_workflow_state_round_trips() -> None:
                         policy_revision="fixture@1",
                     ),
                 }
+            )
+        if workflow is BRIDGE_CHAT_SCOUT:
+            intent = intent.model_copy(
+                update={"prompt": PROMPT, "admitted_capability_key": "chat:offline", "admitted_scout": scout_binding()}
             )
         state = workflow.make_state(intent)
         # A live handle typed into State would break schema generation.

@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from lychd.domain.archive import ArchiveProfile  # runtime annotation for retained RunRecord serialization
 from lychd.domain.delegation.routing import DelegatedRuntimeBinding
+from lychd.domain.scout.profile import ScoutBinding
 
 if TYPE_CHECKING:
     from lychd.agents.router import Intent
@@ -176,6 +177,7 @@ class RunRecord:
     admitted_capability_key: str | None = None
     admitted_archive: ArchiveProfile | None = None
     admitted_delegation: DelegatedRuntimeBinding | None = None
+    admitted_scout: ScoutBinding | None = None
     attempt: int = 0
     enqueue_seq: int = 0
     error: str | None = None
@@ -203,6 +205,7 @@ class RunRecord:
             admitted_capability_key=self.admitted_capability_key,
             admitted_archive=self.admitted_archive,
             admitted_delegation=self.admitted_delegation,
+            admitted_scout=self.admitted_scout,
         )
 
 

@@ -182,6 +182,17 @@ pending answer settles, but cannot erase output already generated or streamed. A
 mutation may leave it committed: retry exact intake with its original identity; a stale lifecycle
 version refuses rather than repeating the transition.
 
+## Public-page answers
+
+With the opt-in [Scout profile](../../sepulcher/extensions/scout.md#public-page-answers), offer
+`/read-public` followed by one exact public HTTPS URL, then a newline and your question. Review
+the complete URL, resolver disclosure, limits and local answer capability on the consent card
+before approving. The answer may quote the page and is retained in this conversation.
+
+This profile answers one page independently, using no earlier conversation history or model tools.
+It does not search for URLs, follow redirects or retry a lost acquisition. A refused or expired
+review grants no contact. Loom shows the exact `bridge_chat@4` score; Orb keeps the Run outcome.
+
 ## Two crossings still being designed
 
 **Pin and Ask** would carry an authorized typed reference into a new Intent. Before admission, a preview would identify the reference, show what material would be included or summarized, disclose unavailable or redacted material, and state the permission involved. The Vessel would then reauthorize the request. Pinning a reference grants no retrieval or mutation authority.

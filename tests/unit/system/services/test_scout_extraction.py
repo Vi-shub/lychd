@@ -113,6 +113,22 @@ def test_missing_containment_refuses_without_launch(runtime: extraction.ScoutExt
     assert error.value.code is ExtractionCode.CONTAINMENT
 
 
+@pytest.mark.asyncio
+async def test_preflight_refusal_records_no_child(
+    runtime: extraction.ScoutExtractionRuntime,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    runtime.bwrap.unlink()
+    launch = AsyncMock()
+    monkeypatch.setattr(extraction.asyncio, "create_subprocess_exec", launch)
+    lifecycle = extraction.ExtractionLifecycle()
+    with pytest.raises(ExtractionError) as error:
+        await extraction.extract_static_text(b"", media_type="text/plain", runtime=runtime, lifecycle=lifecycle)
+    assert error.value.code is ExtractionCode.CONTAINMENT
+    assert lifecycle.child == "not_started"
+    launch.assert_not_called()
+
+
 @pytest.mark.parametrize("media_type", ["text/plain", "text/html"])
 def test_real_worker_record_becomes_attributed_data(media_type: ExtractionMedia) -> None:
     body = b"<p>source text</p>" if media_type == "text/html" else b"source text"
@@ -171,8 +187,12 @@ async def test_launch_uses_literal_command_empty_environment_closed_fds_and_exac
     process = _process(record, code)
     launch = AsyncMock(return_value=process)
     monkeypatch.setattr(extraction.asyncio, "create_subprocess_exec", launch)
-    result = await extraction.extract_static_text(b"ordinary text", media_type="text/plain", runtime=runtime)
+    lifecycle = extraction.ExtractionLifecycle()
+    result = await extraction.extract_static_text(
+        b"ordinary text", media_type="text/plain", runtime=runtime, lifecycle=lifecycle
+    )
     assert result.text == "ordinary text"
+    assert lifecycle.child == "reaped"
     assert launch.call_args.args == extraction._command(runtime)
     assert launch.call_args.kwargs == {
         "stdin": -1,
@@ -198,11 +218,50 @@ async def test_launcher_failure_has_no_bare_subprocess_fallback(
 ) -> None:
     launch = AsyncMock(side_effect=PermissionError("foreign diagnostics"))
     monkeypatch.setattr(extraction.asyncio, "create_subprocess_exec", launch)
+    lifecycle = extraction.ExtractionLifecycle()
     with pytest.raises(ExtractionError) as error:
-        await extraction.extract_static_text(b"", media_type="text/plain", runtime=runtime)
+        await extraction.extract_static_text(b"", media_type="text/plain", runtime=runtime, lifecycle=lifecycle)
     assert error.value.code is ExtractionCode.CONTAINMENT
+    assert lifecycle.child == "not_started"
     assert "foreign" not in str(error.value)
     launch.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_worker_refusal_retains_observed_reaping(
+    runtime: extraction.ScoutExtractionRuntime,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    body = b"source\0text"
+    record, code = _record(body)
+    process = _process(record, code)
+    monkeypatch.setattr(extraction.asyncio, "create_subprocess_exec", AsyncMock(return_value=process))
+    lifecycle = extraction.ExtractionLifecycle()
+    with pytest.raises(ExtractionError) as error:
+        await extraction.extract_static_text(body, media_type="text/plain", runtime=runtime, lifecycle=lifecycle)
+    assert error.value.code is ExtractionCode.WORKER
+    assert lifecycle.child == "reaped"
+    process.wait.assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_lifecycle_cannot_be_reused_for_another_invocation(
+    runtime: extraction.ScoutExtractionRuntime,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    launch = AsyncMock()
+    monkeypatch.setattr(extraction.asyncio, "create_subprocess_exec", launch)
+    lifecycle = extraction.ExtractionLifecycle()
+    with pytest.raises(ExtractionError) as first:
+        await extraction.extract_static_text(
+            b"", media_type=cast("ExtractionMedia", "unknown"), runtime=runtime, lifecycle=lifecycle
+        )
+    assert first.value.code is ExtractionCode.MEDIA
+    with pytest.raises(ExtractionError) as second:
+        await extraction.extract_static_text(b"", media_type="text/plain", runtime=runtime, lifecycle=lifecycle)
+    assert second.value.code is ExtractionCode.CONTAINMENT
+    assert lifecycle.child == "not_started"
+    launch.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -267,9 +326,11 @@ async def test_unproved_cleanup_is_refusal_not_success(monkeypatch: pytest.Monke
     async def spawned() -> asyncio.subprocess.Process:
         return cast("asyncio.subprocess.Process", process)
 
+    lifecycle = extraction.ExtractionLifecycle()
     with pytest.raises(ExtractionError) as error:
-        await extraction._finish_cleanup(asyncio.create_task(spawned()))
+        await extraction._finish_cleanup(asyncio.create_task(spawned()), lifecycle)
     assert error.value.code is ExtractionCode.CLEANUP
+    assert lifecycle.child is None
 
 
 @pytest.mark.asyncio
@@ -285,9 +346,11 @@ async def test_invalid_input_refuses_before_any_launch(
     media_type = cast("ExtractionMedia", "application/xml") if case == "media" else "text/plain"
     if case == "media":
         body = b""
+    lifecycle = extraction.ExtractionLifecycle()
     with pytest.raises(ExtractionError) as error:
-        await extraction.extract_static_text(body, media_type=media_type, runtime=runtime)
+        await extraction.extract_static_text(body, media_type=media_type, runtime=runtime, lifecycle=lifecycle)
     assert error.value.code is (ExtractionCode.MEDIA if case == "media" else ExtractionCode.INPUT)
+    assert lifecycle.child == "not_started"
     launch.assert_not_called()
 
 
@@ -339,14 +402,19 @@ async def test_repeated_cancellation_cannot_interrupt_owned_cleanup(
     monkeypatch.setattr(extraction.asyncio, "create_subprocess_exec", AsyncMock(return_value=process))
     monkeypatch.setattr(extraction, "_exchange", exchange)
     monkeypatch.setattr(extraction.os, "killpg", kill)
-    task = asyncio.create_task(extraction.extract_static_text(b"", media_type="text/plain", runtime=runtime))
+    lifecycle = extraction.ExtractionLifecycle()
+    task = asyncio.create_task(
+        extraction.extract_static_text(b"", media_type="text/plain", runtime=runtime, lifecycle=lifecycle)
+    )
     await entered.wait()
     task.cancel()
     await cleanup_entered.wait()
+    assert lifecycle.child is None
     task.cancel()
     release.set()
     with pytest.raises(asyncio.CancelledError):
         await task
+    assert lifecycle.child == "reaped"
     kill.assert_called_once_with(process.pid, signal.SIGKILL)
 
 
@@ -398,12 +466,15 @@ async def test_late_launch_after_cleanup_refusal_still_has_kill_and_reap_owner(
     monkeypatch.setattr(extraction.os, "killpg", kill)
     monkeypatch.setattr(extraction, "_CLEANUP_SECONDS", 0.001)
     spawn = asyncio.create_task(spawned())
+    lifecycle = extraction.ExtractionLifecycle()
     with pytest.raises(ExtractionError) as error:
-        await extraction._finish_cleanup(spawn)
+        await extraction._finish_cleanup(spawn, lifecycle)
     assert error.value.code is ExtractionCode.CLEANUP
+    assert lifecycle.child is None
     kill.assert_not_called()
     release.set()
     await asyncio.wait_for(reaped.wait(), timeout=1.0)
     kill.assert_called_once_with(process.pid, signal.SIGKILL)
     process.wait.assert_awaited_once()
     process.stdin.close.assert_called_once()
+    assert lifecycle.child is None

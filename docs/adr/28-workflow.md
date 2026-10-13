@@ -179,7 +179,8 @@ canonical namespace.
 
 Fixed source registry retains bridge_chat@1 (Bridge conversation, context, Agent turn, optional consent
 Gate, reply), adds bridge_chat@2 with an admission-pinned exact capability key and bridge_chat@3
-with that key plus an explicit public-note Archive profile, and retains
+with that key plus an explicit public-note Archive profile. Opt-in bridge_chat@4 binds one
+authenticated public-page declaration and Scout profile. The registry also retains
 delegated_rite@1 (exact `/delegate` command token, reference job, Durable Stasis,
 result/reply). Optional delegated_rite@2 retains one configured runtime/profile through Run admission
 and checkpoint validation; neither revision supplies an external coding-agent/Tomb plane. One boot-composed catalogue
@@ -205,6 +206,31 @@ current authority or source eligibility refuses continuation. The receipt's iden
 digests may enter Graph state, while recalled bytes remain transient Context data. Revisions 1
 and 2 keep their existing manifests and recovery contracts. State of Work separately records
 whether the new revision's runtime and PostgreSQL acceptance have passed.
+
+The opt-in `bridge_chat@4` revision answers one explicitly declared public page. Its
+command is `/read-public <exact HTTPS URL>` followed by a newline and a nonblank question. The
+authenticated operator separately declares the complete locator public under the current local
+Scout classification policy; an ordinary message or model-produced URL cannot supply that
+declaration. Admission retains the declaration, exact Scout profile and local chat capability.
+This revision refuses other command forms rather than falling back to another Bridge revision.
+
+Its score is `PreparePageReview` → `AwaitPageConsent` → `AcquireAndAnswerPage` →
+`SettlePageAnswer`. Preparation atomically retains the acquisition request and complete native
+review with its consent. The consent Gate parks without acquiring material. The acquisition station
+resolves and verifies the exact local chat grant before claiming Scout's durable, bounded attempt;
+hardware re-entry cannot repeat an issued acquisition. Fetch, extraction and inference share that
+station. Scout rechecks current authority after awaited preparation and before each network handoff,
+extraction and material consumption, including token counting. No remote model or model tool is
+admitted by this profile.
+
+State contains admitted identities, preparation/receipt references, dispositions and the ordinary
+answer. Acquired bytes remain bounded attributed Context data, with influence and budget accounted
+for; they cannot become instructions or authority. A receipt without its transient material cannot
+authorize refetch after a park, retry or restart. Such a continuation reports material unavailable
+unless the answer already reached its retained settlement checkpoint. An answer may quote source
+text and is retained as ordinary Bridge history; transient acquisition is not a promise that no
+derived text persists. The first profile follows no redirects. Revisions 1–3 retain their manifests
+and recovery contracts. State of Work owns delivery and end-to-end qualification separately.
 
 ## Pattern identity
 
@@ -304,7 +330,7 @@ from a similar label. Placement-specific Agent and Context assembly occurs after
 Reader may receive an exact `structure` or `verbatim` projection without acquiring Writer tools,
 while a Writer must separately satisfy its declared effect and authority contract. The current
 source delivers the fixed v2 registry and a bounded `[weaver.bridge]` selector for `bridge_chat@2`
-or the public-note `bridge_chat@3` profile.
+or the public-note `bridge_chat@3` and public-page `bridge_chat@4` profiles.
 Its exact capability key is server-admitted Run intent, copied into typed Graph state; a missing key refuses admission or checkpoint decoding,
 and an unavailable target never falls back to another runtime. The worker binds the revision's
 state validator to persisted Run intent; the Graph runner checks fresh and restored state before

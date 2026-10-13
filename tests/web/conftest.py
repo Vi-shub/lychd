@@ -129,6 +129,7 @@ class FakeRunEngine(RunEngine):
         retain_before_publish: Any = None,
         idempotency_key: str | None = None,
         exclusive_session: bool = False,
+        scout_declaration: Any = None,
     ) -> RunHandle:
         """Record the intent and open a run channel on the bus for the stream to tail.
 
@@ -136,6 +137,8 @@ class FakeRunEngine(RunEngine):
         not carried in on `intent.run_id` (which is advisory/None from the bridge).
         """
         import uuid
+
+        assert scout_declaration is None
 
         existing_run_id = self.admitted_keys.get(idempotency_key) if idempotency_key is not None else None
         self.exclusive_session_submissions.append(exclusive_session)

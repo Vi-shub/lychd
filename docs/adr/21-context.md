@@ -225,7 +225,9 @@ new preparation. Source influence remains unchanged; broadly visible evidence co
 random event identifier. No source digest or candidate body is a public receipt.
 
 Context Blocks default to unknown, restricted influence. Assembly joins block influence and treats
-ungoverned query, history, and continuation conservatively. These labels do not qualify governed
+ungoverned query, history, continuation, and reserved transient material conservatively. A transient
+character reservation carries unknown influence without retaining those bytes in the Context cache.
+These labels do not qualify governed
 SQL/tool/artifact source adapters or end-to-end derivation lineage. The semantic Privacy Agent,
 pseudonym-map vault, provider-specific sanitized branch, and trusted Egress Gate remain
 undelivered; [State of Work](../state-of-the-work.md#context-privatization-and-portal-egress) owns

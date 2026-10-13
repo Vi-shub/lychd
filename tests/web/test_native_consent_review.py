@@ -55,13 +55,20 @@ class Producer:
 
     def __init__(self) -> None:
         self.calls: list[tuple[str, str, str]] = []
+        self.authentications: list[object | None] = []
         self.failure: str | None = None
         self.decision_allowed = True
         self.revoke_on_decide = False
 
     async def resolve(
-        self, *, consent: ConsentView, reviewer: Sigil, purpose: Literal["view", "decide"]
+        self,
+        *,
+        consent: ConsentView,
+        reviewer: Sigil,
+        purpose: Literal["view", "decide"],
+        authentication: object | None = None,
     ) -> NativeReviewResolution:
+        self.authentications.append(authentication)
         self.calls.append((consent.id, reviewer.name, purpose))
         if reviewer.name != "eligible" or self.failure == "forbidden":
             raise ConsentReviewForbiddenError
@@ -85,9 +92,9 @@ class Producer:
 def _client(services: SimpleNamespace, reviewers: list[Sigil]) -> AsgiClient:
     class ReviewerMiddleware(SigilAuthMiddleware):
         async def authenticate_request(self, connection: ASGIConnection[Any, Any, Any, Any]) -> AuthenticationResult:
-            await super().authenticate_request(connection)
+            result = await super().authenticate_request(connection)
             # Trusted test injection precedes route guards; clients cannot choose it.
-            return AuthenticationResult(user=reviewers[0], auth=None)
+            return AuthenticationResult(user=reviewers[0], auth=result.auth)
 
     app = Litestar(
         route_handlers=[BridgeController],
@@ -337,9 +344,13 @@ def test_binding_change_during_owner_resolution_refuses_before_verdict(
     resolve = producer.resolve
 
     async def changed(
-        *, consent: ConsentView, reviewer: Sigil, purpose: Literal["view", "decide"]
+        *,
+        consent: ConsentView,
+        reviewer: Sigil,
+        purpose: Literal["view", "decide"],
+        authentication: object | None = None,
     ) -> NativeReviewResolution:
-        result = await resolve(consent=consent, reviewer=reviewer, purpose=purpose)
+        result = await resolve(consent=consent, reviewer=reviewer, purpose=purpose, authentication=authentication)
         fake_services.consents._rows["native"].native_binding = replace(value, preparation_digest="d" * 64)
         return result
 
@@ -363,9 +374,10 @@ def test_run_snapshot_cancel_and_terminal_stream_pass_authenticated_reviewer(
     seen: list[tuple[str, str]] = []
     project = fake_services.projector.project
 
-    async def recording(event: RunEvent, *, reviewer: Sigil) -> Any:
+    async def recording(event: RunEvent, *, reviewer: Sigil, authentication: object | None = None) -> Any:
+        assert authentication is not None
         seen.append((str(event.kind), reviewer.name))
-        return await project(event, reviewer=reviewer)
+        return await project(event, reviewer=reviewer, authentication=authentication)
 
     monkeypatch.setattr(fake_services.projector, "project", recording)
     fake_services.bus.emitter(run_id).emit(RunEventKind.FRAGMENT, "{}")

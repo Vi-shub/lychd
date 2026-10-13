@@ -13,9 +13,8 @@ Composition decides what it means and whether it serves the work.
 > _Bring back the voice, and the trail that led you to it._
 
 Scout follows [Webcrawler](../../adr/30-webcrawler.md).
-[State](../../state-of-the-work.md#scout-web-acquisition) distinguishes the verified destination
-preflight, native transport and local extraction mechanisms from the workflow passage that
-remains unfinished.
+[State](../../state-of-the-work.md#scout-web-acquisition) distinguishes the verified mechanisms
+and opt-in public-page workflow from Search, Crawl and Render work that remains unfinished.
 
 ## The first passage
 
@@ -155,7 +154,90 @@ separate isolated-network qualification: real DNS and TLS fixtures lead into the
 while certificate, destination, framing and current-handoff refusals remain visible. It accepts
 ordinary HTTP/1.1 HTML/plain-text responses with identity or gzip encoding. Chunk extensions,
 trailers and unlisted redirects refuse. This mechanism proof uses a synthetic gate; durable
-attempts, current operator authority and the hosting Bridge workflow remain unfinished.
+attempts and current operator authority have their own PostgreSQL and workflow checks. Neither
+receipt alone proves a deployed application, a selected model or arbitrary host compatibility.
+
+## Public-page answers
+
+The opt-in `bridge_chat@4` casting prepares a native review, waits for your decision, acquires one
+page and answers with one exact local chat capability. Its Bridge command is:
+
+```text
+/read-public https://example.com/page
+What does this page claim?
+```
+
+Sending this command asserts that the complete locator, including its path and query, is public.
+The assertion requires the actual authenticated local operator and current Scout classification
+policy. It is not proof of publicness. The review identifies the URL, resolver and its declared
+custody, DNS/TLS disclosures, resource ceilings, local model and answer retention before contact.
+Approval grants neither retries nor additional URLs.
+
+Select revision 4 in `lychd.toml` only with PostgreSQL and an independently qualified extraction
+runtime. These example paths and capability names must be replaced with your reviewed inventory:
+
+```toml
+[weaver.bridge]
+revision = "4"
+capability_key = "my-runtime:chat:my-local-model"
+
+[weaver.bridge.scout]
+binding_id = "public-page-local"
+policy_revision = 1
+revocation_generation = 0
+resolver_address = "127.0.0.1"
+resolver_port = 53
+resolver_custody_statement = "This operator-owned resolver forwards the declared public hostname to its configured upstream."
+ca_file = "/etc/ssl/certs/ca-certificates.crt"
+bwrap = "/usr/bin/bwrap"
+python_root = "/opt/scout-python"
+libraries = [
+  "/lib64/ld-linux-x86-64.so.2", "/lib64/libc.so.6", "/lib64/libdl.so.2",
+  "/lib64/libgcc_s.so.1", "/lib64/libm.so.6", "/lib64/libpthread.so.0",
+  "/lib64/librt.so.1", "/lib64/libutil.so.1",
+]
+max_context_chars = 16000
+review_ttl_seconds = 300
+
+[weaver.bridge.scout.allowance]
+connects = 3
+transmissions = 512
+wire_bytes = 1048576
+
+[weaver.bridge.scout.budget_limits.host]
+connects = 30
+transmissions = 5120
+wire_bytes = 10485760
+
+[weaver.bridge.scout.budget_limits.binding]
+connects = 15
+transmissions = 2560
+wire_bytes = 5242880
+```
+
+The resolver address must be numeric; its reachable TCP listener and upstream custody are operator
+configuration. The example does not start a resolver or qualify those paths. The dedicated Python
+tree must contain no operator material. Runtime and library qualification follows the maintained
+Linux proof procedure in the contribution guide.
+
+The process shares one Scout authority and cancellation fence between HTTP and workers. Each
+attempt reserves worst-case outbound counters before I/O; only observed completion settles actual
+usage. One binding admits one active acquisition. Budgets are cumulative, and changing a binding
+name or restarting cannot reset them. Unknown crash outcomes retain their reservation and slot;
+this profile provides no automatic reconciliation or retry. A changed budget configuration refuses
+against existing budget rows instead of silently discarding their accounting.
+
+Acquired bytes enter the selected local model as bounded, attributed, untrusted data. Token
+counting and inference both require current authority. There are no model tools, remote fallback,
+settled-history replay or automatic redirects. The ordinary answer is retained and may quote the
+page; raw acquisition and its injected envelope are not saved in Graph state or model history.
+Lost transient material cannot be reconstructed from a receipt or silently fetched again.
+
+Revision 4 becomes the selected Bridge profile, so other message forms refuse there. Removing
+the selector restores the default for new admissions; retained Runs keep their original revision.
+Restart replaces the authentication generation, so prior prepared work cannot acquire fresh
+authority merely by restoring its records. Loom displays the registered score and its activation;
+it does not edit this casting or activate Search, Crawl or Render.
 
 ## The laws of the road
 

@@ -35,6 +35,7 @@ CI_PYTEST_TARGETS := tests/unit/config tests/unit/db \
 	tests/unit/system/test_scout_worker.py tests/unit/system/services/test_scout_extraction.py \
 	tests/unit/system/services/test_scout_dns.py tests/unit/system/services/test_scout_socket.py \
 	tests/unit/system/services/test_scout_http.py tests/unit/system/services/test_scout_fetch.py \
+	tests/unit/system/services/test_scout_workflow.py tests/codex/test_local_access.py \
 	tests/unit/domain/test_artifact_custody.py \
 	tests/unit/domain/animation tests/unit/domain/cortex tests/unit/domain/delegation \
 	tests/unit/domain/orchestration tests/unit/domain/privacy tests/unit/domain/web tests/unit/domain/scout \
@@ -51,6 +52,8 @@ CONTAINER_TEST_TARGETS ?= tests/integration/test_db_consent_pg.py \
 	tests/integration/test_db_migrations_pg.py \
 	tests/integration/test_db_nexus_pg.py \
 	tests/integration/test_db_run_ledger_pg.py \
+	tests/integration/test_scout_attempts_pg.py tests/integration/test_scout_migrations_pg.py \
+	tests/integration/test_scout_workflow_pg.py \
 	tests/integration/test_production_wiring.py::test_production_wiring_real_factory_over_postgres_survives_second_boot
 PYTEST_BASE_ROOT ?= .cache/pytest
 PYTEST_BASETEMP ?=

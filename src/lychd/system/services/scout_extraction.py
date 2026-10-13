@@ -17,7 +17,7 @@ from contextlib import suppress
 from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
-from typing import cast
+from typing import Literal, cast
 
 from lychd.domain.scout.extraction import ExtractedText, ExtractionCode, ExtractionError, ExtractionMedia
 from lychd.system.scout_worker import (
@@ -66,6 +66,32 @@ class ScoutExtractionRuntime:
     bwrap: Path
     python_root: Path
     libraries: tuple[Path, ...]
+
+
+class ExtractionLifecycle:
+    """One invocation's extractor-owned child disposition, without source data.
+
+    ``None`` means termination is unproved. A late reaper cannot upgrade that
+    uncertainty into settlement evidence after the extraction has returned.
+    The host may read this record, but must never reconstruct or reuse it.
+    """
+
+    __slots__ = ("_child", "_entered")
+
+    def __init__(self) -> None:
+        """Observe no child until the extractor schedules its first launch."""
+        self._child: Literal["not_started", "reaped"] | None = "not_started"
+        self._entered = False
+
+    @property
+    def child(self) -> Literal["not_started", "reaped"] | None:
+        """Return only the disposition observed by this invocation's supervisor."""
+        return self._child
+
+    def _begin(self) -> None:
+        if self._entered:
+            raise ExtractionError(ExtractionCode.CONTAINMENT)
+        self._entered = True
 
 
 def _command(runtime: ScoutExtractionRuntime) -> tuple[str, ...]:
@@ -266,15 +292,16 @@ def _kill_late_spawn(spawn: asyncio.Task[asyncio.subprocess.Process]) -> None:
     reaper.add_done_callback(_late_reaped)
 
 
-async def _cleanup(spawn: asyncio.Task[asyncio.subprocess.Process]) -> None:
+async def _cleanup(spawn: asyncio.Task[asyncio.subprocess.Process]) -> Literal["not_started", "reaped"]:
     """Settle the bwrap parent and its mandatory PID namespace, or refuse certainty."""
     try:
         if spawn.done() and not spawn.cancelled() and spawn.exception() is not None:
-            return
+            return "not_started"
         async with asyncio.timeout(_CLEANUP_SECONDS):
             process = await asyncio.shield(spawn)
             _kill(process)
             await _reap(process)
+            return "reaped"
     except (TimeoutError, OSError):
         # Shielded launch may complete later. Retain a kill/reap owner even though
         # the synchronous caller must retain its reservation as uncertain.
@@ -282,7 +309,12 @@ async def _cleanup(spawn: asyncio.Task[asyncio.subprocess.Process]) -> None:
         raise ExtractionError(ExtractionCode.CLEANUP) from None
 
 
-async def _finish_cleanup(spawn: asyncio.Task[asyncio.subprocess.Process]) -> None:
+async def _finish_cleanup(
+    spawn: asyncio.Task[asyncio.subprocess.Process], lifecycle: ExtractionLifecycle | None = None
+) -> None:
+    if lifecycle is not None:
+        # This module's supervisor alone writes the public read-only record.
+        lifecycle._child = None  # pyright: ignore[reportPrivateUsage] # noqa: SLF001
     cleanup = asyncio.create_task(_cleanup(spawn))
     cancelled = False
     while not cleanup.done():
@@ -290,20 +322,34 @@ async def _finish_cleanup(spawn: asyncio.Task[asyncio.subprocess.Process]) -> No
             await asyncio.shield(cleanup)
         except asyncio.CancelledError:
             cancelled = True
-    cleanup.result()
+    disposition = cleanup.result()
+    if lifecycle is not None:
+        # Publish actual cleanup before propagating cancellation.
+        lifecycle._child = disposition  # pyright: ignore[reportPrivateUsage] # noqa: SLF001
     if cancelled:
         raise asyncio.CancelledError
 
 
 async def extract_static_text(
-    body: bytes, *, media_type: ExtractionMedia, runtime: ScoutExtractionRuntime
+    body: bytes,
+    *,
+    media_type: ExtractionMedia,
+    runtime: ScoutExtractionRuntime,
+    lifecycle: ExtractionLifecycle | None = None,
 ) -> ExtractedText:
     """Extract one bounded body in the fixed worker, without any automatic retry.
 
     Cancellation propagates only after bounded cleanup. CLEANUP refusal is an
     uncertain terminal outcome; a caller must not release its work reservation.
+    A supplied single-use lifecycle records actual launch/cleanup disposition,
+    including refusals before launch and cancellation after proved cleanup.
     This local foundation does not issue an Extract grant or bind a web attempt.
     """
+    observation = ExtractionLifecycle() if lifecycle is None else lifecycle
+    if type(observation) is not ExtractionLifecycle:
+        raise ExtractionError(ExtractionCode.CONTAINMENT)
+    # One supervisor invocation owns each observation.
+    observation._begin()  # pyright: ignore[reportPrivateUsage] # noqa: SLF001
     if type(body) is not bytes or len(body) > MAX_BODY_BYTES:
         raise ExtractionError(ExtractionCode.INPUT)
     if type(media_type) is not str or media_type not in {"text/plain", "text/html"}:
@@ -314,6 +360,7 @@ async def extract_static_text(
     )
     if len(header) > MAX_HEADER_BYTES:
         raise ExtractionError(ExtractionCode.PROTOCOL)
+    observation._child = None  # noqa: SLF001 - A scheduled launch needs proved cleanup before settlement.
     spawn = asyncio.create_task(
         asyncio.create_subprocess_exec(
             *command,
@@ -336,5 +383,5 @@ async def extract_static_text(
     except OSError:
         raise ExtractionError(ExtractionCode.CONTAINMENT) from None
     finally:
-        await _finish_cleanup(spawn)
+        await _finish_cleanup(spawn, observation)
     return _result(record, body, media_type, exit_code)

@@ -357,6 +357,10 @@ async def test_memory_bio_tls_gates_handshake_application_and_read_generated_con
     assert gate.calls[3].wire_bytes == b"encrypted:GET / HTTP/1.1\r\n\r\n"
     assert gate.calls[-1].application_bytes is None
     sent = raw.send.call_count
+    with pytest.raises(FetchError) as refused:
+        await stream.send(b"GET / HTTP/1.1\r\n\r\n")
+    assert refused.value.code is FetchCode.PROTOCOL
+    assert raw.send.call_count == sent
     stream.close()
     assert raw.send.call_count == sent
     ssl_object.unwrap.assert_not_called()

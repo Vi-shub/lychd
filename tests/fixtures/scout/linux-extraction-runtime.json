@@ -50,7 +50,7 @@
   "source_sha256": {
     "src/lychd/domain/scout/extraction.py": "403cc56c1f8890a99ae2d744b558e9eb45042cf8403ad9f7102fa75aeeb93da8",
     "src/lychd/system/scout_worker.py": "b1cd9ba101653e276ff66847419f07b24589dcc5b76d92df867fc115475d2f66",
-    "src/lychd/system/services/scout_extraction.py": "2683b3ca80dc633fc25ae46383face6ff93e6119a4596268f09a84c84356ade9",
+    "src/lychd/system/services/scout_extraction.py": "803dbcec9c5031ed2c05eb258146a8df0f0c5cb572a9306c31032f3d4079732a",
     "tests/integration/test_scout_extraction_runtime.py": "6a7967b36c56eb97977a025302e6c6163d3bbb76699a9546e2586ada1ce12920"
   },
   "status": "passed"

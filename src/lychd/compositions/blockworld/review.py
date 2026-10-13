@@ -95,8 +95,14 @@ class BlockworldConsentReviewProducer:
         self.store, self.authority = store, authority
 
     async def resolve(
-        self, *, consent: ConsentView, reviewer: Sigil, purpose: Literal["view", "decide"]
+        self,
+        *,
+        consent: ConsentView,
+        reviewer: Sigil,
+        purpose: Literal["view", "decide"],
+        authentication: object | None = None,
     ) -> NativeReviewResolution:
+        _ = authentication  # This profile uses its independently injected review authority.
         from lychd.compositions.blockworld.services import validate_action
 
         if consent.native_binding is None:

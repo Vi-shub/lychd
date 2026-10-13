@@ -357,6 +357,9 @@ after configuration changes or removal, including idempotent retries. Dispatcher
 key together with family, modalities, tools, readiness, and drain constraints; duplicate model
 aliases cannot redirect the turn. Missing or mismatched checkpoint bindings refuse execution before
 a node runs. Revision 1 keeps its original manifest and remains executable after activation changes.
+The same selector also admits the bounded [public-note](#karma-semantic-memory) and
+[Scout public-page](#scout-web-acquisition) revisions; their authority and evidence boundaries
+remain with those records.
 
 **Boundary — Not yet:** This pins capability identity, not a model artifact or runtime declaration
 generation. No configurable pool, portable Resolution Lock, general Pattern/AgentSpec/Context
@@ -1396,15 +1399,33 @@ prevent reuse of that proof for changed mechanisms. Optional Run-effect lifecycl
 the exact worker claim before settlement awaits, preserve refusal after failed cleanup, and
 fence shutdown before draining; their tests include stale-worker/successor races.
 
-**Boundary — Not yet:** There is no Scout provider, browser service, endpoint, Agent tool,
-acquisition receipt, download quarantine, authenticated session, or Smith ingestion path. There is
-no SearXNG or Crawl4AI Rune/adapter, no Scout provider store or effect-scoped tool binding, and no
-renderer containment outside the shared Pod.
-No Search engine has passed qualification. The isolated transport proof uses a synthetic audit
-gate, not a production authorizer. Fetch and extraction are not registered with a production
-workflow; current consent, classification/egress authority, durable attempts, grants, shared
-reservations and complete attributed-return accounting remain required before enabling a passage.
-The composition root must inject the same effect lifecycle into admission and workers.
+The opt-in `bridge_chat@4` path now binds an actual local authentication marker, an explicit
+public-locator declaration, an immutable Scout profile and an exact local chat capability. Native
+review precedes acquisition. PostgreSQL retains preparation and consent atomically, admits one
+active claim per binding, reserves host/binding counters, and releases them only against an owned
+completion. Unknown attempts keep reservations and their slot; a new process cannot reconstruct
+material or live authority from those rows. Transactional migration and retained-history downgrade
+guards have separate PostgreSQL acceptance.
+
+The production composition shares the same effect lifecycle between HTTP and workers. Current
+authority is checked after waits and before DNS, TLS/HTTP writes, extraction, token counting and
+local inference. The source envelope is transient and contributes unknown/restricted Context
+influence; only references and the ordinary answer enter the retained workflow. The answer may
+quote its source. Controlled workflow tests cover native consent, exact local-model selection,
+hardware waits, cancellation races, material loss and absence of refetch or remote fallback.
+An assembled PostgreSQL fixture additionally crosses actual credential admission, Run delivery,
+native consent and resumed claim, owned settlement and persisted turns. Its transport, child
+process and model are controlled substitutes, distinct from the separately qualified mechanisms.
+
+**Boundary — Not yet:** No SearXNG or Crawl4AI Rune/adapter, general Scout provider store,
+effect-scoped Agent tool, download quarantine, website authentication/session custody, or Smith
+ingestion path ships. No Search engine has passed qualification. The maintained DNS/TLS proof
+uses a synthetic audit gate; current production authority has separate adversarial contract tests.
+These receipts do not prove a deployed PostgreSQL/HTTP/model/network combination or arbitrary
+host compatibility. The first workflow accepts only its explicit public-page command, follows no
+redirects, and requires a qualified local extractor and exact local model. Budget reset and
+unknown-attempt reconciliation have no automatic operational path. Rendering remains separately
+unimplemented outside the shared Pod.
 
 **Evidence**
 
@@ -1414,6 +1435,9 @@ The composition root must inject the same effect lifecycle into admission and wo
 - **Verification:** [Destination boundary tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/scout/test_destination.py), [worker tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/test_scout_worker.py), [supervision and receipt-freshness tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_scout_extraction.py), [live host proof](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_scout_extraction_runtime.py), and [maintained qualification receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/scout/linux-extraction-runtime.json)
 - **Source:** [Native acquisition](https://github.com/hexanomicon/lychd/blob/main/src/lychd/system/services/scout_fetch.py), [gated transport](https://github.com/hexanomicon/lychd/blob/main/src/lychd/system/services/scout_socket.py), and [Run effect fences](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/cortex/cancellation.py)
 - **Verification:** [Acquisition and freshness tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_scout_fetch.py), [HTTP decoder tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_scout_http.py), [Run fencing tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_cancellation.py), [isolated network proof](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_scout_fetch_runtime.py), and [maintained transport receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/scout/linux-fetch-runtime.json)
+- **Source:** [Current authority](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/scout/authority.py), [durable attempts](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/scout.py), [owned coordinator](https://github.com/hexanomicon/lychd/blob/main/src/lychd/system/services/scout_workflow.py), and [public-page casting](https://github.com/hexanomicon/lychd/blob/main/src/lychd/agents/workflows/scout_chat.py)
+- **Verification:** [Authority contracts](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/scout/test_authority.py), [PostgreSQL attempts](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_scout_attempts_pg.py), [migration custody](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_scout_migrations_pg.py), [coordinator boundaries](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_scout_workflow.py), and [transient workflow projection](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_scout_chat.py)
+- **Verification:** [Assembled PostgreSQL workflow](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_scout_workflow_pg.py)
 
 ### Vision admission {#vision-admission}
 

@@ -281,6 +281,7 @@ class PinnedTlsStream:
         self._tls = context.wrap_bio(self._incoming, self._outgoing, server_hostname=tcp._target.hostname)
         self._handshake_in = 0
         self._handshake_out = 0
+        self._application_started = False
 
     async def _flush(self, phase: _SendPhase = "tls", application_bytes: bytes | None = None) -> None:
         if self._outgoing.pending > _MAX_BIO_BYTES:
@@ -332,6 +333,9 @@ class PinnedTlsStream:
         attributed to that application operation; the gate never decrypts/invents it.
         """
         with self._tcp._operation():
+            if self._application_started:
+                raise FetchError(FetchCode.PROTOCOL)
+            self._application_started = True
             if type(data) is not bytes or not 0 < len(data) <= MAX_APPLICATION_BYTES:
                 raise FetchError(FetchCode.INPUT)
             await self._flush()

@@ -12,6 +12,7 @@ from litestar.config.csrf import CSRFConfig
 from litestar.response import ServerSentEvent
 
 from lychd.domain.codex.guards import requires_scopes
+from lychd.domain.codex.local_access import LocalOperatorAccess
 from lychd.domain.codex.middleware import sigil_auth_middleware
 from tests.web.conftest import TEST_ACCESS_PASSWORD, TEST_AUTHORIZATION, AsgiClient
 
@@ -146,3 +147,31 @@ def test_public_assets_do_not_widen_prefix_exclusion() -> None:
 def test_missing_startup_credential_has_no_bootstrap_fallback() -> None:
     with pytest.raises(ValueError, match="local access password is unavailable"):
         sigil_auth_middleware(access_password="")
+
+
+def test_middleware_carries_actual_request_marker_and_observes_revocation() -> None:
+    access = LocalOperatorAccess(access_password=TEST_ACCESS_PASSWORD)
+
+    @get("/identity")
+    async def identity(request: Request[Any, Any, Any]) -> dict[str, bool]:
+        return {"current": access.current(request.auth)}
+
+    client = AsgiClient(
+        Litestar(
+            route_handlers=[identity],
+            middleware=[sigil_auth_middleware(operator_access=access)],
+            openapi_config=None,
+        )
+    )
+    assert client.get("/identity").status_code == 401
+    response = client.get("/identity", headers={"authorization": TEST_AUTHORIZATION})
+    assert response.status_code == 200
+    assert response.json() == {"current": True}
+    access.revoke()
+    assert client.get("/identity", headers={"authorization": TEST_AUTHORIZATION}).status_code == 401
+
+
+def test_middleware_refuses_two_credential_owners() -> None:
+    access = LocalOperatorAccess(access_password=TEST_ACCESS_PASSWORD)
+    with pytest.raises(ValueError, match="one credential owner"):
+        sigil_auth_middleware(access_password=TEST_ACCESS_PASSWORD, operator_access=access)

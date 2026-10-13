@@ -12,10 +12,34 @@ from pydantic import ValidationError
 from lychd.agents.workflows import BRIDGE_CHAT, BRIDGE_CHAT_ARCHIVE, BRIDGE_CHAT_BOUND, builtin_workflow_registry
 from lychd.config.settings import BridgeCastingSettings, Settings, SettingsSnapshot, WeaverSettings
 from lychd.domain.archive import ArchiveProfile, ArchiveSubject
+from tests.scout_fixtures import scout_profile
 
 
 def test_absent_bridge_selection_preserves_legacy_configuration() -> None:
     assert WeaverSettings().bridge is None
+
+
+def test_scout_profile_requires_revision_four_and_keeps_older_revisions_retained() -> None:
+    profile = scout_profile()
+    with pytest.raises(ValidationError, match="requires scout"):
+        BridgeCastingSettings(revision="4", capability_key="local:chat:answer")
+    with pytest.raises(ValidationError, match="other revisions do not accept"):
+        BridgeCastingSettings(revision="2", capability_key="local:chat:answer", scout=profile)
+    registry = builtin_workflow_registry(
+        weaver=WeaverSettings(
+            bridge=BridgeCastingSettings(revision="4", capability_key="local:chat:answer", scout=profile)
+        )
+    )
+    assert registry.default.manifest.revision == "4"
+    assert registry.get_revision("bridge_chat", "3") is BRIDGE_CHAT_ARCHIVE
+    assert registry.get_revision("bridge_chat", "2") is BRIDGE_CHAT_BOUND
+    assert registry.get_revision("bridge_chat", "1") is BRIDGE_CHAT
+    assert (
+        profile.resolver_custody_digest
+        != profile.model_copy(
+            update={"resolver_custody_statement": "A changed custody assertion"}
+        ).resolver_custody_digest
+    )
 
 
 def test_archive_selection_requires_the_exact_revision_and_retains_legacy_routes() -> None:

@@ -53,6 +53,7 @@ if TYPE_CHECKING:
     from lychd.domain.archive import ArchiveProfile, ArchiveService, ArchiveSubject
     from lychd.domain.archive.derivation_service import ArchiveDerivationService
     from lychd.domain.codex.ledger import ConsentLedger
+    from lychd.domain.codex.local_access import LocalOperatorAccess
     from lychd.domain.codex.sigil import Sigil
     from lychd.domain.cortex.engine import RunQueue
     from lychd.domain.cortex.ledger import RunLedger
@@ -60,12 +61,15 @@ if TYPE_CHECKING:
     from lychd.domain.delegation.routing import DelegatedRuntimeBinding
     from lychd.domain.orchestration.actuator import RuntimeActuator
     from lychd.domain.orchestration.containment import SoftActivationGuard
+    from lychd.domain.scout.profile import ScoutProfile
     from lychd.domain.web.atlas import AtlasStorePort
     from lychd.domain.web.consent_reviews import ConsentReviewProducer
     from lychd.domain.web.fragments import FragmentRegistry
     from lychd.domain.web.sessions import SessionStorePort
     from lychd.domain.web.swap_requests import SwapRequestLedger
     from lychd.extensions.delegation import RegisteredDelegatedRuntime
+    from lychd.interface.web.scout_admission import ScoutAdmissionService
+    from lychd.system.services.scout_workflow import ScoutWorkflowService
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -92,10 +96,18 @@ class AltarServices:
     archive_derivation: ArchiveDerivationService | None = None
     delegates: DelegatedAgentCoordinator | None
     delegated_runtime_catalog: tuple[RegisteredDelegatedRuntime, ...]
+    scout: ScoutWorkflowService | None = None
+    scout_admission: ScoutAdmissionService | None = None
 
     async def aclose(self) -> None:
         """Cancel tracked tasks and drain pending ledger writes before shutdown."""
         failures: list[BaseException] = []
+        if self.scout is not None:
+            self.scout.fence_all("service_close")
+            try:
+                await self.scout.contain_all()
+            except BaseException as exc:  # noqa: BLE001 - retain containment uncertainty
+                failures.append(exc)
         for close in (self.tickets.aclose, self.bus.aclose):
             try:
                 await close()
@@ -227,6 +239,67 @@ def _build_archive(
     ), policy.subject_for
 
 
+def _build_scout(
+    *,
+    persistence: str,
+    profile: ScoutProfile | None,
+    capability_key: str | None,
+    access: LocalOperatorAccess | None,
+    ledger: RunLedger,
+    consents: ConsentLedger,
+    reviews: ConsentReviewProducer | None,
+) -> tuple[ScoutWorkflowService | None, ScoutAdmissionService | None, ConsentReviewProducer | None]:
+    """Compose one explicit PostgreSQL profile with actual credential-backed authority."""
+    if profile is None:
+        return None, None, reviews
+    if persistence != "postgres" or access is None or capability_key is None:
+        msg = "Scout requires PostgreSQL, the actual local credential owner and an exact local chat capability."
+        raise ValueError(msg)
+    from lychd.db.engine import get_session_factory
+    from lychd.db.scout import DbScoutAttemptStore
+    from lychd.domain.cortex.cancellation import RunEffectFence
+    from lychd.domain.scout.authority import ScoutAction, ScoutHostAuthorizer, ScoutHostPolicy
+    from lychd.domain.scout.profile import SCOUT_ANSWER_PURPOSE
+    from lychd.interface.web.scout_admission import ScoutAdmissionService
+    from lychd.interface.web.scout_review import ScoutConsentReviews
+    from lychd.system.services.scout_workflow import ScoutCompletions, ScoutWorkflowService
+
+    authorizer = ScoutHostAuthorizer(
+        access=access,
+        policy=ScoutHostPolicy(
+            policy_revision=profile.policy_revision,
+            revocation_generation=profile.revocation_generation,
+            actions=frozenset(ScoutAction),
+            purposes=frozenset({SCOUT_ANSWER_PURPOSE}),
+            categories=frozenset({"public-web-locator"}),
+            binding_digests=frozenset({profile.binding_digest}),
+            resolver_custody_digests=frozenset({profile.resolver_custody_digest}),
+        ),
+    )
+    completions = ScoutCompletions()
+    store = DbScoutAttemptStore(
+        get_session_factory(),
+        authorizer=authorizer,
+        budget_limits=profile.budget_limits,
+        settlement_verifier=completions,
+    )
+    service = ScoutWorkflowService(
+        store=store,
+        completions=completions,
+        ledger=ledger,
+        consents=consents,
+        profile=profile,
+        capability_key=capability_key,
+        authorizer=authorizer,
+        fence=RunEffectFence(),
+    )
+    return (
+        service,
+        ScoutAdmissionService(access=access, authorizer=authorizer, profile=profile),
+        ScoutConsentReviews(access=access, authorizer=authorizer, store=store, other=reviews),
+    )
+
+
 def _configured_delegation_binding(
     settings: Settings,
     runtimes: Sequence[DelegatedAgentRuntime],
@@ -262,6 +335,7 @@ def build_altar_services(
     soft_activation_guard: SoftActivationGuard | None = None,
     runtime_actuator: RuntimeActuator | None = None,
     consent_reviews: ConsentReviewProducer | None = None,
+    operator_access: LocalOperatorAccess | None = None,
 ) -> AltarServices:
     """Assemble `AltarServices` at the application composition boundary.
 
@@ -332,8 +406,16 @@ def build_altar_services(
     bridge_sessions = _build_session_store(profile, sigil_name=default_sigil().name)
     atlas = _build_atlas_store(profile)
     consents = _build_consent_ledger(profile)
-    tickets = TicketStore()
-    swap_requests = _build_swap_request_ledger(profile)
+    scout, scout_admission, consent_reviews = _build_scout(
+        persistence=profile,
+        profile=bridge_casting.scout if bridge_casting is not None else None,
+        capability_key=bridge_casting.capability_key if bridge_casting is not None else None,
+        access=operator_access,
+        ledger=ledger,
+        consents=consents,
+        reviews=consent_reviews,
+    )
+    tickets, swap_requests = TicketStore(), _build_swap_request_ledger(profile)
     projector = EventProjector(
         fragments=fragments, sessions=bridge_sessions, consents=consents, consent_reviews=consent_reviews
     )
@@ -369,6 +451,8 @@ def build_altar_services(
         delegates=delegates,
         archive=archive,
         archive_subject_resolver=archive_subject_resolver,
+        scout=scout,
+        effects=scout,
     )
     run_engine = RunEngine(
         ledger=ledger,
@@ -384,6 +468,9 @@ def build_altar_services(
         bridge_capability_key=bridge_casting.capability_key if bridge_casting is not None else None,
         bridge_archive=bridge_casting.archive if bridge_casting is not None else None,
         delegation_binding=delegation_binding,
+        bridge_scout=bridge_casting.scout if bridge_casting is not None else None,
+        scout_admission=scout_admission,
+        effects=scout,
     )
     return AltarServices(
         archive_derivation=archive_derivation,
@@ -406,4 +493,6 @@ def build_altar_services(
         archive=archive,
         delegates=delegates,
         delegated_runtime_catalog=tuple(delegated_runtime_catalog),
+        scout=scout,
+        scout_admission=scout_admission,
     )

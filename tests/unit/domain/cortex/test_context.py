@@ -296,6 +296,11 @@ def test_transient_projection_is_reserved_without_entering_instructions_or_histo
     assert assembled.state_window == []
     assert assembled.floor_text() == baseline.floor_text()
     assert assembled.query == "query"
+    assert baseline.transient_chars == 0
+    assert assembled.transient_chars == 100
+    cached = context.get("run")
+    assert cached is not None
+    assert cached.transient_chars == assembled.transient_chars
     with pytest.raises(ContextBudgetExceededError):
         context.assemble(run_id="overflow", session_id="s", query="query", transient_chars=101)
     with pytest.raises(ValueError, match="negative"):

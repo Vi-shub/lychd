@@ -71,7 +71,9 @@ class EventProjector:
         self._consents = consents
         self._consent_reviews = consent_reviews
 
-    async def project(self, event: RunEvent, *, reviewer: Sigil) -> RunEventEnvelope:
+    async def project(
+        self, event: RunEvent, *, reviewer: Sigil, authentication: object | None = None
+    ) -> RunEventEnvelope:
         """Project one internal run event without interpreting data as markup."""
         kind = cast("EventKind", str(event.kind))
         payload: dict[str, Any]
@@ -80,7 +82,7 @@ class EventProjector:
         elif kind == "fragment":
             payload = self._project_fragment(event.data)
         elif kind == "consent":
-            payload = await self._project_consent(event, reviewer=reviewer)
+            payload = await self._project_consent(event, reviewer=reviewer, authentication=authentication)
         elif kind == "done":
             payload = await self._project_done(event.run_id, event.data)
         else:  # explicit `resync`: replace through this stream boundary
@@ -94,7 +96,9 @@ class EventProjector:
             payload=payload,
         )
 
-    async def _project_consent(self, event: RunEvent, *, reviewer: Sigil) -> dict[str, Any]:
+    async def _project_consent(
+        self, event: RunEvent, *, reviewer: Sigil, authentication: object | None = None
+    ) -> dict[str, Any]:
         data = event.data
         consent_id = data
         if data.startswith("{"):
@@ -106,7 +110,7 @@ class EventProjector:
         view = await self._consents.get(consent_id)
         if view is None or view.run_id != event.run_id:
             return {}
-        return {"consent": asdict(await self.consent_card_view(view, reviewer=reviewer))}
+        return {"consent": asdict(await self.consent_card_view(view, reviewer=reviewer, authentication=authentication))}
 
     def _project_fragment(self, payload: str) -> dict[str, Any]:
         """Contain malformed events and reuse the registry's model-output gate."""
@@ -141,12 +145,21 @@ class EventProjector:
     # -- consent ----------------------------------------------------------
 
     async def native_review(
-        self, view: ConsentView, *, reviewer: Sigil, purpose: Literal["view", "decide"]
+        self,
+        view: ConsentView,
+        *,
+        reviewer: Sigil,
+        purpose: Literal["view", "decide"],
+        authentication: object | None = None,
     ) -> NativeReviewResolution:
         """Resolve fresh reviewer eligibility and exact content for either purpose."""
-        return await resolve_native_review(self._consent_reviews, consent=view, reviewer=reviewer, purpose=purpose)
+        return await resolve_native_review(
+            self._consent_reviews, consent=view, reviewer=reviewer, purpose=purpose, authentication=authentication
+        )
 
-    async def consent_card_view(self, view: ConsentView, *, reviewer: Sigil) -> ConsentCard:
+    async def consent_card_view(
+        self, view: ConsentView, *, reviewer: Sigil, authentication: object | None = None
+    ) -> ConsentCard:
         """Project a censored envelope and only a complete authorized native review."""
         review = None
         binding_digest = None
@@ -155,7 +168,9 @@ class EventProjector:
         if view.native_review_required:
             review_status = "unavailable"
             try:
-                resolved = await self.native_review(view, reviewer=reviewer, purpose="view")
+                resolved = await self.native_review(
+                    view, reviewer=reviewer, purpose="view", authentication=authentication
+                )
             except (ConsentReviewUnavailableError, ConsentReviewForbiddenError, ConsentReviewFailureError):
                 can_decide = False
             else:
