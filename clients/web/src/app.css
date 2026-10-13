@@ -1138,14 +1138,15 @@
   .consent-card .vision em { color: var(--color-bone); font-style: normal; }
   .consent-card dl,
   .consent-card .args {
-    display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px;
+    display: grid; grid-template-columns: fit-content(35%) minmax(0, 1fr); gap: 4px 16px;
     padding: 10px 16px;
     font-size: var(--text-sm);
   }
   .consent-card dt { color: var(--color-ash); }
   .consent-card dd { font-family: var(--font-glyph); font-size: var(--text-xs); color: var(--color-bone); }
+  .consent-card .args > * { min-width: 0; overflow-wrap: anywhere; }
   .consent-card .verdicts {
-    display: flex; gap: 10px; align-items: center;
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
     padding: 12px 16px 14px;
   }
   .consent-card .verdicts .note { margin-left: auto; font-size: var(--text-xs); color: var(--color-ash); }

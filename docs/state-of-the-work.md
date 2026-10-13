@@ -977,6 +977,9 @@ reviews cannot submit a decision. An unresolved choice retains its original verd
 identity across remounts and later refusals; a changed review permits outcome refresh, not a new
 choice or a retry against different material. Legacy Consent remains supported. Existing PostgreSQL
 installations require migration `0010` before running this code.
+The opt-in [Scout public-page workflow](#scout-web-acquisition) supplies an owner-produced native
+review, atomic preparation/Consent custody, and current authority checks before acquisition and
+local inference. Its deployment and mechanism qualification limits remain those of Scout.
 
 **Boundary — Not yet:** There is no production-browser plus inference-engine receipt, durable cross-process event/token
 delivery, general multi-approval, Attention, or notification channel. Text is the only command
@@ -985,9 +988,10 @@ Context/authority, capability, and evidence projections.
 Selected-session turns and model history still hydrate that one conversation. There is no general
 storage quota or retention policy; archive paging and stream limits do not bound every retained
 payload or protect against a hostile authenticated operator.
-No production native-review producer, owned action-creation transaction, or native effect-time
-authorization is enabled. The client review and recovery checks use component fixtures and intercepted
-HTTP requests; they do not qualify browser layout or accessibility. The separately assembled
+Native action owners beyond that Scout path still require their own production admission,
+review/custody transaction, and effect-time authorization. The client review and recovery tests use
+component fixtures and intercepted HTTP requests; they do not qualify complete production-browser
+layout or accessibility. The separately assembled
 [Blockworld test workflow](#composition-portfolio-delivery) exercises a native action with inert
 effects. Native binding and reviewer unit tests use memory or session doubles. Separate disposable
 PostgreSQL receipts now exercise migration `0010`, exact binding, decision concurrency and rollback;
