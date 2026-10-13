@@ -19,7 +19,8 @@
     "src/lychd/system/services/scout_fetch.py": "7b4102ecf198a796a88e8cedba74025f54937015385c11f34ba5a10ee336c14e",
     "src/lychd/system/services/scout_extraction.py": "803dbcec9c5031ed2c05eb258146a8df0f0c5cb572a9306c31032f3d4079732a",
     "src/lychd/system/scout_worker.py": "b1cd9ba101653e276ff66847419f07b24589dcc5b76d92df867fc115475d2f66",
-    "tests/integration/test_scout_fetch_runtime.py": "71af637c78053260562ea08fad2f50fdc35f1b04210b035716f61872593f117d"
+    "tests/integration/test_scout_fetch_runtime.py": "375c2a14864a17e11e74e607d4e01cf20920f0117ec1221a22623683e8746bd9",
+    "tests/scout_network_fixture.py": "07ef869bfc257e10b4a09b4d59ac0a5bcf9d0845ea8d7cf88de8994036c03868"
   },
   "checks": [
     "real_dns_tls_length",

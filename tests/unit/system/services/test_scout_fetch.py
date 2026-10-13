@@ -45,6 +45,7 @@ def test_maintained_transport_qualification_matches_source_and_dependencies() ->
         "src/lychd/system/services/scout_extraction.py",
         "src/lychd/system/scout_worker.py",
         "tests/integration/test_scout_fetch_runtime.py",
+        "tests/scout_network_fixture.py",
     }
     for path, digest in receipt["source_fingerprints"].items():
         assert sha256((root / path).read_bytes()).hexdigest() == digest, path

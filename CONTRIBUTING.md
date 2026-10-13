@@ -308,6 +308,16 @@ source/dependency identities and observed checks; ephemeral certificate keys sta
 The maintained receipt and source-freshness test qualify this isolated mechanism profile, not a
 production authorizer, durable Scout attempt, workflow, public website or SearXNG service.
 
+The separate current-authority proof uses the same isolated namespace, but joins the production
+credential owner, policy, Run fence and network gate to those real servers. In the command above,
+use `LYCHD_REQUIRE_SCOUT_AUTHORITY_PROOF=1` and
+`PYTEST_TARGETS=tests/integration/test_scout_authority_runtime.py`, with another fresh basetemp.
+It needs no extraction profile. It checks the exact GET, path/query substitution, authority
+revocation during TLS, finite network budgets and measured gate accounting. Preparation and
+claim values are explicit fixtures: this does not exercise database admission, extraction
+authorization or inference. Its [maintained receipt](tests/fixtures/scout/linux-authority-runtime.json)
+and freshness test bind the authority, transport, fixture and dependency versions actually tested.
+
 The optional offline music engineering profile runs without the Vessel or a native Composition:
 
 ```bash

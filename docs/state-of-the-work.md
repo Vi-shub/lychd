@@ -1403,6 +1403,15 @@ prevent reuse of that proof for changed mechanisms. Optional Run-effect lifecycl
 the exact worker claim before settlement awaits, preserve refusal after failed cleanup, and
 fence shutdown before draining; their tests include stale-worker/successor races.
 
+A second maintained isolated-network receipt joins the production credential owner, current
+policy, Run fence and network gate to real DNS/TLS/HTTP. It verifies the exact GET and accounting,
+refuses same-host path/query substitution, and observes no HTTP bytes after authentication,
+policy, claim, Run or shutdown revocation during TLS. Zero budgets prevent their next effect;
+finite exhaustion after DNS prevents the origin connect or TLS ClientHello as applicable.
+Its source/dependency freshness check includes the authorizer and shared network fixture.
+Preparation and claim are explicit fixtures, so this proof does not establish database admission,
+extraction authorization or inference.
+
 The opt-in `bridge_chat@4` path now binds an actual local authentication marker, an explicit
 public-locator declaration, an immutable Scout profile and an exact local chat capability. Native
 review precedes acquisition. PostgreSQL retains preparation and consent atomically, admits one
@@ -1423,9 +1432,9 @@ process and model are controlled substitutes, distinct from the separately quali
 
 **Boundary — Not yet:** No SearXNG or Crawl4AI Rune/adapter, general Scout provider store,
 effect-scoped Agent tool, download quarantine, website authentication/session custody, or Smith
-ingestion path ships. No Search engine has passed qualification. The maintained DNS/TLS proof
-uses a synthetic audit gate; current production authority has separate adversarial contract tests.
-These receipts do not prove a deployed PostgreSQL/HTTP/model/network combination or arbitrary
+ingestion path ships. No Search engine has passed qualification. The transport/extraction proof
+uses a synthetic audit gate; the additional current-authority network proof uses fixture admission
+data. These receipts do not prove a deployed PostgreSQL/HTTP/model/network combination or arbitrary
 host compatibility. The first workflow accepts only its explicit public-page command, follows no
 redirects, and requires a qualified local extractor and exact local model. Budget reset and
 unknown-attempt reconciliation have no automatic operational path. Rendering remains separately
@@ -1442,6 +1451,7 @@ unimplemented outside the shared Pod.
 - **Source:** [Current authority](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/scout/authority.py), [durable attempts](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/scout.py), [owned coordinator](https://github.com/hexanomicon/lychd/blob/main/src/lychd/system/services/scout_workflow.py), and [public-page casting](https://github.com/hexanomicon/lychd/blob/main/src/lychd/agents/workflows/scout_chat.py)
 - **Verification:** [Authority contracts](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/scout/test_authority.py), [PostgreSQL attempts](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_scout_attempts_pg.py), [migration custody](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_scout_migrations_pg.py), [coordinator boundaries](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_scout_workflow.py), and [transient workflow projection](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_scout_chat.py)
 - **Verification:** [Assembled PostgreSQL workflow](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_scout_workflow_pg.py)
+- **Verification:** [Current-authority network proof](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_scout_authority_runtime.py), [maintained authority receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/scout/linux-authority-runtime.json), and [authority receipt freshness](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/scout/test_authority_receipt.py)
 
 ### Vision admission {#vision-admission}
 

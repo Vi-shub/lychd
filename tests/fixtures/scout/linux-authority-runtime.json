@@ -1,0 +1,53 @@
+{
+  "schema": "scout-network-authority-local-proof@1",
+  "status": "passed",
+  "kernel": "7.1.8-1-default",
+  "python": "3.15.0",
+  "openssl": "OpenSSL 3.5.9 29 Sep 2026",
+  "dependency_versions": {
+    "h11": "0.16.0",
+    "dnspython": "2.8.0",
+    "pydantic": "2.14.0"
+  },
+  "network": "isolated-loopback-only",
+  "authority": "production-current-network-gate-with-fixture-preparation-and-claim",
+  "durable_admission": "not_exercised",
+  "extraction_and_inference": "not_exercised",
+  "source_fingerprints": {
+    "src/lychd/domain/codex/local_access.py": "4617db35469740582fb947ff96a98d6c5b7c90a85af027c4b8f115c715d68de3",
+    "src/lychd/domain/cortex/cancellation.py": "e98663a9cd73aa256842429b039c9ca554905255bd24b786ba70db56b910b2e6",
+    "src/lychd/domain/scout/attempts.py": "b446ad02a0ffed58648a92bfa3bbfa3c8cb9033a5e38786e9529e8a99e819a99",
+    "src/lychd/domain/scout/authority.py": "8c804d9f78c26dd7460738d09ce8e1b083497c8a88767204de5ed0513e70f3c7",
+    "src/lychd/domain/scout/destination.py": "5cd67b1be68397673b86982afe5b36f2d3fbf26ef8c64da4397dc15d0edf683f",
+    "src/lychd/domain/scout/transport.py": "301869408a134330354419508d789de5a561d3d31f08564876a66714d4b3517e",
+    "src/lychd/system/services/scout_dns.py": "9bb3842fd92f35c99331aa14bb46f1250be700de599679454c061e9fba40acc9",
+    "src/lychd/system/services/scout_socket.py": "aa1e0cfefc62fb58368251ce479d3f1219f9ff3d5c976e72fe070689f2d88672",
+    "src/lychd/system/services/scout_http.py": "91ef0647841b5c9f35c7aa02e85ec3a2c06c5c86a9563e0e1f6a6f89f65dcefe",
+    "src/lychd/system/services/scout_fetch.py": "7b4102ecf198a796a88e8cedba74025f54937015385c11f34ba5a10ee336c14e",
+    "tests/scout_network_fixture.py": "07ef869bfc257e10b4a09b4d59ac0a5bcf9d0845ea8d7cf88de8994036c03868",
+    "tests/integration/test_scout_authority_runtime.py": "f5323a8767813c4b812eaa412868cde9d9934d0e64f5ada15f95ac80fdc52278"
+  },
+  "checks": [
+    "real_current_authority_dns_tls_http_exact_request_and_accounting",
+    "same_host_path_and_query_substitution_prevents_http_bytes",
+    "authentication_revoked_at_sni_prevents_http_bytes",
+    "policy_revoked_at_sni_prevents_http_bytes",
+    "claim_revoked_at_sni_prevents_http_bytes",
+    "run_revoked_at_sni_prevents_http_bytes",
+    "shutdown_revoked_at_sni_prevents_http_bytes",
+    "connects_budget_0_prevents_next_network_effect",
+    "transmissions_budget_0_prevents_next_network_effect",
+    "wire_bytes_budget_0_prevents_next_network_effect",
+    "connects_budget_2_prevents_next_network_effect",
+    "wire_bytes_budget_after_dns_prevents_client_hello",
+    "source_fingerprints_unchanged"
+  ],
+  "successful_passage": {
+    "connects": 3,
+    "accepted_wire_bytes": 1863,
+    "dns_wire_bytes": 78
+  },
+  "tls_versions": [
+    "TLSv1.3"
+  ]
+}
