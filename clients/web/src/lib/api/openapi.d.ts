@@ -850,9 +850,16 @@ export interface components {
             updated_at: string;
             version: number;
         };
+        /** BridgeComposer */
+        BridgeComposer: {
+            guidance: string | null;
+            pattern_id: string;
+            pattern_revision: string;
+        };
         /** BridgeSnapshot */
         BridgeSnapshot: {
             active_runs: components["schemas"]["RunProjectionSnapshot"][];
+            composer?: components["schemas"]["BridgeComposer"] | null;
             pending_consents: components["schemas"]["ConsentCard"][];
             pending_count: number;
             session: components["schemas"]["SessionView"] | null;

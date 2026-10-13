@@ -88,6 +88,18 @@ class RunProjectionSnapshot(ClientContract):
     terminal: bool
 
 
+class BridgeComposer(ClientContract):
+    """Current configured default casting, not the next Run or its readiness.
+
+    Guidance describes input syntax only. Submission still resolves routing and
+    rechecks current authority independently of this replaceable projection.
+    """
+
+    pattern_id: str
+    pattern_revision: str
+    guidance: str | None
+
+
 class BridgeSnapshot(ClientContract):
     """Refresh-reconstructable Bridge projection."""
 
@@ -97,6 +109,7 @@ class BridgeSnapshot(ClientContract):
     active_runs: list[RunProjectionSnapshot]
     pending_consents: list[ConsentCard]
     pending_count: int
+    composer: BridgeComposer | None = None
 
 
 class SessionCreated(ClientContract):

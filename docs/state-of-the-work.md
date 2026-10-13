@@ -962,6 +962,11 @@ newer invalidations fence late results. This remains a sampled count, not durabl
 The conversation has a collapsible rail and secondary session detail. Incoming text preserves an
 older reading position; an explicit Latest turn action releases linked-Run focus without losing
 the draft. The composer explains the current admission or active-Run restriction.
+The Bridge snapshot also identifies the admission engine's configured default casting, separate
+from retained Run identities. A configured Scout default supplies fixed command guidance with a
+two-line example and the complete URL's public declaration. The composer renders that text
+literally, preserves its line breaks, and removes it when refreshed guidance is absent. This is
+configuration help, not readiness or permission; ordinary admission and native review still apply.
 
 The conversation rail reads metadata in pages of 50 with an explicit continuation and Load more;
 its pending counts use one grouped PostgreSQL query without hydrating archive histories. HTTP
@@ -1006,6 +1011,7 @@ they do not qualify production deployment or live effects.
 - **Source:** [Bridge controller](https://github.com/hexanomicon/lychd/blob/main/src/lychd/interface/web/bridge.py), [Bridge client](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/BridgeView.svelte), [Altar shell](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/AltarShell.svelte), and [Context assembly](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/cortex/context.py), with [native review resolution](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/web/consent_reviews.py) and [binding migration](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/migrations/versions/0010_native_consent_binding.py).
 - **Source:** [Circle Run disclosure](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/CircleRun.svelte)
 - **Verification:** [Circle identity/action tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/CircleRun.test.ts)
+- **Verification:** [Configured composer projection tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_bridge_composer.py)
 - **Verification:** [Bridge tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_bridge.py), [archive tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_bridge_archive.py), [stream admission tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_bridge_stream_budget.py), [PostgreSQL archive receipts](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_db_consent_pg.py), and [client recovery tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/BridgeView.test.ts), [initial read recovery tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/InstrumentReadRecovery.test.ts), [shell navigation tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/BridgeShellNavigation.test.ts), [client review tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/ConsentCard.test.ts), and [decision transport tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/api/client.test.ts), plus [complete-history tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_context.py), [native binding tests](https://github.com/hexanomicon/lychd/blob/main/tests/codex/test_native_consent.py), and [reviewer and decision tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_native_consent_review.py).
 - **Law:** [Frontend](./adr/15-frontend.md), [Context](./adr/21-context.md), and [native Consent review](./adr/25-hitl.md#required-review-for-native-actions-designed)
 

@@ -184,6 +184,16 @@ version refuses rather than repeating the transition.
 
 ## Public-page answers
 
+When Scout is the configured Bridge default, the composer shows its command instructions and a
+two-line example. These instructions follow the current default, even in an older conversation;
+they do not establish that a request is authorized or ready to run. Use **Shift + Enter** to put
+the question on the next line:
+
+```text
+/read-public https://example.com/page
+What does this page claim?
+```
+
 With the opt-in [Scout profile](../../sepulcher/extensions/scout.md#public-page-answers), offer
 `/read-public` followed by one exact public HTTPS URL, then a newline and your question. Review
 the complete URL, resolver disclosure, limits and local answer capability on the consent card

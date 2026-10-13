@@ -992,6 +992,9 @@
       {/if}
       <div class="composer-area">
       <label class="composer-label" for="bridge-message">Your next offering</label>
+      {#if snapshot?.composer?.guidance}
+        <p id="composer-instructions" class="composer-instructions">{snapshot.composer.guidance}</p>
+      {/if}
       <div class="composer">
         <textarea
           id="bridge-message"
@@ -1002,7 +1005,7 @@
           placeholder="What would you like to explore?"
           onkeydown={keydown}
           aria-label="Message"
-          aria-describedby="composer-guidance composer-shortcuts"
+          aria-describedby={snapshot?.composer?.guidance ? "composer-instructions composer-guidance composer-shortcuts" : "composer-guidance composer-shortcuts"}
         ></textarea>
         <button
           class="rune-btn"
@@ -1068,6 +1071,7 @@
   .latest-turn button { min-height: 2.75rem; padding: .4rem 1rem; border: 1px solid var(--color-engraving); border-radius: 2rem; color: var(--color-rune); background: var(--color-obsidian); cursor: pointer; }
   .composer-area { padding: 1rem clamp(1rem, 3vw, 2.5rem); border-top: 1px solid var(--color-engraving); }
   .composer-label { display: block; margin-bottom: .55rem; font-size: var(--text-sm); color: var(--color-parchment); }
+  .composer-instructions { margin-bottom: .75rem; color: var(--color-parchment); font-size: var(--text-sm); line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
   .composer { margin-top: 0; padding: .85rem 1rem; align-items: flex-end; box-shadow: none; }
   .composer:focus-within { box-shadow: none; border-color: var(--color-rune); }
   .composer textarea { min-width: 0; min-height: 4.5rem; max-height: 16rem; resize: vertical; font-size: 1rem; }

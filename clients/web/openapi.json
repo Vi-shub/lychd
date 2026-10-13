@@ -757,6 +757,34 @@
         "title": "AtlasSummary",
         "type": "object"
       },
+      "BridgeComposer": {
+        "additionalProperties": false,
+        "properties": {
+          "guidance": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pattern_id": {
+            "type": "string"
+          },
+          "pattern_revision": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "guidance",
+          "pattern_id",
+          "pattern_revision"
+        ],
+        "title": "BridgeComposer",
+        "type": "object"
+      },
       "BridgeSnapshot": {
         "additionalProperties": false,
         "properties": {
@@ -765,6 +793,16 @@
               "$ref": "#/components/schemas/RunProjectionSnapshot"
             },
             "type": "array"
+          },
+          "composer": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/BridgeComposer"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "pending_consents": {
             "items": {

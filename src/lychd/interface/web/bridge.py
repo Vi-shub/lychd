@@ -31,13 +31,14 @@ from lychd.domain.cortex.engine import RunEngine
 from lychd.domain.cortex.events import InProcessEventBus, RunEvent, RunEventKind
 from lychd.domain.cortex.ledger import RunAdmissionConflictError
 from lychd.domain.cortex.runs import TERMINAL_STATUSES, RunRecord
-from lychd.domain.scout.profile import ScoutWorkflowError
+from lychd.domain.scout.profile import ScoutProfile, ScoutWorkflowError
 from lychd.domain.web.consent_reviews import (
     ConsentReviewFailureError,
     ConsentReviewForbiddenError,
     ConsentReviewUnavailableError,
 )
 from lychd.domain.web.contracts import (
+    BridgeComposer,
     BridgeSnapshot,
     BridgeTurnView,
     ConsentDecisionIntent,
@@ -66,6 +67,36 @@ if TYPE_CHECKING:
     from lychd.domain.cortex.ledger import RunLedger
 
 _SSE_KEEPALIVE_S = 15.0
+_SCOUT_COMPOSER_GUIDANCE = (
+    "Enter /read-public followed by one exact public HTTPS URL, then a newline and your question. "
+    "Sending this command declares the complete URL, including its path and query, public. "
+    "Approval is required before page contact.\n\n"
+    "/read-public https://example.com/page\n"
+    "What does this page claim?"
+)
+
+
+def _composer_view(state: State) -> BridgeComposer | None:
+    """Project the admission engine's current default, independently of Run history."""
+    engine = getattr(state.services, "run_engine", None)
+    registry = getattr(engine, "workflows", None)
+    if not isinstance(registry, WorkflowRegistry):
+        return None
+    try:
+        workflow = registry.default
+    except RuntimeError:
+        # An unavailable local binding is not a usable admission default.
+        return None
+    identity = workflow.manifest.key, workflow.manifest.revision
+    guidance = None
+    if (
+        identity == ("bridge_chat", "4")
+        and isinstance(getattr(engine, "bridge_scout", None), ScoutProfile)
+        and getattr(engine, "scout_admission", None) is not None
+        and getattr(state.services, "scout_admission", None) is not None
+    ):
+        guidance = _SCOUT_COMPOSER_GUIDANCE
+    return BridgeComposer(pattern_id=identity[0], pattern_revision=identity[1], guidance=guidance)
 
 
 def _parse_last_event_id(raw: str | None) -> int | None:
@@ -724,6 +755,7 @@ class BridgeController(Controller):
                 authentication=authentication,
             ),
             pending_count=await consents.pending_count(),
+            composer=_composer_view(state),
         )
 
     async def _active_run_projections(

@@ -210,6 +210,82 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+describe("Bridge configured composer guidance", () => {
+  const guidance = "Declare the complete URL public.\n\n/read-public https://example.com/page\n<b>Ask your question here</b>";
+
+  function guidedSnapshot(activeRuns: RunProjectionSnapshot[] = []): BridgeSnapshot {
+    return {
+      ...snapshot("session-a", activeRuns),
+      composer: { pattern_id: "bridge_chat", pattern_revision: "4", guidance }
+    };
+  }
+
+  it("links literal server instructions to the composer and retains line breaks", async () => {
+    getSnapshotMock.mockResolvedValueOnce(guidedSnapshot());
+    const view = render(BridgeView, { sessionId: "session-a" });
+    const composer = await screen.findByRole("textbox", { name: "Message" });
+    const instructions = document.getElementById("composer-instructions");
+    expect(instructions?.textContent).toBe(guidance);
+    expect(instructions?.querySelector("b")).toBeNull();
+    expect(composer.getAttribute("aria-describedby")?.split(" ")).toEqual([
+      "composer-instructions", "composer-guidance", "composer-shortcuts"
+    ]);
+    expect(screen.getByRole("textbox", {
+      name: "Message", description: /Declare the complete URL public.*<b>Ask your question here<\/b>/s
+    })).toBe(composer);
+    expect(screen.queryByText("bridge_chat")).toBeNull();
+    expect(sendMock).not.toHaveBeenCalled();
+    view.unmount();
+  });
+
+  it.each(["guidance", "composer"] as const)("removes instructions on refreshed null %s without changing the draft", async (removed) => {
+    const refreshed = snapshot("session-a", [projection()]);
+    refreshed.composer = removed === "composer"
+      ? null
+      : { pattern_id: "bridge_chat", pattern_revision: "1", guidance: null };
+    getSnapshotMock.mockResolvedValueOnce(guidedSnapshot([projection()])).mockResolvedValueOnce(refreshed);
+    const view = render(BridgeView, { sessionId: "session-a" });
+    const composer = await screen.findByRole<HTMLTextAreaElement>("textbox", { name: "Message" });
+    expect(document.getElementById("composer-instructions")?.textContent).toBe(guidance);
+    await fireEvent.input(composer, { target: { value: "keep this draft" } });
+    await act(() => latestRunListener()(event("run-a", 18, "consent", {})));
+    await waitFor(() => expect(document.getElementById("composer-instructions")).toBeNull());
+    expect(screen.getByRole("textbox", { name: "Message" })).toBe(composer);
+    expect(composer.getAttribute("aria-describedby")).toBe("composer-guidance composer-shortcuts");
+    expect(composer.value).toBe("keep this draft");
+    expect(sendMock).not.toHaveBeenCalled();
+    view.unmount();
+  });
+
+  it("does not invent composer instructions from a historical Scout Run or a draft", async () => {
+    const historical = {
+      ...projection(), pattern_revision: "4", loom_path: "/loom/bridge_chat/4",
+      run_status: "done", activity: "done", terminal: true
+    };
+    getSnapshotMock.mockResolvedValueOnce(snapshot("session-a", [historical]));
+    const view = render(BridgeView, { sessionId: "session-a" });
+    const composer = await screen.findByRole("textbox", { name: "Message" });
+    await fireEvent.input(composer, { target: { value: "/read-public https://example.com/page\nA question" } });
+    expect(document.getElementById("composer-instructions")).toBeNull();
+    expect(composer.getAttribute("aria-describedby")).toBe("composer-guidance composer-shortcuts");
+    expect(sendMock).not.toHaveBeenCalled();
+    view.unmount();
+  });
+
+  it("keeps the offered text and instructions after validation refuses the request", async () => {
+    getSnapshotMock.mockResolvedValueOnce(guidedSnapshot());
+    sendMock.mockRejectedValueOnce(Object.assign(new ApiError("Public-page admission refused"), { status: 400 }));
+    const view = render(BridgeView, { sessionId: "session-a" });
+    const composer = await screen.findByRole<HTMLTextAreaElement>("textbox", { name: "Message" });
+    await offer("a question without its command");
+    expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Public-page admission refused");
+    expect(composer.value).toBe("a question without its command");
+    expect(document.getElementById("composer-instructions")?.textContent).toBe(guidance);
+    expect(sendMock).toHaveBeenCalledOnce();
+    view.unmount();
+  });
+});
+
 describe("Bridge route and stream ownership", () => {
   it("keeps a later draft unsent until the observed Run settles", async () => {
     getSnapshotMock
