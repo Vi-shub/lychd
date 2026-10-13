@@ -125,6 +125,21 @@ No provider is a fallback. One prepared Scout effect attempt binds one selected 
 profile. A static page that needs JavaScript, an exhausted Search provider, or a renderer failure
 settles with that outcome; another provider or stronger effect requires a newly admitted attempt.
 
+The designed [trusted local profile](38-iam.md#trusted-local-scout-profile) commits one unique
+execution claim and atomically reserves its complete worst-case allowance against both binding
+and shared host limits before network I/O. The claim binds the retained Run, exact preparation and
+consent, provider/profile, contact plan, policy and revocation generations. An exact duplicate
+reads retained status; changed bindings refuse. No database transaction spans network I/O, and
+the current handoff gate rechecks authority after awaited claim preparation. Restart cannot turn
+the reserved allowance into another execution permit.
+
+Each handoff decision is made before its byte transfer. Its bounded restricted evidence may
+be buffered until terminal settlement; successful settlement persists that evidence and measured
+usage before releasing eligible reservations. A crash may therefore leave the durable claim and
+reservation without exact contact detail. Such an attempt remains `unknown_after_crash`, never a
+claim that no bytes were sent, a refunded budget, or permission to replay. Unproved socket or child
+termination keeps the reservation held.
+
 ### Workflow handoff
 
 The hosting Pattern pins a stable acquisition request identity before execution and retains its
@@ -241,7 +256,9 @@ The first designed passage is one unauthenticated static HTTPS GET and network-f
    durably records those exact grants in one Scout effect attempt as `prepared` before I/O.
 2. The provider pins and performs one GET with only explicitly bounded, re-gated redirects: no
    subresources, JavaScript, cookies, cache, URL credentials, `.netrc`, ambient proxy, custom
-   headers, automatic retry, or rendering.
+   headers, automatic retry, or rendering. A redirect needs exact current destination and
+   disclosure authority, including any required consent; an unlisted redirect refuses by default.
+   Describing future redirect gates in the initial review does not authorize unknown targets.
 3. A network-free extractor accepts only allowed HTML, XHTML, or plain text; it records raw and
    output digests, extractor identity, and loss, then returns fenced attributed text.
 4. Settlement records disposition and usage. A prepared bounded-call Scout effect attempt after a
@@ -290,6 +307,48 @@ bylines, dates, `<base>` and canonical links remain untrusted claims; they canno
 contacted source or trigger another contact. Wire, decoded-body and output identities remain
 distinct. Readiness requires representative ordinary and hostile fixtures before any library or
 numerical envelope is qualified.
+
+### Native HTTPS transport profile
+
+The native transport receives an exact destination candidate, a host-selected numeric DNS
+resolver, an explicit CA file, a remaining monotonic deadline and a mandatory current handoff
+gate. None of those values mints an effect grant. It reads no ambient resolver, proxy, credential,
+trust-store or TLS key-log configuration.
+
+For a hostname, it asks that resolver for A and AAAA over separate, single TCP contacts, with no
+search suffix, UDP fallback, cache or retry. Each response is at most 16 KiB and 64 records; at
+most eight CNAME links may be resolved inside the returned message, without another question.
+Both families must be complete NOERROR responses for the exact question and agree on the final
+name; an empty family requires an enclosing SOA. Every returned destination address passes the
+public-address policy before one address is selected. These are observations from the configured
+resolver, not DNSSEC proof. Resolver custody remains the authorizer's separate obligation.
+
+The selected numeric peer is checked after the single connect. TLS 1.2 or newer validates the
+original hostname against the explicit CA file and certificate SAN, offers HTTP/1.1 only, and
+preserves that hostname for SNI and `Host`; an IP literal uses certificate IP identity without
+literal-IP SNI. Memory BIOs keep the TLS implementation away from the network socket. Every
+actual connect/send, including handshake and read-generated TLS output, crosses the synchronous
+gate. Per-connection ceilings are 4 MiB received, 512 KiB sent, 256 KiB handshake input and 256 KiB
+handshake/control output, with 16 KiB socket chunks and bounded BIO buffers. Later TLS input shares
+the receive ceiling. These limits cannot enlarge the stricter
+aggregate HTTP body or passage deadline limits.
+
+The fixed GET carries only `Host`, `Accept`, `Accept-Encoding` and `Connection: close`. Final
+success requires status 200, HTTP/1.1, UTF-8 HTML or plain text, and identity or single-member gzip
+encoding. Content-length, ordinary chunked and close-delimited bodies are supported. Initial
+headers are bounded before the HTTP parser receives them; ambiguous framing, chunk extensions,
+trailer fields, informational/upgrade responses, malformed terminators, truncation, trailing data,
+unsupported encoding and expansion failures refuse. Body accounting includes chunk framing as
+well as encoded payload; decoded bytes are independently bounded. The HTTP response digest names
+decrypted HTTP octets, never ciphertext or a claimed network capture.
+
+Redirect observations are resolved only against an exact pre-admitted target list, re-resolved
+and re-gated, with loop and aggregate-budget checks. Relative references whose empty path
+segments would be changed by the URI resolver refuse. Transport EOF is required before a response
+becomes complete. Fetch and extraction share the remaining passage deadline; cancellation closes
+the socket and awaits extraction containment. A cleanup uncertainty cannot become a successful
+page result. These mechanisms remain unexposed until durable attempts, current authority and the
+hosting workflow are assembled and qualified together.
 
 ### Native text extraction profile
 

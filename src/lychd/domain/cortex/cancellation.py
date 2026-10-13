@@ -13,8 +13,76 @@ The coordinator is process-local and does not replace the durable Run ledger.
 from __future__ import annotations
 
 import asyncio
+from typing import Protocol
 
-__all__ = ["RunCancellationCoordinator"]
+__all__ = ["RunCancellationCoordinator", "RunEffectFence", "RunEffectLifecycle"]
+
+
+class RunEffectLifecycle(Protocol):
+    """Fence host-owned handoffs synchronously, then prove owned work stopped.
+
+    The same process-owned instance serves HTTP, workers and shutdown. Fences
+    are monotonic and reasons are content-free labels. Containment must raise
+    when sockets or children may remain live; it never reopens a fence.
+    Exact-hop refusal may precede an ownership read; Run-wide worker refusal
+    and containment require current Run ownership. Cancellation is Run-wide.
+    """
+
+    def fence(self, run_id: str, reason: str) -> None: ...
+
+    def fence_claim(self, run_id: str, enqueue_seq: int, reason: str) -> None: ...
+
+    def fence_all(self, reason: str) -> None: ...
+
+    async def contain(self, run_id: str) -> None: ...
+
+    async def contain_all(self) -> None: ...
+
+
+class RunEffectFence:
+    """A monotonic loop-owned handoff fence, without fabricated containment.
+
+    Construct on the owning loop. Consumers inspect ``reason`` for the exact
+    retained claim immediately before a non-yielding handoff. Shutdown also fences
+    future Run identities.
+    This volatile guard is not a durable claim or recovery authorization.
+    """
+
+    def __init__(self) -> None:
+        """Bind the guard to this process's active control loop."""
+        self._loop = asyncio.get_running_loop()
+        self._runs: dict[str, str] = {}
+        self._claims: dict[tuple[str, int], str] = {}
+        self._all: str | None = None
+
+    def _require_loop(self) -> None:
+        if asyncio.get_running_loop() is not self._loop:
+            msg = "Run effect fence belongs to another control loop."
+            raise RuntimeError(msg)
+
+    def fence(self, run_id: str, reason: str) -> None:
+        """Retain the first fence; later cancellation settlement cannot clear it."""
+        self._require_loop()
+        self._runs.setdefault(run_id, reason)
+
+    def fence_all(self, reason: str) -> None:
+        """Permanently refuse every current and future Run on this guard."""
+        self._require_loop()
+        if self._all is None:
+            self._all = reason
+
+    def fence_claim(self, run_id: str, enqueue_seq: int, reason: str) -> None:
+        """Refuse one exact worker hop without fencing an already admitted successor."""
+        self._require_loop()
+        self._claims.setdefault((run_id, enqueue_seq), reason)
+
+    def reason(self, run_id: str, enqueue_seq: int) -> str | None:
+        """Join process, Run and exact-hop refusal on the owning control loop."""
+        self._require_loop()
+        refusal = self._runs.get(run_id, self._all)
+        if refusal is not None:
+            return refusal
+        return self._claims.get((run_id, enqueue_seq))
 
 
 class RunCancellationCoordinator:

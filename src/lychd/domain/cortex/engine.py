@@ -34,6 +34,7 @@ if TYPE_CHECKING:
     from lychd.agents.router import Intent
     from lychd.agents.workflows.base import Workflow
     from lychd.domain.archive import ArchiveProfile
+    from lychd.domain.cortex.cancellation import RunEffectLifecycle
     from lychd.domain.cortex.events import RunEventBus
     from lychd.domain.cortex.ledger import RunLedger
     from lychd.domain.cortex.runs import RunRecord
@@ -322,9 +323,20 @@ async def contain_run_effects(
     delegates: DelegatedAgentCoordinatorPort | None,
     consents: ConsentAuthority | None,
     decided_by: str,
+    effects: RunEffectLifecycle | None = None,
 ) -> list[BaseException]:
     """Contain every child authority correlated to one Run and report uncertainty."""
     errors: list[BaseException] = []
+    if effects is not None:
+        try:
+            effects.fence(run_id, decided_by)
+        except Exception as exc:  # noqa: BLE001 - still attempt every containment owner
+            errors.append(exc)
+        try:
+            async with asyncio.timeout(RUN_CONTAINMENT_TIMEOUT_S):
+                await effects.contain(run_id)
+        except Exception as exc:  # noqa: BLE001 - return every containment failure
+            errors.append(exc)
     if delegates is not None:
         try:
             async with asyncio.timeout(RUN_CONTAINMENT_TIMEOUT_S):
@@ -395,6 +407,7 @@ class RunEngine:
         "consents",
         "delegates",
         "delegation_binding",
+        "effects",
         "ledger",
         "queue_router",
         "queues",
@@ -415,6 +428,7 @@ class RunEngine:
         stasis_store: Any | None = None,
         delegates: DelegatedAgentCoordinatorPort | None = None,
         consents: ConsentAuthority | None = None,
+        effects: RunEffectLifecycle | None = None,
         release_context: Callable[[str], None] | None = None,
         bridge_capability_key: str | None = None,
         bridge_archive: ArchiveProfile | None = None,
@@ -434,6 +448,7 @@ class RunEngine:
         self._terminal_repairs = RunAdmissionCoordinator()
         self.delegates = delegates
         self.consents = consents
+        self.effects = effects
         self._release_context = release_context
         if stasis_store is None:
             from lychd.domain.cortex.stasis import InMemoryStasisStore
@@ -816,7 +831,11 @@ class RunEngine:
         ``finish_cancel`` may expose ``CANCELLED``. A failed containment attempt leaves
         honest, retryable ``CANCELLING`` truth. ``orphaned`` is startup-only authority
         to fence a pre-boot broker job whose former worker process no longer exists.
+        Trusted callers supply the retained Run identity; its process handoffs are
+        fenced before the first ledger read, even if durable settlement later fails.
         """
+        if self.effects is not None:
+            self.effects.fence(run_id, "run_cancelled")
         run = await self.ledger.get(run_id)
         if run is None:
             return
@@ -832,6 +851,7 @@ class RunEngine:
                     delegates=self.delegates,
                     consents=self.consents,
                     decided_by="cortex:run-cancelled",
+                    effects=self.effects,
                 )
             )
             self._raise_containment_errors(run, errors)
@@ -856,6 +876,8 @@ class RunEngine:
         if leader is None:
             return
         try:
+            if self.effects is not None:
+                self.effects.fence(leader.run_id, "run_cancelled")
             elected = await self._elect_cancel_generation(leader.run_id)
             if elected is None:
                 return
@@ -903,6 +925,7 @@ class RunEngine:
                 delegates=self.delegates,
                 consents=self.consents,
                 decided_by="cortex:run-cancelled",
+                effects=self.effects,
             )
         )
         return errors

@@ -1386,13 +1386,25 @@ with observed new-session descendants. It fingerprints the runtime closure and s
 test prevents a historical pass from silently qualifying changed code. This proves the local
 extraction mechanism, not arbitrary host compatibility or acquisition authority.
 
+The native acquisition mechanisms now use explicit A/AAAA DNS-over-TCP observations, a pinned
+hostname-verified TLS connection, a gate at every network write, bounded HTTP/gzip decoding and
+exact manual redirects. A maintained Linux receipt proves real DNS/TLS/HTTP and extraction in an
+isolated loopback-only namespace, including wrong certificates, mixed addresses, unlisted
+redirects and revocation during TLS preventing the HTTP send. Unit tests challenge malformed and
+fragmented inputs, deadlines, cancellation and limits. Source and dependency freshness checks
+prevent reuse of that proof for changed mechanisms. Optional Run-effect lifecycle hooks fence
+the exact worker claim before settlement awaits, preserve refusal after failed cleanup, and
+fence shutdown before draining; their tests include stale-worker/successor races.
+
 **Boundary — Not yet:** There is no Scout provider, browser service, endpoint, Agent tool,
 acquisition receipt, download quarantine, authenticated session, or Smith ingestion path. There is
 no SearXNG or Crawl4AI Rune/adapter, no Scout provider store or effect-scoped tool binding, and no
 renderer containment outside the shared Pod.
-No Search engine or HTTPS acquisition transport has passed qualification. Extraction is not
-registered with a production workflow; current consent, egress, durable attempts, grants and
-complete attributed-return accounting remain required before enabling a passage.
+No Search engine has passed qualification. The isolated transport proof uses a synthetic audit
+gate, not a production authorizer. Fetch and extraction are not registered with a production
+workflow; current consent, classification/egress authority, durable attempts, grants, shared
+reservations and complete attributed-return accounting remain required before enabling a passage.
+The composition root must inject the same effect lifecycle into admission and workers.
 
 **Evidence**
 
@@ -1400,6 +1412,8 @@ complete attributed-return accounting remain required before enabling a passage.
 - **Law:** [Webcrawler](./adr/30-webcrawler.md)
 - **Source:** [Pure destination preflight](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/scout/destination.py), [fixed extraction worker](https://github.com/hexanomicon/lychd/blob/main/src/lychd/system/scout_worker.py), and [Linux supervisor](https://github.com/hexanomicon/lychd/blob/main/src/lychd/system/services/scout_extraction.py)
 - **Verification:** [Destination boundary tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/scout/test_destination.py), [worker tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/test_scout_worker.py), [supervision and receipt-freshness tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_scout_extraction.py), [live host proof](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_scout_extraction_runtime.py), and [maintained qualification receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/scout/linux-extraction-runtime.json)
+- **Source:** [Native acquisition](https://github.com/hexanomicon/lychd/blob/main/src/lychd/system/services/scout_fetch.py), [gated transport](https://github.com/hexanomicon/lychd/blob/main/src/lychd/system/services/scout_socket.py), and [Run effect fences](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/cortex/cancellation.py)
+- **Verification:** [Acquisition and freshness tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_scout_fetch.py), [HTTP decoder tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_scout_http.py), [Run fencing tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_cancellation.py), [isolated network proof](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_scout_fetch_runtime.py), and [maintained transport receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/scout/linux-fetch-runtime.json)
 
 ### Vision admission {#vision-admission}
 

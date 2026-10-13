@@ -119,8 +119,10 @@ implementation name for this general byte-time boundary.
 
 `EgressDecision` carries one tagged `RemoteTarget`:
 
-- `PortalTarget` binds provider/service, operation, model when applicable, canonical origin and
-  path, plus an immutable custody-route digest when an intermediary exists;
+- `PortalTarget` binds the actual recipient provider/service, operation, model when applicable,
+  and a protocol-specific endpoint: canonical origin and exact request target for HTTPS, or
+  fixed resolver protocol, literal endpoint and exact question for DNS. It also binds an
+  immutable custody-route digest when an intermediary exists;
 - `A2ATarget` binds the enrolled peer Principal, public task schema, adapter revision, and canonical
   origin; and
 - `DelegatedRuntimeTarget` binds the foreign runtime, containment profile, job, adapter revision,
@@ -132,6 +134,22 @@ category, target, purpose, and policy facts that make untransformed bytes eligib
 transformation-receipt-chain digest, and `CutVerification@1` digest. A nullable Cut revision or a
 transformer claim alone is not an admissible privacy basis. The Gate verifies that this basis,
 candidate/wire digest, target, purpose, policy, expiry, and remaining disclosure use all agree.
+
+An HTTPS site's identity is distinct from the native Scout adapter implementing the contact.
+DNS resolution and TLS hostname disclosure precede the HTTP request and need their own admitted
+handoffs; a resolver decision cannot authorize the site. DNS custody includes the selected
+resolver's forwarding or recursive-resolution policy. A fixed resolver address does not establish
+that policy, and unknown custody facts refuse whenever disclosure policy depends on them.
+
+The [trusted local Scout profile](38-iam.md#trusted-local-scout-profile) may admit an explicit
+public-locator declaration from an authenticated operator separately authorized to classify that
+source. The declaration binds the exact complete URL, subject and authentication generation,
+purpose, source/influence manifest, classification, category and policy revision. It is an
+attributed operator assertion, not a proof of publicness. The host verifies this basis before
+issuing `RawEligible`; authentication, public reachability and the subsequent consent click do
+not supply classification. Ordinary chat, model output or copied Context cannot inherit the
+declaration merely by containing the same URL. Missing lineage, known restricted influence and
+prohibited categories retain the refusal rules below.
 
 A coding runtime's child provider request is a separate `PortalTarget`; the outer job decision
 cannot authorize an unknown series of model calls. A black-box runtime that cannot keep its network
@@ -147,6 +165,9 @@ manifest and influence-label digests, safe residual-disclosure evidence digest, 
 lineage references, policy and disclosure-basis revisions, expiry, budgets, and allow/deny result. It contains no
 caller-supplied full `ArtifactRef`, raw subject, filename, material-parent, source span, reversal
 value, credential, or live Sigil/capability/grant/lease handle.
+
+Within the trusted local Scout profile, its host-bound local subject and authentication generation
+occupy the identity binding without claiming an enrolled Ward Principal or remote credential.
 
 `EgressDecision` is restricted, local-only, non-exportable, and non-bearer evidence. It never enters
 the provider, peer, runtime, callback, log, Loom, or telemetry payload. The Gate passes only the

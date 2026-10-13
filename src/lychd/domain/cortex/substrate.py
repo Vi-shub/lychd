@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from lychd.agents.services import GrantPort, WorkflowServices
     from lychd.agents.workflows import WorkflowRegistry
     from lychd.domain.archive import ArchiveService, ArchiveSubject
+    from lychd.domain.cortex.cancellation import RunEffectLifecycle
     from lychd.domain.cortex.context import ContextOrchestrator
     from lychd.domain.cortex.engine import RunQueue
     from lychd.domain.cortex.events import RunEventBus
@@ -77,6 +78,8 @@ class RunSubstrate:
     # fence so an abort-triggered CancelledError cannot race CANCELLED with FAILED.
     cancellations: RunCancellationCoordinator = field(default_factory=RunCancellationCoordinator)
     claims: RunClaimCoordinator = field(default_factory=RunClaimCoordinator)
+    # Shared with RunEngine; owner containment is distinct from cancellation election.
+    effects: RunEffectLifecycle | None = None
     # Durable Stasis is a run-keyed store. Production injects Postgres; the memory
     # profile uses this DB-free implementation only for tests/local memory mode.
     stasis_store: StasisStore = field(default_factory=InMemoryStasisStore)

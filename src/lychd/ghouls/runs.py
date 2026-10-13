@@ -324,6 +324,8 @@ async def _perform_run(  # noqa: C901, PLR0911, PLR0912, PLR0915 - honest fresh/
             raise interruption  # noqa: TRY301 - settlement errors retain this original interruption
         except BaseException:
             if claim.claimed:
+                if substrate.effects is not None:
+                    substrate.effects.fence_claim(run_id, claim_enqueue_seq, "worker_interrupted")
                 settled = await complete_under_cancellation(
                     _settle_interrupted_claim(
                         substrate,
@@ -346,6 +348,8 @@ async def _perform_run(  # noqa: C901, PLR0911, PLR0912, PLR0915 - honest fresh/
     async def settle_terminal(status: RunStatus, *, error: str | None = None) -> None:
         """Commit terminal truth despite cancellation and preserve emit ownership."""
         nonlocal terminal_owned
+        if status is RunStatus.FAILED and substrate.effects is not None:
+            substrate.effects.fence_claim(run_id, claim_enqueue_seq, "worker_failed")
         settle_task = asyncio.ensure_future(
             _fail_claimed_run(
                 substrate,
@@ -374,6 +378,8 @@ async def _perform_run(  # noqa: C901, PLR0911, PLR0912, PLR0915 - honest fresh/
     async def settle_interruption(error: str) -> bool:
         """Clean terminal resources or settle this interruption, reporting new ownership."""
         nonlocal terminal_owned
+        if substrate.effects is not None:
+            substrate.effects.fence_claim(run_id, claim_enqueue_seq, "worker_interrupted")
         if terminal_owned:
             await complete_under_cancellation(
                 _cleanup_claim_resources(
@@ -552,6 +558,8 @@ async def _settle_interrupted_claim(
     Returns ``True`` only when this worker owns the terminal write and must emit the
     terminal event.  A terminal written elsewhere owns its own event publication.
     """
+    if substrate.effects is not None:
+        substrate.effects.fence_claim(run.run_id, enqueue_seq, "worker_interrupted")
     current = await substrate.ledger.get(run.run_id)
     if current is None:
         return False
@@ -589,6 +597,8 @@ async def _cleanup_cancelled_claim(
     persistence: PhylacteryProtocol | None,
 ) -> None:
     """Release volatile worker resources, retaining checkpoints until cancellation commits."""
+    if substrate.effects is not None:
+        substrate.effects.fence(run.run_id, "run_cancelled")
     if run.status is RunStatus.CANCELLING:
         substrate.context.release(run.run_id)
         return
@@ -613,6 +623,8 @@ async def _fail_claimed_run(
     lost the commit acknowledgement. A superseded worker cannot contain its successor.
     Claims and park commits share this guard; publication deliberately does not.
     """
+    if substrate.effects is not None:
+        substrate.effects.fence_claim(run.run_id, enqueue_seq, "worker_failed")
     async with substrate.claims.hold(run.run_id):
         current = await substrate.ledger.get(run.run_id)
         if current is None or current.enqueue_seq != enqueue_seq:
@@ -634,7 +646,9 @@ async def _contain_and_fail_claim(
     error: str,
     persistence: PhylacteryProtocol | None,
 ) -> bool:
-    """Contain and settle while the caller holds this Run's claim guard."""
+    """Fence, contain and settle after proving this exact hop still owns execution."""
+    if substrate.effects is not None:
+        substrate.effects.fence(run.run_id, "worker_failed")
     containment_errors = await _contain_failed_run_effects(substrate, run.run_id)
     if containment_errors:
         for exc in containment_errors:
@@ -675,6 +689,7 @@ async def _contain_failed_run_effects(substrate: RunSubstrate, run_id: str) -> l
             delegates=substrate.delegates,
             consents=substrate.consents,
             decided_by="cortex:worker-failure-containment",
+            effects=substrate.effects,
         )
         if not errors:
             return []
@@ -1447,6 +1462,7 @@ async def _reconcile_orphaned_run(substrate: RunSubstrate, run: RunRecord) -> bo
         delegates=substrate.delegates,
         consents=substrate.consents,
         decided_by="cortex:orphan-failed",
+        effects=substrate.effects,
     )
     if containment_errors:
         for exc in containment_errors:

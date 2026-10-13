@@ -24,6 +24,7 @@ from pydantic_ai.models.test import TestModel
 from lychd.agents.router import Intent
 from lychd.agents.the_first_one import default_forge
 from lychd.agents.workflows import BRIDGE_CHAT, DELEGATED_RITE, BuiltinWorkflowRegistry, builtin_workflow_registry
+from lychd.domain.cortex.cancellation import RunEffectFence
 from lychd.domain.cortex.context import ContextOrchestrator
 from lychd.domain.cortex.events import InProcessEventBus, RunEventKind
 from lychd.domain.cortex.ledger import ConsentAdmissionEvidence, InMemoryRunLedger, RunClaimAttempt
@@ -44,6 +45,34 @@ from lychd.ghouls.runs import (
 from tests.agents.fakes import FakeDispatcher, FakeOrchestrator, FakeRegistry
 
 pydantic_ai.models.ALLOW_MODEL_REQUESTS = False
+
+
+class _Effects:
+    """Observe the fence independently from completed or failed containment."""
+
+    def __init__(self) -> None:
+        self.guard = RunEffectFence()
+        self.contained: list[str] = []
+        self.failure: Exception | None = None
+
+    def fence(self, run_id: str, reason: str) -> None:
+        self.guard.fence(run_id, reason)
+
+    def fence_all(self, reason: str) -> None:
+        self.guard.fence_all(reason)
+
+    def fence_claim(self, run_id: str, enqueue_seq: int, reason: str) -> None:
+        self.guard.fence_claim(run_id, enqueue_seq, reason)
+
+    async def contain(self, run_id: str) -> None:
+        assert self.guard.reason(run_id, 0) is not None
+        self.contained.append(run_id)
+        if self.failure is not None:
+            raise self.failure
+
+    async def contain_all(self) -> None:
+        msg = "worker containment must be Run-specific"
+        raise AssertionError(msg)
 
 
 def _consent_evidence(run_id: str, consent_id: str) -> ConsentAdmissionEvidence:
@@ -804,6 +833,8 @@ async def test_old_park_hop_cannot_fail_resume_that_already_claimed(
 async def test_perform_run_failure_marks_failed_and_emits_done() -> None:
     """A node failure marks FAILED, writes a fault turn, and still emits a terminal DONE."""
     substrate, ledger, sessions = _substrate(dispatcher=_RaisingDispatcher())
+    effects = _Effects()
+    substrate.effects = effects
     await _seed_run(ledger, sessions, "run_3")
     channel = substrate.bus.open("run_3")  # hold the ref before the finally drops it (H4)
     # H6: seed a cached context floor; the failure path must release it (no leak).
@@ -823,6 +854,80 @@ async def test_perform_run_failure_marks_failed_and_emits_done() -> None:
     assert dones[0].data == "failed"
     # H6: the context floor was released on the failure path (no per-run leak).
     assert "run_3" not in substrate.context._cache
+    assert effects.guard.reason("run_3", 0) == "worker_failed"
+    assert effects.contained == ["run_3"]
+
+
+@pytest.mark.asyncio
+async def test_worker_effect_containment_failure_keeps_nonterminal_fenced_run(monkeypatch: pytest.MonkeyPatch) -> None:
+    import lychd.ghouls.runs as runs_mod
+
+    substrate, ledger, sessions = _substrate(dispatcher=_RaisingDispatcher())
+    effects = _Effects()
+    effects.failure = RuntimeError("child still live")
+    substrate.effects = effects
+    await _seed_run(ledger, sessions, "uncontained")
+    await substrate.stasis_store.replace("uncontained", [])
+    monkeypatch.setattr(runs_mod, "FAILURE_CONTAINMENT_RETRY_S", 0)
+
+    with pytest.raises(RuntimeError, match="Failure containment failed"):
+        await perform_run({"run_substrate": substrate}, run_id="uncontained")
+
+    run = await ledger.get("uncontained")
+    assert run is not None
+    assert run.status is RunStatus.RUNNING
+    assert effects.guard.reason(run.run_id, 0) == "worker_failed"
+    assert effects.contained == [run.run_id] * runs_mod.FAILURE_CONTAINMENT_ATTEMPTS
+    assert await substrate.stasis_store.exists(run.run_id)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("cancelled", [False, True])
+async def test_worker_fences_exact_hop_before_awaiting_ownership_read(
+    monkeypatch: pytest.MonkeyPatch, *, cancelled: bool
+) -> None:
+    import lychd.ghouls.runs as runs_mod
+
+    substrate, ledger, sessions = _substrate(dispatcher=FakeDispatcher(model=TestModel()))
+    effects = _Effects()
+    substrate.effects = effects
+    await _seed_run(ledger, sessions, "handoff-race")
+    failing = False
+    reading = asyncio.Event()
+    release = asyncio.Event()
+    original_get = ledger.get
+
+    class _InterruptedRunner:
+        def __init__(self, **_kwargs: Any) -> None:
+            pass
+
+        async def run_graph(self, *_args: Any, **_kwargs: Any) -> None:
+            nonlocal failing
+            failing = True
+            if cancelled:
+                raise asyncio.CancelledError
+            msg = "graph failed"
+            raise RuntimeError(msg)
+
+    async def delayed_get(run_id: str) -> Any:
+        if failing and not release.is_set():
+            assert effects.guard.reason(run_id, 0) == "worker_interrupted"
+            reading.set()
+            await release.wait()
+        return await original_get(run_id)
+
+    monkeypatch.setattr(runs_mod, "GraphRunner", _InterruptedRunner)
+    monkeypatch.setattr(ledger, "get", delayed_get)
+    worker = asyncio.create_task(perform_run({"run_substrate": substrate}, run_id="handoff-race", enqueue_seq=0))
+    await asyncio.wait_for(reading.wait(), timeout=1)
+    assert effects.guard.reason("handoff-race", 0) == "worker_interrupted"
+    assert effects.guard.reason("handoff-race", 1) is None
+    assert effects.contained == []
+    release.set()
+    with pytest.raises(asyncio.CancelledError if cancelled else RuntimeError):
+        await worker
+    assert effects.guard.reason("handoff-race", 0) == "worker_failed"
+    assert effects.contained == ["handoff-race"]
 
 
 @pytest.mark.asyncio
@@ -1401,6 +1506,8 @@ async def test_reconcile_respects_boot_cutoff_and_deletes_checkpoint() -> None:
 async def test_reconcile_runs_fails_orphaned_running() -> None:
     """reconcile_runs marks orphaned RUNNING rows FAILED and emits their terminal DONE."""
     substrate, ledger, sessions = _substrate(dispatcher=FakeDispatcher(model=TestModel()))
+    effects = _Effects()
+    substrate.effects = effects
     await _seed_run(ledger, sessions, "orphan")
     await ledger.set_status("orphan", RunStatus.RUNNING)  # crash left it here
     # Hold the channel ref BEFORE the sweep: R2 now closes + drops the reconciled
@@ -1418,6 +1525,8 @@ async def test_reconcile_runs_fails_orphaned_running() -> None:
     assert channel.closed is True
     # R2: the reconciled channel was dropped, not leaked — reopening mints a fresh one.
     assert substrate.bus.open("orphan") is not channel
+    assert effects.guard.reason("orphan", 0) == "cortex:orphan-failed"
+    assert effects.contained == ["orphan"]
 
 
 @pytest.mark.asyncio
@@ -1430,6 +1539,8 @@ async def test_cancelled_old_park_hop_does_not_contain_successor(
     from lychd.domain.cortex.runs import RunParked
 
     substrate, ledger, sessions = _substrate(dispatcher=FakeDispatcher(model=TestModel()))
+    effects = _Effects()
+    substrate.effects = effects
     await _seed_run(ledger, sessions, "cancelled-old-hop")
     claimed = asyncio.Event()
     group = _cancellation_group()
@@ -1489,6 +1600,9 @@ async def test_cancelled_old_park_hop_does_not_contain_successor(
     assert current.status is RunStatus.RUNNING
     assert current.enqueue_seq == 1
     assert swept == []
+    assert effects.guard.reason(current.run_id, 0) == "worker_interrupted"
+    assert effects.guard.reason(current.run_id, 1) is None
+    assert effects.contained == []
     await substrate.bus.wait_persisted(current.run_id)
 
 
@@ -1498,6 +1612,8 @@ async def test_failure_guard_excludes_claims_until_children_are_contained(monkey
     import lychd.ghouls.runs as runs_mod
 
     substrate, ledger, sessions = _substrate(dispatcher=FakeDispatcher(model=TestModel()))
+    effects = _Effects()
+    substrate.effects = effects
     await _seed_run(ledger, sessions, "contained-claim")
     assert (await ledger.try_claim_run("contained-claim", enqueue_seq=0)).acknowledged
     run = await ledger.get("contained-claim")
@@ -1508,6 +1624,7 @@ async def test_failure_guard_excludes_claims_until_children_are_contained(monkey
     original_claim = ledger.try_claim_run
 
     async def contain(_substrate: Any, _run_id: str) -> list[BaseException]:
+        assert effects.guard.reason(_run_id, 0) == "worker_failed"
         containing.set()
         await release.wait()
         return []

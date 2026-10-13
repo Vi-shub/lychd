@@ -168,6 +168,38 @@ later revocation cannot retract accepted source bytes; it does atomically invali
 vectors and fence late completion. A caller-supplied Run UUID is attribution, never a Run grant,
 relationship assertion or authority to emit events into that Run.
 
+## Trusted local Scout profile
+
+The Designed opt-in Scout profile binds one authenticated local operator to a host-owned subject
+and authentication generation in the single control process and event loop. Its mandatory current
+host authorizer separately decides public-locator classification, review disclosure/judgment,
+Fetch, Extract and transient material consumption. Every decision binds the actual subject,
+retained Run and request, exact preparation, purpose, policy revision, revocation generation,
+expiry and applicable budget. Neither a caller-supplied Run UUID nor a matching Sigil name/scope
+bag supplies authority. [Security](09-security.md#target-and-disclosure-basis) owns the declaration
+and disclosure basis; [Scout](30-webcrawler.md#attempt-layers-and-crash-semantics) owns attempts
+and reservations. Raw acquired material remains transient, and this profile admits no remote
+model inference.
+
+After awaited preparation, a mandatory synchronous gate checks current authority, consumes the
+finite reserved counters and hands off each actual socket connect/send without yielding between
+check and handoff. DNS and TLS output cross this gate too. Policy updates and revocation serialize
+with it on the same loop; a transport thread, separate worker or permissive transport default is
+outside this profile. Revocation fences later handoffs but cannot retract kernel-accepted bytes.
+
+Run cancellation and shutdown synchronously fence affected attempts before awaited containment.
+Observed worker failure first fences its exact retained delivery claim before any settlement
+await; a stale worker cannot fence a successor's claim. A Run-wide failure fence follows verified
+current ownership. Every fence is monotonic: completion of a cancellation election or a
+failed database/broker operation cannot reopen it. Containment must then close owned sockets and
+stop/reap children. A granted consent is historical judgment; the pending-only decision operation
+does not revoke it. Withdrawal uses Run cancellation or current host-policy revocation. Restart
+injects current authority again and never restores a live permit from a receipt.
+
+This local composition seam supplies no remote Principal enrollment, Ward session, cross-process
+revocation or isolation from trusted same-process code. Runtime activation remains Designed until
+the complete assembly and its effectful refusal, revocation and recovery evidence are delivered.
+
 ## Thresholds and delivery
 
 [Veil](40-proxy.md) owns hostile ingress and trusted-proxy canonicalization; [Tether](39-vpn.md)

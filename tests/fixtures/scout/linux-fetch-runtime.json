@@ -1,0 +1,41 @@
+{
+  "schema": "scout-fetch-local-proof@1",
+  "status": "passed",
+  "kernel": "7.1.8-1-default",
+  "python": "3.15.0",
+  "openssl": "OpenSSL 3.5.9 29 Sep 2026",
+  "dependency_versions": {
+    "h11": "0.16.0",
+    "dnspython": "2.8.0"
+  },
+  "network": "isolated-loopback-only",
+  "authority": "synthetic-audit-gate-not-durable-production-authority",
+  "source_fingerprints": {
+    "src/lychd/domain/scout/destination.py": "5cd67b1be68397673b86982afe5b36f2d3fbf26ef8c64da4397dc15d0edf683f",
+    "src/lychd/domain/scout/transport.py": "301869408a134330354419508d789de5a561d3d31f08564876a66714d4b3517e",
+    "src/lychd/system/services/scout_dns.py": "9bb3842fd92f35c99331aa14bb46f1250be700de599679454c061e9fba40acc9",
+    "src/lychd/system/services/scout_socket.py": "3fcac5982078f688d332de823067c4efb5fd268dfda2e51a18bd6819d0fa6e86",
+    "src/lychd/system/services/scout_http.py": "91ef0647841b5c9f35c7aa02e85ec3a2c06c5c86a9563e0e1f6a6f89f65dcefe",
+    "src/lychd/system/services/scout_fetch.py": "7b4102ecf198a796a88e8cedba74025f54937015385c11f34ba5a10ee336c14e",
+    "src/lychd/system/services/scout_extraction.py": "2683b3ca80dc633fc25ae46383face6ff93e6119a4596268f09a84c84356ade9",
+    "src/lychd/system/scout_worker.py": "b1cd9ba101653e276ff66847419f07b24589dcc5b76d92df867fc115475d2f66",
+    "tests/integration/test_scout_fetch_runtime.py": "71af637c78053260562ea08fad2f50fdc35f1b04210b035716f61872593f117d"
+  },
+  "checks": [
+    "real_dns_tls_length",
+    "real_dns_tls_chunked",
+    "real_dns_tls_gzip",
+    "real_dns_tls_eof",
+    "wrong_hostname_and_untrusted_certificate_refuse",
+    "mixed_private_dns_prevents_origin_contact",
+    "unlisted_redirect_prevents_new_dns",
+    "sni_time_revocation_prevents_actual_http_send",
+    "ip_certificate_identity_without_dns_or_ip_sni",
+    "real_fetch_and_network_denied_extract",
+    "source_fingerprints_unchanged"
+  ],
+  "extraction": "passed_with_explicit_runtime_profile",
+  "tls_versions": [
+    "TLSv1.3"
+  ]
+}

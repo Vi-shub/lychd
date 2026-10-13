@@ -285,6 +285,29 @@ generated `receipt.json` stays below basetemp; the sanitized maintained receipt 
 that receipt's freshness test and requires review and requalification. This proves only the
 identified local extractor, not Scout Fetch, workflow integration or the general Coffin boundary.
 
+Scout's DNS/TLS proof uses real local servers inside a fresh Linux user/network namespace. It
+requires `unshare`, `ip`, OpenSSL and the installed Python dependencies. Only loopback exists;
+the public-classified fixture address below is assigned inside that isolated namespace, never
+to a host interface. From the checkout, with a fresh basetemp path:
+
+```bash
+LYCHD_SCOUT_HOST_NETNS="$(readlink /proc/self/ns/net)" \
+LYCHD_REQUIRE_SCOUT_FETCH_PROOF=1 UV_NO_SYNC=1 UV_OFFLINE=1 \
+unshare --user --map-root-user --net sh -c '
+  ip link set lo up &&
+  ip addr add 93.184.216.34/32 dev lo &&
+  make test M=container N=0 PYTEST_TARGETS=tests/integration/test_scout_fetch_runtime.py PYTEST_BASETEMP=/tmp/lychd-scout-fetch-proof
+'
+```
+
+Set `LYCHD_SCOUT_EXTRACTION_PROFILE` to the reviewed profile above to include the real extraction
+child in the passage. Without it, the receipt explicitly leaves extraction untested. The proof
+checks actual DNS answers, pinned TLS/SNI/Host, certificate refusal, HTTP framing, mixed-address
+refusal, redirect admission and the final HTTP handoff gate. Its generated `receipt.json` contains
+source/dependency identities and observed checks; ephemeral certificate keys stay in basetemp.
+The maintained receipt and source-freshness test qualify this isolated mechanism profile, not a
+production authorizer, durable Scout attempt, workflow, public website or SearXNG service.
+
 The optional offline music engineering profile runs without the Vessel or a native Composition:
 
 ```bash

@@ -29,6 +29,7 @@ if TYPE_CHECKING:
 
     from lychd.config.runes.registry import RuneRegistry
     from lychd.config.settings.root import Settings
+    from lychd.domain.cortex.cancellation import RunEffectLifecycle
     from lychd.domain.cortex.engine import RunQueue
     from lychd.domain.orchestration.containment import SoftActivationGuard
 
@@ -152,26 +153,62 @@ async def altar_services_lifespan(app: Litestar) -> AsyncGenerator[None]:
     finally:
         from lychd.domain.cortex.substrate import reset_run_substrate
 
-        maintenance_stop.set()
-        relay_results = await asyncio.gather(
-            *(_stop_delivery_relay(task) for task in maintenance_tasks),
-            return_exceptions=True,
-        )
-        relay_errors = [result for result in relay_results if isinstance(result, BaseException)]
-        if relay_errors:
-            message = "Maintenance relays did not stop; shared dependencies remain live."
-            raise BaseExceptionGroup(message, relay_errors)
-        # Litestar exits custom lifespan managers before running plugin
-        # ``on_shutdown`` hooks. Topology-A SAQ workers share these services, so
-        # drain them here first; otherwise a live graph can race the substrate
-        # reset and bus/session cleanup. The plugin's later stop is idempotent.
-        await _stop_in_process_workers(app)
+        effects = services.substrate.effects if services is not None else None
+        await _drain_process_work(app, maintenance_stop, maintenance_tasks, effects=effects)
         reset_run_substrate()
         try:
             if services is not None:
                 await services.aclose()
         finally:
             await disconnect_run_queues(connected_queues)
+
+
+async def _drain_process_work(
+    app: Litestar,
+    maintenance_stop: asyncio.Event,
+    maintenance_tasks: list[asyncio.Task[None]],
+    *,
+    effects: RunEffectLifecycle | None,
+) -> None:
+    """Fence before any drain await, and preserve dependencies on uncertain cleanup.
+
+    Litestar exits custom lifespan managers before plugin shutdown hooks. Its
+    Topology-A workers still share these services. Drain them before substrate
+    reset; contain owned effects alongside workers that may be awaiting them.
+    """
+    errors: list[BaseException] = []
+    if effects is not None:
+        try:
+            effects.fence_all("shutdown")
+        except Exception as exc:  # noqa: BLE001 - still attempt shutdown containment
+            errors.append(exc)
+    maintenance_stop.set()
+    relay_results = await asyncio.gather(
+        *(_stop_delivery_relay(task) for task in maintenance_tasks),
+        return_exceptions=True,
+    )
+    errors.extend(result for result in relay_results if isinstance(result, BaseException))
+    if effects is None:
+        if errors:
+            message = "Maintenance relays did not stop; shared dependencies remain live."
+            raise BaseExceptionGroup(message, errors)
+        await _stop_in_process_workers(app)
+        return
+    stop_results = await asyncio.gather(
+        _stop_in_process_workers(app),
+        _contain_process_effects(effects),
+        return_exceptions=True,
+    )
+    errors.extend(result for result in stop_results if isinstance(result, BaseException))
+    if errors:
+        message = "Process-owned work did not stop; shared dependencies remain live."
+        raise BaseExceptionGroup(message, errors)
+
+
+async def _contain_process_effects(effects: RunEffectLifecycle) -> None:
+    """Bound owner cleanup after the synchronous shutdown fence, alongside workers."""
+    async with asyncio.timeout(_WORKER_SHUTDOWN_TIMEOUT_S):
+        await effects.contain_all()
 
 
 async def _stop_in_process_workers(

@@ -14,7 +14,8 @@ Composition decides what it means and whether it serves the work.
 
 Scout follows [Webcrawler](../../adr/30-webcrawler.md).
 [State](../../state-of-the-work.md#scout-web-acquisition) distinguishes the verified destination
-preflight and local extraction mechanism from the acquisition path that remains unfinished.
+preflight, native transport and local extraction mechanisms from the workflow passage that
+remains unfinished.
 
 ## The first passage
 
@@ -148,6 +149,13 @@ of source-authored instructions. Its [host qualification procedure](https://gith
 uses an explicit runtime profile and synthetic fixtures. Passing it grants no Fetch, custody or
 workflow authority. Search and JavaScript rendering retain their separate admission and isolation
 gates.
+
+The [native HTTPS transport](../../adr/30-webcrawler.md#native-https-transport-profile) has a
+separate isolated-network qualification: real DNS and TLS fixtures lead into the extractor,
+while certificate, destination, framing and current-handoff refusals remain visible. It accepts
+ordinary HTTP/1.1 HTML/plain-text responses with identity or gzip encoding. Chunk extensions,
+trailers and unlisted redirects refuse. This mechanism proof uses a synthetic gate; durable
+attempts, current operator authority and the hosting Bridge workflow remain unfinished.
 
 ## The laws of the road
 

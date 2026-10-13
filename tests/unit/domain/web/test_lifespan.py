@@ -6,7 +6,7 @@ import asyncio
 from contextlib import asynccontextmanager
 from functools import partial
 from types import SimpleNamespace
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 from unittest.mock import ANY, AsyncMock, Mock
 
 import pytest
@@ -15,7 +15,9 @@ import lychd.extensions.host as extension_host
 from lychd.config.runes.registry import RuneRegistry
 from lychd.config.settings.root import Settings
 from lychd.domain.codex.runes import CodexPreauthRune
+from lychd.domain.cortex.cancellation import RunEffectFence
 from lychd.interface.web.lifespan import (
+    _drain_process_work,
     _reconcile_cancellations_at_startup,
     _reconcile_terminal_checkpoints_at_startup,
     _stop_delivery_relay,
@@ -31,6 +33,8 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from pytest_mock import MockerFixture
+
+    from lychd.domain.cortex.cancellation import RunEffectLifecycle
 
 
 class _Queue:
@@ -71,6 +75,71 @@ def _app_with_worker_plugin(plugin: object) -> SimpleNamespace:
 
 async def _record_event_after_call(events: list[str], event: str, _value: object) -> None:
     events.append(event)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failed_owner", [None, "relay", "worker", "effects"])
+async def test_shutdown_fences_before_await_and_drains_every_effect_owner(
+    mocker: MockerFixture,
+    failed_owner: str | None,
+) -> None:
+    guard = RunEffectFence()
+    events: list[str] = []
+    worker_started = asyncio.Event()
+    effects_started = asyncio.Event()
+    stop = asyncio.Event()
+    failure = RuntimeError("owner did not stop")
+
+    def fence_all(reason: str) -> None:
+        assert not stop.is_set()
+        events.append("fence")
+        guard.fence_all(reason)
+
+    async def contain_all() -> None:
+        assert guard.reason("future", 0) == "shutdown"
+        events.append("effects")
+        effects_started.set()
+        await worker_started.wait()
+        if failed_owner == "effects":
+            raise failure
+
+    async def stop_worker(_app: object) -> None:
+        assert guard.reason("future", 0) == "shutdown"
+        events.append("worker")
+        worker_started.set()
+        await effects_started.wait()
+        if failed_owner == "worker":
+            raise failure
+
+    async def stop_relay(task: asyncio.Task[None]) -> None:
+        assert guard.reason("future", 0) == "shutdown"
+        assert stop.is_set()
+        events.append("relay")
+        await task
+        if failed_owner == "relay":
+            raise failure
+
+    async def relay() -> None:
+        await stop.wait()
+
+    mocker.patch("lychd.interface.web.lifespan._stop_delivery_relay", new=stop_relay)
+    mocker.patch("lychd.interface.web.lifespan._stop_in_process_workers", new=stop_worker)
+    tasks = [asyncio.create_task(relay())]
+    drain = _drain_process_work(
+        SimpleNamespace(),  # type: ignore[arg-type]
+        stop,
+        tasks,
+        effects=cast("RunEffectLifecycle", SimpleNamespace(fence_all=fence_all, contain_all=contain_all)),
+    )
+    if failed_owner is None:
+        await asyncio.wait_for(drain, timeout=1)
+    else:
+        with pytest.raises(ExceptionGroup, match="shared dependencies remain live") as caught:
+            await asyncio.wait_for(drain, timeout=1)
+        assert caught.value.exceptions == (failure,)
+    assert events[:2] == ["fence", "relay"]
+    assert set(events[2:]) == {"worker", "effects"}
+    assert guard.reason("future", 0) == "shutdown"
 
 
 def _inject_reconciliation_failure(
@@ -605,7 +674,7 @@ async def test_postgres_reconciliation_failure_blocks_publication_and_cleans_up(
     )
     services = SimpleNamespace(
         registry=SimpleNamespace(ensure_loaded=Mock()),
-        substrate=object(),
+        substrate=SimpleNamespace(effects=None),
         run_engine=run_engine,
         aclose=AsyncMock(side_effect=lambda: cleanup_events.append("services")),
     )
