@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Self
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic_graph import BaseNode, End, GraphRunContext
 
 from lychd.agents.context_limits import limit_model_requests
@@ -62,11 +62,21 @@ class ScoutChatState(BaseModel):
     scout: ScoutBinding
     hardware_resume_budget: HardwareResumeBudget = Field(default_factory=HardwareResumeBudget)
     review: ScoutReviewRef | None = None
+    pending_consent_id: str | None = None
     receipt_id: UUID | None = None
     receipt_digest: str | None = None
     new_messages: list[Any] = Field(default_factory=list)
     answer: str | None = None
     refusal: str | None = None
+
+    @model_validator(mode="after")
+    def consent_owner_matches_review(self) -> Self:
+        """Bind a resumable consent owner to the exact retained native review."""
+        if self.pending_consent_id is not None and (
+            self.review is None or self.pending_consent_id != str(self.review.consent_id)
+        ):
+            raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
+        return self
 
 
 def _scout(services: WorkflowServices) -> ScoutWorkflowPort:
@@ -97,6 +107,7 @@ class PreparePageReview(BaseNode[ScoutChatState, WorkflowServices]):
     async def run(self, ctx: GraphRunContext[ScoutChatState, WorkflowServices]) -> AwaitPageConsent | SettlePageAnswer:
         try:
             ctx.state.review = await _scout(ctx.deps).prepare(run_id=ctx.state.run_id, binding=ctx.state.scout)
+            ctx.state.pending_consent_id = str(ctx.state.review.consent_id)
         except ScoutWorkflowError as error:
             _refused(ctx.state, error)
             return SettlePageAnswer()
@@ -115,10 +126,12 @@ class AwaitPageConsent(Gate, BaseNode[ScoutChatState, WorkflowServices]):
             verdict = await _scout(ctx.deps).consent(run_id=ctx.state.run_id, binding=ctx.state.scout, review=review)
             if verdict == "pending":
                 raise ConsentPending(str(review.consent_id), ctx.state.run_id, "scout.public-page")
+            ctx.state.pending_consent_id = None
             if verdict != "granted":
                 _refused(ctx.state, ScoutWorkflowError(ScoutWorkflowCode.CONSENT))
                 return SettlePageAnswer()
         except ScoutWorkflowError as error:
+            ctx.state.pending_consent_id = None
             _refused(ctx.state, error)
             return SettlePageAnswer()
         return AcquireAndAnswerPage()

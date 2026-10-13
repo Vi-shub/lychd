@@ -1434,6 +1434,16 @@ An assembled PostgreSQL fixture additionally crosses actual credential admission
 native consent and resumed claim, owned settlement and persisted turns. Its transport, child
 process and model are controlled substitutes, distinct from the separately qualified mechanisms.
 
+A worker-driven PostgreSQL test now parks the actual Graph and restores its typed continuation
+from durable storage through `perform_run`. Scout checkpoints carry the exact native consent
+owner before entering the Gate and clear it before proceeding. Approval acquires and settles
+once; denial settles a refusal without acquisition or inference. Missing or conflicting owners
+fail before any resumed station, stale deliveries remain inert, and terminal events, delivery
+settlement and source exclusion are checked. Legacy checkpoints without an owner remain
+non-resumable; the worker never infers authority from their review reference. The test reconstructs
+checkpoint and event-bus objects, while retaining the admitted Scout service in the same process;
+queue publication, dispatcher, acquisition and model remain controlled substitutes.
+
 A maintained composed Linux receipt now joins actual credential admission, PostgreSQL native
 consent and a store-issued claim to the real current-authority DNS/TLS/HTTP path and fixed
 supervised extraction child. The disposable database has no IP network or published port;
@@ -1451,8 +1461,10 @@ effect-scoped Agent tool, download quarantine, website authentication/session cu
 ingestion path ships. No Search engine has passed qualification. The transport/extraction proof
 uses a synthetic audit gate; the additional current-authority network proof uses fixture admission
 data. The composed receipt adds real PostgreSQL and extraction but does not exercise HTTP routing,
-a SAQ worker process, durable Graph checkpoint/resume or model inference. These receipts do not
-prove a deployed combination or arbitrary host compatibility. The first workflow accepts only its explicit public-page command, follows no
+a SAQ worker process, durable Graph checkpoint/resume or model inference. The separate worker test
+proves durable Graph continuation with substituted effects; no receipt joins that execution to the
+real network, extractor and inference service. These receipts do not prove a deployed combination
+or arbitrary host compatibility. The first workflow accepts only its explicit public-page command, follows no
 redirects, and requires a qualified local extractor and exact local model. Budget reset and
 unknown-attempt reconciliation have no automatic operational path. Rendering remains separately
 unimplemented outside the shared Pod.
@@ -1468,6 +1480,7 @@ unimplemented outside the shared Pod.
 - **Source:** [Current authority](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/scout/authority.py), [durable attempts](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/scout.py), [owned coordinator](https://github.com/hexanomicon/lychd/blob/main/src/lychd/system/services/scout_workflow.py), and [public-page casting](https://github.com/hexanomicon/lychd/blob/main/src/lychd/agents/workflows/scout_chat.py)
 - **Verification:** [Authority contracts](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/scout/test_authority.py), [PostgreSQL attempts](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_scout_attempts_pg.py), [migration custody](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_scout_migrations_pg.py), [coordinator boundaries](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_scout_workflow.py), and [transient workflow projection](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_scout_chat.py)
 - **Verification:** [Assembled PostgreSQL workflow](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_scout_workflow_pg.py)
+- **Verification:** [Worker and durable Graph continuation](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_scout_graph_workflow_pg.py) and [consent checkpoint ownership](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_scout_consent_owner.py)
 - **Verification:** [Composed isolated passage](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_scout_composed_runtime.py), [maintained composed receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/scout/linux-composed-runtime.json), and [composed receipt freshness](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/scout/test_composed_receipt.py)
 - **Verification:** [Current-authority network proof](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_scout_authority_runtime.py), [maintained authority receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/scout/linux-authority-runtime.json), and [authority receipt freshness](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/scout/test_authority_receipt.py)
 

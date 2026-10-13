@@ -43,7 +43,7 @@
     "src/lychd/db/sessions.py": "8938fb9a3d00dc2fa1a63faaa08cfe5a1d4e420ce2cc9543eb3cb6d99679c8f9",
     "src/lychd/interface/web/scout_admission.py": "d62c34baa5503126ad9365f87ff55e0dccfd77bd5aae340343837ac22e232fd2",
     "src/lychd/interface/web/scout_review.py": "9333e6efcc1b5fa9dad0c5e383d145afbbd5b163b6f278324abc573e876a087d",
-    "src/lychd/agents/workflows/scout_chat.py": "2d4c6a8993b571128152682b32e142e17193b22550ba40a5473a3cc02ac9d939",
+    "src/lychd/agents/workflows/scout_chat.py": "c2c78b7504ff63e01d434496c35e2da2f6c49eee58c43bf0c3568a8453052539",
     "src/lychd/agents/scout_context.py": "28ac0738e34463565957959180539a5734e659065dc615974db36ba68730733f",
     "src/lychd/system/scout_worker.py": "b1cd9ba101653e276ff66847419f07b24589dcc5b76d92df867fc115475d2f66",
     "src/lychd/system/services/scout_workflow.py": "e0d66589855a0daa258e653474b82e706e43ef42a147f67b88d57ff8695a6aee",
@@ -57,7 +57,7 @@
     "tests/scout_fixtures.py": "5576575bbf46c91f4ecbab340ead8eba26ea1a5ff671c247f49b636e4f8345c9",
     "tests/scout_network_fixture.py": "07ef869bfc257e10b4a09b4d59ac0a5bcf9d0845ea8d7cf88de8994036c03868",
     "tests/scout_postgres_fixture.py": "664645a1c51686828e5046ac9048e34cb74f819dfe10b67c6122e0e0dd899123",
-    "tests/scout_workflow_fixture.py": "317d5be7775c565155241034cda6df7ffd2c463d6977e1a7c50bee881fbf925c",
+    "tests/scout_workflow_fixture.py": "f8402b3fb521b5b3022df345b63daec5d4f1da45992a258fc8553de5788e88b2",
     "tests/integration/test_scout_extraction_runtime.py": "6a7967b36c56eb97977a025302e6c6163d3bbb76699a9546e2586ada1ce12920",
     "tests/integration/test_scout_composed_runtime.py": "87184fabee8e92c8a768db5d8af6404b11709135c2ccd7a33893ff59b934ef64"
   },

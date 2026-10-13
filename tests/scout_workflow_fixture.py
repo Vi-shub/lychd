@@ -83,6 +83,7 @@ class ScoutWorkflowFixture:
     context: GraphRunContext[ScoutChatState, WorkflowServices]
     model_requests: list[bytes]
     turns: DbBridgeSessionStore
+    engine: RunEngine
 
 
 def workflow_service(
@@ -112,6 +113,7 @@ async def assemble_workflow(
     profile: ScoutProfile,
     prompt: str,
     answer: str,
+    claim_initial: bool = True,
 ) -> ScoutWorkflowFixture:
     """Assemble real admission, custody and nodes with inert model and queue adapters."""
     access = LocalOperatorAccess(access_password="fixture-secret")  # noqa: S106 - inert local test credential
@@ -161,7 +163,8 @@ async def assemble_workflow(
         handle = await engine.submit(Intent(session_id=session.id, prompt=prompt), scout_declaration=proof)
     finally:
         await bus.aclose()
-    assert (await ledger.try_claim_run(handle.run_id, enqueue_seq=0)).acknowledged is True
+    if claim_initial:
+        assert (await ledger.try_claim_run(handle.run_id, enqueue_seq=0)).acknowledged is True
     run = await ledger.get(handle.run_id)
     assert run is not None
     assert run.admitted_scout is not None
@@ -206,6 +209,7 @@ async def assemble_workflow(
         GraphRunContext(state=state, deps=services),
         requests,
         turns,
+        engine,
     )
 
 
