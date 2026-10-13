@@ -133,8 +133,30 @@ def test_source_file_is_provenance_not_toml_field(tmp_path: Path) -> None:
 
     loader = ConfigLoader(runes_dir=tmp_path)
 
-    with pytest.raises(ValidationError, match="source_file"):
+    with pytest.raises(ValueError, match="source_file") as raised:
         loader.load_all([LeafConfig])
+
+    assert isinstance(raised.value.__cause__, ValidationError)
+    assert raised.value.__cause__.errors()[0]["type"] == "extra_forbidden"
+
+
+def test_schema_failure_names_exact_file_and_preserves_field_diagnostics(tmp_path: Path) -> None:
+    first = tmp_path / "test" / "leaf" / "alpha.toml"
+    invalid = first.with_name("beta.toml")
+    first.parent.mkdir(parents=True)
+    first.write_text('value = "valid"\n', encoding="utf-8")
+    invalid.write_text("value = 42\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="Invalid Rune") as raised:
+        ConfigLoader(runes_dir=tmp_path).load_all([LeafConfig])
+
+    assert str(invalid) in str(raised.value)
+    assert str(first) not in str(raised.value)
+    cause = raised.value.__cause__
+    assert isinstance(cause, ValidationError)
+    assert cause.errors()[0]["loc"] == ("value",)
+    assert cause.errors()[0]["type"] == "string_type"
+    assert str(cause) in str(raised.value)
 
 
 def test_source_file_binding_marks_validated_instance(tmp_path: Path) -> None:

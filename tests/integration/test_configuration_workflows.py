@@ -219,18 +219,20 @@ def test_llamacpp_context_is_a_conservative_per_request_bound(
 def test_llamacpp_rejects_mixed_passthrough_and_managed_model_authority(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    with pytest.raises(ValidationError, match="managed fields were also set: model_path"):
+    with pytest.raises(ValueError, match="managed fields were also set: model_path") as raised:
         _configured(
             tmp_path,
             monkeypatch,
             {"llamacpp/chat.toml": 'name="desk"\nmodel_path="/models/qwen.gguf"\nexec=["--alias", "qwen"]\n'},
         )
+    assert isinstance(raised.value.__cause__, ValidationError)
+    assert "llamacpp/chat.toml" in str(raised.value)
 
 
 def test_tabby_rejects_a_response_surface_outside_its_admitted_adapter_contract(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    with pytest.raises(ValidationError, match="only the chat surface"):
+    with pytest.raises(ValueError, match="only the chat surface") as raised:
         _configured(
             tmp_path,
             monkeypatch,
@@ -247,6 +249,8 @@ surface = "responses"
 """,
             },
         )
+    assert isinstance(raised.value.__cause__, ValidationError)
+    assert "exllamav3/chat.toml" in str(raised.value)
 
 
 @pytest.mark.asyncio

@@ -1035,7 +1035,8 @@ The semantic outline selects a station with labeled incoming and outgoing permis
 self-loops, and keyboard return to its row. The shared Svelte Flow canvas displays the same
 read-only score, folding the whole Pattern or revealing its stations through zoom and explicit
 controls. Graph failure leaves the outline and inspector available. Failed score reads offer an
-exact-revision retry.
+exact-revision retry. Copied Mermaid source retains the exact Pattern key, revision and manifest
+digest even when two revisions declare the same topology; it remains a view, not execution evidence.
 
 **Boundary — Not yet:** Loom is a view over the fixed registry, not a Spellweaver editor, mutation
 surface, independent Spell identity or catalogue, compatibility or teaching surface, drafting

@@ -359,9 +359,18 @@ class Workflow:
 
         Renderer aliases encode semantic keys, independent of Python class names or
         declaration order. Labels cannot introduce Mermaid syntax or directives.
+        Revision and digest retain export provenance without granting execution authority.
         """
         aliases = {node.key: f"station_{node.key.encode().hex()}" for node in self.manifest.nodes}
-        lines = ["---", f"title: {json.dumps(self.title)}", "---", "stateDiagram-v2", "  direction LR"]
+        title = f"{self.title} ({self.manifest.key}@{self.manifest.revision})"
+        lines = [
+            "---",
+            f"title: {json.dumps(title)}",
+            "---",
+            f"%% Pattern digest: {self.manifest.digest}",
+            "stateDiagram-v2",
+            "  direction LR",
+        ]
         for node in self.manifest.nodes:
             label = f"{node.label} ({node.kind}) · {node.key}"
             escaped = "".join(char if char.isalnum() or char in " _-." else f"#{ord(char)};" for char in label)

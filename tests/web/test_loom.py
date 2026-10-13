@@ -131,7 +131,8 @@ def test_diagram_labels_cannot_add_mermaid_statements() -> None:
         ),
     )
     source = labelled.mermaid()
-    assert source.startswith(f"---\ntitle: {json.dumps(hostile)}\n---\n")
+    title = f"{hostile} ({labelled.manifest.key}@{labelled.manifest.revision})"
+    assert source.startswith(f"---\ntitle: {json.dumps(title)}\n---\n")
     diagram = source.split("\n---\n", maxsplit=1)[1]
 
     assert diagram.count('\n  state "') == len(labelled.manifest.nodes)
@@ -147,6 +148,24 @@ def test_source_is_plaintext_mermaid(altar_client: TestClient[Litestar]) -> None
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/plain")
     assert "stateDiagram-v2" in response.text
+
+
+def test_export_retains_exact_revision_even_when_declared_topology_matches(
+    altar_client: TestClient[Litestar],
+) -> None:
+    sources: list[str] = []
+    for revision in ("1", "2"):
+        view = altar_client.get(f"/api/v1/loom/bridge_chat/{revision}").json()
+        response = altar_client.get(f"/api/v1/loom/source/patterns/bridge_chat/{revision}")
+        assert response.status_code == 200
+        source = response.text
+        assert f"(bridge_chat@{revision})" in source.splitlines()[1]
+        assert f"\n%% Pattern digest: {view['digest']}\n" in source
+        assert source == view["mermaid_source"]
+        sources.append(source)
+
+    assert sources[0] != sources[1]
+    assert sources[0].split("stateDiagram-v2", 1)[1] == sources[1].split("stateDiagram-v2", 1)[1]
 
 
 def test_source_openapi_contract_is_plaintext(altar_client: TestClient[Litestar]) -> None:

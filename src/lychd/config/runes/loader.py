@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 import structlog
+from pydantic import ValidationError
 
 from lychd.config.runes.base import RuneConfig, admitted_branch_schemas
 from lychd.config.runes.markers import SAMPLE_MARKER
@@ -80,7 +81,12 @@ class ConfigLoader:
             if payload is None:
                 logger.debug("skipping_sample_rune", schema=cls.__name__, path=str(file_path))
                 continue
-            instance = cls.model_validate(payload).bind_source_file(file_path)
+            try:
+                instance = cls.model_validate(payload)
+            except ValidationError as exc:
+                msg = f"Invalid Rune in '{file_path}': {exc}"
+                raise ValueError(msg) from exc
+            instance.bind_source_file(file_path)
             instances.append(instance)
 
         return instances

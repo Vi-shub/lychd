@@ -507,7 +507,9 @@ canvas admits publication, execution, connection editing, or durable layout muta
 does not discharge the lifecycle and semantic-twin admission gates below; State owns the receipt.
 Plain-text source lives below `/api/v1/loom/source/workflows/{workflow}` and
 `/api/v1/loom/source/patterns/{pattern_id}/{revision}` so every legal two-segment exact Pattern route
-remains addressable. Mermaid source is not Pattern data.
+remains addressable. Exported Mermaid retains the exact Pattern key and revision in its title and
+the manifest digest as inert source metadata. Mermaid source is not Pattern data or proof of
+execution.
 
 Recorded graph playback uses an explicit Run sequence cursor over loaded structural evidence.
 It filters node observations and supplied Animator grant identities at that cursor, while current

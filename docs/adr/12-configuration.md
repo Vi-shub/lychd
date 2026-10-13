@@ -179,6 +179,8 @@ The assembly pipeline is: load and validate Settings; assemble selected schemas;
 validate Rune instances; enforce identity, domain policy, and ports; then project only exact
 Scribe-owned units. Downstream registries consume that generation and must not reopen the Rune
 filesystem.
+Rune read, syntax and schema-validation failures identify the source file; schema failures retain
+their field diagnostics and original validation cause.
 
 A sanctioned live Codex writer is designed separately from current sample writing. It must stage a
 typed request, validate the complete staged tree as bind would, atomically rename only after that
