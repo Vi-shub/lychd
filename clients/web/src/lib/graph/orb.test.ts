@@ -46,4 +46,58 @@ describe("Orb semantic graph", () => {
     const event = fixtureRun().evidence[0]!;
     expect(mergeOrbEvidence([event], [{ ...event, event_id: "second", seq: 1 }, event]).map((item) => item.event_id)).toEqual([event.event_id, "second"]);
   });
+
+  it.each(["runs", "stations", "occurrences", "records"] as const)("labels unloaded evidence at %s depth without changing Run identity or status", (level) => {
+    const snapshot = fixtureRun();
+    const field = projectOrbField([snapshot.run], new Map(), level);
+    expect(field.projection.nodes).toHaveLength(1);
+    expect(field.projection.nodes[0]).toMatchObject({
+      id: "run:run-a", group: "run-a", state: "running",
+      detail: "run-a · recorded: running · Evidence not loaded"
+    });
+    expect(field.projection.nodes[0]!.count).toBeUndefined();
+    expect(field.selections.get("run:run-a")).toEqual({ runId: "run-a" });
+  });
+
+  it.each(["runs", "stations", "occurrences", "records"] as const)("preserves loaded coverage and supplied gaps at %s depth", (level) => {
+    const snapshot = fixtureRun();
+    const record = snapshot.evidence[0]!;
+    snapshot.evidence = [{ ...record, seq: 2 }, { ...record, event_id: "later", seq: 5 }];
+    snapshot.gaps = [
+      { start_seq: 0, end_seq: 1, classification: "unknown_or_omitted" },
+      { start_seq: 3, end_seq: 4, classification: "unknown_or_omitted" }
+    ];
+    Object.assign(snapshot, { ledger_head_seq: 99, page_end_seq: 5, next_after_seq: 5, has_more: true });
+    snapshot.run.status = "done";
+    const before = structuredClone(snapshot);
+    const field = projectOrbField([{ ...snapshot.run, status: "running" }], new Map([["run-a", { snapshot, pattern }]]), level);
+    expect(field.projection.nodes.find((node) => node.id === "run:run-a")).toMatchObject({
+      id: "run:run-a", group: "run-a", state: "done", count: 2,
+      detail: "run-a · recorded: done · 2 loaded records · 2 supplied gaps · More retained history exists outside this lens"
+    });
+    expect(field.selections.get("run:run-a")).toEqual({ runId: "run-a" });
+    expect(snapshot).toEqual(before);
+  });
+
+  it.each(["runs", "stations", "occurrences", "records"] as const)("preserves supplied omissions without sequence gaps at %s depth", (level) => {
+    const snapshot = fixtureRun();
+    snapshot.known_omissions = ["Older delegated jobs omitted.", "Provider trace unavailable."];
+    const field = projectOrbField([snapshot.run], new Map([["run-a", { snapshot, pattern }]]), level);
+    expect(field.projection.nodes[0]!.detail).toBe(
+      "run-a · recorded: running · 1 loaded record · 0 supplied gaps · Known omissions: Older delegated jobs omitted. Provider trace unavailable."
+    );
+    expect(field.projection.nodes[0]!.count).toBe(1);
+  });
+
+  it.each([0, 1])("describes %i loaded records without claiming a complete history", (count) => {
+    const snapshot = fixtureRun();
+    snapshot.evidence = count ? [{ ...snapshot.evidence[0]!, seq: 42 }] : [];
+    snapshot.gaps = count ? [{ start_seq: 0, end_seq: 41, classification: "unknown_or_omitted" }] : [];
+    Object.assign(snapshot, { ledger_head_seq: count ? 42 : -1, page_end_seq: count ? 42 : null });
+    const field = projectOrbField([snapshot.run], new Map([["run-a", { snapshot, pattern }]]), "runs");
+    expect(field.projection.nodes[0]!.detail).toBe(count
+      ? "run-a · recorded: running · 1 loaded record · 1 supplied gap"
+      : "run-a · recorded: running · 0 loaded records · 0 supplied gaps");
+    expect(field.projection.nodes[0]!.count).toBe(count);
+  });
 });

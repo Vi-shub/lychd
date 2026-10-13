@@ -1212,6 +1212,9 @@ The selected Run has a loaded-record playback cursor with a frozen evidence lens
 continue without moving that lens. LIVE and Follow latest resume the newest loaded account.
 Allowlisted Animator dispatch identities supply a coloured rail and cursor highlight, with no
 inferred call duration or uptime. Loom and Orb share hover/focus previews and a dot-free canvas.
+Run groups retain an explicit unloaded-evidence label or loaded-record and supplied-gap counts
+at every folding depth, including supplied omission notices and further retained history outside
+the lens.
 
 Initial read recovery and loaded-record subject/attempt browsing preserve the current route and historical selection. Refresh and pagination do not move focus when an unchanged job hint becomes available.
 
@@ -1225,7 +1228,7 @@ The shared renderer's cross-engine forced-collection qualification remains under
 **Evidence**
 
 - **Source:** [Orb controller](https://github.com/hexanomicon/lychd/blob/main/src/lychd/interface/web/orb.py), [Run catalogue queries](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/cortex/ledger.py), [parallel field](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/OrbField.svelte), and [selected-Run client](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/OrbView.svelte)
-- **Verification:** [Orb API and stream tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_orb.py), [catalogue privacy and pagination tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_orb_catalogue.py), [parallel-field tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/OrbField.test.ts), [selected-Run tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/OrbView.test.ts), and [feed recovery tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/orb/live.test.ts)
+- **Verification:** [Orb API and stream tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_orb.py), [catalogue privacy and pagination tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_orb_catalogue.py), [parallel-field tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/OrbField.test.ts), [folded coverage tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/graph/orb.test.ts), [selected-Run tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/OrbView.test.ts), and [feed recovery tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/orb/live.test.ts)
 - **Law:** [Observability](./adr/29-observability.md)
 
 ### Structured logging configuration {#structured-logging}
@@ -1367,6 +1370,12 @@ Firecrawl remains deferred and paid web-acquisition Portals remain private-exten
 The design now binds Scout provider contributions, a narrow SearXNG query/result contract,
 per-transmission engine egress mediation, and static extraction qualification limits and cases.
 Those limits are unqualified design targets, not execution evidence.
+Pure destination preflight now validates bounded canonical HTTPS URLs and exact-host supplied
+address sets against an explicit conservative IP policy. Its tests cover ambiguous syntax,
+forbidden and mixed answers, caller-forged facts, bounds and absence of I/O. These facts establish
+neither actual DNS resolution nor permission to connect. Workflow law now separates stable
+acquisition identity from Graph re-entry and requires separate custody before content can survive
+a workflow park or restart.
 
 **Do not expect yet:** There is no Scout provider, browser service, endpoint, Agent tool,
 acquisition receipt, download quarantine, authenticated session, or Smith ingestion path. There is
@@ -1378,6 +1387,8 @@ No Search engine/transport profile or bounded extraction process has passed qual
 
 - **Topic:** [Scout](./sepulcher/extensions/scout.md)
 - **Law:** [Webcrawler](./adr/30-webcrawler.md)
+- **Source:** [Pure destination preflight](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/scout/destination.py)
+- **Verification:** [Destination boundary tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/scout/test_destination.py)
 
 ### Vision admission {#vision-admission}
 

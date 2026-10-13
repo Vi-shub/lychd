@@ -82,6 +82,19 @@ export type OrbDetailLevel = "runs" | "stations" | "occurrences" | "records";
 export interface OrbFieldLens { readonly snapshot: OrbRunSnapshot; readonly pattern: LoomView | null }
 export interface OrbFieldSelection { readonly runId: string; readonly eventId?: string }
 
+function runCoverage(snapshot?: OrbRunSnapshot): string {
+  if (!snapshot) return "Evidence not loaded";
+  const records = snapshot.evidence.length;
+  const gaps = snapshot.gaps.length;
+  const detail = [
+    `${records} loaded record${records === 1 ? "" : "s"}`,
+    `${gaps} supplied gap${gaps === 1 ? "" : "s"}`
+  ];
+  if (snapshot.known_omissions.length) detail.push(`Known omissions: ${snapshot.known_omissions.join(" ")}`);
+  if (snapshot.has_more) detail.push("More retained history exists outside this lens");
+  return detail.join(" · ");
+}
+
 /** Explicit Run membership supplies groups; zoom changes only their presentation. */
 export function projectOrbField(
   runs: readonly OrbRunSnapshot["run"][],
@@ -100,7 +113,7 @@ export function projectOrbField(
     const occurrenceIds = lens ? [...new Set(lens.snapshot.evidence.map((record) => occurrenceNodeId(record, lens.pattern)))] : [];
     const members = graph ? [...graph.nodes.map((node) => prefix(node.id)), ...occurrenceIds.map(prefix),
       ...lens!.snapshot.evidence.map((record) => prefix(`record:${record.event_id}`))] : [];
-    nodes.push({ id: header, label: run.workflow_name, detail: `${run.run_id} · recorded: ${run.status}`,
+    nodes.push({ id: header, label: run.workflow_name, detail: `${run.run_id} · recorded: ${run.status} · ${runCoverage(lens?.snapshot)}`,
       kind: "run", state: run.status, group: run.run_id, count: lens?.snapshot.evidence.length, members: level === "runs" ? members : undefined });
     selections.set(header, { runId: run.run_id });
     if (!lens || !graph || level === "runs") continue;

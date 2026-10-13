@@ -125,6 +125,28 @@ No provider is a fallback. One prepared Scout effect attempt binds one selected 
 profile. A static page that needs JavaScript, an exhausted Search provider, or a renderer failure
 settles with that outcome; another provider or stronger effect requires a newly admitted attempt.
 
+### Workflow handoff
+
+The hosting Pattern pins a stable acquisition request identity before execution and retains its
+attempt/receipt references in typed state. A Graph node execution occurrence is trace identity,
+not the acquisition idempotency key: hardware re-entry can create another occurrence for the same
+logical request. A repeated request with changed bindings refuses; an exact repeat reads retained
+status without obtaining a second execution permit.
+
+An Animator-backed station resolves readiness and its scoped technical lease before Scout
+preparation. Hardware waiting therefore cannot leave a prepared acquisition to be resubmitted on
+re-entry. Native static acquisition needs no model grant. Scout retains authority and reservation
+truth in its own attempt store; Run, Step and orchestration events carry safe correlation only.
+
+Workflow state never retains live grants, provider handles, or acquired bodies. An acquisition
+receipt cannot recover ephemeral bytes after a park or restart. A workflow that needs those bytes
+later must obtain separate custody admission and recheck current retrieval authority; otherwise it
+returns material-unavailable without refetching. Context receives a bounded, attributed data
+projection with its budget and influence accounted for before a model request. Neither dynamic
+instructions nor ordinary history silently become a storage path for web material. The
+[Archive answer workflow](../state-of-the-work.md#karma-semantic-memory) is a projection precedent, not
+Scout delivery or permission to auto-promote sources into memory.
+
 ### Native adapters and upstream services {#integration-not-vendoring}
 
 A **native adapter** means LychD-owned Rune schemas, provider binding, probe, request allowlist,
@@ -279,6 +301,26 @@ connection; connected peer, TLS certificate, SNI, and `Host` must match. Redirec
 bounded, loop-checked, and re-gated. An HTTP client or crawler SDK alone cannot establish this
 SSRF/DNS-rebinding boundary.
 
+### Destination preflight
+
+The bounded `public-https-destination@1` preflight performs no resolution or contact. It accepts
+at most 4 KiB of ASCII URL text, HTTPS on port 443 only, a canonical dotted DNS hostname or
+canonical public IP literal, and no userinfo, fragment, whitespace, control character, backslash,
+encoded authority, or malformed percent escape. DNS case is normalized; an explicit `:443` may
+be omitted. Path/query bytes, including an empty query delimiter, retain their meaning. Unicode
+host conversion, alternate numeric address spellings, scoped IPv6 and custom ports require a
+separately reviewed profile rather than permissive parser repair.
+
+A second pure check classifies a supplied complete, bounded A/AAAA answer set for that exact
+hostname. Empty, malformed, duplicate-overflow, forbidden or mixed sets refuse; IP literals must
+match the supplied address exactly. The conservative policy excludes special-purpose IPv4 ranges
+and allows ordinary IPv6 global unicast only, excluding special-purpose and transition ranges.
+The policy is explicit and versioned rather than inherited from changing standard-library
+`is_global` tables. Positive facts remain an immutable candidate, not a grant or evidence that a
+resolver actually returned them. The future trusted resolver must establish completeness and
+freshness; transport must still pin and verify the actual peer, TLS identity, redirects, authority
+and budget. A caller-constructed candidate cannot bypass those gates.
+
 An acquisition receipt names the effect, principal/Run, provider/version, policy, locator and
 redirects, destination evidence, time, disposition, media/size, usage, and raw digest. It proves
 an attempted effect, not a correct response. Responses and derivations remain attributed data:
@@ -360,6 +402,10 @@ configuration, provider, route, Agent tool, fetcher, extractor, robots/rate poli
 receipt, browser, quarantine, or Reliquary. Installed `httpx` serves other control-plane calls;
 `selectolax` is test-only. Generic-runtime “crawler” tests prove only that no capability is
 invented. `ArtifactRef` proves metadata, not custody.
+
+The pure `public-https-destination@1` checks establish bounded URL and supplied-address facts only.
+They do not resolve DNS, contact a destination, pin a connected peer, issue a grant, or prepare an
+effect attempt. Their executable evidence is recorded in the State of Work.
 
 The current Extension Context has no Scout-owned provider contribution surface; Animator
 capability synthesis still requires a model-shaped identity; `ToolConnector` hydration is
