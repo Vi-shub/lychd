@@ -454,10 +454,9 @@ authoritative terminal settlement. Its effect-free echo remains `SUCCEEDED` when
 text exceeds the result limit: the retained text is bounded with an explicit truncation marker
 and can still be reconstructed for cancellation. This demonstration does not permit truncating
 an effectful runtime's required result or terminal evidence into success. Effectful runtimes require lookup by
-durable provider/executor identity and must never replay submission. Database shapes, a migration,
-and a PostgreSQL adapter exist, but no real provider launch, Coffin supervisor, effectful child,
-cross-process pickup, or durable artifact custody is proved. [State of
-Work](../state-of-the-work.md#delegated-agent-execution) owns the Partial claim.
+durable provider/executor identity and must never replay submission. Reference-only recovery cannot
+stand in for an effectful adapter's durable lookup, containment or artifact custody. [State of
+Work](../state-of-the-work.md#delegated-agent-execution) owns current delivery evidence.
 
 Codex and Claude have bounded one-shot protocol adapters behind a refusing-by-default host port.
 The command intent pins the CLI version, exact request and job, literal argv, stdin, isolated

@@ -554,9 +554,18 @@ or data; explicit correction permits the upgrade. At head, the database rejects 
 invalid inserts and updates. An empty head-to-pre-delegation-and-back cycle verifies schema
 reversibility only; it does not qualify retained-history rollback.
 
+A separate migrated-PostgreSQL receipt runs two sequential independent `spawn` processes. The
+first commits one `delegated_rite@2` wait and exits; the second reconstructs all adapters,
+rehydrates the effect-free reference result and resumes the same request/job once. A changed
+current admission profile does not replace the retained binding. Exact replay, repeated
+reconciliation and stale/current deliveries leave one adoption, resume hop and settled turn.
+The queue is captured and neighboring capability/consent ports are inert; clean process
+replacement proves neither abrupt-crash recovery, broker delivery, application startup nor an
+external provider.
+
 **Boundary — Not yet:** No declared external provider launches. There is no lower-trust executor,
 credential or egress isolation, process-tree containment, durable artifact custody, measured
-budgets, real PostgreSQL/provider recovery receipt, or live-browser proof.
+budgets, real external-provider recovery receipt, or live-browser proof.
 Request prompts are persisted verbatim; callers must apply the Privacy Cut and egress policy before
 any future remote runtime receives them. Effectful runtimes still need durable provider identity,
 definite-rejection evidence, and reconciliation of ambiguous start outcomes.
@@ -571,9 +580,10 @@ Additional source and verification for the exact selection and closed adapters:
 [runtime protocols](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/delegation/cli_protocol.py),
 [runtime boundary](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/delegation/cli_runtime.py),
 [adapter tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/delegation/test_cli_runtime.py),
-[configured casting tests](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_delegated_routing.py), and
-[PostgreSQL acceptance/rollback tests](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_db_run_ledger_pg.py), and
-[migrated delegated-result enforcement](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_db_migrations_pg.py).
+[configured casting tests](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_delegated_routing.py),
+[PostgreSQL acceptance/rollback tests](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_db_run_ledger_pg.py),
+[migrated delegated-result enforcement](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_db_migrations_pg.py), and
+[clean-process delegated recovery](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_delegated_process_recovery_pg.py).
 
 ### Durable in-app Attention {#durable-attention}
 
