@@ -18,10 +18,10 @@ their delivery interpretation.
 | Scenario | Answer now | Decisive limit |
 | --- | --- | --- |
 | CLI bootstrap | **Partial:** grammar, dry-run plans, transactional `init`/`bind`, bounded inspection, and guarded deletion have repository evidence. | No maintained real-host lifecycle receipt. See [CLI](#core-cli-rites) and [embodiment](#systemd-podman-embodiment). |
-| Local text chat | **Partial:** the Pydantic AI adapter, local Run engine, and Bridge contracts work in the repository-test envelope. | No inference-engine plus real-browser acceptance receipt. See [Bridge](#bridge-surface) and [persistence](#phylactery-first-light). |
+| Local text chat | **Partial:** a selected warm-vLLM profile completes a native Bridge reply with retained PostgreSQL history. | No deployed-host or real-browser acceptance receipt. See [vLLM](#vllm-integration), [Bridge](#bridge-surface) and [persistence](#phylactery-first-light). |
 | Browser safety | **Loopback only:** a dedicated local credential precedes the fixed Sigil; Host, Origin, CORS, CSRF, and generated bind policy are bounded locally. | Remote IAM and hostile-browser acceptance remain unsupported. |
-| PostgreSQL lifecycle | **Repository receipt:** factory, PostgreSQL, SAQ, HTTP, shutdown, and second-boot projection recovery run together. | Live dispatch, orchestration, and Context are replaced after startup; no real-host or browser proof. |
-| Major blockers | Authenticated caller authority, privacy-safe egress, artifact custody, real host/model receipts, native Oculus, and resource-aware scheduling. | Remote transport, federation, executable evolution, durable recall, and vision/audio bytes remain Partial or Designed. |
+| PostgreSQL lifecycle | **Named warm-model receipt:** factory, PostgreSQL, SAQ, Graph and vLLM complete one structured Bridge reply and retain its history across two sequential application processes. | TestClient HTTP and a refusing host actuator; no crash recovery, deployed-host or browser proof. |
+| Major blockers | Authenticated caller authority, privacy-safe egress, artifact custody, managed host/model lifecycle receipts, native Oculus, and resource-aware scheduling. | Remote transport, federation, executable evolution, durable recall, and vision/audio bytes remain Partial or Designed. |
 
 ## How to read this page
 
@@ -51,9 +51,14 @@ Project maturity and delivery state are different. An accepted ADR does not prov
 
 ## Current evidence envelope
 
-The strongest maintained conjunction uses the real application factory, disposable PostgreSQL,
-in-process SAQ, HTTP, shutdown, and a second boot, while substituting offline collaborators after
-startup. It proves wiring and durable projection recovery, not full composed runtime behavior.
+One maintained warm-model profile joins the real application factory, disposable PostgreSQL,
+in-process SAQ, Graph, Dispatcher, Context and streamed vLLM output through TestClient HTTP. It
+settles one structured Bridge reply and preserves its turns and model history across two
+application lifespans. A separate maintained selection proves clean shutdown and identical
+retained state across two sequential independent `spawn` processes, without second-boot inference.
+The host actuator is a refusing fixture; model bytes, a deployed Vessel, Granian TCP operation,
+crash recovery, shared load and the real browser remain unqualified.
+The broader repository two-boot test retains its separate offline-collaborator boundary.
 
 The disposable developer fixture supplies a separate read-only backend for source-client work.
 It enters its own lifespan and uses the real controllers and security with memory services.
@@ -123,16 +128,43 @@ are tested. Mutating paths use revalidation, no-follow identity checks, lifecycl
 receipts, and explicit rollback or indeterminate outcomes. An unsafe shared binding site blocks
 initialization planning and the layout preflight; safe existing modes are preserved.
 
+The machine-only installation-stop admission route verifies a bounded signed request and its
+corresponding revision-2 reply, including the signed fixed `native-owned-lifespan@1` profile,
+with no Basic credential disclosure, Sigil assignment or host effect. Only the captured native
+entrypoint arms that profile; old/direct/caged/unarmed responders refuse. Current credential,
+production publication and launcher gates close before shutdown awaits, including worker failure.
+Host-side
+client and sequential Vessel-first settlement logic have focused tests. The owned launcher now
+exposes required startup/close failure and waits for Python HTTP callback retirement before
+closing services. Seven real native TCP cases use an explicit inert factory, including interrupted
+warmup, original encoded path bytes, pending response, post-response background work and repeated
+SIGTERM; all owned process groups disappear. An actual generated-unit trial in an exclusive
+delegated cgroup and private manager now passes three ordered cases: required-close failure
+preserves dependencies; clean closure retains strict exit fields through dependent stop; actual
+reference-connection loss after clean capture refuses dependent stop. A held full user-bus
+reference prevents premature systemd metadata collection and verifies the manager against its
+private control socket. All three cases removed owned processes, listeners and the outer cgroup.
+Public host completion is connected lazily for the exact uncaged native profile; composition
+tests exercise the admission and reference ports without importing the application at bootstrap.
+These manager cases use an explicit inert application and synthetic dependencies. The image
+entrypoint shares the runner, but no rebuilt image or caged TCP receipt is claimed.
+
 **Boundary — Not yet:** Status omits full readiness and durable-run health; no run-operation command
-or authenticated Vessel submission route is delivered; `stop` refuses an active Vessel without its
-authenticated lifecycle port; deletion preserves objects whose creation provenance is not owned.
-Unknown unit or mount truth blocks instead of guessing. No maintained real systemd/Podman lifecycle
-or GPU receipt exists.
+or authenticated Run submission route is delivered; active caged or mixed `stop` still refuses;
+deletion preserves objects whose creation provenance is not owned.
+Unknown unit or mount truth blocks instead of guessing. Native manager mechanism evidence does
+not qualify useful composed application work under that launcher. No maintained installed
+systemd/Podman lifecycle or GPU receipt exists.
 
 **Evidence**
 
 - **Source:** [CLI assembly](https://github.com/hexanomicon/lychd/blob/main/src/lychd/__main__.py) and [layout admission](https://github.com/hexanomicon/lychd/blob/main/src/lychd/system/services/layout.py)
 - **Verification:** [CLI tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/cli/test_cli.py) and [init binding-site tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_init_binding_sites.py)
+- **Verification:** [Message profile](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/operator/test_admission.py), [machine HTTP boundary](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_lifecycle_admission.py), [host client](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/operator/test_admission_client.py), and [active-stop settlement candidate](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/operator/test_active_stop.py)
+- **Source:** [Owned launcher](https://github.com/hexanomicon/lychd/blob/main/src/lychd/interface/server.py)
+- **Verification:** [Lifespan/retirement tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/web/test_server.py) and [native TCP mechanism cases](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_server_process.py)
+- **Verification:** [Required native manager regression](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_native_stop_systemd.py), [inert native factory](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/web/systemd_server_app.py), [private full-bus fixture](https://github.com/hexanomicon/lychd/blob/main/tests/support/native_stop_bus.py), and [delegation preflight](https://github.com/hexanomicon/lychd/blob/main/tests/support/systemd_transaction.py)
+- **Verification:** [Exit-reference tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/operator/test_stop_evidence.py) and [public composition wiring](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/operator/test_composition.py)
 - **Law:** [CLI](./adr/19-cli.md) and [Layout](./adr/13-layout.md)
 
 ### Public release artifact chain {#public-release-artifact-chain}
@@ -269,8 +301,10 @@ integration.
 **Proved now:** Run, delivery, step, session, consent, checkpoint, and delegated-wait shapes exist
 with sequence-fenced claim and settlement, terminal-evidence-fenced owner-specific resume gates,
 startup reconciliation, and PostgreSQL migration checks. A real factory receipt completes and
-recovers a Bridge Run across two boots. Distinct production asyncpg codecs round-trip plain `json`
-and versioned JSONB, while memory Run, consent, and Bridge-session stores detach mutable values at
+recovers a Bridge Run across two boots; a selected warm-vLLM profile also retains its actual
+structured reply and model history across two application lifespans and, in a separate trial,
+across clean shutdown into an independent application process. Distinct production asyncpg
+codecs round-trip plain `json` and versioned JSONB, while memory Run, consent, and Bridge-session stores detach mutable values at
 the same public boundary as database reads.
 
 The bootstrap gate separates the preserved administrator from the Vessel/SAQ runtime role and
@@ -282,13 +316,15 @@ access, repeatable bootstrap, and preservation of unrelated existing ownership.
 memory-profile/PostgreSQL repository parity is incomplete; no general record-retention or
 compaction path, partition policy, tablespace lifecycle, automatic capacity expansion, or sharding
 path is delivered; persistent same-boot containment failure has no durable watchdog. The lifecycle
-receipt substitutes offline collaborators and is not a checkpoint-plus-consent, real-host,
-inference-engine, or browser receipt.
+test substitutes offline collaborators after startup. The separate warm-model profile does not
+exercise checkpoint-plus-consent recovery, process crash, a deployed host, or the browser.
 
 **Evidence**
 
 - **Source:** [First-light migration](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/migrations/versions/0001_phylactery_first_light.py), [wait-owner migration](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/migrations/versions/0008_wait_owner_evidence.py), and [database factory](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/factory.py)
 - **Verification:** [Run ledger tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_ledger.py), [PostgreSQL run-ledger receipts](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_db_run_ledger_pg.py), [database authority receipt](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_database_authority_pg.py), and [two-boot lifecycle](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_production_wiring.py)
+- **Verification:** [Joined warm-model Bridge test](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_local_bridge_runtime.py), [maintained receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/animator/local-bridge-vllm-runtime.json), and [receipt freshness](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/animation/test_local_bridge_receipt.py)
+- **Verification:** [Independent-process restart test](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_local_bridge_process_restart.py), [maintained process receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/animator/local-bridge-vllm-process-restart.json), and [process-receipt freshness](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/animation/test_local_bridge_process_receipt.py)
 - **Law:** [Persistence](./adr/06-persistence.md)
 
 ### Topology-A local run execution {#topology-a-local-runs}
@@ -722,13 +758,34 @@ systemd/Podman host, load, inference, disabled-sleep behavior, and whole-runtime
 **Proved now:** A vLLM runtime plan, OpenAI-compatible connector, model/capability derivation, and
 focused tests exist.
 
+The standalone local-model probe explicitly registers the built-in adapter and exercises exact
+Dispatcher grants, AgentForge text output, and an observed harmless tool round. Its offline
+tests cover response-identity and completion-state refusal before tool processing, unavailable
+or malformed inventory, transport failure, retained observations across deadline/cancellation,
+and client/lease cleanup. It reads no installation configuration and has
+no lifecycle authority. An operator-generated probe receipt does not qualify the installed
+Vessel, Bridge, persistent Runs, model artifacts, managed activation or shutdown.
+
+A separate maintained profile joins the source-registered vLLM adapter to the production factory,
+Dispatcher, Graph, Context, SAQ and PostgreSQL. One actual streamed `BridgeReply` settles; the same
+turns and valid model history survive a second application boot without another model POST.
+Both startups observe the exact shared model as `WARM`; no lifecycle actuation occurs. HTTP is
+TestClient and the host actuator is a refusing fixture. A second selection performs those boots
+in independent sequential `spawn` processes: the first fully exits before the second, which
+retains identical settled turns and history and submits no inference. This qualifies clean
+application process restart, with no deployed Vessel, Granian TCP listener, model-byte, crash,
+cancellation, browser or shared-load qualification.
+
 **Receipt needed:** Name the image and revision, model, GPU and driver, arguments, systemd/Podman
 host, readiness, inference, and shutdown.
 
 **Evidence**
 
-- **Source:** [vLLM registration](https://github.com/hexanomicon/lychd/blob/main/src/lychd/extensions/builtin/animator/vllm/register.py), [vLLM Rune](https://github.com/hexanomicon/lychd/blob/main/src/lychd/extensions/builtin/animator/soulstones/vllm.py), and [shared OpenAI-compatible runtime](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/animation/services/adapters/runtimes/openai_compat.py)
-- **Verification:** [Adapter tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/animation/test_adapters.py)
+- **Source:** [vLLM registration](https://github.com/hexanomicon/lychd/blob/main/src/lychd/extensions/builtin/animator/vllm/register.py), [vLLM Rune](https://github.com/hexanomicon/lychd/blob/main/src/lychd/extensions/builtin/animator/soulstones/vllm.py), [shared OpenAI-compatible runtime](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/animation/services/adapters/runtimes/openai_compat.py), and [local-model probe](https://github.com/hexanomicon/lychd/blob/main/scripts/local_model_probe.py)
+- **Verification:** [Adapter tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/animation/test_adapters.py) and [probe acceptance tests](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_local_model_probe.py)
+- **Verification:** [Joined Bridge test](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_local_bridge_runtime.py), [maintained warm-model receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/animator/local-bridge-vllm-runtime.json), and [source/dependency freshness](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/animation/test_local_bridge_receipt.py)
+- **Verification:** [Independent-process test](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_local_bridge_process_restart.py), [maintained process-restart receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/animator/local-bridge-vllm-process-restart.json), and [process source/dependency freshness](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/animation/test_local_bridge_process_receipt.py)
+- **Topic:** [Standalone probe and first-reply boundaries](./sepulcher/animator/soulstone/engines/vllm.md#bring-one-service-to-a-first-reply)
 - **Law:** [Dispatcher](./adr/22-dispatcher.md)
 
 ### SGLang integration {#sglang-integration}
