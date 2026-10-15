@@ -10,6 +10,7 @@ import os
 import signal
 import sys
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from types import ModuleType, SimpleNamespace
 from typing import TYPE_CHECKING, Any, cast
 from unittest.mock import AsyncMock, Mock
@@ -364,7 +365,6 @@ def test_child_failure_cannot_become_a_clean_native_pass(
 @pytest.mark.parametrize("contained", [False, True])
 def test_failed_first_boot_blocks_second_and_pg_cleanup_requires_absence(
     monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
     contained: bool,  # noqa: FBT001 - dependency preservation cases
 ) -> None:
     events: list[str] = []
@@ -394,11 +394,14 @@ def test_failed_first_boot_blocks_second_and_pg_cleanup_requires_absence(
     errors.__dict__["NotFound"] = not_found
     monkeypatch.setitem(sys.modules, "docker.errors", errors)
     postgres.get_docker_client.return_value.client.api.inspect_container.side_effect = not_found()
-    with pytest.raises(AssertionError, match="native_bridge_proof_or_cleanup_failed"):
-        native.test_native_tcp_bridge_retains_one_reply_across_clean_process_boots(monkeypatch, tmp_path, _profile())
-    assert spawn.call_count == 1
-    assert events == (["pg-start", "native-settled", "pg-stop"] if contained else ["pg-start", "native-settled"])
-    receipt = json.loads((tmp_path / "local-bridge-native-tcp/receipt.json").read_text())
-    assert receipt["outcome"] == "failed"
-    assert receipt.get("postgres_preserved", False) is not contained
-    assert receipt.get("postgres_removed", False) is contained
+    # The native proof requires external scratch even when pytest's basetemp is in the checkout.
+    with TemporaryDirectory(prefix="lychd-native-tcp-unit-", dir="/tmp") as directory:
+        scratch = Path(directory)
+        with pytest.raises(AssertionError, match="native_bridge_proof_or_cleanup_failed"):
+            native.test_native_tcp_bridge_retains_one_reply_across_clean_process_boots(monkeypatch, scratch, _profile())
+        assert spawn.call_count == 1
+        assert events == (["pg-start", "native-settled", "pg-stop"] if contained else ["pg-start", "native-settled"])
+        receipt = json.loads((scratch / "local-bridge-native-tcp/receipt.json").read_text())
+        assert receipt["outcome"] == "failed"
+        assert receipt.get("postgres_preserved", False) is not contained
+        assert receipt.get("postgres_removed", False) is contained
