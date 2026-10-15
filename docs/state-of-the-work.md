@@ -540,8 +540,13 @@ A committed `RUNNING` or terminal result is preserved; only `PREPARING` under th
 lock becomes `LOST`. Repeated caller cancellation waits for that disposition, without repeating
 the write or runtime start. Reference-runtime, Graph, and worker tests prove that preserved
 `RUNNING` can resume once to completion, while newly `LOST` work is contained before Run failure.
-DB-adapter tests model lock ordering and rollback with session doubles; they do not establish
-PostgreSQL transaction behavior.
+Portable DB-adapter tests model lock ordering and rollback with session doubles. Additional
+disposable PostgreSQL cases observe the exact challenger backend blocked on the winning job's
+locking SELECT, preserve RUNNING and terminal winners, fence late RUNNING after LOST, and retain
+one result event across duplicate settlement. A real event-INSERT constraint failure rolls back
+the preceding job/result change; removing the constraint permits one fresh settlement. These cases
+use independent sessions and ORM-created tables, not migrations,
+replacement processes, broker delivery, foreign-provider recovery, or application startup.
 
 **Boundary — Not yet:** No declared external provider launches. There is no lower-trust executor,
 credential or egress isolation, process-tree containment, durable artifact custody, measured
@@ -559,8 +564,9 @@ definite-rejection evidence, and reconciliation of ambiguous start outcomes.
 Additional source and verification for the exact selection and closed adapters:
 [runtime protocols](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/delegation/cli_protocol.py),
 [runtime boundary](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/delegation/cli_runtime.py),
-[adapter tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/delegation/test_cli_runtime.py), and
-[configured casting tests](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_delegated_routing.py).
+[adapter tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/delegation/test_cli_runtime.py),
+[configured casting tests](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_delegated_routing.py), and
+[PostgreSQL acceptance/rollback tests](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_db_run_ledger_pg.py).
 
 ### Durable in-app Attention {#durable-attention}
 
