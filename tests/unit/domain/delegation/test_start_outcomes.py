@@ -34,11 +34,13 @@ class _LostAcknowledgementRuntime:
         msg = self.error_message
         raise OSError(msg)
 
-    async def poll(self, job: DelegatedAgentJobRef) -> DelegatedAgentResult | None:
+    async def poll(self, job: DelegatedAgentJobRef, *, request: DelegatedAgentRequest) -> DelegatedAgentResult | None:
+        assert request.request_id == job.request_id
         msg = f"Lost job {job.job_id} must not be polled as active."
         raise AssertionError(msg)
 
-    async def cancel(self, job: DelegatedAgentJobRef) -> None:
+    async def cancel(self, job: DelegatedAgentJobRef, *, request: DelegatedAgentRequest) -> None:
+        assert request.request_id == job.request_id
         self.cancelled.append(job)
 
 

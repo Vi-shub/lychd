@@ -386,7 +386,7 @@ class DelegatedAgentCoordinator:
         return await self._store.jobs_for_run(run_id, limit=limit, event_limit=event_limit)
 
     async def refresh(self, job_id: str) -> DelegatedAgentJob:
-        """Poll an active job and adopt its result at most once.
+        """Poll against the current retained request and adopt its result at most once.
 
         A runtime may opt into reconstruction only through the private,
         explicitly effect-free seam. Ordinary adapters are polled directly;
@@ -400,7 +400,7 @@ class DelegatedAgentCoordinator:
             runtime = self._runtime(job.ref.runtime)
             if isinstance(runtime, _EffectFreeRuntimeRehydration):
                 await runtime.rehydrate_effect_free(job.request, job.ref)
-            result = await runtime.poll(job.ref)
+            result = await runtime.poll(job.ref, request=job.request)
             if result is None:
                 return job
             if not isinstance(runtime, _EffectFreeRuntimeRetirement):
@@ -428,14 +428,14 @@ class DelegatedAgentCoordinator:
             return adopted
 
     async def cancel(self, job_id: str) -> bool:
-        """Contain a live job, then durably settle it before propagating cancellation."""
+        """Contain against the current retained request, then durably settle cancellation."""
         async with self._locked_job(job_id) as job:
             if job.status in TERMINAL_DELEGATED_AGENT_STATUSES and job.status is not DelegatedAgentJobStatus.LOST:
                 return False
             runtime = self._runtime(job.ref.runtime)
             if isinstance(runtime, _EffectFreeRuntimeRehydration):
                 await runtime.rehydrate_effect_free(job.request, job.ref)
-            await runtime.cancel(job.ref)
+            await runtime.cancel(job.ref, request=job.request)
             settlement = asyncio.create_task(
                 self._settle_and_retire_projection(
                     self._store.cancel(job_id),

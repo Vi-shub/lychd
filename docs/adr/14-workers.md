@@ -467,6 +467,18 @@ retained launch. Malformed, incomplete, conflicting or oversized protocol output
 success; a timeout requires containment before terminal classification. Neither adapter is
 registered by default, and no subprocess launcher or Provider Gate bridge is delivered.
 
+Every poll and containment call receives the exact store-retained request alongside the job
+reference. The coordinator supplies that request from its current authoritative read; a runtime
+must reject an observation whose request or deterministic prompt bytes differ, even if the
+returned specification and receipt agree with each other. The reviewed CLI protocols receive
+exactly the retained prompt encoded as UTF-8 stdin. Lookup and cancellation never recreate a
+submission. This independently
+binds request intent; the trusted host must still retain and attest the original complete launch,
+including model, command, roots and limits. It is not a versioned launch-policy implementation.
+The Python adapter port requires the retained-request argument for both operations; built-ins
+change atomically under [Extension compatibility](05-extensions.md#7-extension-compatibility-tiers),
+without changing serialized requests or retained Pattern revisions.
+
 `LOST` is terminal for result adoption and ordinary polling, but it is not evidence that an external
 process stopped. Parent cancellation must still call the owning runtime's containment operation and
 may record `LOST → CANCELLED` only after that operation returns.

@@ -24,18 +24,21 @@ __all__ = [
 class DelegatedAgentRuntime(Protocol):
     """Adapter contract for Codex-, Claude-, OpenCode-, or later agent runtimes."""
 
-    name: str
+    @property
+    def name(self) -> str:
+        """Return the adapter identity used by the coordinator."""
+        ...
 
     async def start(self, request: DelegatedAgentRequest, job: DelegatedAgentJobRef) -> None:
         """Start one isolated job under the caller-owned job reference."""
         ...
 
-    async def poll(self, job: DelegatedAgentJobRef) -> DelegatedAgentResult | None:
-        """Return a terminal result, or ``None`` while the external job is active."""
+    async def poll(self, job: DelegatedAgentJobRef, *, request: DelegatedAgentRequest) -> DelegatedAgentResult | None:
+        """Correlate the outcome to the store-retained request; return ``None`` while active."""
         ...
 
-    async def cancel(self, job: DelegatedAgentJobRef) -> None:
-        """Return only after this exact job's execution is contained.
+    async def cancel(self, job: DelegatedAgentJobRef, *, request: DelegatedAgentRequest) -> None:
+        """Contain this exact job, correlated to its store-retained request.
 
         Successful return authorizes durable ``CANCELLED`` settlement. An
         acknowledged cancellation request alone is insufficient; raise while

@@ -176,7 +176,7 @@ class _CliRuntime:
         )
         await self._host.launch(spec)
 
-    async def poll(self, job: DelegatedAgentJobRef) -> DelegatedAgentResult | None:
+    async def poll(self, job: DelegatedAgentJobRef, *, request: DelegatedAgentRequest) -> DelegatedAgentResult | None:
         self._check_runtime(job)
         try:
             observed = await self._host.observe(job)
@@ -184,10 +184,12 @@ class _CliRuntime:
             return self._lost(job)
         if observed is None:
             return None
-        return self._interpret_observation(job, observed)
+        return self._interpret_observation(job, observed, request=request)
 
-    def _interpret_observation(self, job: DelegatedAgentJobRef, observed: CliExitObservation) -> DelegatedAgentResult:
-        if not self._matching_containment(job, observed.spec, observed.containment):
+    def _interpret_observation(
+        self, job: DelegatedAgentJobRef, observed: CliExitObservation, *, request: DelegatedAgentRequest
+    ) -> DelegatedAgentResult:
+        if not self._matching_containment(job, observed.spec, observed.containment, request=request):
             return self._lost(job)
         if observed.termination == "timed_out":
             return DelegatedAgentResult(
@@ -208,13 +210,15 @@ class _CliRuntime:
             limits=limits,
         )
 
-    async def cancel(self, job: DelegatedAgentJobRef) -> None:
+    async def cancel(self, job: DelegatedAgentJobRef, *, request: DelegatedAgentRequest) -> None:
         self._check_runtime(job)
-        self._check_cancellation(job, await self._host.cancel(job))
+        self._check_cancellation(job, await self._host.cancel(job), request=request)
 
-    def _check_cancellation(self, job: DelegatedAgentJobRef, observed: object) -> None:
+    def _check_cancellation(
+        self, job: DelegatedAgentJobRef, observed: object, *, request: DelegatedAgentRequest
+    ) -> None:
         if not isinstance(observed, CliCancellationObservation) or not self._matching_containment(
-            job, observed.spec, observed.containment
+            job, observed.spec, observed.containment, request=request
         ):
             msg = "Host cancellation evidence does not bind the exact admitted launch."
             raise CliContainmentUncertainError(msg)
@@ -233,11 +237,18 @@ class _CliRuntime:
             raise ValueError(msg)
 
     def _matching_containment(
-        self, job: DelegatedAgentJobRef, spec: CliLaunchSpec, receipt: CliContainmentReceipt
+        self,
+        job: DelegatedAgentJobRef,
+        spec: CliLaunchSpec,
+        receipt: CliContainmentReceipt,
+        *,
+        request: DelegatedAgentRequest,
     ) -> bool:
         return (
             receipt.job == job
             and spec.job == job
+            and spec.request == request
+            and spec.stdin == request.prompt.encode("utf-8")
             and spec.kind is self.kind
             and spec.cli_version == reviewed_cli_version(self.kind)
             and receipt.launch_digest == spec.digest

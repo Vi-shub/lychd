@@ -524,6 +524,13 @@ identity, persisted limits, malformed/truncated output, uncertain lookup and can
 adapters are not registered by default and contain no subprocess launcher. These are protocol and
 correlation tests, not an executed Coffin or Provider Gate.
 
+Poll and cancellation receive the store-retained request. Offline tests reconstruct the
+coordinator/runtime and reject substituted request metadata or UTF-8 stdin even with a
+consistently recomputed host receipt; cancellation cannot record `CANCELLED` for those
+observations. The reference runtime also checks its retained pure projection. This correlates
+request intent only: model, argv, roots and limits still need complete frozen launch-policy
+binding. Serialized requests and retained score revisions 1 and 2 remain unchanged.
+
 The reference adapter reconstructs its deterministic projection for refresh and cancellation after
 coordinator/runtime restart without replaying an external effect, retains it across failed durable
 adoption, and retires it after terminal settlement. Oversized reference echoes retain a successful

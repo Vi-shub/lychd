@@ -131,6 +131,7 @@ class _ObservedReferenceRuntime(ReferenceDelegatedAgentRuntime):
         self.hold_poll = hold_poll
         self.starts = 0
         self.polls = 0
+        self.poll_requests: list[DelegatedAgentRequest] = []
         self.rehydrations = 0
 
     async def start(self, request: DelegatedAgentRequest, job: DelegatedAgentJobRef) -> None:
@@ -141,9 +142,10 @@ class _ObservedReferenceRuntime(ReferenceDelegatedAgentRuntime):
         self.rehydrations += 1
         await super().rehydrate_effect_free(request, job)
 
-    async def poll(self, job: DelegatedAgentJobRef) -> DelegatedAgentResult | None:
+    async def poll(self, job: DelegatedAgentJobRef, *, request: DelegatedAgentRequest) -> DelegatedAgentResult | None:
         self.polls += 1
-        result = await super().poll(job)
+        self.poll_requests.append(request)
+        result = await super().poll(job, request=request)
         return None if self.hold_poll else result
 
 
@@ -279,6 +281,7 @@ async def _first(boot: _Boot) -> _Identity:
     await boot.bus.wait_persisted(identity.run_id)
     await _assert_parked(boot, identity)
     assert (boot.runtime.starts, boot.runtime.polls) == (1, 1)
+    assert boot.runtime.poll_requests == [jobs[0].request]
     assert len(boot.queue.attempts) == 1
     return identity
 
@@ -301,6 +304,7 @@ async def _second(boot: _Boot, identity: _Identity) -> None:  # noqa: PLR0915 - 
     assert result["probe_errors"] == 0
     assert cursor is None
     assert (boot.runtime.starts, boot.runtime.polls, boot.runtime.rehydrations) == (0, 1, 1)
+    assert boot.runtime.poll_requests == [job.request]
     assert len(boot.queue.attempts) == 1
     assert boot.queue.attempts[0]["run_id"] == identity.run_id
     assert boot.queue.attempts[0]["enqueue_seq"] == 1
@@ -334,6 +338,7 @@ async def _second(boot: _Boot, identity: _Identity) -> None:  # noqa: PLR0915 - 
         await boot.engine.submit(_intent(identity.session_id), idempotency_key=_ADMISSION_KEY)
     ).run_id == identity.run_id
     assert (boot.runtime.starts, boot.runtime.polls, boot.runtime.rehydrations) == (0, 1, 1)
+    assert boot.runtime.poll_requests == [job.request]
     assert len(boot.queue.attempts) == 1
 
     run = await boot.ledger.get(identity.run_id)

@@ -176,11 +176,12 @@ class _DelegateRuntime:
     async def start(self, request: DelegatedAgentRequest, job: DelegatedAgentJobRef) -> None:
         _ = (request, job)
 
-    async def poll(self, job: DelegatedAgentJobRef) -> DelegatedAgentResult | None:
-        _ = job
+    async def poll(self, job: DelegatedAgentJobRef, *, request: DelegatedAgentRequest) -> DelegatedAgentResult | None:
+        assert request.request_id == job.request_id
         return None
 
-    async def cancel(self, job: DelegatedAgentJobRef) -> None:
+    async def cancel(self, job: DelegatedAgentJobRef, *, request: DelegatedAgentRequest) -> None:
+        assert request.request_id == job.request_id
         self.cancellations.append(job.job_id)
 
 

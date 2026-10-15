@@ -37,9 +37,9 @@ class AcceptanceRuntime(ReferenceDelegatedAgentRuntime):
         await super().start(request, job)
         self.timeline.append("start returned")
 
-    async def cancel(self, job: DelegatedAgentJobRef) -> None:
+    async def cancel(self, job: DelegatedAgentJobRef, *, request: DelegatedAgentRequest) -> None:
         self.cancels.append(job)
-        await super().cancel(job)
+        await super().cancel(job, request=request)
         self.timeline.append("containment returned")
 
 
