@@ -173,9 +173,12 @@ launches work, even after owner-observation expiry. Claude accepts a reviewed co
 event variants refuse until their envelopes and ordering are reviewed.
 
 No host implementation or authentication bridge ships, and neither adapter is automatically
-registered. The installed nono 0.73 series has not replaced Security's audited-series contract;
-CLI help and advertised limits do not qualify a host. The required outer service, network,
-resource, credential, Gate and artifact boundaries must all be proved before any real launch.
+registered. Security requires an exact audited source/policy/executable qualification with
+applicable advisories dispositioned; a version number, CLI help and advertised limits do not
+qualify a host. [Containment version selection](coding-runtime-research.md#containment-version-selection)
+explains why the former series baseline was retired without admitting a replacement. The required
+outer service, network, resource, credential, Gate and artifact boundaries must all be proved
+before any real launch.
 
 ### Compare actual integration surfaces { #cli-integration-references }
 

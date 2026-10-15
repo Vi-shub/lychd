@@ -28,6 +28,14 @@ Neither makes a process-local or in-memory store a deployed Phylactery. LychD do
 application-managed files as a shadow database around PostgreSQL transactions, constraints, and
 migrations.
 
+Future delegated-host attempt records and dispatch/closure tombstones belong to this Phylactery,
+through an explicitly admitted schema and narrow typed store. The
+[host handoff contract](14-workers.md#host-dispatch-and-irreversible-closure) owns their meaning;
+AgentJob remains submission/adoption truth. Executor observations corroborate physical state,
+not a second application ledger. This placement grants neither a guest database access nor a
+host broad credentials, connection construction or migration authority. No host-attempt schema,
+store or restore qualification is delivered by this decision.
+
 ### Schema admission
 
 The Archive `local-public-notes@1` profile retains its namespace binding, immutable attributed

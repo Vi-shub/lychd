@@ -142,11 +142,22 @@ verification receipts respectively. They do not turn a provider name, blocked to
 or expired budget into authority to widen a root, tool, network path, or credential.
 
 The command is literal argv with a canonical absolute executable—no shell resolution, traversal,
-controls, relative executable, or unbounded argv. Admission fails closed unless an attested `nono`
-executable from the audited 0.66 series, Landlock ABI 6+, and the required filesystem, TCP, signal,
-process, endpoint, environment-filtering, and outer resource-enforcement capabilities are observed.
-Its environment is an allowlist, with known provider credential variables denied. Candidate output
-stays quarantined pending trusted admission.
+controls, relative executable, or unbounded argv. Admission fails closed unless a reviewed
+qualification binds the exact `nono` source revision and patchset, dependency lock/build inputs,
+canonical executable digest, selected policy and outer runtime, and target platform to an audit
+receipt and an explicit disposition of applicable security advisories. A version string, moving
+series, latest release or upstream audit sponsorship establishes none of that closure. Applicable
+known defects require inspected fixes and regression evidence; an excluded mechanism requires
+justified, enforced non-applicability. Unknown fix status, provenance or applicability refuses.
+
+The former 0.66-series baseline is retired: later upstream advisory ranges include it. Neither a
+downgrade to that series nor a newer release is admitted by this amendment. The
+[dated containment study](../sepulcher/extensions/weaver/coding-runtime-research.md#containment-version-selection)
+keeps the primary-source findings and their limits. Landlock ABI 6+ and the required filesystem,
+TCP, signal, process, endpoint, environment-filtering and outer resource-enforcement capabilities
+must still be observed for the exact profile. Requested limits are not measured ceilings. Its
+environment is an allowlist, with known provider credential variables denied. Candidate output
+stays quarantined pending trusted admission. No executable or host profile is qualified here.
 
 #### Provider Gate
 

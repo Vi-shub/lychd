@@ -108,6 +108,47 @@ reports substantial token overhead and notes that tightly dependent coding paral
 readily than research. This supports bounded independent panels, not a universal cost multiplier
 or a claim that more agents always improve coding.
 
+## Containment version selection {#containment-version-selection}
+
+The 15 October review retires Security's former 0.66-series baseline without admitting a
+replacement. Upstream's [DNS-before-admission advisory](https://github.com/nolabs-ai/nono/security/advisories/GHSA-gcpc-cqvp-h5c8)
+and [same-port destination bypass](https://github.com/nolabs-ai/nono/security/advisories/GHSA-6hww-cch7-pfrh)
+list affected versions through 0.73.0 and fixes at 0.74.0. Those published ranges include 0.66;
+Landlock ABI 6+ alone does not dispose of the destination-address defect. Conversely, the older
+[D-Bus advisory](https://github.com/nolabs-ai/nono/security/advisories/GHSA-27vp-2mmc-vmh3)
+lists versions before 0.55.0, so it does not establish affectedness of 0.66. These are upstream
+reports, not reproduced exploits against an admitted LychD profile.
+
+Later metadata needs source resolution. The [endpoint advisory](https://github.com/nolabs-ai/nono/security/advisories/GHSA-8r33-hr9m-69wh)
+lists the ordinary dot-segment fix at 0.73.0 while retaining an unresolved semicolon variant.
+The [tool-shim advisory](https://github.com/nolabs-ai/nono/security/advisories/GHSA-wjv5-93q3-xm73)
+uses a commit cutoff and an unreleased-fix field. The [0.78 release](https://github.com/nolabs-ai/nono/releases/tag/v0.78.0)
+associates these advisories with that release, but association cannot silently repair the patch
+fields. The [0.80 release](https://github.com/nolabs-ai/nono/releases/tag/v0.80.0) is a candidate
+for review, not an approved version.
+
+A bounded read-only study pinned 0.80 source commit
+`8bb041356d48f771a221e58c98d9b1ff442e76fe`. Its
+[endpoint policy](https://github.com/nolabs-ai/nono/blob/8bb041356d48f771a221e58c98d9b1ff442e76fe/crates/nono-proxy/src/config.rs)
+contains dot-segment handling, ambiguous-path rejection and separator-aware globs; the inspected
+[reverse-proxy path](https://github.com/nolabs-ai/nono/blob/8bb041356d48f771a221e58c98d9b1ff442e76fe/crates/nono-proxy/src/reverse.rs)
+calls the policy before forwarding. The
+[Linux entrypoint](https://github.com/nolabs-ai/nono/blob/8bb041356d48f771a221e58c98d9b1ff442e76fe/crates/nono-cli/src/tool-sandbox/platform/linux.rs)
+and [shim](https://github.com/nolabs-ai/nono/blob/8bb041356d48f771a221e58c98d9b1ff442e76fe/crates/nono-cli/src/tool-sandbox/shim.rs)
+contain a refusal path for recognized shim invocations whose broker context is missing. These
+observations narrow the findings for the inspected paths. They establish neither the first fixed
+release nor complete caller, launcher, policy, dependency or forwarding closure. The internal
+child-launch path and its authority still need review. Embedded tests were not run; no downloaded
+code was executed or installed.
+
+Before host qualification, select one exact source and policy; disposition every applicable
+advisory using inspected fixes and regressions or an enforced exclusion; bind that review to the
+built executable and dependencies; then separately prove the actual containment and ceilings.
+Missing effective CPU/memory files cannot be replaced by requested systemd properties. Keep
+execution refused while any required qualification is unknown. The
+[Security owner](../../../adr/09-security.md#the-coffin-delegated-agent-profile) retains that law;
+this study delivers no Coffin, Provider Gate, native launcher or platform qualification.
+
 ## Whether to add Claude
 
 Claude's [pricing page](https://claude.com/pricing) lists Pro at US$20 monthly and Max from

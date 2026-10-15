@@ -252,9 +252,10 @@ inherited cgroup. The harness verifies the exact transient unit, delegation, anc
 cgroup and exclusive task processes before launching; it never falls back to the installed
 manager. Ordinary unavailable environments skip; an explicitly required proof fails.
 
-The separate native stop proof runs required-close failure first, then clean closure, using the
-actual generated native command with an explicit inert application factory. It exercises signed
-HTTP admission and Vessel-first dependency retention; it does not qualify a deployed model body.
+The separate native stop proof runs three ordered cases: required-close failure, clean closure,
+then reference-connection loss after clean exit capture. It uses the actual generated native
+command with an explicit inert application factory. It exercises signed HTTP admission and
+Vessel-first dependency retention; it does not qualify a deployed model body.
 Run from the checkout with a fresh external basetemp:
 
 ```bash
@@ -267,7 +268,7 @@ systemd-run --user --unit="$proof_unit" --collect --wait --pipe --service-type=e
   PYTEST_BASETEMP=/tmp/lychd-native-stop-proof
 ```
 
-Inspect both case receipts and cleanup beneath basetemp. Confirm the exact outer unit is collected
+Inspect all three case receipts and cleanup beneath basetemp. Confirm the exact outer unit is collected
 and its cgroup is absent or empty. Requested CPU or memory properties do not establish effective
 limits; inspect the actual cgroup files when those limits are required.
 

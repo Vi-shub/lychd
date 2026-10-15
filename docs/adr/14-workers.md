@@ -430,8 +430,15 @@ unable to offer that idempotency guarantee or lookup cannot host autonomously re
 effects.
 
 Cancellation records intent, asks the exact attempt owner, and continues reconciliation.
-`CANCELLED` means execution containment is proved, not merely that a request was sent. Local
-reservation release follows terminal containment; an indeterminate local or paid remote attempt
+`CANCELLED` means execution containment is proved, not merely that a request was sent.
+Containment also closes pending launch authority: a paused dispatcher, delayed request or executor
+restart must not create work after cancellation acknowledges. The actual executor release owner
+must order release against irreversible closure for the exact occurrence/generation, or prove all
+old launch-capable actors and pending requests irreversibly drained. A database CAS, lease, PID,
+unit name or empty hierarchy alone is insufficient. If release wins, cancellation contains that
+in-flight effect and closes its generation; if closure wins, old release/create/start/restart
+requests refuse. Unknown ordering or closure remains unresolved, with no `CANCELLED` receipt.
+Local reservation release follows terminal containment; an indeterminate local or paid remote attempt
 keeps the relevant fence or operator-visible containment instead of guessing. The common envelope
 owns delivery, reconciliation, cancellation, and settlement mechanics. Scanner, Prism, Form,
 Kinesis, Foundry, Scout, Echo, and each Composition retain their domain request/result contracts,
@@ -538,6 +545,59 @@ before usable admission, including changed dirty/untracked bytes under unchanged
 CLI limits do not supply ADR 09 CPU, memory, process, disk, provider or artifact budgets. Physical
 host retention, enforcement and Gates remain separate prerequisites. Neither this contract nor a
 migrated-store test registers a CLI or delivers native Creation.
+
+### Host dispatch and irreversible closure
+
+A future delegated-host attempt specializes [Service job attempt](#service-job-attempts) mechanics
+under the existing AgentJob. It binds the exact versioned request/specification and digests,
+actual owner decision, selected host policy, executor generation, dispatch/closure disposition,
+and containment/custody evidence. [Phylactery](06-persistence.md#decision) owns its admitted
+persistence. It introduces no competing generic attempt lifecycle, task selector, retry policy,
+acceptance judge or promotion owner. AgentJob and `AWAITING_DELEGATE` keep their existing truth;
+host disposition cannot independently resume Graph or create `AWAITING_SERVICE`.
+
+Create-once exact-job ownership commits before a guest effect. The conditional
+`PREPARED → SUBMITTING` handoff consumes dispatch before calling the executor. Conflict preserves
+the original; absent or uncertain commit permits no release. A consumed dispatch can yield zero
+executions if its owner dies before contact. This CLI profile does not inherit a service adapter's
+conditional retransmission permission: an uncertain dispatch, lost acknowledgement, missing
+lookup or lease expiry allows exact lookup/containment only, never replacement submission.
+At-most-one admitted dispatch is not exactly-once execution or completion.
+
+The trusted host must re-observe the actual owner producer over the exact retained identities
+after preparation/queue/reservation waits. Forwarded runtime observations are historical evidence,
+not live permits; `launch(spec)` can retain its shape only when trusted host construction supplies
+that producer and the required release boundary. Source projection remains immutable through
+release. Complete budget, custody and independent-verification reservations must actually exist;
+Admission-consumer equality and its four capture/wall bounds establish none of them. A new positive
+owner operation or host handoff needs its own accepted typed contract, rather than silently
+expanding the existing observation port into reservation or authority.
+
+Current admission, expiry/revocation and physical release must share the selected executor's ordered
+release/closure boundary. A fresh check followed by an arbitrary pause is insufficient. The
+executor must reject all stale create/start/restart requests after irreversible generation
+closure, or the host must prove equivalent draining and loss of every old launch capability.
+Containment evidence binds that generation, existing descendants and absence of pending/future
+release. If that proof is unavailable, cancellation remains unresolved; neither an empty lookup
+nor a mocked receipt permits `CANCELLED`. No selected executor supplying this boundary is delivered.
+
+Dispatch and closure history cannot disappear through ordinary cleanup while an old occurrence
+could be reused. Known database restore, lost control history or uncertain authority epoch closes
+fresh launch until independently surviving executor/owner evidence and explicit authority
+reconcile the generations and effects. Restored counters or old `PREPARED` rows cannot prove an
+unspent occurrence. Missing evidence keeps launch closed; this decision creates no nonrollback
+store and claims no machine/power-loss recovery profile. Return custody remains pending until
+its actual owner seals the bounded artifacts and references; coordinator adoption failure never
+permits relaunch or deletion of required evidence.
+
+The decisive future fixture pauses dispatcher A after admission/dispatch claim, lets B cancel or
+close, then releases A. Either A is rejected after closure, or B cannot acknowledge cancellation
+until A's in-flight release is contained and fenced. Repeat across lost acknowledgements, restart,
+stale generation, expiry during a paused release, changed mounted input and restored records. Pure doubles prove protocol logic,
+PostgreSQL proves its transaction claims, and a real selected executor proves physical fencing,
+containment and ceilings. None substitutes for the absent owner producer, Gate or host qualification.
+
+### Delegated settlement
 
 `LOST` is terminal for result adoption and ordinary polling, but it is not evidence that an external
 process stopped. Parent cancellation must still call the owning runtime's containment operation and
