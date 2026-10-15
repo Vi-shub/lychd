@@ -1753,6 +1753,9 @@ evaluation, model registration, rollback, or production promotion.
 promotion-request → target-owner-effect chain. The Creation workflow and Ouroboros map connect
 candidate work to separately governed evaluation, memory, training and body change; these are
 documented methods with no additional registered Pattern or coordinator.
+The Development bootstrap procedure orders operator-controlled work and incremental native
+qualification; its task queue, pilot limits and provider research are documentation, not an
+implemented scheduler, foreign-runtime host or autonomous development application.
 
 **Do not expect yet:** There is no Creation contract or process-local state-machine implementation,
 workspace, filesystem or command executor, database recovery, safe Forge, autonomous repair,
@@ -1766,7 +1769,9 @@ downstream-mirror cutover.
 
 - **Topic:** [Smith](./sepulcher/extensions/smith.md),
   [Creation](./sepulcher/extensions/weaver/creation.md), and
-  [Ouroboros](./sepulcher/extensions/weaver/ouroboros.md)
+  [Ouroboros](./sepulcher/extensions/weaver/ouroboros.md), with
+  [Development bootstrap](./sepulcher/extensions/weaver/development-bootstrap.md) and
+  [coding-runtime research](./sepulcher/extensions/weaver/coding-runtime-research.md)
 - **Law:** [SDLC](./adr/16-sdlc.md),
   [Packaging](./adr/17-packaging.md#forge-neutral-source-trust), and
   [Evolution](./adr/18-evolution.md#future-quorum-roster)
