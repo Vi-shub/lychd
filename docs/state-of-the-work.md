@@ -253,7 +253,10 @@ mounts, ports, GPUs, model or production configuration.
 Compilation explicitly selects the PostgreSQL image account alongside Pod-level `keep-id`,
 confines `:U` ownership changes to its dedicated datastore, and rejects Soulstone mounts of known
 host credential/control roots or special files. Existing mapped PGDATA is preserved by init
-without entering or changing it. Vessel/migrator code is root-owned and their root filesystems
+without entering or changing it. Fresh Btrfs preparation and deletion identity checks use a
+bounded descriptor helper to observe the exact subvolume UUID and ID without a privileged
+pathname lookup. Unknown identity remains unreceipted; existing datastores are never adopted or
+retroactively changed to No-COW. Vessel/migrator code is root-owned and their root filesystems
 are declared read-only.
 
 **Receipt needed:** Name the Linux, systemd and Podman versions, generated targets and conflicts,
@@ -266,6 +269,7 @@ with existing mapped data; compilation and mocked ownership tests do not establi
 
 - **Source:** [Quadlet configuration](https://github.com/hexanomicon/lychd/blob/main/src/lychd/config/quadlet.py)
 - **Verification:** [Isolated Quadlet transaction](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_systemd_quadlet_transaction.py), [runtime protocol tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_runtime.py), [datastore custody tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_datastore_custody.py), and [mount authority tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/animation/test_mount_authority.py)
+- **Verification:** [Btrfs preparation tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_btrfs.py), [descriptor observer tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/test_btrfs_observer.py), and [deletion identity tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_deletion_storage.py)
 - **Law:** [Containers](./adr/08-containers.md)
 
 ### Whole-body snapshot and restore {#whole-body-snapshot-restore}
@@ -555,6 +559,14 @@ fresh engines/adapters under different defaults and refuses consistently recompu
 including cancellation before poll after admission expiry. Unknown stored versions remain unchanged
 and unavailable. This is adapter reconstruction, not a V2 independent-process or physical-host proof.
 
+A separate mechanical host-disposition store retains exact canonical V2 preparation, one
+issuer-local dispatch opportunity and monotonic logical intake closure under the AgentJob lock.
+Replay and adapter replacement return history without recreating a fresh handle. A migrated
+PostgreSQL receipt covers concurrent preparation/close/consumption, lost acknowledgement, strict
+current-request identity, restrictive history and both downgrade/writer lock orders. Logical close
+remains possible for damaged intent. This precursor supplies no owner permit, runtime launch,
+physical closure or restore activation.
+
 The reference adapter reconstructs its deterministic projection for refresh and cancellation after
 coordinator/runtime restart without replaying an external effect, retains it across failed durable
 adoption, and retires it after terminal settlement. Oversized reference echoes retain a successful
@@ -607,6 +619,8 @@ definite-rejection evidence, and reconciliation of ambiguous start outcomes.
 
 - **Source:** [Delegation coordinator](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/delegation/services.py), [delegated job store](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/delegation.py), [Graph runner](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/cortex/graph_runner.py), [reference runtime](https://github.com/hexanomicon/lychd/blob/main/src/lychd/extensions/builtin/delegation/reference.py), and [reference adapter catalogue](https://github.com/hexanomicon/lychd/blob/main/src/lychd/extensions/builtin/delegation/register.py)
 - **Verification:** [Delegation tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/delegation/test_coordinator.py), [ambiguous-start tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/delegation/test_start_outcomes.py), [acceptance-write recovery](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/delegation/test_acceptance_failure.py), [acceptance through Graph and worker](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_delegate_acceptance.py), [modeled DB acceptance](https://github.com/hexanomicon/lychd/blob/main/tests/unit/db/test_delegation_acceptance.py), [restart-resume tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_delegate_resume.py), [delegation schema tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/db/test_delegation_schema.py), and [extension-policy tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/extensions/test_delegation.py)
+- **Source:** [Mechanical host-disposition store](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/delegated_host.py) and [typed preparation](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/delegation/host_disposition.py)
+- **Verification:** [Preparation codec tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/delegation/test_host_disposition.py) and [migrated host-disposition receipt](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_delegated_host_disposition_pg.py)
 - **Law:** [Workers](./adr/14-workers.md)
 
 Additional source and verification for the exact selection and closed adapters:
