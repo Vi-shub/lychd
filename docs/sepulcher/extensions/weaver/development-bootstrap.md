@@ -205,6 +205,39 @@ and [PostgreSQL receipt](https://github.com/hexanomicon/lychd/blob/main/tests/in
 Do not replace these with a second queue, subprocess supervisor, or lifecycle coordinator merely
 to attach another provider.
 
+### First executor closure fixture
+
+One candidate for B4's first inert fixture is a pre-established bounded trusted controller with
+one immutable occurrence-to-cgroup-object association. Keep each pending launch's original open
+reference alive until its kernel call resolves. A borrowed numeric descriptor, a reopened path
+or a replacement object cannot stand in for it. Exclude per-job manager requests containing
+foreign argv and fork-then-migrate fallbacks.
+
+The proposed creation primitive is direct `clone3(CLONE_INTO_CGROUP)` into that original object.
+After closing intake, contain its guest descendants and prove successful retirement of that
+exact object before acknowledging guest closure. If creation wins the race, retirement must
+remain pending while the child can execute. If retirement wins, the delayed original-object
+creation must refuse. Linux documents FD-selected placement and non-revival of retired groups;
+the inspected v6.6 source supplies the relevant clone/destruction ordering. These are upstream
+facts supporting a conditional design, not qualification of the operator's kernel.
+[clone interface](https://man7.org/linux/man-pages/man2/clone.2.html),
+[cgroup contract](https://www.kernel.org/doc/html/v6.6/admin-guide/cgroup-v2.html#core-interface-files),
+[inspected source](https://raw.githubusercontent.com/torvalds/linux/v6.6/kernel/cgroup/cgroup.c).
+
+Before a physical run, retain a bounded model's successful-launch and close witnesses, both
+race orders, and counterexamples for empty-only acknowledgement, path replacement, numeric-FD
+reuse and restored old authority. Model a surviving worker separately from controller death;
+assuming they die together does not qualify that recovery case. The later inert host fixture
+must force the same orders and verify original-object identity, descriptor lifetime, descendant
+containment, effective ceilings and owned cleanup. Failed deletion or unknown identity remains
+unresolved. No coding CLI, provider or real repository task belongs in that first fixture.
+
+The actual owner still needs an accepted ordered release-to-in-flight operation. A fresh
+observation followed by a pause supplies no such authority, and an earlier release does not prove
+physical exec before an absolute deadline. Object retirement also leaves resource, I/O, custody
+and prior external-effect settlement to their actual owners. Exact audited containment, source,
+reservations and Gate qualification remain separate gates; no controller or executor ships here.
+
 ## Spend spare capacity on admitted work
 
 An idle loop is a service that sometimes sleeps. It selects eligible work from an owned queue;
