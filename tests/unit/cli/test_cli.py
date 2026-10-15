@@ -1207,6 +1207,70 @@ def test_bind_quadlets_success(runner: CliRunner, mocker: MockerFixture) -> None
     systemd.return_value.daemon_reload.assert_called_once_with()
 
 
+@pytest.mark.parametrize("uncaged", [False, True])
+def test_bind_guidance_matches_compiled_vessel_ownership(
+    runner: CliRunner, mocker: MockerFixture, tmp_path: Path, *, uncaged: bool
+) -> None:
+    """Real compiled ownership must agree with the public startup guidance."""
+    from lychd.system.binding_sites import BindingSites
+    from lychd.system.constants import PATH_RUNE_TEMPLATES_DIR
+    from lychd.system.operator import OperatorTarget, OperatorTargetResolver, OwnedUnitInventoryService
+    from lychd.system.operator.models import OperatorTargetError
+    from lychd.system.services.scribe import OwnedBindings
+    from lychd.system.services.scribe.models import OwnershipManifest
+    from lychd.system.services.scribe.naming import runtime_unit_for_source
+    from lychd.system.services.scribe.rendering import BindingRenderer
+
+    mocker.patch("lychd.system.services.lifecycle.lock.LifecycleLock")
+    mocker.patch("lychd.config.runes.registry.load_rune_registry", return_value=RuneRegistry(()))
+    mocker.patch("lychd.cli.binding.compile_animator_declarations", return_value=_animator_declarations())
+    secret_store = mocker.patch("lychd.system.services.secrets.PodmanSecretStore").return_value
+    secret_store.exists.return_value = True
+    secret_store.ensure_present.return_value = False
+    systemd = mocker.patch("lychd.system.services.systemd.SystemdUserManager")
+    quadlet, user_units = tmp_path / "quadlet", tmp_path / "user"
+    scribe = mocker.patch("lychd.system.services.scribe.facade.ScribeService").return_value
+
+    result = runner.invoke(bind_quadlets, ["--uncaged"] if uncaged else [])
+
+    assert result.exit_code == 0, result.output
+    # Compile/render the real fileset; only host application and observation are fakes.
+    committed = scribe.reconcile_all.call_args
+    quadlet_files, systemd_files = BindingRenderer(
+        templates_dir=PATH_RUNE_TEMPLATES_DIR,
+        sites=BindingSites(quadlet=quadlet, systemd_user=user_units),
+    ).render_generated(committed.args[0])
+    ownership = OwnershipManifest(
+        version=1,
+        quadlet=tuple(sorted(quadlet_files)),
+        systemd=tuple(sorted({*systemd_files, *committed.kwargs["plain_units"]})),
+    )
+    source_names = (*ownership.quadlet, *ownership.systemd)
+    scribe.inspect_owned_bindings.return_value = OwnedBindings(
+        receipt_present=True,
+        generation="compiled-generation",
+        quadlet_sources=tuple(quadlet / name for name in ownership.quadlet),
+        systemd_sources=tuple(user_units / name for name in ownership.systemd),
+        runtime_units=tuple(sorted(runtime_unit_for_source(name) for name in source_names)),
+    )
+    catalog = OwnedUnitInventoryService(scribe, mocker.Mock(), systemctl_bin=None).inspect()
+    resolver = OperatorTargetResolver(mocker.Mock())
+    vessels = resolver.vessel_units(catalog)
+    if uncaged:
+        assert set(vessels) == {"lychd-vessel.service", "lychd-uncaged-vessel.service"}
+        with pytest.raises(OperatorTargetError, match="both caged and uncaged units are owned"):
+            resolver.direct_actuation_units("start", OperatorTarget.SYSTEM, catalog=catalog)
+        assert "Public start refuses mixed Vessel ownership." in result.output
+        assert "Installed native startup remains unqualified." in result.output
+        assert "lychd start" not in result.output
+        assert "systemctl --user start" not in result.output
+    else:
+        assert vessels == ("lychd-vessel.service",)
+        assert "You may now summon the declared system: lychd start" in result.output
+        assert "mixed Vessel ownership" not in result.output
+    systemd.return_value.daemon_reload.assert_called_once_with()
+
+
 def test_bind_dry_run_uses_real_planner_without_effects(
     runner: CliRunner,
     mocker: MockerFixture,
