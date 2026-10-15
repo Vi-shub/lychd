@@ -8,8 +8,9 @@ import os
 import socket
 import struct
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from types import ModuleType
 from typing import TYPE_CHECKING, Any
 
@@ -142,10 +143,12 @@ class _FakeBus:
 
 
 @pytest.fixture
-def runtime(tmp_path: Path) -> Path:
-    path = tmp_path / "runtime"
-    path.mkdir(mode=0o700)
-    return path
+def runtime() -> Generator[Path]:
+    # Keep Unix socket paths independent of pytest's potentially long basetemp.
+    with TemporaryDirectory(prefix="lychd-stop-", dir="/tmp") as directory:
+        path = Path(directory).resolve() / "runtime"
+        path.mkdir(mode=0o700)
+        yield path
 
 
 @pytest.fixture
