@@ -202,20 +202,20 @@
     "start_method": "spawn",
     "start_time_identity_checked": true
   },
-  "qualification_date": "2026-10-15",
+  "qualification_date": "2026-10-16",
   "qualification_evidence": {
-    "admission_sha256": "5fcce7089e24d4a53a1491379feaeaeef9d2ee831845b3416520b9fc98471eeb",
-    "application_receipt_sha256": "d4d422e85a8b1f3aec15e90d1c709a56142a2938444c5372b8651c8f42cc0085",
-    "model_profile_sha256": "ff3799b9f1016f9ad264f2a2a1af382ffbd2f7c5d40d924fbf45706d76efdc58",
+    "admission_sha256": "5f8da20a765c69ba2f016c908dcdc0c716bab1806bb092c6c02880f2beffda39",
+    "application_receipt_sha256": "916fd0dcfd822e398163a7a67dc944eeabe469382bff5588155312beea9a5929",
+    "model_profile_sha256": "3885d9ac7571bbd3a638a1772740ea2f93d9c83729bb4e88b4a58f551a77358f",
     "native_test_sha256_before_trial": "7cc36a27ccc473f5cd374655c2ee6aedf002d85ddf676e297c585b2de11a9454",
     "private_supervisor_source_sha256": "99a5c4ad8b8bead0506214966dd957bb1d5a06256820ed8cc4f541429e4a0cef",
-    "pytest_log_sha256": "e0b47594106a8d859d79d6bf71259243c18d0bfe39a50d08c315590ebf16102e",
-    "supervisor_events_sha256": "da2652d81d694cea8c6878549912115e4ed9f9b13a964c08b221f527f32e129f",
-    "supervisor_outcome_sha256": "c2db79f7537717b8d4865a316370a55ef894a1f74b7d8ce3a74a667cf79c800a"
+    "pytest_log_sha256": "db7fabb242f89af741d320dd38441bf1a1e6efe54677ce551c3a21e21c3a8f04",
+    "supervisor_events_sha256": "eab88871558abb2b03756f9759d26a86e82d3e1f4c05d69c4e0e4275a775bdcd",
+    "supervisor_outcome_sha256": "c1edc9c5894f32a81e4b6f6813e656e66590939a2c369a6c34221e76ba901872"
   },
   "record_kind": "sanitized_public_local_bridge_native_tcp_qualification",
-  "retained_history_sha256": "a15af3667e592821636957e602eb55f822e10b0ac7d8c9c6f4741f0f9e066781",
-  "retained_turns_sha256": "de08f37429c695a7e2aa02c04598f6ede897be19959db5805d9117bbaa2ca496",
+  "retained_history_sha256": "f4b60b71ab5d8fcddc73193858850a75577bf3d5502d6e5799d9de4dbf79d829",
+  "retained_turns_sha256": "7ffe317ece5645b4acdebd5067337d2122d8aafa5a748052e2d957db2251dd00",
   "runner": {
     "cleanup_verified": true,
     "default_make_ryuk_profile": false,
@@ -299,18 +299,18 @@
     "tests/integration/test_local_bridge_runtime.py": "00e24103a907b1aa4d1b518d7bd38267a3b2d5cdd4fce1db923f6f239d11c7d2",
     "tests/integration/test_production_wiring.py": "e06fa6964a77546f6106b231fbd6c70e9df2902b86304f340e42cb14372500d0",
     "tests/integration/test_server_process.py": "1d31a014d21158c749cf3cd05f7f043208af14fc5fc7c48b6012c34caebb522c",
-    "tests/unit/domain/animation/test_local_bridge_native_tcp.py": "1c42f9aaf2fbe738f97d8bb80a06503334d536996a23250bb66a4a4456ae5980"
+    "tests/unit/domain/animation/test_local_bridge_native_tcp.py": "b902b6be41e48e22950d5776b3447d1e47b7718cf5b2536cdb284e649c163873"
   },
   "source_identity": {
     "atomic_transitive_closure_attested": false,
     "clean_checkout_observed": true,
-    "revision_observed": "9e56d22324fd7ff5a001cce968d5a5af49d52cc0",
+    "revision_observed": "c080dcd033053a7a29637ad2ad17409bc8c6398a",
     "scope": "bounded-critical-source-and-test-fingerprints"
   },
   "status": "passed",
   "timings_seconds": {
-    "command": 17.414,
-    "pytest": 15.69
+    "command": 17.105,
+    "pytest": 15.55
   },
   "unexercised": [
     "installed-command-or-caged-Vessel",

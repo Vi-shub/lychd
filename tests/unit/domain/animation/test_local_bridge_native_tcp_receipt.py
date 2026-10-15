@@ -42,10 +42,10 @@ def test_native_tcp_receipt_preserves_its_observed_scope_and_privacy() -> None:
     receipt = json.loads(text)
     assert receipt["schema"] == "local-bridge-vllm-native-tcp@1"
     assert receipt["record_kind"] == "sanitized_public_local_bridge_native_tcp_qualification"
-    assert receipt["qualification_date"] == "2026-10-15"
+    assert receipt["qualification_date"] == "2026-10-16"
     assert receipt["status"] == "passed"
     assert receipt["source_identity"] == {
-        "revision_observed": "9e56d22324fd7ff5a001cce968d5a5af49d52cc0",
+        "revision_observed": "c080dcd033053a7a29637ad2ad17409bc8c6398a",
         "clean_checkout_observed": True,
         "atomic_transitive_closure_attested": False,
         "scope": "bounded-critical-source-and-test-fingerprints",
