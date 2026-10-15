@@ -444,6 +444,8 @@ class Transmuter:
 
         The Vessel mounts all internal and portal-referenced Podman secrets so
         runtime connectors can resolve credentials from ``/run/secrets``.
+        The two read-only core services declare a fixed tmpfs parent so Podman
+        can create their secret-file mountpoints without a writable image root.
         """
         vessel_mounts = [MountData.from_str(mount) for mount in self._vessel_mount_strings(settings)]
         migrator_mounts = [MountData.from_str(mount) for mount in self._migrator_mount_strings()]
@@ -472,6 +474,7 @@ class Transmuter:
             pod=LYCHD_POD_QUADLET,
             user="%U",
             read_only=True,
+            secret_mount_tmpfs=True,
             volumes=vessel_mounts,
             env_vars={
                 **self._runtime_path_env(),
@@ -527,6 +530,7 @@ class Transmuter:
             pod=LYCHD_POD_QUADLET,
             user="%U",
             read_only=True,
+            secret_mount_tmpfs=True,
             volumes=migrator_mounts,
             env_vars={
                 **self._runtime_path_env(),

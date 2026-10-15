@@ -185,7 +185,11 @@ a scan of every file inside an operator-selected data directory or a runtime ino
 the operator must keep that directory free of unrelated private data and control endpoints.
 
 Trusted Vessel and migration code is image-root-owned and their root filesystems are read-only;
-declared writable tmpfs and application mounts supply runtime scratch and state. This rule must
+declared writable tmpfs and application mounts supply runtime scratch and state. Their compiler
+enables a fixed 1 MiB tmpfs at `/run/secrets`, owned by container root with mode `0755` and
+`nosuid,nodev,noexec`, to supply mountpoints for the separately declared read-only secret files.
+This leaves configurable secret names and their individual mounts intact; it grants no writable
+image root or arbitrary tmpfs declaration. This rule must
 hold for different host UIDs, including the image's historical application UID. It does not
 assert that third-party images support a read-only root or that a rendered manifest proves
 working subordinate-ID maps, SELinux labels, or filesystem permissions on an operator host.

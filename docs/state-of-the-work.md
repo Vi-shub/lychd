@@ -257,7 +257,9 @@ without entering or changing it. Fresh Btrfs preparation and deletion identity c
 bounded descriptor helper to observe the exact subvolume UUID and ID without a privileged
 pathname lookup. Unknown identity remains unreceipted; existing datastores are never adopted or
 retroactively changed to No-COW. Vessel/migrator code is root-owned and their root filesystems
-are declared read-only.
+are declared read-only. Their compiled manifests declare a fixed 1 MiB `/run/secrets` tmpfs
+parent for the separately mounted secret files; focused tests preserve hardening, configured
+secret identities, and the closed manifest policy.
 
 **Receipt needed:** Name the Linux, systemd and Podman versions, generated targets and conflicts,
 loaded-source attestation, forward switch, compensation, crash recovery, startup, and shutdown.

@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import ClassVar
 
 import pytest
 
 from lychd.config import QuadletConfig
 from lychd.config.settings.orchestration import OrchestrationSettings, SwitchingSettings
 from lychd.config.settings.root import Settings, get_settings
+from lychd.config.settings.server import DatabaseSettings, ServerSettings, WebSettings
 from lychd.domain.animation.schemas import (
     ConcurrencyIntent,
     GenericSoulstoneConfig,
@@ -95,6 +97,72 @@ def test_transmute_core_infrastructure(transmuter: Transmuter) -> None:
     assert migrator.user == "%U"
 
 
+def test_core_secret_scratch_preserves_configured_and_external_secret_identities() -> None:
+    class ControlledSoulstone(GenericSoulstoneConfig):
+        path_fragment: ClassVar[Path] = Path("controlled-test")
+
+        @property
+        def control_plane_secret_names(self) -> tuple[str, ...]:
+            return ("alternate_control_key",)
+
+    settings = Settings(
+        server=ServerSettings(
+            database=DatabaseSettings(
+                password_secret="alternate_admin_key",  # noqa: S106 - secret reference
+                runtime_password_secret="alternate_runtime_key",  # noqa: S106 - secret reference
+                phoenix_password_secret="alternate_phoenix_key",  # noqa: S106 - secret reference
+            ),
+            web=WebSettings(
+                secret_key_secret="alternate_app_key",  # noqa: S106 - secret reference
+                access_password_secret="alternate_access_key",  # noqa: S106 - secret reference
+            ),
+        )
+    )
+    stone = ControlledSoulstone(name="controlled", quadlet=QuadletConfig(image="example/runtime"))
+    portal = OpenAIPortalConfig(name="external", api_key_secret_name="alternate_portal_key")  # noqa: S106 - secret reference
+    manifests = Transmuter(settings=settings, runtime_planner=RuntimeAdapterRegistry()).transmute_all(
+        [stone], portals=[portal]
+    )
+    containers = {manifest.container_name: manifest for manifest in manifests if isinstance(manifest, QuadletContainer)}
+    assert {name for name, manifest in containers.items() if manifest.secret_mount_tmpfs} == {
+        "lychd-vessel",
+        "lychd-migrate",
+    }
+    vessel = containers["lychd-vessel"]
+    assert vessel.secrets == [
+        "alternate_app_key",
+        "alternate_access_key",
+        "alternate_runtime_key",
+        "alternate_portal_key",
+        "alternate_control_key",
+    ]
+    assert vessel.env_vars["LYCHD_APP_SECRET_KEY_FILE"] == f"/run/secrets/{settings.server.web.secret_key_secret}"
+    assert (
+        vessel.env_vars["LYCHD_LOCAL_ACCESS_PASSWORD_FILE"]
+        == f"/run/secrets/{settings.server.web.access_password_secret}"
+    )
+    assert (
+        vessel.env_vars["LYCHD_RUNTIME_DB_PASSWORD_FILE"]
+        == f"/run/secrets/{settings.server.database.runtime_password_secret}"
+    )
+    migrator = containers["lychd-migrate"]
+    assert migrator.secrets == ["alternate_admin_key", "alternate_runtime_key", "alternate_phoenix_key"]
+    assert migrator.env_vars["LYCHD_DB_PASSWORD_FILE"] == f"/run/secrets/{settings.server.database.password_secret}"
+    assert (
+        migrator.env_vars["LYCHD_RUNTIME_DB_PASSWORD_FILE"]
+        == f"/run/secrets/{settings.server.database.runtime_password_secret}"
+    )
+    assert (
+        migrator.env_vars["LYCHD_PHOENIX_DB_PASSWORD_FILE"]
+        == f"/run/secrets/{settings.server.database.phoenix_password_secret}"
+    )
+    assert containers["lychd-phylactery"].secrets == ["alternate_admin_key"]
+    assert (
+        containers["lychd-phylactery"].env_vars["POSTGRES_PASSWORD_FILE"]
+        == f"/run/secrets/{settings.server.database.password_secret}"
+    )
+
+
 def test_transmute_soulstone_to_manifest(transmuter: Transmuter) -> None:
     """Verify a Soulstone Rune is correctly transmuted."""
     stone = _stone(
@@ -147,6 +215,7 @@ def test_transmute_hydrates_soulstone_secret_env_files(transmuter: Transmuter) -
 
     assert manifest.env_vars["HF_TOKEN_FILE"] == "/run/secrets/hf_runtime_token"  # noqa: S105 - fixture secret path
     assert manifest.secrets == ["hf_runtime_token"]
+    assert manifest.secret_mount_tmpfs is False
 
 
 def test_transmute_merges_runtime_podman_args() -> None:
