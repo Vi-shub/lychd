@@ -121,7 +121,13 @@ are proved. Foreign harnesses retain private planning while LychD retains task s
 receiving-owner authority. An executable development application must publish its own exact
 Pattern before assuming native coordination; this law creates no general SDLC or Assimilation
 coordinator. The [bootstrap procedure](../sepulcher/extensions/weaver/development-bootstrap.md)
-orders the small implementation gates.
+orders the small implementation gates. The first external CLI owner binding may use the
+operator campaign's immutable task, projection, custody and verification records under
+[ADR 14's versioned intent contract](14-workers.md#versioned-cli-intent-and-owner-binding).
+Those references preserve attribution; their parser and a fixture admission are not an owner
+record service or proof of source closure, authority, custody or available verification capacity.
+The actual producer must check that closure before usable admission. This does not manufacture a
+native Creation Request, Run or generic SDLC coordinator.
 
 Recurring or spare-capacity work selects from owned, eligible tasks under current standing
 authorization. Each occurrence requires a named acceptance owner, observable benefit, exact

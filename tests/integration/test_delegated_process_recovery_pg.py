@@ -62,6 +62,7 @@ from lychd.domain.delegation.models import (
     DelegatedAgentProfile,
     DelegatedAgentRequest,
     DelegatedAgentResult,
+    DelegatedRequest,
 )
 from lychd.domain.delegation.routing import DelegatedRuntimeBinding
 from lychd.domain.delegation.services import DelegatedAgentCoordinator
@@ -131,18 +132,18 @@ class _ObservedReferenceRuntime(ReferenceDelegatedAgentRuntime):
         self.hold_poll = hold_poll
         self.starts = 0
         self.polls = 0
-        self.poll_requests: list[DelegatedAgentRequest] = []
+        self.poll_requests: list[DelegatedRequest] = []
         self.rehydrations = 0
 
-    async def start(self, request: DelegatedAgentRequest, job: DelegatedAgentJobRef) -> None:
+    async def start(self, request: DelegatedRequest, job: DelegatedAgentJobRef) -> None:
         self.starts += 1
         await super().start(request, job)
 
-    async def rehydrate_effect_free(self, request: DelegatedAgentRequest, job: DelegatedAgentJobRef) -> None:
+    async def rehydrate_effect_free(self, request: DelegatedRequest, job: DelegatedAgentJobRef) -> None:
         self.rehydrations += 1
         await super().rehydrate_effect_free(request, job)
 
-    async def poll(self, job: DelegatedAgentJobRef, *, request: DelegatedAgentRequest) -> DelegatedAgentResult | None:
+    async def poll(self, job: DelegatedAgentJobRef, *, request: DelegatedRequest) -> DelegatedAgentResult | None:
         self.polls += 1
         self.poll_requests.append(request)
         result = await super().poll(job, request=request)

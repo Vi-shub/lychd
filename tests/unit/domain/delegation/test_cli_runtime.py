@@ -33,6 +33,7 @@ from lychd.domain.delegation.models import (
     DelegatedAgentJobStatus,
     DelegatedAgentRequest,
 )
+from tests.support.delegated_cli import InertOwnerAdmission, cli_request
 
 
 def _identity(kind: CliRuntimeKind) -> tuple[DelegatedAgentRequest, DelegatedAgentJobRef]:
@@ -519,7 +520,7 @@ async def test_cancellation_before_observation_requires_exact_retained_launch(mi
 async def test_reconstructed_coordinator_correlates_original_request(
     kind: CliRuntimeKind, operation: str, substitution: str
 ) -> None:
-    request, _ = _identity(kind)
+    request = cli_request(kind)
     artifact = ArtifactRef(
         artifact_id="original-input",
         digest="sha256:" + "a" * 64,
@@ -559,7 +560,13 @@ async def test_reconstructed_coordinator_correlates_original_request(
 
     host = Host()
     runtime_type = CodexCliRuntime if kind is CliRuntimeKind.CODEX else ClaudeCliRuntime
-    original = runtime_type(executable=f"/opt/agents/{kind}", model="original", job_roots="/jobs", host=host)
+    original = runtime_type(
+        executable=f"/opt/agents/{kind}",
+        model="original",
+        job_roots="/jobs",
+        host=host,
+        owner_admission=InertOwnerAdmission(),
+    )
     store = InMemoryDelegatedAgentJobStore()
     first = DelegatedAgentCoordinator(runtimes={original.name: original}, store=store)
     job = await first.submit(request)

@@ -468,16 +468,76 @@ success; a timeout requires containment before terminal classification. Neither 
 registered by default, and no subprocess launcher or Provider Gate bridge is delivered.
 
 Every poll and containment call receives the exact store-retained request alongside the job
-reference. The coordinator supplies that request from its current authoritative read; a runtime
-must reject an observation whose request or deterministic prompt bytes differ, even if the
-returned specification and receipt agree with each other. The reviewed CLI protocols receive
-exactly the retained prompt encoded as UTF-8 stdin. Lookup and cancellation never recreate a
-submission. This independently
-binds request intent; the trusted host must still retain and attest the original complete launch,
-including model, command, roots and limits. It is not a versioned launch-policy implementation.
-The Python adapter port requires the retained-request argument for both operations; built-ins
-change atomically under [Extension compatibility](05-extensions.md#7-extension-compatibility-tiers),
-without changing serialized requests or retained Pattern revisions.
+reference. The coordinator supplies that request from its current authoritative read. The reviewed
+CLI protocols receive exactly its prompt encoded as UTF-8 stdin; lookup and cancellation never
+recreate a submission. The Python adapter port requires the retained-request argument for both
+operations; built-ins change atomically under
+[Extension compatibility](05-extensions.md#7-extension-compatibility-tiers).
+
+### Versioned CLI intent and owner binding
+
+The existing `DelegatedAgentRequest` is the unchanged legacy request: no discriminator or policy
+is backfilled, and its request, nested job and launch encodings retain their original meaning.
+Reference work and retained Pattern revisions remain unchanged. Fresh legacy CLI starts refuse
+before calling a host; historical lookup and containment retain their narrower request/stdin
+correlation, without inventing previously unretained model, roots or limits.
+
+A sibling `DelegatedCliRequestV2` uses the exact discriminator
+`request_schema="lychd-delegated-cli-request@2"`. In addition to the existing occurrence and prompt
+fields it requires immutable `cli_intent` and `owner_binding`. Its runtime is exactly `codex` or
+`claude`. The intent pins `compiler_revision="official-one-shot@1"`, the exact reviewed CLI version,
+canonical executable, explicit model, one parent `job_root` with three pairwise-disjoint strict
+children, and all four existing capture and wall limits. The pinned compiler alone derives literal argv, replacement environment and stdin.
+No arbitrary settings, added CLI flags, reasoning alias or model default enters that interpretation.
+Current runtime defaults cannot reinterpret retained V2 work.
+
+The first owner-binding namespace is `operator-campaign@1`. Each of its four references has an
+immutable `record_id`, `revision` and lowercase `sha256:` content digest; identifiers are bounded
+ASCII identifiers and revisions cannot mean `latest`. The binding also names the independent
+`verifier_id`. These are opaque owner-qualified identities, never paths to resolve by the runtime:
+
+- `task` binds the principal, campaign/task/attempt, acceptance and non-goals, standing authority,
+  tools/effects, all budgets, cancellation, termination and separate promotion owner;
+- `projection` binds the exact base plus admitted dirty patch and selected untracked bytes,
+  their manifest and allowed paths;
+- `custody` binds output format, quarantine, destination, retention and permitted downstream use;
+- `verification` binds fixed commands, tool versions, environment, deadlines, pass criteria,
+  independent verifier identity and reserved verification capacity.
+
+A trusted injected owner-admission port, absent or denying by default, checks current owner truth
+before V2 start. Its closed positive observation binds the exact job occurrence, canonical request
+and intent digests, all four references and verifier, an admission identity, aware issue/expiry
+instants and a nonnegative bounded generation. The consumer requires issued <= trusted now < expiry
+and a positive validity window no longer than one day. Missing, denied, malformed, expired or
+mismatching observations refuse before host launch. A caller cannot serialize a positive observation
+into the request. The port checks existing admission; this passage grants no budget reservation or
+execution permit. Current authority and generation are the producer's responsibility, not proved by
+consumer equality checks. Poll and cancellation need no fresh owner admission, including after its
+expiry or revocation, and never launch.
+
+Explicit request decoding selects legacy only when the discriminator is absent, V2 only for its
+exact tag, and refuses unknown/null tags and extra fields without fallback. The same codec governs
+store writes, exact replay, detached reads and nested job JSON. Unknown stored versions remain
+unchanged and unavailable; they are not translated or rewritten. Legacy launch digests remain
+unchanged. V2 uses separate request/intent digest domains and a tagged launch encoding containing
+the complete request and existing launch specification. Canonical bytes are sorted compact UTF-8
+JSON with nonfinite numbers forbidden; this internal identity claims no general JCS/signature
+canonicalization. Retained work keeps its compiler and codec versions.
+
+For V2 lookup and containment, independently compile the complete expected specification from the
+store-retained request and exact job, then compare the host specification and matching receipt.
+Consistent substitutions of model, executable, argv, environment, roots, limits or owner bindings
+must refuse even when the host recomputes its receipt. The host must additionally retain the exact
+versioned launch and owner decision durably before effects, with create-once exact-job ownership;
+lookup never repairs an absent record by resubmission.
+
+Consumer conformance with an inert positive owner fixture is a mechanical prerequisite only. It
+proves no actual owner-record producer, source-byte closure, current authorization/revocation,
+custody service or verifier reservation. Those owners must be delivered and independently checked
+before usable admission, including changed dirty/untracked bytes under unchanged names. The four
+CLI limits do not supply ADR 09 CPU, memory, process, disk, provider or artifact budgets. Physical
+host retention, enforcement and Gates remain separate prerequisites. Neither this contract nor a
+migrated-store test registers a CLI or delivers native Creation.
 
 `LOST` is terminal for result adoption and ordinary polling, but it is not evidence that an external
 process stopped. Parent cancellation must still call the owning runtime's containment operation and

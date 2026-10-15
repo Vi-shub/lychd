@@ -524,12 +524,27 @@ identity, persisted limits, malformed/truncated output, uncertain lookup and can
 adapters are not registered by default and contain no subprocess launcher. These are protocol and
 correlation tests, not an executed Coffin or Provider Gate.
 
-Poll and cancellation receive the store-retained request. Offline tests reconstruct the
-coordinator/runtime and reject substituted request metadata or UTF-8 stdin even with a
-consistently recomputed host receipt; cancellation cannot record `CANCELLED` for those
-observations. The reference runtime also checks its retained pure projection. This correlates
-request intent only: model, argv, roots and limits still need complete frozen launch-policy
-binding. Serialized requests and retained score revisions 1 and 2 remain unchanged.
+Poll and cancellation receive the store-retained request. Legacy lookup rejects substituted
+request metadata or UTF-8 stdin even with a consistently recomputed host receipt. The reference
+runtime checks its retained pure projection. Legacy request, nested job and launch goldens and
+retained score revisions 1 and 2 keep their meaning; fresh legacy CLI starts now refuse before
+calling a host.
+
+A sibling V2 CLI request retains the exact compiler/version, executable/model, workspace roots,
+capture/wall limits and four qualified operator task/projection/custody/verification references.
+Explicit top-level, nested-job and database codecs refuse unknown tags/fields and malformed or
+bypassed model instances. V2 lookup/cancellation independently compiles the complete expected
+specification from retained intent, defeating consistent model, argv, environment, executable,
+root, limit and owner-binding substitutions. It never obtains fresh admission or launches.
+
+A trusted injected owner-observation port denies by default. Its consumer checks exact occurrence,
+request/intent digests, bindings and bounded validity as UTC instants before host launch, including
+non-UTC offset/fold cases. The only positive producer is an inert test fixture: this is consumer
+conformance, not actual owner authorization, source-byte closure, custody or verifier reservation.
+A migrated-PostgreSQL receipt retains complete V2 JSON, rejects changed-content replay, reconstructs
+fresh engines/adapters under different defaults and refuses consistently recomputed substitutions,
+including cancellation before poll after admission expiry. Unknown stored versions remain unchanged
+and unavailable. This is adapter reconstruction, not a V2 independent-process or physical-host proof.
 
 The reference adapter reconstructs its deterministic projection for refresh and cancellation after
 coordinator/runtime restart without replaying an external effect, retains it across failed durable
@@ -572,7 +587,9 @@ external provider.
 
 **Boundary — Not yet:** No declared external provider launches. There is no lower-trust executor,
 credential or egress isolation, process-tree containment, durable artifact custody, measured
-budgets, real external-provider recovery receipt, or live-browser proof.
+budgets, real external-provider recovery receipt, or live-browser proof. The actual operator-record
+producer, current authority/revocation, immutable source closure, full enforced resource envelope,
+custody service and reserved independent verification remain undelivered.
 Request prompts are persisted verbatim; callers must apply the Privacy Cut and egress policy before
 any future remote runtime receives them. Effectful runtimes still need durable provider identity,
 definite-rejection evidence, and reconciliation of ambiguous start outcomes.
@@ -590,7 +607,9 @@ Additional source and verification for the exact selection and closed adapters:
 [configured casting tests](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_delegated_routing.py),
 [PostgreSQL acceptance/rollback tests](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_db_run_ledger_pg.py),
 [migrated delegated-result enforcement](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_db_migrations_pg.py), and
-[clean-process delegated recovery](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_delegated_process_recovery_pg.py).
+[clean-process delegated recovery](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_delegated_process_recovery_pg.py),
+[V2 codec/admission/recovery cases](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/delegation/test_cli_request_v2.py), and
+[migrated V2 retention](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_delegated_cli_v2_pg.py).
 
 ### Durable in-app Attention {#durable-attention}
 

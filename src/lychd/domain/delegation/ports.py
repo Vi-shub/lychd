@@ -9,8 +9,8 @@ from lychd.domain.delegation.models import (
     DelegatedAgentJob,
     DelegatedAgentJobRef,
     DelegatedAgentJobStatus,
-    DelegatedAgentRequest,
     DelegatedAgentResult,
+    DelegatedRequest,
 )
 
 __all__ = [
@@ -29,15 +29,15 @@ class DelegatedAgentRuntime(Protocol):
         """Return the adapter identity used by the coordinator."""
         ...
 
-    async def start(self, request: DelegatedAgentRequest, job: DelegatedAgentJobRef) -> None:
+    async def start(self, request: DelegatedRequest, job: DelegatedAgentJobRef) -> None:
         """Start one isolated job under the caller-owned job reference."""
         ...
 
-    async def poll(self, job: DelegatedAgentJobRef, *, request: DelegatedAgentRequest) -> DelegatedAgentResult | None:
+    async def poll(self, job: DelegatedAgentJobRef, *, request: DelegatedRequest) -> DelegatedAgentResult | None:
         """Correlate the outcome to the store-retained request; return ``None`` while active."""
         ...
 
-    async def cancel(self, job: DelegatedAgentJobRef, *, request: DelegatedAgentRequest) -> None:
+    async def cancel(self, job: DelegatedAgentJobRef, *, request: DelegatedRequest) -> None:
         """Contain this exact job, correlated to its store-retained request.
 
         Successful return authorizes durable ``CANCELLED`` settlement. An
@@ -52,7 +52,7 @@ class DelegatedAgentJobStore(Protocol):
 
     async def create(
         self,
-        request: DelegatedAgentRequest,
+        request: DelegatedRequest,
         ref: DelegatedAgentJobRef,
     ) -> tuple[DelegatedAgentJob, bool]:
         """Create once by request id; return ``(job, created)``."""
@@ -107,7 +107,7 @@ class DelegatedAgentJobStore(Protocol):
 class DelegatedAgentCoordinatorPort(Protocol):
     """The graph-facing delegated-agent service surface."""
 
-    async def submit(self, request: DelegatedAgentRequest) -> DelegatedAgentJobRef: ...
+    async def submit(self, request: DelegatedRequest) -> DelegatedAgentJobRef: ...
 
     async def get(self, job_id: str) -> DelegatedAgentJob | None: ...
 

@@ -19,6 +19,7 @@ from lychd.domain.delegation import (
     IllegalDelegatedAgentTransitionError,
     InMemoryDelegatedAgentJobStore,
 )
+from lychd.domain.delegation.models import DelegatedRequest
 from lychd.domain.delegation.services import DelegatedAgentIdempotencyConflictError
 from lychd.extensions.builtin.delegation.reference import ReferenceDelegatedAgentRuntime
 
@@ -28,24 +29,24 @@ class FakeDelegatedAgentRuntime:
     """Deterministic adapter used to prove the structural runtime contract."""
 
     name: str = "fake"
-    starts: list[DelegatedAgentRequest] = field(default_factory=list)
+    starts: list[DelegatedRequest] = field(default_factory=list)
     polls: list[str] = field(default_factory=list)
-    poll_requests: list[DelegatedAgentRequest] = field(default_factory=list)
+    poll_requests: list[DelegatedRequest] = field(default_factory=list)
     cancellations: list[str] = field(default_factory=list)
-    cancellation_requests: list[DelegatedAgentRequest] = field(default_factory=list)
+    cancellation_requests: list[DelegatedRequest] = field(default_factory=list)
     next_result: DelegatedAgentResult | None = None
 
-    async def start(self, request: DelegatedAgentRequest, job: DelegatedAgentJobRef) -> None:
+    async def start(self, request: DelegatedRequest, job: DelegatedAgentJobRef) -> None:
         self.starts.append(request)
         await asyncio.sleep(0)
         assert job.request_id == request.request_id
 
-    async def poll(self, job: DelegatedAgentJobRef, *, request: DelegatedAgentRequest) -> DelegatedAgentResult | None:
+    async def poll(self, job: DelegatedAgentJobRef, *, request: DelegatedRequest) -> DelegatedAgentResult | None:
         self.polls.append(job.job_id)
         self.poll_requests.append(request)
         return self.next_result
 
-    async def cancel(self, job: DelegatedAgentJobRef, *, request: DelegatedAgentRequest) -> None:
+    async def cancel(self, job: DelegatedAgentJobRef, *, request: DelegatedRequest) -> None:
         self.cancellations.append(job.job_id)
         self.cancellation_requests.append(request)
 
@@ -140,7 +141,7 @@ async def test_job_lifecycle_operations_wait_for_submit_acceptance(operation: st
         start_entered: asyncio.Event = field(default_factory=asyncio.Event)
         release_start: asyncio.Event = field(default_factory=asyncio.Event)
 
-        async def start(self, request: DelegatedAgentRequest, job: DelegatedAgentJobRef) -> None:
+        async def start(self, request: DelegatedRequest, job: DelegatedAgentJobRef) -> None:
             self.starts.append(request)
             assert job.request_id == request.request_id
             self.start_entered.set()
@@ -208,7 +209,7 @@ async def test_cancelled_same_request_waiter_releases_its_lock_reference() -> No
 
     @dataclass
     class _BlockingRuntime(FakeDelegatedAgentRuntime):
-        async def start(self, request: DelegatedAgentRequest, job: DelegatedAgentJobRef) -> None:
+        async def start(self, request: DelegatedRequest, job: DelegatedAgentJobRef) -> None:
             self.starts.append(request)
             assert job.request_id == request.request_id
             entered.set()
@@ -259,7 +260,7 @@ async def test_repeated_cancellation_cannot_interrupt_indeterminate_submission_s
     class _BlockingStartRuntime(FakeDelegatedAgentRuntime):
         start_entered: asyncio.Event = field(default_factory=asyncio.Event)
 
-        async def start(self, request: DelegatedAgentRequest, job: DelegatedAgentJobRef) -> None:
+        async def start(self, request: DelegatedRequest, job: DelegatedAgentJobRef) -> None:
             self.starts.append(request)
             assert job.request_id == request.request_id
             self.start_entered.set()
@@ -365,7 +366,7 @@ async def test_submit_loser_uses_durable_winner_identity_without_second_start() 
 
         async def create(
             self,
-            request: DelegatedAgentRequest,
+            request: DelegatedRequest,
             ref: DelegatedAgentJobRef,
         ) -> tuple[DelegatedAgentJob, bool]:
             _ = ref
@@ -390,7 +391,7 @@ async def test_unrelated_requests_can_start_in_parallel() -> None:
 
     @dataclass
     class _BlockingRuntime(FakeDelegatedAgentRuntime):
-        async def start(self, request: DelegatedAgentRequest, job: DelegatedAgentJobRef) -> None:
+        async def start(self, request: DelegatedRequest, job: DelegatedAgentJobRef) -> None:
             self.starts.append(request)
             assert job.request_id == request.request_id
             if len(self.starts) == 2:
