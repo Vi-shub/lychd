@@ -81,7 +81,9 @@ Each Animator and Coven target is `PartOf=` and explicitly `After=` the Pod serv
 systemd default dependencies. Each Animator target also orders after its conflict predecessors,
 `Requires=` and is `Before=` its service; the service `BindsTo=` and is `After=` the target. A Coven
 `Wants=` and orders after its compatible member targets, whose members are `PartOf=` that Coven.
-A compiler rejects a Coven with an internal conflict before it writes units.
+Attestation requires each member's inverse `Before=` edges to every containing compiled Coven
+alongside its own service ordering. A compiler rejects a Coven with an internal conflict before
+it writes units.
 
 ### Compiler input
 

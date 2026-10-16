@@ -442,6 +442,7 @@ async def test_coven_requires_exact_pod_and_member_ordering(tmp_path: Path, mock
     for name in ("alpha", "beta"):
         _add_coexistent_animator(graph, name)
         graph[animator_target_unit(name)]["PartOf"] = f"{_POD} {coven}"
+        graph[animator_target_unit(name)]["Before"] = f"{animator_service_unit(name)} {coven}"
     _attach_owned_sources(graph, tmp_path, "alpha", "beta")
     source = tmp_path / "systemd" / coven
     graph[coven] = {
@@ -467,6 +468,135 @@ async def test_coven_requires_exact_pod_and_member_ordering(tmp_path: Path, mock
     else:
         with pytest.raises(RuntimePreconditionError, match=rf"{coven}\.After"):
             await attestor.attest_current_topology()
+
+
+@pytest.mark.parametrize(
+    ("unit_name", "property_name", "observed", "error"),
+    [
+        ("", "", "", ""),
+        (
+            animator_target_unit("alpha"),
+            "Before",
+            f"{animator_service_unit('alpha')} {coven_target_unit('review')}",
+            rf"{animator_target_unit('alpha')}\.Before",
+        ),
+        (
+            animator_target_unit("alpha"),
+            "Before",
+            f"{animator_service_unit('alpha')} {coven_target_unit('logic')}",
+            rf"{animator_target_unit('alpha')}\.Before",
+        ),
+        (
+            animator_target_unit("alpha"),
+            "Before",
+            f"{coven_target_unit('logic')} {coven_target_unit('review')}",
+            rf"{animator_target_unit('alpha')}\.Before",
+        ),
+        (
+            animator_target_unit("alpha"),
+            "Before",
+            f"{animator_service_unit('alpha')} {coven_target_unit('logic')} {coven_target_unit('review')} lychd-unowned.service",
+            rf"{animator_target_unit('alpha')}\.Before",
+        ),
+        (
+            animator_target_unit("alpha"),
+            "Before",
+            f"{animator_service_unit('alpha')} {coven_target_unit('logic')} {coven_target_unit('review')} {coven_target_unit('singleton')}",
+            rf"{animator_target_unit('alpha')}\.Before",
+        ),
+        (
+            animator_target_unit("beta"),
+            "Before",
+            f"{animator_service_unit('beta')} {coven_target_unit('logic')} {coven_target_unit('review')}",
+            rf"{animator_target_unit('beta')}\.Before",
+        ),
+        (
+            animator_target_unit("alpha"),
+            "FragmentPath",
+            "/foreign/alpha.target",
+            rf"Loaded target source mismatch for {animator_target_unit('alpha')}",
+        ),
+        (
+            animator_service_unit("alpha"),
+            "SourcePath",
+            "/foreign/alpha.container",
+            rf"Loaded Quadlet source mismatch for {animator_service_unit('alpha')}",
+        ),
+        (
+            coven_target_unit("logic"),
+            "FragmentPath",
+            "/foreign/logic.target",
+            rf"Loaded target source mismatch for {coven_target_unit('logic')}",
+        ),
+    ],
+    ids=[
+        "exact-two-coven-membership",
+        "missing-first-coven",
+        "missing-second-coven",
+        "missing-own-service",
+        "extra-unowned-before",
+        "singleton-is-not-a-coven",
+        "nonmember-compiled-coven",
+        "target-source-still-required",
+        "service-source-still-required",
+        "coven-source-still-required",
+    ],
+)
+@pytest.mark.asyncio
+async def test_members_require_exact_inverse_ordering_for_every_compiled_coven(
+    tmp_path: Path, mocker: MockerFixture, unit_name: str, property_name: str, observed: str, error: str
+) -> None:
+    """Compatible aggregates add exact inverse ordering without broad allowances."""
+    groups = {"alpha": ("logic", "review", "singleton"), "beta": ("logic",), "gamma": ("review",)}
+    covens = {"logic": ("alpha", "beta"), "review": ("alpha", "gamma")}
+    stones = [
+        GenericSoulstoneConfig(
+            name=name,
+            quadlet=QuadletConfig(image=f"example/{name}:latest"),
+            groups=memberships,
+            concurrency=ConcurrencyIntent(conflict_domains=()),
+        )
+        for name, memberships in groups.items()
+    ]
+    graph: dict[str, dict[str, str]] = {}
+    for name in groups:
+        _add_coexistent_animator(graph, name)
+    _attach_owned_sources(graph, tmp_path, *groups)
+    sources: list[Path] = []
+    for group, names in covens.items():
+        unit = coven_target_unit(group)
+        source = tmp_path / "systemd" / unit
+        sources.append(source)
+        members = " ".join(animator_target_unit(name) for name in names)
+        graph[unit] = {
+            **_blank_properties(unit),
+            "Wants": members,
+            "After": f"{_POD} {members}",
+            "PartOf": _POD,
+            "FragmentPath": str(source),
+            "UnitFileState": "static",
+        }
+        for name in names:
+            member = graph[animator_target_unit(name)]
+            member["Before"] += f" {unit}"
+            member["PartOf"] += f" {unit}"
+    owned = _owned_bindings(tmp_path, *groups)
+    owned = replace(
+        owned,
+        systemd_sources=(*owned.systemd_sources, *sources),
+        runtime_units=(*owned.runtime_units, *(coven_target_unit(group) for group in covens)),
+    )
+    if unit_name:
+        graph[unit_name][property_name] = observed
+    _mock_systemctl_show(mocker, graph)
+    attestor = RuntimeTopologyAttestor(
+        _registry(stones), systemctl_bin=_SYSTEMCTL, owned_bindings_provider=lambda: owned
+    )
+    if error:
+        with pytest.raises(RuntimePreconditionError, match=error):
+            await attestor.attest_current_topology()
+    else:
+        await attestor.attest_current_topology()
 
 
 @pytest.mark.asyncio
