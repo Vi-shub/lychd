@@ -177,6 +177,24 @@ checkout. Select one deployment target and its effect/recovery owner before a li
 success on that target establishes that recorded scope. Native SDLC work can continue on its
 own candidate surface while this host milestone is qualified.
 
+### Verify an analysis candidate before using it
+
+For a bounded operator task, the existing Bridge can return text for separate review. Its
+`BridgeReply.answer` string can contain JSON, but that text does not acquire a domain artifact's
+type, custody or downstream authority merely by being parseable. Before submission, fix the
+candidate shape, size, encoding and source requirements, with checks for Unicode, escaping and
+nested sensitive material where relevant. Record rejection as a failed task outcome and retain
+only admitted safe evidence; changing its evaluator or repairing its text requires a separately
+admitted successor.
+
+Distinguish request acknowledgement, terminal Run state, external-effect settlement, candidate
+validity, semantic usefulness and repository promotion. A DONE Run can return an invalid or
+unhelpful candidate; terminal state alone does not establish physical closure of its effects.
+Separate verification must establish the useful outcome against the original acceptance. Native
+ownership of a recurring analysis task follows B7 and the existing
+[Spell contract](../../../adr/28-workflow.md#spells-scrolls-and-casting); an operator's JSON prompt
+creates neither a native application boundary nor an executable contract revision.
+
 ### First implementation queue
 
 Revalidate this queue against current source before claiming a task. Its entries describe
@@ -270,6 +288,12 @@ and failed attempts. Mark each bound as enforced, measured after use, or operato
 Post-hoc usage is not a hard cap. Required native launch limits that cannot be enforced make
 that road ineligible; choose another admitted road or return noncompletion. Existing allowance
 does not authorize paid overflow, a provider purchase or automatic billing fallback.
+
+A per-generation output limit and a validation-retry count do not bound a whole Run's model
+requests or tokens. Record the effective context and output reserve, retry behavior, total-call
+and token limits, and cancellation enforcement separately; state which limits remain unsupported.
+Prompt instructions do not override the installed model profile. A profile change needs its
+normal configuration and process-generation lifecycle before a later task can rely on it.
 
 Before **each** successor, the coordinator must observe:
 
