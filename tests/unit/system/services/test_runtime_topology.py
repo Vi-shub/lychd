@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, cast
 from unittest.mock import Mock
@@ -17,7 +17,7 @@ from lychd.domain.orchestration.actuator import (
 )
 from lychd.system.services.runtime_topology import RuntimeTopologyAttestor
 from lychd.system.services.scribe import OwnedBindings
-from lychd.system.unit_names import animator_service_unit, animator_target_unit
+from lychd.system.unit_names import animator_service_unit, animator_target_unit, coven_target_unit
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -133,13 +133,14 @@ def _exact_pair_graph() -> dict[str, dict[str, str]]:
     alpha = _blank_properties(alpha_target)
     alpha["Requires"] = animator_service_unit("alpha")
     alpha["Before"] = animator_service_unit("alpha")
+    alpha["After"] = _POD
     alpha["PartOf"] = _POD
     alpha["BoundBy"] = animator_service_unit("alpha")
 
     beta = _blank_properties(beta_target)
     beta["Requires"] = animator_service_unit("beta")
     beta["Before"] = animator_service_unit("beta")
-    beta["After"] = alpha_target
+    beta["After"] = f"{_POD} {alpha_target}"
     beta["Conflicts"] = alpha_target
     beta["PartOf"] = _POD
     beta["BoundBy"] = animator_service_unit("beta")
@@ -157,6 +158,7 @@ def _add_coexistent_animator(graph: dict[str, dict[str, str]], animator_name: st
     target = _blank_properties(target_unit)
     target["Requires"] = animator_service_unit(animator_name)
     target["Before"] = animator_service_unit(animator_name)
+    target["After"] = _POD
     target["PartOf"] = _POD
     target["BoundBy"] = animator_service_unit(animator_name)
     graph[target_unit] = target
@@ -356,6 +358,9 @@ async def test_attestation_rejects_unloaded_runtime_overrides(
     ("unit_name", "property_name", "observed"),
     [
         (animator_target_unit("alpha"), "Requires", ""),
+        (animator_target_unit("alpha"), "After", ""),
+        (animator_target_unit("beta"), "After", _POD),
+        (animator_target_unit("alpha"), "After", f"{_POD} lychd-unowned.service"),
         (animator_target_unit("beta"), "Conflicts", animator_target_unit("beta")),
         (
             animator_target_unit("alpha"),
@@ -375,6 +380,9 @@ async def test_attestation_rejects_unloaded_runtime_overrides(
     ],
     ids=[
         "missing-requires",
+        "missing-pod-ordering",
+        "missing-predecessor-ordering",
+        "unauthorized-managed-after",
         "tampered-conflicts",
         "impossible-inverse-requires",
         "unauthorized-managed-before",
@@ -404,6 +412,61 @@ async def test_attestation_rejects_missing_or_tampered_managed_relation(
             systemctl_bin=_SYSTEMCTL,
             owned_bindings_provider=lambda: _owned_bindings(tmp_path, "alpha", "beta"),
         ).attest(_intent())
+
+
+@pytest.mark.parametrize(
+    "after",
+    [
+        f"{_POD} {animator_target_unit('alpha')} {animator_target_unit('beta')}",
+        f"{animator_target_unit('alpha')} {animator_target_unit('beta')}",
+        f"{_POD} {animator_target_unit('alpha')}",
+        f"{_POD} {animator_target_unit('alpha')} {animator_target_unit('beta')} lychd-unowned.service",
+    ],
+    ids=["exact-pod-and-members", "missing-pod", "missing-member", "unexpected-managed-edge"],
+)
+@pytest.mark.asyncio
+async def test_coven_requires_exact_pod_and_member_ordering(tmp_path: Path, mocker: MockerFixture, after: str) -> None:
+    """PartOf=pod default ordering belongs to the declared aggregate graph."""
+    stones = [
+        GenericSoulstoneConfig(
+            name=name,
+            quadlet=QuadletConfig(image=f"example/{name}:latest"),
+            groups=("logic",),
+            concurrency=ConcurrencyIntent(conflict_domains=()),
+        )
+        for name in ("alpha", "beta")
+    ]
+    coven = coven_target_unit("logic")
+    members = " ".join(animator_target_unit(name) for name in ("alpha", "beta"))
+    graph: dict[str, dict[str, str]] = {}
+    for name in ("alpha", "beta"):
+        _add_coexistent_animator(graph, name)
+        graph[animator_target_unit(name)]["PartOf"] = f"{_POD} {coven}"
+    _attach_owned_sources(graph, tmp_path, "alpha", "beta")
+    source = tmp_path / "systemd" / coven
+    graph[coven] = {
+        **_blank_properties(coven),
+        "Wants": members,
+        "After": after,
+        "PartOf": _POD,
+        "FragmentPath": str(source),
+        "UnitFileState": "static",
+    }
+    owned = _owned_bindings(tmp_path, "alpha", "beta")
+    owned = replace(
+        owned,
+        systemd_sources=(*owned.systemd_sources, source),
+        runtime_units=(*owned.runtime_units, coven),
+    )
+    _mock_systemctl_show(mocker, graph)
+    attestor = RuntimeTopologyAttestor(
+        _registry(stones), systemctl_bin=_SYSTEMCTL, owned_bindings_provider=lambda: owned
+    )
+    if after == f"{_POD} {members}":
+        await attestor.attest_current_topology()
+    else:
+        with pytest.raises(RuntimePreconditionError, match=rf"{coven}\.After"):
+            await attestor.attest_current_topology()
 
 
 @pytest.mark.asyncio

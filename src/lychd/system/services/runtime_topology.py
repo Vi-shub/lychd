@@ -478,8 +478,8 @@ class RuntimeTopologyAttestor:
         # The loaded manager exposes target/service requirement and binding
         # inverses through RequiredBy=/BoundBy=. Ordering and conflict edges
         # remain observable on the canonical forward endpoint that declares
-        # them: this target's own Before=service and, for the lexical higher
-        # endpoint, After=/Conflicts=predecessors. Do not invent successor
+        # them: this target's own Before=service, After=pod plus conflict
+        # predecessors, and Conflicts=predecessors. Do not invent successor
         # edges on the lower target; requiring exact managed Before= and an
         # empty managed ConflictedBy= surface still rejects injected edges.
         RuntimeTopologyAttestor._require_relation(
@@ -493,7 +493,7 @@ class RuntimeTopologyAttestor:
             snapshot,
             "After",
             snapshot.after,
-            predecessors,
+            {_LYCHD_POD_SERVICE, *predecessors},
             expected.managed_units,
         )
         RuntimeTopologyAttestor._require_relation(
@@ -612,7 +612,7 @@ class RuntimeTopologyAttestor:
             snapshot,
             "After",
             snapshot.after,
-            members,
+            {_LYCHD_POD_SERVICE, *members},
             expected.managed_units,
         )
         RuntimeTopologyAttestor._require_relation(

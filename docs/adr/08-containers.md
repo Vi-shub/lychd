@@ -77,9 +77,11 @@ one Animator target per Soulstone, its target/service ordering and binding, and 
 ordered `Conflicts=`/`After=` edge for each conflicting pair. Friendly grouping never implies safe
 coexistence.
 
-Each Animator target `Requires=` and is `Before=` its service; the service `BindsTo=` and is
-`After=` the target. A Coven only `Wants=` and is `After=` compatible targets, whose members are
-`PartOf=` that Coven. A compiler rejects a Coven with an internal conflict before it writes units.
+Each Animator and Coven target is `PartOf=` and explicitly `After=` the Pod service, retaining
+systemd default dependencies. Each Animator target also orders after its conflict predecessors,
+`Requires=` and is `Before=` its service; the service `BindsTo=` and is `After=` the target. A Coven
+`Wants=` and orders after its compatible member targets, whose members are `PartOf=` that Coven.
+A compiler rejects a Coven with an internal conflict before it writes units.
 
 ### Compiler input
 

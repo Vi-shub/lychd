@@ -532,13 +532,13 @@ def test_conflict_domains_compile_to_ordered_animator_targets(transmuter: Transm
     assert targets["alpha"].requires == [animator_service_unit("alpha")]
     assert targets["alpha"].before == [animator_service_unit("alpha")]
     assert targets["alpha"].conflicts == []
-    assert targets["alpha"].after == []
+    assert targets["alpha"].after == ["lychd-pod.service"]
 
     # Emit one deterministic direction only; Conflicts= itself is reciprocal.
     assert targets["beta"].requires == [animator_service_unit("beta")]
     assert targets["beta"].before == [animator_service_unit("beta")]
     assert targets["beta"].conflicts == [animator_target_unit("alpha")]
-    assert targets["beta"].after == [animator_target_unit("alpha")]
+    assert targets["beta"].after == ["lychd-pod.service", animator_target_unit("alpha")]
 
 
 def test_covens_aggregate_compatible_animator_targets(transmuter: Transmuter) -> None:
@@ -578,7 +578,8 @@ def test_covens_aggregate_compatible_animator_targets(transmuter: Transmuter) ->
         animator_target_unit("alpha"),
         animator_target_unit("beta"),
     ]
-    assert coven_targets["logic"].after == coven_targets["logic"].wants
+    assert coven_targets["logic"].after == ["lychd-pod.service", *coven_targets["logic"].wants]
+    assert all(target.after == ["lychd-pod.service"] for target in animator_targets.values())
     assert coven_target_unit("logic") in animator_targets["alpha"].part_of
     assert coven_target_unit("logic") in animator_targets["beta"].part_of
     assert all(target.conflicts == [] for target in animator_targets.values())
@@ -609,6 +610,7 @@ def test_persistent_resident_soulstone_wanted_at_boot(transmuter: Transmuter) ->
         m for m in manifests if isinstance(m, QuadletTarget) and m.kind == "animator" and m.name == "resident"
     )
     assert target.conflicts == []
+    assert target.after == ["lychd-pod.service"]
 
 
 def test_core_containers_remain_wanted_at_boot(transmuter: Transmuter) -> None:
