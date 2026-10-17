@@ -70,6 +70,37 @@ the next owner, share its authority, or create a hidden Run spanning all three c
 application must publish its exact Pattern; live coordination across Composition-owned
 Invocations needs a named [Suite](../../../compositions/products-and-suites.md#compositions-relate-without-nesting).
 
+## Desire, judgment and inheritance
+
+!!! quote "The Maximizer and the Syncretizer"
+    **Assimilation drives possibility. Syncretism gives inheritance coherence. Time exposes
+    their consequences.** A useful return may preserve a form, transform it, let it coexist with
+    another, or end it so that something better can emerge.
+
+The [Paperclip Maximizer](../../../adr/35-assimilation.md#paperclip-maximizer) names the desire
+to become more; the [Synchronic Syncretizer](../../../adr/18-evolution.md#synchronic-syncretizer)
+names Evolution's judgment of what a successor should inherit. Their tension belongs within the
+existing offices. It does not create a universal Ouroboros coordinator or make every acquisition
+an improvement.
+
+Practice the return with one candidate and a declared comparison. Select the relevant predecessor
+history and expose its omissions; gather verification, independent findings and affected-owner
+judgments; then record which obligations are retained, reconciled, replaced or rejected and why.
+A reconciliation returns a new combined candidate to Creation. A replacement names the consumers
+and work that must transition. An unresolved contradiction returns a bounded question or a
+refusal; it does not quietly become consent. The settled result can support a later Promotion
+Request, whose effects still require their receiving owners.
+
+For example, a successor may remove an insecure legacy contract while preserving an unrelated
+private extension. The old contract's failing check is retained as a fact. Changing the declared
+contract requires the responsible owner's separate acceptance, consumer/work disposition and
+verification of the new candidate; an overall quality gain cannot erase the failure. Likewise,
+a blocked replacement is no reason to continue executing a revoked unsafe baseline.
+
+This gives the language of emergence a testable foothold: later choices may inherit useful
+correction without losing the reasons, conflicts and consequences that made it useful. The
+philosophical question of life remains open; no loop diagram or adoption record resolves it.
+
 ## Carry the distinction, not the entire conversation
 
 First decide what the next attempt needs. A missing fact, a damaged handoff, and a skill that
