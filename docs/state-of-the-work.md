@@ -1977,6 +1977,18 @@ private logical backup precedes migration; restore and rollback remain unproved.
 dated ordinary feedback custody and settlement, not a successor, automatic editing or measured
 improvement.
 
+A further unfamiliar case at `16da86f` retains `incomplete/UnexpectedModelBehavior` after one
+constructor call (1956 prompt and 423 generated tokens), with no adopted candidate or verifier.
+Offline validation of the exact returned arguments finds a 514-character summary against 512;
+compact JSON is also 1632 bytes against the unchanged 1536-byte ceiling. The SDK's internal exception
+message was not retained. Separate source-only review finds the core ordering and possible
+counterexample correct, but both criteria fail operative citation support: test line 31 checks
+non-None; the decisive maximum-ID assertion is line 32. The approximately 29-second native occurrence
+preserves this noncompletion and earlier custody through normal restart and observed protected
+replay without new inference. Independent resource/model settlement passes; owned storage and the
+private backup remain. Private operator lineage supplies no native successor authority. This is a
+failed transfer observation, not useful native completion or measured improvement.
+
 The wider SDLC law defines attributable request → candidate → verification → promotion-request →
 target-owner-effect ownership. The Creation method and Ouroboros map connect work to separately
 governed evaluation, memory, training and body change. The Development bootstrap procedure orders
@@ -2001,6 +2013,7 @@ attestation plane, canonical source on Radicle, Radicle node topology or downstr
 - **Verification:** [Ordinary native configuration observation](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/creation/native-configuration-2026-10-17.json) retains the separate noncompletion, exact public packet/result, canonical-byte failure and bounded service/replay evidence.
 - **Verification:** [Ordinary native two-role observation](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/creation/native-configuration-guidance-2026-10-17.json) retains the distinct successful occurrence, exact public role packets/results, replay/custody observations and separate partial external judgment.
 - **Verification:** [Ordinary native feedback observation](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/creation/native-feedback-2026-10-17.json) retains the exact external report, separate native/external/owner dispositions, normal restart/replay and bounded resource observations.
+- **Verification:** [Unfamiliar native noncompletion](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/creation/native-successor-2026-10-17.json) retains the exact public role packet, unadopted output, separate schema/byte failures and attributed citation review.
 - **Topic:** [Creation investigation](./compositions/creation/index.md), [Smith](./sepulcher/extensions/smith.md),
   [Creation](./sepulcher/extensions/weaver/creation.md), and [Ouroboros](./sepulcher/extensions/weaver/ouroboros.md),
   with [Development bootstrap](./sepulcher/extensions/weaver/development-bootstrap.md) and
