@@ -78,7 +78,7 @@ def test_exact_profile_two_budget_manifest_and_selector() -> None:
         "public-source-qwen@2",
     )
     assert profile["pattern"]["revision"] == "2"
-    assert profile["pattern"]["implementation_revision"] == "py.5"
+    assert profile["pattern"]["implementation_revision"] == "py.6"
     assert CONSTRUCTOR.instructions_key == "creation-constructor-v4"
     assert VERIFIER.instructions_key == "creation-verifier-v4"
     assert profile["pattern"]["checkpoint_schema"] == "creation-investigation-state-v1"

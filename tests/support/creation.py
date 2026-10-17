@@ -17,7 +17,11 @@ from lychd.compositions.creation.schemas import (
     ExternalAssessment,
     FeedbackTarget,
     InvestigationRequest,
+    OwnerDecision,
+    SuccessorRequest,
     Verdict,
+    canonical,
+    digest,
 )
 from lychd.domain.animation.capabilities import (
     CapabilityGrant,
@@ -156,4 +160,17 @@ def assessment_document(target: FeedbackTarget) -> ExternalAssessment:
         disposition="partial",
         exposure=("Original request and native candidate",),
         limitations=("No authenticated external reviewer identity",),
+    )
+
+
+def successor_document(assessment: ExternalAssessment, decision: OwnerDecision) -> SuccessorRequest:
+    return SuccessorRequest(
+        request=request_document(),
+        authorize_one_child=True,
+        target=assessment.target,
+        assessment_id=assessment.assessment_id,
+        assessment_digest=digest(canonical(assessment)),
+        decision_id=decision.decision_id,
+        decision_digest=digest(canonical(decision)),
+        changed_hypothesis="A negative input addresses the retained counterexample gap.",
     )

@@ -19,7 +19,10 @@ from lychd.compositions.creation.schemas import (
     CreationRefused,
     FeedbackEntry,
     FeedbackView,
+    LineageEntry,
+    LineageView,
     OwnerDecision,
+    SuccessorView,
     canonical,
     decode,
     digest,
@@ -30,7 +33,7 @@ from lychd.domain.codex.local_access import LocalOperatorAccess
 from lychd.domain.codex.middleware import sigil_auth_middleware
 from lychd.interface.api.creation import CreationController
 from lychd.interface.web.openapi import StrictPydanticSchemaPlugin, build_openapi_config
-from tests.support.creation import assessment_document, capability
+from tests.support.creation import assessment_document, capability, successor_document
 from tests.unit.compositions.test_creation import StageStore, stage_fixture
 from tests.web.conftest import TEST_ACCESS_PASSWORD, TEST_AUTHORIZATION
 
@@ -305,3 +308,66 @@ async def test_feedback_routes_preserve_report_and_enforce_http_gates_and_duplic
     assert "OwnerDecision" in str(
         schema["paths"]["/api/v1/creation/investigations/{case_id}/decisions"]["post"]["requestBody"]
     )
+
+
+@pytest.mark.asyncio
+async def test_successor_routes_keep_caseview_and_require_auth_origin_csrf_and_unambiguous_body() -> None:
+    app, store, access = api()
+    view = cast("CaseView", store.view)
+    target = feedback_target(canonical(view.request), canonical(view.profile), b"{}", b"{}")
+    assessment = assessment_document(target)
+    decision = OwnerDecision(
+        decision_id=uuid4(),
+        assessment_id=assessment.assessment_id,
+        assessment_digest=digest(canonical(assessment)),
+        target=target,
+        action="hold",
+        reason="Retained gap.",
+    )
+    body = successor_document(assessment, decision)
+    lineage = LineageEntry(
+        parent_case_id=view.case_id,
+        child_case_id=body.request.request_id,
+        body_digest=digest(canonical(body)),
+        body=body,
+        attribution={},
+        created_at=view.deadline,
+    )
+    result = SuccessorView(lineage=lineage, child=view)
+    service = app.state.services.creation
+    service.successor = AsyncMock(return_value=result)
+    store.lineage = AsyncMock(return_value=LineageView(case_id=view.case_id, incoming=None, outgoing=lineage))
+    route = f"/api/v1/creation/investigations/{view.case_id}"
+    before = canonical(view)
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=cast("Any", app)), base_url="http://testserver.local"
+    ) as client:
+        assert (await client.get(f"{route}/lineage")).status_code == 401
+        client.headers["authorization"] = TEST_AUTHORIZATION
+        assert (await client.get(f"{route}/lineage")).json()["outgoing"]["child_case_id"] == str(
+            body.request.request_id
+        )
+        headers = {"content-type": "application/json"}
+        assert (await client.post(f"{route}/successor", content=canonical(body), headers=headers)).status_code == 403
+        client.headers["x-creation-csrf"] = client.cookies["creation-csrf"]
+        assert (
+            await client.post(
+                f"{route}/successor", content=canonical(body), headers={**headers, "origin": "https://foreign.invalid"}
+            )
+        ).status_code == 403
+        response = await client.post(f"{route}/successor", content=canonical(body), headers=headers)
+        assert response.status_code == 200, response.text
+        assert response.json()["lineage"]["body_digest"] == lineage.body_digest
+        duplicate = canonical(body)[:-1] + b',"authorize_one_child":true}'
+        assert (await client.post(f"{route}/successor", content=duplicate, headers=headers)).status_code == 409
+        oversized = b" " * 16384 + canonical(body)
+        assert (await client.post(f"{route}/successor", content=oversized, headers=headers)).status_code == 409
+        assert service.successor.await_count == 1
+        access.revoke()
+        assert (await client.get(f"{route}/lineage")).status_code == 401
+    assert canonical(store.view) == before
+    schema = app.openapi_schema.to_schema()
+    assert "SuccessorRequest" in str(
+        schema["paths"]["/api/v1/creation/investigations/{case_id}/successor"]["post"]["requestBody"]
+    )
+    assert set(schema["components"]["schemas"]["CaseView"]["properties"]) == set(CaseView.model_fields)

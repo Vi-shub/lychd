@@ -2169,6 +2169,78 @@
         "title": "Lifecycle",
         "type": "string"
       },
+      "LineageEntry": {
+        "additionalProperties": false,
+        "properties": {
+          "attribution": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "body": {
+            "$ref": "#/components/schemas/SuccessorRequest"
+          },
+          "body_digest": {
+            "type": "string"
+          },
+          "child_case_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "parent_case_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "attribution",
+          "body",
+          "body_digest",
+          "child_case_id",
+          "created_at",
+          "parent_case_id"
+        ],
+        "title": "LineageEntry",
+        "type": "object"
+      },
+      "LineageView": {
+        "additionalProperties": false,
+        "properties": {
+          "case_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "incoming": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/LineageEntry"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "outgoing": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/LineageEntry"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "case_id",
+          "incoming",
+          "outgoing"
+        ],
+        "title": "LineageView",
+        "type": "object"
+      },
       "LoomEdgeView": {
         "properties": {
           "key": {
@@ -3763,6 +3835,67 @@
           "text"
         ],
         "title": "Source",
+        "type": "object"
+      },
+      "SuccessorRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "assessment_digest": {
+            "type": "string"
+          },
+          "assessment_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "authorize_one_child": {
+            "const": true,
+            "type": "boolean"
+          },
+          "changed_hypothesis": {
+            "type": "string"
+          },
+          "decision_digest": {
+            "type": "string"
+          },
+          "decision_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/InvestigationRequest"
+          },
+          "target": {
+            "$ref": "#/components/schemas/FeedbackTarget"
+          }
+        },
+        "required": [
+          "assessment_digest",
+          "assessment_id",
+          "authorize_one_child",
+          "changed_hypothesis",
+          "decision_digest",
+          "decision_id",
+          "request",
+          "target"
+        ],
+        "title": "SuccessorRequest",
+        "type": "object"
+      },
+      "SuccessorView": {
+        "additionalProperties": false,
+        "properties": {
+          "child": {
+            "$ref": "#/components/schemas/CaseView"
+          },
+          "lineage": {
+            "$ref": "#/components/schemas/LineageEntry"
+          }
+        },
+        "required": [
+          "child",
+          "lineage"
+        ],
+        "title": "SuccessorView",
         "type": "object"
       },
       "SwapAccepted": {
@@ -6535,6 +6668,156 @@
           }
         },
         "summary": "Feedback"
+      }
+    },
+    "/api/v1/creation/investigations/{case_id}/lineage": {
+      "get": {
+        "deprecated": false,
+        "operationId": "readCreationLineage",
+        "parameters": [
+          {
+            "deprecated": false,
+            "in": "path",
+            "name": "case_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LineageView"
+                }
+              }
+            },
+            "description": "Request fulfilled, document follows",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "detail": "Bad Request",
+                      "extra": {},
+                      "status_code": 400
+                    }
+                  ],
+                  "properties": {
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    },
+                    "status_code": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Bad request syntax or unsupported method"
+          }
+        },
+        "summary": "Lineage"
+      }
+    },
+    "/api/v1/creation/investigations/{case_id}/successor": {
+      "post": {
+        "deprecated": false,
+        "operationId": "admitCreationSuccessor",
+        "parameters": [
+          {
+            "deprecated": false,
+            "in": "path",
+            "name": "case_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuccessorRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessorView"
+                }
+              }
+            },
+            "description": "Request fulfilled, document follows",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "detail": "Bad Request",
+                      "extra": {},
+                      "status_code": 400
+                    }
+                  ],
+                  "properties": {
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    },
+                    "status_code": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Bad request syntax or unsupported method"
+          }
+        },
+        "summary": "Successor"
       }
     },
     "/api/v1/loom": {

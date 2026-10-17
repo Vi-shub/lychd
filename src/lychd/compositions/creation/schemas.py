@@ -280,6 +280,53 @@ class OwnerDecision(Record):
         return self
 
 
+class SuccessorRequest(Record):
+    """An explicit new evaluation bound to one exact settled feedback snapshot."""
+
+    request: InvestigationRequest
+    authorize_one_child: Literal[True]
+    target: FeedbackTarget
+    assessment_id: UUID
+    assessment_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+    decision_id: UUID
+    decision_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+    changed_hypothesis: str
+
+    @field_validator("authorize_one_child", mode="before")
+    @classmethod
+    def explicit_authorization(cls, value: Any) -> Any:
+        if value is not True:
+            refuse("successor_authorization")
+        return value
+
+    @model_validator(mode="after")
+    def byte_bounds(self) -> SuccessorRequest:
+        bounded(self.changed_hypothesis, 512)
+        if len(canonical(self.request)) > REQUEST_BYTES or len(canonical(self)) > REQUEST_BYTES:
+            refuse("successor_body_bytes")
+        return self
+
+
+class LineageEntry(Record):
+    parent_case_id: UUID
+    child_case_id: UUID
+    body_digest: str
+    body: SuccessorRequest
+    attribution: dict[str, Any]
+    created_at: str
+
+
+class LineageView(Record):
+    case_id: UUID
+    incoming: LineageEntry | None
+    outgoing: LineageEntry | None
+
+
+class SuccessorView(Record):
+    lineage: LineageEntry
+    child: CaseView
+
+
 class FeedbackEntry(Record):
     id: UUID
     sequence: int

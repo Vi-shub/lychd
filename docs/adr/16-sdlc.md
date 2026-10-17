@@ -182,6 +182,17 @@ authorize another startup. A fresh, eligible continuation is a separately admitt
 same immutable case, never generic orphan replay. Complete packet bounds, uncertain-inference
 custody and release conditions belong to its versioned profile.
 
+A Composition may expose explicit successor admission from exact settled feedback. Its contract
+must bind the parent target, current assessment and owner decision to fresh child inputs,
+acceptance, authorization and a finite allowance before publishing execution. Admission consumes
+that allowance durably; publication failure does not silently refund it or authorize another
+identity. Replay preserves original attribution and repairs only the same held delivery under
+current authority. The Composition owns whether later feedback makes lineage historical; it must
+not rewrite the parent or turn a hold into permission. The
+[bounded Creation contract](../compositions/creation/index.md#explicit-successor-admission)
+allows one independently authorized child and no descendant chain. This supplies no recurring
+work selection, parent-budget renewal or measured improvement claim.
+
 For code-producing work, an immutable **Creation Request** names the principal and intent; exact base revision, admitted
 source-tree digest, and allowed paths; tools, effect classes, credentials, network policy, and budgets; required verification and
 retention; and the promotion owner and authorization class. It then receives a candidate identity

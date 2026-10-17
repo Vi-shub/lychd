@@ -65,6 +65,24 @@ class CreationAttempt(UUIDAuditBase):
     error: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
 
+class CreationSuccessor(UUIDAuditBase):
+    """One permanent child allowance debit and its immutable authorization custody."""
+
+    __tablename__ = "creation_successor"
+    __table_args__ = (
+        CheckConstraint("parent_case_id <> child_case_id", name="distinct_cases"),
+        CheckConstraint("octet_length(body_bytes) <= 16384", name="body_bound"),
+        CheckConstraint("octet_length(attribution_bytes) <= 16384", name="attribution_bound"),
+    )
+    parent_case_id: Mapped[UUID] = mapped_column(ForeignKey("creation_case.id", ondelete="RESTRICT"), unique=True)
+    child_case_id: Mapped[UUID] = mapped_column(ForeignKey("creation_case.id", ondelete="RESTRICT"), unique=True)
+    assessment_id: Mapped[UUID] = mapped_column(ForeignKey("creation_feedback.id", ondelete="RESTRICT"))
+    decision_id: Mapped[UUID] = mapped_column(ForeignKey("creation_feedback.id", ondelete="RESTRICT"))
+    body_bytes: Mapped[bytes] = mapped_column(LargeBinary)
+    body_digest: Mapped[str] = mapped_column(String(64))
+    attribution_bytes: Mapped[bytes] = mapped_column(LargeBinary)
+
+
 class CreationFeedback(UUIDAuditBase):
     """Append-only external assessment and owner disposition custody for Creation."""
 

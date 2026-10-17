@@ -30,6 +30,7 @@ from lychd.compositions.creation.schemas import (
     CreationRefused,
     InvestigationRequest,
     OwnerDecision,
+    SuccessorRequest,
     canonical,
     decode,
     digest,
@@ -40,7 +41,13 @@ from lychd.compositions.creation.workflow import investigation_workflow
 from lychd.db.checkpoints import PostgresStasisStore
 from lychd.db.creation import DbCreationStore
 from lychd.db.models import CodexPreauthorization, Consent, Run, RunCheckpoint, RunDelivery, Session, Step
-from lychd.db.models.creation import CreationAdmission, CreationAttempt, CreationCase, CreationFeedback
+from lychd.db.models.creation import (
+    CreationAdmission,
+    CreationAttempt,
+    CreationCase,
+    CreationFeedback,
+    CreationSuccessor,
+)
 from lychd.db.sessions import DbBridgeSessionStore
 from lychd.domain.codex.ledger import CodexConsentLedger
 from lychd.domain.codex.local_access import LocalOperatorAccess
@@ -63,6 +70,7 @@ from tests.support.creation import (
     candidate_document,
     capability,
     request_document,
+    successor_document,
     verdict_document,
 )
 
@@ -94,6 +102,7 @@ async def factory(pg_url: str) -> AsyncIterator[async_sessionmaker[AsyncSession]
             CreationAdmission.__table__,
             CreationAttempt.__table__,
             CreationFeedback.__table__,
+            CreationSuccessor.__table__,
         ],
     )
     async with engine.begin() as connection:
@@ -537,3 +546,385 @@ async def test_feedback_rechecks_revoked_authority_after_case_lock(
         await boot.service.assess(
             case_id, assessment, authentication=boot.authentication, principal=default_local_sigil()
         )
+
+
+async def successor_case(factory: async_sessionmaker[AsyncSession]) -> tuple[Boot, UUID, SuccessorRequest]:
+    boot, case_id, assessment = await completed_feedback_case(factory)
+    kwargs: dict[str, Any] = {"authentication": boot.authentication, "principal": default_local_sigil()}
+    retained = await boot.service.assess(case_id, assessment, **kwargs)
+    decision = OwnerDecision(
+        decision_id=uuid4(),
+        assessment_id=retained.id,
+        assessment_digest=retained.body_digest,
+        target=assessment.target,
+        action="hold",
+        reason="Investigate the retained gap.",
+    )
+    await boot.service.decide(case_id, decision, **kwargs)
+    return boot, case_id, successor_document(assessment, decision)
+
+
+async def test_successor_atomic_one_child_two_attempts_historical_parent_and_restart_replay(
+    factory: async_sessionmaker[AsyncSession],
+) -> None:
+    from datetime import UTC, datetime, timedelta
+
+    from sqlalchemy import func
+
+    boot, parent_id, request = await successor_case(factory)
+    async with factory() as session:
+        parent = await session.get(CreationCase, parent_id)
+        assert parent is not None
+        parent.deadline = datetime.now(UTC) - timedelta(days=1)
+        await session.commit()
+        sessions_before = await session.scalar(select(func.count()).select_from(Session))
+        assert sessions_before is not None
+    original = canonical(await boot.store.read(parent_id))
+    kwargs: dict[str, Any] = {
+        "authentication": boot.authentication,
+        "principal": default_local_sigil(),
+        "engine": boot.engine,
+        "sessions": boot.sessions,
+    }
+    first, replay = await asyncio.gather(
+        boot.service.successor(parent_id, request, **kwargs), boot.service.successor(parent_id, request, **kwargs)
+    )
+    assert first.lineage == replay.lineage
+    assert first.child.case_id == request.request.request_id
+    assert first.child.deadline != decode(original)["deadline"]
+    assert len(first.child.admissions) == 1
+    async with factory() as session:
+        assert await session.scalar(select(func.count()).select_from(CreationSuccessor)) == 1
+        assert await session.scalar(select(func.count()).select_from(Session)) == sessions_before + 1
+    offset = len(boot.messages)
+
+    async def child_response(messages: Any, _info: Any) -> ModelResponse:
+        boot.messages.append(ModelMessagesTypeAdapter.dump_json(messages))
+        output = candidate_document() if len(boot.messages) == offset + 1 else verdict_document()
+        return ModelResponse(
+            parts=[ToolCallPart("final_result", output.model_dump(mode="json"))],
+            usage=RequestUsage(input_tokens=100, output_tokens=80),
+        )
+
+    boot.dispatcher.model = FunctionModel(child_response)
+    assert (await boot.drive(first.child.admissions[0]["run_id"]))["status"] == "done"
+    child = await boot.store.read(first.child.case_id)
+    assert len(child.attempts) == 2
+    assert len(boot.messages) == offset + 2
+    assert canonical(await boot.store.read(parent_id)) == original
+    assessment = assessment_document(request.target)
+    await boot.service.assess(
+        parent_id, assessment, authentication=boot.authentication, principal=default_local_sigil()
+    )
+    restored = Boot(factory, boot.messages)
+    current_registry = restored.service.registry
+    restored.service.registry = None
+    assert restored.authentication is not None
+    result = await restored.service.successor(
+        parent_id,
+        request,
+        authentication=restored.authentication,
+        principal=default_local_sigil(),
+        engine=None,
+        sessions=None,
+    )
+    assert result.lineage == first.lineage
+    assert result.child == child
+    assert result.lineage.attribution["authentication_generation"] != str(
+        restored.authentication.authentication_generation
+    )
+    parent_lineage = await restored.service.lineage(
+        parent_id, authentication=restored.authentication, principal=default_local_sigil()
+    )
+    child_lineage = await restored.service.lineage(
+        child.case_id, authentication=restored.authentication, principal=default_local_sigil()
+    )
+    assert parent_lineage.outgoing == child_lineage.incoming == first.lineage
+    with pytest.raises(CreationRefused, match="conflicting_successor"):
+        await restored.service.successor(
+            parent_id,
+            request.model_copy(update={"request": request_document()}),
+            authentication=restored.authentication,
+            principal=default_local_sigil(),
+            engine=None,
+            sessions=None,
+        )
+    restored.service.registry = current_registry
+    with pytest.raises(CreationRefused, match="successor_descendant"):
+        await restored.service.successor(
+            child.case_id,
+            request.model_copy(update={"request": request_document()}),
+            authentication=restored.authentication,
+            principal=default_local_sigil(),
+            engine=None,
+            sessions=None,
+        )
+
+
+async def unsettle_successor_parent(boot: Boot, case_id: UUID, failure: str) -> None:
+    async with boot.factory() as session:
+        parent = await session.get(CreationCase, case_id)
+        assert parent is not None
+        admission = await session.get(CreationAdmission, parent.current_admission_id)
+        assert admission is not None
+        if failure == "running":
+            run = await session.get(Run, admission.run_id)
+            assert run is not None
+            run.status = "running"
+        elif failure == "delivery":
+            delivery = await session.scalar(select(RunDelivery).where(RunDelivery.run_id == admission.run_id))
+            assert delivery is not None
+            delivery.state = "claimed"
+        elif failure == "unresolved":
+            attempt = await session.scalar(
+                select(CreationAttempt).where(CreationAttempt.case_id == case_id, CreationAttempt.role == "verifier")
+            )
+            assert attempt is not None
+            attempt.adopted, attempt.response_bytes = False, None
+        else:
+            profile = decode(parent.profile_bytes)
+            profile["revision"] = "1"
+            parent.profile_bytes = canonical(profile)
+            parent.profile_digest = digest(parent.profile_bytes)
+        await session.commit()
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [
+        "target",
+        "assessment",
+        "decision",
+        "new_assessment",
+        "new_decision",
+        "unresolved",
+        "running",
+        "delivery",
+        "lease",
+        "revision",
+        "occupied",
+        "existing_child",
+    ],
+)
+async def test_successor_refuses_stale_unsettled_or_conflicting_admission_without_child(
+    factory: async_sessionmaker[AsyncSession],
+    failure: str,
+) -> None:
+    boot, case_id, request = await successor_case(factory)
+    kwargs: dict[str, Any] = {"authentication": boot.authentication, "principal": default_local_sigil()}
+    if failure in {"target", "assessment", "decision"}:
+        if failure == "target":
+            request = request.model_copy(
+                update={"target": request.target.model_copy(update={"criteria_digest": "0" * 64})}
+            )
+        else:
+            request = request.model_copy(update={f"{failure}_digest": "0" * 64})
+    elif failure == "new_assessment":
+        await boot.service.assess(case_id, assessment_document(request.target), **kwargs)
+    elif failure == "new_decision":
+        await boot.service.decide(
+            case_id,
+            OwnerDecision(
+                decision_id=uuid4(),
+                assessment_id=request.assessment_id,
+                assessment_digest=request.assessment_digest,
+                target=request.target,
+                action="reject",
+                reason="Later decision.",
+            ),
+            **kwargs,
+        )
+    elif failure in {"occupied", "existing_child"}:
+        other = request.request if failure == "existing_child" else request_document()
+        await boot.submit(other)
+    elif failure == "lease":
+        view = await boot.store.read(case_id)
+        boot.service.leases = SimpleNamespace(
+            active=lambda: [SimpleNamespace(holder=f"run:{view.admissions[0]['run_id']}")]
+        )
+    else:
+        await unsettle_successor_parent(boot, case_id, failure)
+    original = canonical(await boot.store.read(case_id))
+    messages = list(boot.messages)
+    with pytest.raises(CreationRefused):
+        await boot.service.successor(case_id, request, **kwargs, engine=boot.engine, sessions=boot.sessions)
+    async with factory() as session:
+        assert list(await session.scalars(select(CreationSuccessor))) == []
+        if failure != "existing_child":
+            assert await session.get(CreationCase, request.request.request_id) is None
+    assert boot.messages == messages
+    assert canonical(await boot.store.read(case_id)) == original
+
+
+async def test_successor_bound_run_held_replay_repairs_same_delivery_and_keeps_permanent_debit(
+    factory: async_sessionmaker[AsyncSession],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    boot, parent_id, request = await successor_case(factory)
+    original_bind = boot.store.bind_run
+
+    async def lost_after_binding(admission_id: UUID, run_id: str) -> None:
+        await original_bind(admission_id, run_id)
+        raise SimulatedProcessLoss
+
+    monkeypatch.setattr(boot.store, "bind_run", lost_after_binding)
+    kwargs: dict[str, Any] = {
+        "authentication": boot.authentication,
+        "principal": default_local_sigil(),
+        "engine": boot.engine,
+        "sessions": boot.sessions,
+    }
+    with pytest.raises(SimulatedProcessLoss):
+        await boot.service.successor(parent_id, request, **kwargs)
+    child = await boot.store.read(request.request.request_id)
+    run_id = child.admissions[0]["run_id"]
+    assert run_id is not None
+    run = await boot.ledger.get(run_id)
+    assert run is not None
+    delivery = await boot.ledger.get_delivery(run_id, enqueue_seq=run.enqueue_seq)
+    assert delivery is not None
+    assert delivery.state.value == "held"
+    monkeypatch.setattr(boot.store, "bind_run", original_bind)
+    result = await boot.service.successor(parent_id, request, **kwargs)
+    assert result.child.admissions[0]["run_id"] == run_id
+    assert len(boot.messages) == 2
+    delivery = await boot.ledger.get_delivery(run_id, enqueue_seq=run.enqueue_seq)
+    assert delivery is not None
+    assert delivery.state.value == "published"
+    with pytest.raises(CreationRefused, match="conflicting_successor"):
+        await boot.service.successor(parent_id, request.model_copy(update={"request": request_document()}), **kwargs)
+
+
+async def test_successor_revocation_inside_locked_retention_prevents_publication_without_refund(
+    factory: async_sessionmaker[AsyncSession],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    boot, parent_id, request = await successor_case(factory)
+    original_case = boot.store._case  # pyright: ignore[reportPrivateUsage] - exercise locked retention authority
+    child_locks = 0
+
+    async def revoke_child_lock(session: Any, case_id: UUID) -> Any:
+        nonlocal child_locks
+        row = await original_case(session, case_id)
+        if case_id == request.request.request_id:
+            child_locks += 1
+            if child_locks == 2:
+                boot.access.revoke()
+        return row
+
+    monkeypatch.setattr(boot.store, "_case", revoke_child_lock)
+    with pytest.raises(CreationRefused):
+        await boot.service.successor(
+            parent_id,
+            request,
+            authentication=boot.authentication,
+            principal=default_local_sigil(),
+            engine=boot.engine,
+            sessions=boot.sessions,
+        )
+    async with factory() as session:
+        assert await session.get(CreationSuccessor, request.request.request_id) is not None
+        attempts = list(
+            await session.scalars(select(CreationAttempt).where(CreationAttempt.case_id == request.request.request_id))
+        )
+        assert attempts == []
+    assert len(boot.messages) == 2
+
+
+async def test_successor_admission_uses_one_pool_connection_and_one_session_for_concurrent_replay(
+    pg_url: str, factory: async_sessionmaker[AsyncSession]
+) -> None:
+    from sqlalchemy import func
+
+    engine = create_async_engine(pg_url, pool_size=1, max_overflow=0, pool_timeout=1)
+    limited_factory = async_sessionmaker(engine, expire_on_commit=False)
+    try:
+        boot, parent_id, request = await successor_case(limited_factory)
+        async with factory() as foreign, foreign.begin():
+            with pytest.raises(ValueError, match="active transaction"):
+                await boot.sessions.create_session_in_transaction(foreign, title="Foreign bind must refuse")
+        async with limited_factory() as session:
+            before = await session.scalar(select(func.count()).select_from(Session))
+            assert before is not None
+        kwargs: dict[str, Any] = {
+            "authentication": boot.authentication,
+            "principal": default_local_sigil(),
+            "engine": boot.engine,
+            "sessions": boot.sessions,
+        }
+        first, replay = await asyncio.gather(
+            boot.service.successor(parent_id, request, **kwargs), boot.service.successor(parent_id, request, **kwargs)
+        )
+        assert first.lineage == replay.lineage
+        assert first.child.admissions == replay.child.admissions
+        async with limited_factory() as session:
+            assert await session.scalar(select(func.count()).select_from(Session)) == before + 1
+            child_session = await session.get(Session, UUID(first.child.admissions[0]["session_id"]))
+            assert child_session is not None
+            assert child_session.channel == "bridge"
+            assert child_session.sigil_name == "magus"
+            assert child_session.meta == {"turns": []}
+    finally:
+        await engine.dispose()
+
+
+async def test_successor_held_restart_returns_original_custody_without_repair_or_new_authority(
+    factory: async_sessionmaker[AsyncSession],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from sqlalchemy import func
+
+    boot, parent_id, request = await successor_case(factory)
+    original_bind = boot.store.bind_run
+
+    async def lose_after_binding(admission_id: UUID, run_id: str) -> None:
+        await original_bind(admission_id, run_id)
+        raise SimulatedProcessLoss
+
+    monkeypatch.setattr(boot.store, "bind_run", lose_after_binding)
+    with pytest.raises(SimulatedProcessLoss):
+        await boot.service.successor(
+            parent_id,
+            request,
+            authentication=boot.authentication,
+            principal=default_local_sigil(),
+            engine=boot.engine,
+            sessions=boot.sessions,
+        )
+    child_before = await boot.store.read(request.request.request_id, expire=False)
+    async with factory() as session:
+        runs_before = list((await session.execute(select(Run.__table__))).mappings())
+        deliveries_before = list((await session.execute(select(RunDelivery.__table__))).mappings())
+        sessions_before = await session.scalar(select(func.count()).select_from(Session))
+    restored = Boot(factory, boot.messages)
+    restored.service.registry = None
+    result = await restored.service.successor(
+        parent_id,
+        request,
+        authentication=restored.authentication,
+        principal=default_local_sigil(),
+        engine=None,
+        sessions=None,
+    )
+    assert result.child == child_before
+    assert (
+        result.lineage.attribution["authentication_generation"]
+        == child_before.admissions[0]["authentication_generation"]
+    )
+    assert restored.authentication is not None
+    assert result.lineage.attribution["authentication_generation"] != str(
+        restored.authentication.authentication_generation
+    )
+    async with factory() as session:
+        assert list((await session.execute(select(Run.__table__))).mappings()) == runs_before
+        assert list((await session.execute(select(RunDelivery.__table__))).mappings()) == deliveries_before
+        assert await session.scalar(select(func.count()).select_from(Session)) == sessions_before
+        assert (
+            list(
+                await session.scalars(
+                    select(CreationAttempt).where(CreationAttempt.case_id == request.request.request_id)
+                )
+            )
+            == []
+        )
+    assert len(boot.messages) == 2

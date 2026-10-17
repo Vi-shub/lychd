@@ -100,6 +100,22 @@ class DbBridgeSessionStore:
             await session.refresh(row)
             return self._record(row)
 
+    async def create_session_in_transaction(self, session: AsyncSession, *, title: str | None = None) -> SessionRecord:
+        """Retain a Creation session in its existing admission transaction and connection."""
+        expected_bind = self._session_factory.kw.get("bind")
+        if expected_bind is None or session.bind is not expected_bind or not session.in_transaction():
+            msg = "Creation session requires an active transaction on the session store's own bind."
+            raise ValueError(msg)
+        row = Session(
+            channel="bridge",
+            title=title or "New Communion",
+            sigil_name=self._sigil_name,
+            meta={"turns": []},
+        )
+        session.add(row)
+        await session.flush()
+        return self._record(row)
+
     async def get_session(self, session_id: str) -> SessionRecord | None:
         """Return one session for a valid UUID, or ``None`` when absent."""
         try:

@@ -550,6 +550,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/creation/investigations/{case_id}/lineage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lineage */
+        get: operations["readCreationLineage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/creation/investigations/{case_id}/successor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Successor */
+        post: operations["admitCreationSuccessor"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/loom": {
         parameters: {
             query?: never;
@@ -1298,6 +1332,26 @@ export interface components {
          * @enum {string}
          */
         Lifecycle: "candidate" | "promoted" | "archived" | "revoked";
+        /** LineageEntry */
+        LineageEntry: {
+            attribution: {
+                [key: string]: unknown;
+            };
+            body: components["schemas"]["SuccessorRequest"];
+            body_digest: string;
+            /** Format: uuid */
+            child_case_id: string;
+            created_at: string;
+            /** Format: uuid */
+            parent_case_id: string;
+        };
+        /** LineageView */
+        LineageView: {
+            /** Format: uuid */
+            case_id: string;
+            incoming: components["schemas"]["LineageEntry"] | null;
+            outgoing: components["schemas"]["LineageEntry"] | null;
+        };
         /** LoomEdgeView */
         LoomEdgeView: {
             key: string;
@@ -1701,6 +1755,25 @@ export interface components {
         Source: {
             name: string;
             text: string;
+        };
+        /** SuccessorRequest */
+        SuccessorRequest: {
+            assessment_digest: string;
+            /** Format: uuid */
+            assessment_id: string;
+            /** @constant */
+            authorize_one_child: true;
+            changed_hypothesis: string;
+            decision_digest: string;
+            /** Format: uuid */
+            decision_id: string;
+            request: components["schemas"]["InvestigationRequest"];
+            target: components["schemas"]["FeedbackTarget"];
+        };
+        /** SuccessorView */
+        SuccessorView: {
+            child: components["schemas"]["CaseView"];
+            lineage: components["schemas"]["LineageEntry"];
         };
         /** SwapAccepted */
         SwapAccepted: {
@@ -3158,6 +3231,84 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FeedbackView"];
+                };
+            };
+            /** @description Bad request syntax or unsupported method */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                        extra?: null | {
+                            [key: string]: unknown;
+                        } | unknown[];
+                        status_code: number;
+                    };
+                };
+            };
+        };
+    };
+    readCreationLineage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Request fulfilled, document follows */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LineageView"];
+                };
+            };
+            /** @description Bad request syntax or unsupported method */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                        extra?: null | {
+                            [key: string]: unknown;
+                        } | unknown[];
+                        status_code: number;
+                    };
+                };
+            };
+        };
+    };
+    admitCreationSuccessor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SuccessorRequest"];
+            };
+        };
+        responses: {
+            /** @description Request fulfilled, document follows */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessorView"];
                 };
             };
             /** @description Bad request syntax or unsupported method */

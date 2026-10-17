@@ -30,7 +30,10 @@ from lychd.compositions.creation.schemas import (
     FeedbackEntry,
     FeedbackView,
     InvestigationRequest,
+    LineageView,
     OwnerDecision,
+    SuccessorRequest,
+    SuccessorView,
     Verdict,
     canonical,
     decode,
@@ -176,6 +179,8 @@ class LocalCreationPolicy:
             "assess": "runs:submit",
             "decide": "runs:submit",
             "feedback": "altar:read",
+            "successor": "runs:submit",
+            "lineage": "altar:read",
         }
         if (
             action not in required
@@ -186,14 +191,19 @@ class LocalCreationPolicy:
             refuse("local_authority")
         return authentication
 
-    def worker(self, admission: dict[str, Any], case_id: UUID) -> None:
+    def execution_binding_current(self, admission: dict[str, Any], case_id: UUID) -> bool:
+        """Distinguish retired execution authority from an invalid retained envelope."""
         if (
             admission["case_id"] != str(case_id)
             or admission["role"] != "local-operator"
             or admission["subject"] != "local-operator"
             or not scopes_satisfied(frozenset(admission["scopes"]), ("runs:submit",))
-            or not self.access.current_binding(admission["subject"], UUID(admission["authentication_generation"]))
         ):
+            refuse("current_binding")
+        return self.access.current_binding(admission["subject"], UUID(admission["authentication_generation"]))
+
+    def worker(self, admission: dict[str, Any], case_id: UUID) -> None:
+        if not self.execution_binding_current(admission, case_id):
             refuse("current_binding")
 
 
@@ -345,8 +355,69 @@ class InvestigationService:
 
         async def retain(run_id: str) -> None:
             await self.store.bind_run(admission_id, run_id)
+            self.policy.worker(admission, UUID(admission["case_id"]))
 
         await engine.submit(intent, idempotency_key=f"creation:{admission_id}", retain_before_publish=retain)
+
+    async def successor(
+        self,
+        case_id: UUID,
+        request: SuccessorRequest,
+        *,
+        authentication: object,
+        principal: Sigil,
+        engine: Any,
+        sessions: Any,
+    ) -> SuccessorView:
+        """Admit once, or recover only that admission's exact held Run delivery."""
+        actor = self.policy.http(authentication, principal, "successor")
+        entry = await self.store.successor_replay(case_id, request, authentication=authentication, principal=principal)
+        self.policy.http(authentication, principal, "successor")
+        if entry is None:
+            check_packets(request.request)
+
+            profile = self.profile()
+            state = await self.registry.refresh_capability_state(self.capability_key)
+            self.policy.http(authentication, principal, "successor")
+            if state is None or state.phase is not CapabilityPhase.WARM:
+                refuse("capability_not_warm")
+
+            async def prepare(transaction: Any) -> tuple[dict[str, Any], dict[str, Any]]:
+                # Session custody shares the admission connection; replay never creates it.
+                session = await sessions.create_session_in_transaction(
+                    transaction, title="Creation successor investigation"
+                )
+                self.policy.http(authentication, principal, "successor")
+                if self.profile() != profile:
+                    refuse("profile_changed")
+                return profile, self.binding(
+                    case_id=request.request.request_id,
+                    admission_id=request.request.request_id,
+                    session_id=session.id,
+                    authentication=actor,
+                    principal=principal,
+                )
+
+            entry = await self.store.reserve_successor(
+                case_id,
+                request,
+                prepare,
+                authentication=authentication,
+                principal=principal,
+                leases_clear=self._feedback_leases_clear,
+            )
+            self.policy.http(authentication, principal, "successor")
+        if await self.store.successor_publication_required(entry.child_case_id):
+            self.policy.http(authentication, principal, "successor")
+            await self._submit_run(entry.child_case_id, engine)
+        self.policy.http(authentication, principal, "successor")
+        child = await self.store.read(entry.child_case_id, expire=False)
+        self.policy.http(authentication, principal, "successor")
+        return SuccessorView(lineage=entry, child=child)
+
+    async def lineage(self, case_id: UUID, *, authentication: object, principal: Sigil) -> LineageView:
+        self.policy.http(authentication, principal, "lineage")
+        return await self.store.lineage(case_id, authentication=authentication, principal=principal)
 
     async def continue_case(
         self,

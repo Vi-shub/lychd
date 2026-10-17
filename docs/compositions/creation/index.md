@@ -19,7 +19,7 @@ still guides design, editing and delivery under [SDLC law](../../adr/16-sdlc.md)
 
 The return is a retained report and an accepted, rejected, partial or incomplete review, or exact
 noncompletion. A complete response and a DONE Run do not establish semantic correctness. This
-profile requests no source edit, executable workspace, external acquisition, promotion or successor.
+profile requests no source edit, executable workspace, external acquisition, promotion or automatic successor.
 [State of Work](../../state-of-the-work.md#smith-forge-promotion) records implementation separately.
 
 ## Admit one question
@@ -190,6 +190,56 @@ claims no global block on unrelated submissions or effects. Intake has no infere
 continuation, profile renewal or execution-state mutation path. A next evaluation, source edit,
 Atlas projection, training and promotion require their own contracts and admission. This first
 attachment establishes neither a complete feedback handoff nor measured recursive improvement.
+
+## Explicit successor admission
+
+A separate current local operator may authorize **one new investigation** from exact settled
+feedback. This is a new evaluation with its own immutable sources, question, criteria, acceptance,
+current profile and reservation. It is not continuation of an expired case or retry of an inference
+attempt. The parent keeps its deadline, candidate, verdict, feedback and disposition unchanged.
+[State of Work](../../state-of-the-work.md#smith-forge-promotion) records implementation evidence;
+this contract alone does not deliver a native handoff.
+
+`POST /api/v1/creation/investigations/{case_id}/successor` requires current local authority,
+`runs:submit`, Origin and CSRF. Its typed body retains a fresh complete `InvestigationRequest`,
+`authorize_one_child: true`, the exact parent `FeedbackTarget`, latest assessment and current
+owner-decision UUIDs and canonical-body digests, and a non-empty `changed_hypothesis` of at most
+512 UTF-8 bytes. The operator supplies the new acceptance; report text and a hold or rejection
+cannot authorize it. Raw and canonical intake each fit 16384 bytes; the nested request and both
+role packets also satisfy all ordinary investigation bounds. No truncation or inferred fields
+make an intake admissible.
+
+The parent must satisfy the existing settled-feedback conditions, including resolved inference
+claims, terminal bound Runs, settled delivery and absent active local leases. Its retained revision
+2 contract may differ from the current execution profile, and its original deadline may have
+passed: neither is renewed. Match the exact retained target and latest assessment/decision while
+holding its case lock. An existing child cannot be retroactively attached. A case admitted as a
+child cannot itself become a parent through this operation. Ordinary unrelated submissions remain
+separately governed; this is not a global execution prohibition.
+
+Atomically retain the fresh child case, admission, exact lineage body/digest and authenticated
+attribution before publishing its Run. That commit consumes the parent's one-child allowance
+permanently, including if later publication fails. There is no refund, second child, replacement
+UUID, automatic retry or descendant chain. The child reserves the existing one application slot,
+180-second lifetime and one constructor/verifier attempt, under the current exact profile and
+WARM capability check. This independently authorized reservation is not renewal or reuse of the
+parent's budget, exclusive GPU capacity or a hard aggregate quota. Recheck actual authority after
+awaited preparation and lock acquisition, at commit, and before releasing held Run publication.
+
+Identical canonical-body replay under fresh current submit authority returns the original
+lineage and child identities before freshness, capacity or model-readiness checks. Preserve the
+original admission attribution. Repair may only reconcile that exact held delivery through the
+existing Run idempotency path, under its original still-current execution binding; replay never
+creates another admission, session, role attempt or reservation. Changed body, parent or child
+identity refuses. A newer assessment before admission commit refuses the stale request; a newer
+assessment after commit makes that lineage historical without rewriting or silently revoking the
+already-admitted child. Revocation and normal Run/adoption fences still apply.
+
+`GET /api/v1/creation/investigations/{case_id}/lineage` requires current local authority and
+`altar:read`. It projects the retained incoming and outgoing lineage separately from the unchanged
+CaseView and feedback views. Additive durable custody survives restart and refuses downgrade while
+lineage exists. A successful child report is an observation, not evidence of semantic improvement,
+independent task choice, source-editing authority, foreign-runtime containment or promotion.
 
 ## Revision continuity
 

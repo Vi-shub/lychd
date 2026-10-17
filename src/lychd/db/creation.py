@@ -20,7 +20,10 @@ from lychd.compositions.creation.schemas import (
     FeedbackTarget,
     FeedbackView,
     InvestigationRequest,
+    LineageEntry,
+    LineageView,
     OwnerDecision,
+    SuccessorRequest,
     canonical,
     decode,
     digest,
@@ -28,7 +31,13 @@ from lychd.compositions.creation.schemas import (
     refuse,
     validate_annotations,
 )
-from lychd.db.models.creation import CreationAdmission, CreationAttempt, CreationCase, CreationFeedback
+from lychd.db.models.creation import (
+    CreationAdmission,
+    CreationAttempt,
+    CreationCase,
+    CreationFeedback,
+    CreationSuccessor,
+)
 from lychd.db.models.run import Run
 from lychd.db.models.run_delivery import RunDelivery
 from lychd.domain.codex.sigil import Sigil
@@ -148,6 +157,206 @@ class DbCreationStore:
             await session.commit()
         return request.admission_id
 
+    @staticmethod
+    def _lineage_entry(row: CreationSuccessor) -> LineageEntry:
+        if digest(row.body_bytes) != row.body_digest:
+            refuse("successor_custody")
+        body = SuccessorRequest.model_validate(decode(row.body_bytes))
+        if (body.request.request_id, body.assessment_id, body.decision_id) != (
+            row.child_case_id,
+            row.assessment_id,
+            row.decision_id,
+        ):
+            refuse("successor_custody")
+        return LineageEntry(
+            parent_case_id=row.parent_case_id,
+            child_case_id=row.child_case_id,
+            body_digest=row.body_digest,
+            body=body,
+            attribution=decode(row.attribution_bytes),
+            created_at=row.created_at.isoformat(),
+        )
+
+    async def _successor_replay(self, session: Any, case_id: UUID, request: SuccessorRequest) -> LineageEntry | None:
+        rows = list(
+            await session.scalars(
+                select(CreationSuccessor).where(
+                    (CreationSuccessor.parent_case_id == case_id)
+                    | (CreationSuccessor.child_case_id == request.request.request_id)
+                )
+            )
+        )
+        if not rows:
+            return None
+        if len(rows) != 1 or (
+            rows[0].parent_case_id != case_id
+            or rows[0].child_case_id != request.request.request_id
+            or rows[0].body_bytes != canonical(request)
+        ):
+            refuse("conflicting_successor")
+        return self._lineage_entry(rows[0])
+
+    async def successor_replay(
+        self, case_id: UUID, request: SuccessorRequest, *, authentication: object, principal: Sigil
+    ) -> LineageEntry | None:
+        """Resolve immutable identity before current feedback, capacity or readiness."""
+        async with self.factory() as session:
+            await self._case(session, case_id)
+            self.policy.http(authentication, principal, "successor")
+            entry = await self._successor_replay(session, case_id, request)
+            self.policy.http(authentication, principal, "successor")
+            return entry
+
+    async def reserve_successor(
+        self,
+        case_id: UUID,
+        request: SuccessorRequest,
+        prepare: Any,
+        *,
+        authentication: object,
+        principal: Sigil,
+        leases_clear: Any,
+    ) -> LineageEntry:
+        """Commit one child and permanent allowance debit without renewing its parent."""
+        async with self.factory() as session:
+            # Match ordinary reserve: global slot serialization precedes every case lock.
+            await session.execute(text("SELECT pg_advisory_xact_lock(727161, 1)"))
+            row = await self._case(session, case_id)
+            self.policy.http(authentication, principal, "successor")
+            replay = await self._successor_replay(session, case_id, request)
+            self.policy.http(authentication, principal, "successor")
+            if replay is not None:
+                return replay
+            incoming = await session.scalar(
+                select(CreationSuccessor.id).where(CreationSuccessor.child_case_id == case_id)
+            )
+            if incoming is not None:
+                refuse("successor_descendant")
+            if case_id == request.request.request_id or await session.get(CreationCase, request.request.request_id):
+                refuse("successor_child_exists")
+            await self._feedback_settled(session, row, leases_clear)
+            self.policy.http(authentication, principal, "successor")
+            if request.target != self._feedback_target(row):
+                refuse("successor_target")
+            records = list(
+                await session.scalars(
+                    select(CreationFeedback)
+                    .where(CreationFeedback.case_id == case_id)
+                    .order_by(CreationFeedback.sequence)
+                )
+            )
+            latest = next((r for r in reversed(records) if r.kind == "assessment"), None)
+            decision = next((r for r in reversed(records) if latest is not None and r.assessment_id == latest.id), None)
+            if (
+                latest is None
+                or decision is None
+                or (latest.id, latest.body_digest, decision.id, decision.body_digest)
+                != (request.assessment_id, request.assessment_digest, request.decision_id, request.decision_digest)
+            ):
+                refuse("successor_latest_feedback")
+            parent_request = InvestigationRequest.model_validate(decode(row.request_bytes))
+            self._feedback_entry(latest, parent_request)
+            self._feedback_entry(decision, parent_request)
+            occupied = await session.scalar(select(CreationCase).where(CreationCase.slot == 1).with_for_update())
+            if occupied is not None:
+                await self._expire(session, occupied)
+                if occupied.slot is not None:
+                    refuse("reservation_unavailable")
+            profile, binding = await prepare(session)
+            self.policy.http(authentication, principal, "successor")
+            now = await session.scalar(select(func.clock_timestamp()))
+            child_id = request.request.request_id
+            request_bytes, profile_bytes, body_bytes = (
+                canonical(request.request),
+                canonical(profile),
+                canonical(request),
+            )
+            session.add(
+                CreationCase(
+                    id=child_id,
+                    request_bytes=request_bytes,
+                    request_digest=digest(request_bytes),
+                    profile_bytes=profile_bytes,
+                    profile_digest=digest(profile_bytes),
+                    deadline=now + timedelta(seconds=180),
+                    slot=1,
+                    current_admission_id=child_id,
+                    status="reserved",
+                    cancelled=False,
+                )
+            )
+            await session.flush()
+            session.add(CreationAdmission(id=child_id, case_id=child_id, binding_bytes=canonical(binding)))
+            actor = self.policy.http(authentication, principal, "successor")
+            self.policy.worker(binding, child_id)
+            lineage = CreationSuccessor(
+                id=child_id,
+                parent_case_id=case_id,
+                child_case_id=child_id,
+                assessment_id=request.assessment_id,
+                decision_id=request.decision_id,
+                body_bytes=body_bytes,
+                body_digest=digest(body_bytes),
+                attribution_bytes=canonical(
+                    {
+                        "subject": actor.subject,
+                        "authentication_generation": str(actor.authentication_generation),
+                        "principal": principal.name,
+                        "scopes": sorted(principal.scopes),
+                        "role": "local-operator",
+                    }
+                ),
+            )
+            session.add(lineage)
+            await session.flush()
+            self.policy.http(authentication, principal, "successor")
+            self.policy.worker(binding, child_id)
+            result = self._lineage_entry(lineage)
+            await session.commit()
+            return result
+
+    async def successor_publication_required(self, admission_id: UUID) -> bool:
+        """Only a still-live original admission may repair its exact held delivery."""
+        async with self.factory() as session:
+            admission = await session.get(CreationAdmission, admission_id)
+            if admission is None:
+                refuse("unknown_admission")
+            row = await self._case(session, admission.case_id)
+            now = await session.scalar(select(func.clock_timestamp()))
+            if row.current_admission_id != admission_id or row.cancelled or row.slot != 1 or now >= row.deadline:
+                return False
+            if not self.policy.execution_binding_current(decode(admission.binding_bytes), row.id):
+                return False
+            if admission.run_id is None:
+                return True
+            run = await session.scalar(select(Run).where(Run.id == admission.run_id).with_for_update())
+            if run is None or run.status != "queued":
+                return False
+            delivery = await session.scalar(
+                select(RunDelivery)
+                .where(RunDelivery.run_id == run.id, RunDelivery.enqueue_seq == run.enqueue_seq)
+                .with_for_update()
+            )
+            return delivery is not None and delivery.state == "held"
+
+    async def lineage(self, case_id: UUID, *, authentication: object, principal: Sigil) -> LineageView:
+        async with self.factory() as session:
+            await self._case(session, case_id)
+            self.policy.http(authentication, principal, "lineage")
+            rows = list(
+                await session.scalars(
+                    select(CreationSuccessor).where(
+                        (CreationSuccessor.parent_case_id == case_id) | (CreationSuccessor.child_case_id == case_id)
+                    )
+                )
+            )
+            self.policy.http(authentication, principal, "lineage")
+            return LineageView(
+                case_id=case_id,
+                incoming=next((self._lineage_entry(r) for r in rows if r.child_case_id == case_id), None),
+                outgoing=next((self._lineage_entry(r) for r in rows if r.parent_case_id == case_id), None),
+            )
+
     async def admission(self, admission_id: UUID) -> dict[str, Any]:
         async with self.factory() as session:
             row = await session.get(CreationAdmission, admission_id)
@@ -163,6 +372,28 @@ class DbCreationStore:
             row = await self._case(session, admission.case_id)
             if row.current_admission_id != admission_id or admission.run_id not in {None, UUID(run_id)}:
                 refuse("run_binding")
+            lineage = await session.get(CreationSuccessor, admission.case_id)
+            if lineage is not None:
+                binding = decode(admission.binding_bytes)
+                self.policy.worker(binding, row.id)
+                run = await session.scalar(select(Run).where(Run.id == UUID(run_id)).with_for_update())
+                now = await session.scalar(select(func.clock_timestamp()))
+                if (
+                    row.cancelled
+                    or row.slot != 1
+                    or now >= row.deadline
+                    or run is None
+                    or run.status != "queued"
+                    or run.pattern_manifest != binding["pattern"]
+                    or run.workflow_name != "creation.investigate"
+                    or run.source != "creation"
+                    or run.sigil_name != binding["principal"]
+                    or sorted(run.intent.get("sigil_scopes", [])) != binding["scopes"]
+                    or run.intent.get("prompt") != str(admission.id)
+                    or run.intent.get("session_id") != binding["session_id"]
+                ):
+                    refuse("run_binding")
+                self.policy.worker(binding, row.id)
             admission.run_id = UUID(run_id)
             await session.commit()
 
@@ -336,10 +567,11 @@ class DbCreationStore:
             await session.commit()
         return runs
 
-    async def read(self, case_id: UUID) -> CaseView:
+    async def read(self, case_id: UUID, *, expire: bool = True) -> CaseView:
         async with self.factory() as session:
             row = await self._case(session, case_id)
-            await self._expire(session, row)
+            if expire:
+                await self._expire(session, row)
             admissions = list(
                 await session.scalars(
                     select(CreationAdmission)

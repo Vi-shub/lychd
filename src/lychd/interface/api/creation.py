@@ -20,7 +20,10 @@ from lychd.compositions.creation.schemas import (
     FeedbackEntry,
     FeedbackView,
     InvestigationRequest,
+    LineageView,
     OwnerDecision,
+    SuccessorRequest,
+    SuccessorView,
     decode,
     refuse,
 )
@@ -118,6 +121,39 @@ class CreationController(Controller):
                 sessions=state.services.bridge_sessions,
             )
         except (CreationRefused, ValidationError) as exc:
+            raise _refusal(exc) from None
+
+    @post(
+        "/{case_id:uuid}/successor",
+        status_code=200,
+        operation_id="admitCreationSuccessor",
+        guards=[requires_scopes("runs:submit")],
+    )
+    async def successor(
+        self, case_id: FromPath[UUID], data: SuccessorRequest, request: Request[Any, Any, Any], state: State
+    ) -> SuccessorView:
+        service = _service(state)
+        try:
+            service.policy.http(request.auth, request.user, "successor")
+            document = SuccessorRequest.model_validate(await _document(request))
+            if document != data:
+                refuse("body_mismatch")
+            return await service.successor(
+                case_id,
+                document,
+                authentication=request.auth,
+                principal=request.user,
+                engine=state.services.run_engine,
+                sessions=state.services.bridge_sessions,
+            )
+        except (CreationRefused, ValidationError, UnicodeError) as exc:
+            raise _refusal(exc) from None
+
+    @get("/{case_id:uuid}/lineage", operation_id="readCreationLineage", guards=[requires_scopes("altar:read")])
+    async def lineage(self, case_id: FromPath[UUID], request: Request[Any, Any, Any], state: State) -> LineageView:
+        try:
+            return await _service(state).lineage(case_id, authentication=request.auth, principal=request.user)
+        except CreationRefused as exc:
             raise _refusal(exc) from None
 
     @post(

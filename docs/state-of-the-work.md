@@ -1958,10 +1958,10 @@ Canonical identical replay returns original attribution; conflicting identity re
 serializes append sequence and current decision, and a new assessment makes prior decisions
 historical. Feedback neither expires nor mutates original execution and requires settled bound
 Runs/deliveries, resolved inference and no matching local lease. Historical revision 2 assessment
-needs no current model readiness. There is no successor proposal or execution path.
+needs no current model readiness. Feedback intake itself publishes no successor Run; explicit successor admission is separate below.
 
 Focused tests cover current credentials, scopes, Origin/CSRF, duplicate JSON, literal report and
-canonical target bounds. Fourteen real PostgreSQL cases cover custody, restart attribution,
+canonical target bounds. The earlier feedback checkpoint qualified fourteen real PostgreSQL cases covering custody, restart attribution,
 concurrent sequence/decisions, capacity/replay, post-lock revocation and settlement refusals. The
 complete affected migration module passes 89 cases, including additive `0017`, original custody
 and retained-feedback downgrade refusal. Generated API/client checks and 341 frontend tests pass;
@@ -2016,6 +2016,26 @@ backup; no bootstrap, migration, new backup or source change occurs. A preceding
 failure used an unconfigured version-table name; the corrected read-only query follows the owning
 LychD constant. The precise database error was not retained. No successor authority follows.
 
+A separate protected local action now admits one new investigation from the exact latest
+assessment and owner decision. Fresh operator authorization supplies a complete new request,
+acceptance and bounded changed hypothesis. The child receives the current exact profile and its
+own finite reservation. The implementation closure advances to `py.6` with unchanged role
+instructions, packets and limits. One transaction retains its Session, child, admission and immutable lineage
+before Run publication, permanently consuming the parent's one-child allowance. Parent custody,
+feedback and deadline remain unchanged; a child cannot admit another descendant through this action.
+Separate lineage projection preserves the historical CaseView shape. Identical replay returns
+original attribution without model readiness or renewal; only the original still-current binding
+may repair its exact held delivery. A fresh startup may read retained held custody without repair.
+
+Current qualification passes 79 inert unit/API cases, 31 real PostgreSQL worker cases and the
+complete 90-case migration module. Controls cover concurrent one-child admission, a one-connection
+pool with exactly one Session, foreign-bind refusal, feedback freshness, revoked authority,
+unresolved claims, settled delivery, bound-but-held recovery, historical restart and permanent debit.
+Additive migration `0018` covers empty cycles and refuses downgrade while lineage remains.
+Generated OpenAPI/TypeScript, 341 frontend tests and repository static checks pass; the final test-only
+fixture repair passes focused static checks. These use trusted inert model/queue profiles; an ordinary
+native service/model successor occurrence and measured improvement remain unproved.
+
 The wider SDLC law defines attributable request → candidate → verification → promotion-request →
 target-owner-effect ownership. The Creation method and Ouroboros map connect work to separately
 governed evaluation, memory, training and body change. The Development bootstrap procedure orders
@@ -2025,9 +2045,9 @@ or autonomous development service.
 **Boundary — Not yet:** This investigation performs no source editing, executable workspace,
 filesystem/command execution, safe Forge, autonomous repair, target-owner promotion, rollback or
 self-extension. Its local credential role supplies no remote IAM or person-level tenancy; an
-unknown issued inference has no automatic slot-release path. External feedback supplies no native
-successor lineage/admission, automatic correction or measured recursive improvement. There is
-likewise no instantiated
+unknown issued inference has no automatic slot-release path. Explicit successor admission remains
+operator-triggered; automatic task selection, correction and measured recursive improvement remain
+unbuilt. There is likewise no instantiated
 distributed repository identity or maintainer roster, executable key-custody/rotation mechanism,
 governance-epoch ledger, quorum verifier, signed portable promotion envelope, independent
 attestation plane, canonical source on Radicle, Radicle node topology or downstream-mirror cutover.
@@ -2035,7 +2055,7 @@ attestation plane, canonical source on Radicle, Radicle node topology or downstr
 **Evidence**
 
 - **Source:** [Investigation service](https://github.com/hexanomicon/lychd/blob/main/src/lychd/compositions/creation/services.py), [Pattern](https://github.com/hexanomicon/lychd/blob/main/src/lychd/compositions/creation/workflow.py), [PostgreSQL owner](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/creation.py), and [protected API](https://github.com/hexanomicon/lychd/blob/main/src/lychd/interface/api/creation.py)
-- **Verification:** [Agent boundaries](https://github.com/hexanomicon/lychd/blob/main/tests/unit/compositions/test_creation.py), [local API](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_creation.py), [PostgreSQL worker histories](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_creation_postgres_vertical.py), and [migration cycle/refusal](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_db_migrations_pg.py)
+- **Verification:** [Agent boundaries](https://github.com/hexanomicon/lychd/blob/main/tests/unit/compositions/test_creation.py), [successor intake/replay](https://github.com/hexanomicon/lychd/blob/main/tests/unit/compositions/test_creation_successor.py), [local API](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_creation.py), [PostgreSQL worker histories](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_creation_postgres_vertical.py), and [migration cycle/refusal](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_db_migrations_pg.py)
 - **Verification:** [Dated native investigation outcomes](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/creation/investigation-2026-10-17.json) retains the three distinct occurrences, exact public inputs/outputs, resource evidence and separate verdicts.
 - **Verification:** [Ordinary native configuration observation](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/creation/native-configuration-2026-10-17.json) retains the separate noncompletion, exact public packet/result, canonical-byte failure and bounded service/replay evidence.
 - **Verification:** [Ordinary native two-role observation](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/creation/native-configuration-guidance-2026-10-17.json) retains the distinct successful occurrence, exact public role packets/results, replay/custody observations and separate partial external judgment.
