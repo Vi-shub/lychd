@@ -2001,10 +2001,20 @@ assert that the last parked random UUID is greatest; their own qualification den
 UUID/insertion order. The verifier accepts that same defect. The correct counterexample is
 conditional on the second ID being greater. Normal restart and observed protected POST replay
 preserve the new case, three historical cases and parent hold without new inference. Independent
-resource/model settlement passes; the external report is retained here, not yet appended through
-native feedback. This is one known-case correction observation, not causal improvement, unfamiliar
-transfer or native successor authority. An earlier zero-inference transport failure and its narrow
-observer-only repair remain separately recorded; its precise cause is unproved.
+resource/model settlement passes. This is one known-case correction observation, not causal
+improvement, unfamiliar transfer or native successor authority. An earlier zero-inference transport
+failure and its narrow observer-only repair remain separately recorded; its precise cause is unproved.
+
+A subsequent ordinary-native feedback occurrence at `5844a22` appends the exact 2977-byte public
+report and separate local owner hold in approximately 8.7 seconds, with zero inference. Both typed
+criterion coverages remain `not_assessed`; report PASS/PARTIAL text is not submitter annotation.
+Native accepted, external partial and owner hold remain separate. Normal distinct-process restart,
+fresh protected client, observed POST200 replays and 409 conflicts preserve all four CaseViews,
+old parent hold, exact new feedback and original authenticated attribution. The API does not expose
+current authority generation. Independent resource/model settlement preserves original storage and
+backup; no bootstrap, migration, new backup or source change occurs. A preceding zero-write setup
+failure used an unconfigured version-table name; the corrected read-only query follows the owning
+LychD constant. The precise database error was not retained. No successor authority follows.
 
 The wider SDLC law defines attributable request → candidate → verification → promotion-request →
 target-owner-effect ownership. The Creation method and Ouroboros map connect work to separately
@@ -2032,6 +2042,7 @@ attestation plane, canonical source on Radicle, Radicle node topology or downstr
 - **Verification:** [Ordinary native feedback observation](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/creation/native-feedback-2026-10-17.json) retains the exact external report, separate native/external/owner dispositions, normal restart/replay and bounded resource observations.
 - **Verification:** [Unfamiliar native noncompletion](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/creation/native-successor-2026-10-17.json) retains the exact public role packet, unadopted output, separate schema/byte failures and attributed citation review.
 - **Verification:** [Known-case source projection](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/creation/native-source-projection-2026-10-17.json) retains both exact projected packets/results, native accepted, separate partial external judgments and normal restart/closure observations.
+- **Verification:** [Native attachment of the later review](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/creation/native-source-projection-feedback-2026-10-17.json) retains the subsequent exact-report attachment, separate partial/hold, typed coverage, replay/restart and zero-inference settlement.
 - **Topic:** [Creation investigation](./compositions/creation/index.md), [Smith](./sepulcher/extensions/smith.md),
   [Creation](./sepulcher/extensions/weaver/creation.md), and [Ouroboros](./sepulcher/extensions/weaver/ouroboros.md),
   with [Development bootstrap](./sepulcher/extensions/weaver/development-bootstrap.md) and
