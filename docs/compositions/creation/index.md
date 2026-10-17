@@ -132,6 +132,24 @@ Responses project the case, original request, admissions, attempts, candidate, v
 noncompletion. Generated OpenAPI owns the transport schema. Authentication, Origin and CSRF remain
 server gates. The browser and callers do not create durable truth by display.
 
+## Ordinary Altar intake and report
+
+Bridge may offer this existing protected contract through an investigation focus at `/bridge`,
+with only a case UUID in navigation. It submits the immutable public-source request and links
+the returned exact admission Run to Orb; it does not convert an ordinary chat message or Atlas
+next step into an investigation. The fixed profile, source/packet bounds and all server gates
+remain unchanged. The [Bridge guide](../../divination/altar/bridge.md#investigate-public-source)
+owns the ordinary interaction.
+
+Browser sources and the submitted body remain transient. Ambiguous submission retains its UUID
+and exact body without automatic retry; an explicit Check cannot turn an in-flight 404 into
+proof of non-admission. Identical replay needs the original body, which reload does not recover.
+The protected detail read may perform existing expiration and includes retained operational
+records. Its report disclosure renders validated request/candidate/verdict text, requires current
+read authority after awaited storage and fences changed selection. It supplies no continuation,
+feedback, successor, source-edit or promotion authority. Run completion and native/external/owner
+judgments remain separate; later updates need explicit Refresh.
+
 ## Selected-Run summary
 
 The existing Orb selected-Run snapshot and retained-evidence feed may include an authorized

@@ -1950,6 +1950,26 @@ Migration `0016` covers empty-cycle and retained-custody downgrade refusal. Thos
 reconstruct adapters in one process with a captured queue and inert model; they do not prove an
 OS-kill or live broker. Generated OpenAPI/TypeScript and the frontend checks pass.
 
+Altar now offers a typed public-source Investigation focus within existing Bridge. Explicit
+`?investigation=new` opens intake; a case UUID opens an operator-triggered protected Check. The
+browser retains the exact request identity/body after any failed POST, including authorization
+refusal, without inferring that admission did not occur. A 404 Check does not settle an in-flight
+submission. Identical replay requires an explicit action and the original transient body; reload
+or leaving this focus cannot reconstruct it. Valid mounted case selection retains transient work;
+duplicate or invalid selection retains the departure warning. Explicit discard has separate
+Keep/Discard controls and preserves keyboard focus during a pending Check. Ordinary Bridge
+session/draft state stays separate.
+
+The report renders validated retained sources, candidate and native verdict as text, with exact
+admission Run links to Orb. External assessment and owner disposition are explicitly not loaded
+here; Orb retains their separate summary. Late reads cannot replace a changed selection, and a
+current-authority refusal clears displayed protected material. Detail GET, fresh POST and replay
+POST recheck their existing action authority after awaited case reads; this adds no read-scope
+requirement to submit. Deterministic regressions reproduce all three revoked-during-await cases.
+Integrated frontend checks pass 414 tests with zero Svelte errors/warnings, and the focused
+Creation/API suite passes 90 tests. This UI adds no source editing, feedback editor, automatic
+continuation or new execution authority.
+
 A dated operator observation at `3e518e81` also records an actual Qwen3.8 constructor/verifier pair:
 two calls retain separate outputs, two ordinary application lifespans preserve custody, changed-base
 replay refuses, and exact replay under fresh current credentials performs no inference. Native
@@ -2085,9 +2105,12 @@ process/unit/group/container/port closure, retained storage and unchanged instal
 The child is natively accepted, but a fresh reviewer commits source-only expectations before seeing
 its outputs and grades both roles ordering PASS / discrimination FAIL. Both answer the actual
 implementation's success instead of the requested last-parked alternative; verifier acceptance is
-unsupported. This external report is not yet natively attached to the child and no child owner decision
-is observed. Parent native acceptance, external partial assessment and owner hold remain unchanged.
-No semantic improvement, autonomous work selection or executable candidate verification is proved.
+unsupported. At that observation, this external report was not yet natively attached to the child
+and no child owner decision was observed. Parent native acceptance, external partial assessment and
+owner hold remained unchanged. No semantic improvement, autonomous work selection or executable
+candidate verification was proved.
+
+The earlier successor observation retains its historical unattached-review boundary. A later [native child feedback attachment](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/creation/native-child-feedback-2026-10-17.json) at source `1777cbfb` attaches that exact 3,346-byte public report to child `701dcbed-1ddb-4b96-80bf-3cad32f13588`. Native `accepted`, Root-mapped external `partial` and owner `hold` remain separate; empty submitter annotations leave both criteria `not_assessed` in typed coverage. Exact protected replay and changed-body409 refusal preserve original feedback attribution across a normal restart. All six retained cases, prior feedback and lineage remain unchanged, with no new investigation, Run or inference. This records report custody and disposition, without semantic regrading, promotion or further child authority.
 
 The wider SDLC law defines attributable request → candidate → verification → promotion-request →
 target-owner-effect ownership. The Creation method and Ouroboros map connect work to separately
@@ -2116,6 +2139,7 @@ attestation plane, canonical source on Radicle, Radicle node topology or downstr
 - **Verification:** [Unfamiliar native noncompletion](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/creation/native-successor-2026-10-17.json) retains the exact public role packet, unadopted output, separate schema/byte failures and attributed citation review.
 - **Verification:** [Known-case source projection](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/creation/native-source-projection-2026-10-17.json) retains both exact projected packets/results, native accepted, separate partial external judgments and normal restart/closure observations.
 - **Verification:** [Native attachment of the later review](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/creation/native-source-projection-feedback-2026-10-17.json) retains the subsequent exact-report attachment, separate partial/hold, typed coverage, replay/restart and zero-inference settlement.
+- **Verification:** [Current-authority read regressions](https://github.com/hexanomicon/lychd/blob/main/tests/unit/compositions/test_creation_read_authority.py), [intake lifecycle](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/creation/intake.test.ts), [Investigation UI](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/CreationInvestigation.test.ts), and [generated transport](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/api/creation.test.ts)
 - **Topic:** [Creation investigation](./compositions/creation/index.md), [Smith](./sepulcher/extensions/smith.md),
   [Creation](./sepulcher/extensions/weaver/creation.md), and [Ouroboros](./sepulcher/extensions/weaver/ouroboros.md),
   with [Development bootstrap](./sepulcher/extensions/weaver/development-bootstrap.md) and

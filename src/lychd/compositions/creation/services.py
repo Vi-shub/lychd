@@ -326,7 +326,9 @@ class InvestigationService:
             admission = view.admissions[-1]
             if admission["run_id"] is None:
                 await self._submit_run(UUID(admission["admission_id"]), engine)
-            return await self.store.read(request.request_id)
+            view = await self.store.read(request.request_id)
+            self.policy.http(authentication, principal, "submit")
+            return view
         state = await self.registry.refresh_capability_state(self.capability_key)
         if state is None or state.phase is not CapabilityPhase.WARM:
             refuse("capability_not_warm")
@@ -341,7 +343,9 @@ class InvestigationService:
         )
         admission_id = await self.store.reserve(request, self.profile(), binding)
         await self._submit_run(admission_id, engine)
-        return await self.store.read(request.request_id)
+        view = await self.store.read(request.request_id)
+        self.policy.http(authentication, principal, "submit")
+        return view
 
     async def _submit_run(self, admission_id: UUID, engine: Any) -> None:
         admission = await self.store.admission(admission_id)
@@ -462,8 +466,11 @@ class InvestigationService:
         return await self.store.read(case_id)
 
     async def read(self, case_id: UUID, *, authentication: object, principal: Sigil) -> CaseView:
+        """Disclose retained case content only while the read authority remains current."""
         self.policy.http(authentication, principal, "read")
-        return await self.store.read(case_id)
+        view = await self.store.read(case_id)
+        self.policy.http(authentication, principal, "read")
+        return view
 
     async def summary_for_run(self, run_id: str, *, authentication: object, principal: Sigil) -> RunSummary | None:
         """Disclose bounded metadata only under fresh current-role read authority."""

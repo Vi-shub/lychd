@@ -68,7 +68,7 @@ owns delivery.
 | Instrument | Browser contract | Current limit |
 | --- | --- | --- |
 | Atlas | Versioned Projects, concerns, attributed judgments, decisions, next steps, and explicit activity references | Initial planning surface; no autonomous continuation or automatic coverage. |
-| Bridge | Session selection, single-active-Run text admission, reconstruction, semantic stream, consent, and closed fragments | Partial: text only; live reconstruction and tokens are process-local. |
+| Bridge | Session selection, single-active-Run text admission, reconstruction, semantic stream, consent, closed fragments, and bounded Creation investigation intake/report focus | Partial: text only; live reconstruction and tokens are process-local. |
 | Orb | Paged Run catalogue, parallel graph field, and bounded selected-Run evidence feeds with gaps, capture labels, and links | Partial: no complete trace store, nested subworkflow identity, or annotation. |
 | Nexus | Timestamped capability observations, non-binding plan preview, typed request, and ticket stream | Partial: observations and tickets are process-local and not restart-complete. |
 | Loom | Immutable Scroll/Pattern-revision graph and station/permission outline | Partial: fixed registry reader without independent Spell identities, editing, teaching, or publication. |
@@ -92,6 +92,32 @@ Run's turn. A stale or unavailable selection is reported, never silently replace
 contract. One Bridge séance may contain many Invocation/Run projections; a future Circle focus may
 compose authorized Loom, Nexus, and Orb lenses around exactly one of them without importing their
 authority into browser state. The current run strip is only its delivered seed.
+
+### Creation investigation within Bridge
+
+The existing `/bridge` route may focus the protected public-source Creation investigation through
+an explicit `investigation` query: `new` opens intake; a case UUID selects retained state. This is
+Bridge admission and a Composition-owned reply, not a sixth instrument or ordinary chat turn.
+Creation creates its own admission and Session. Orb keeps the exact returned Run's retained
+evidence; Atlas next steps remain recorded text, never queued admission. The global Bridge link
+continues to return to the last explicit ordinary session without this focus. Investigation
+navigation must preserve ordinary session drafts, unresolved offerings and consent state.
+
+Only the case UUID belongs in navigation. Source text and the immutable submitted body remain
+transient browser-document state, without hidden durable storage. Once POST may have left,
+freeze its UUID/body; an ambiguous result never causes automatic retry or a new UUID. Explicit
+Check reads that case, and a 404 while admission may still be in flight does not resolve the
+ambiguity. Identical replay is an explicit action available only while the original body remains;
+reload cannot reconstruct it from a UUID. Editing authorizes a deliberately different request.
+
+The browser uses generated Creation transport and existing authentication/Origin/CSRF gates.
+The local role owns its cases; navigation grants no authority. Case reads use current authority
+through awaited storage, guard late responses against changed selection, and clear protected
+material on refusal. The detail read may perform existing expiration and transport retained
+operational records; it is not the non-mutating Orb metadata feed. Render only validated retained
+request, candidate, citations and separate verdict as text. Run completion, native case status,
+external assessment and owner disposition remain distinct. Later changes require explicit
+Refresh; viewing grants no continuation, cancellation, feedback or successor action.
 
 ### User-specific working interfaces
 

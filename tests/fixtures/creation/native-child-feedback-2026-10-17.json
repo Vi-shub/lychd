@@ -1,0 +1,63 @@
+{
+  "schema": "lychd.creation.native-child-feedback.v1",
+  "observed_on": "2026-10-17",
+  "source_revision": "1777cbfb32e1a6fe9718d95e3dfa3ba6e59fdf71",
+  "case_id": "701dcbed-1ddb-4b96-80bf-3cad32f13588",
+  "original_observation": "native-successor-admission-2026-10-17.json",
+  "target": {
+    "request_digest": "67aceb36bfae9a4c21710107244d9494b3bdaea7c5b209ab0745ecc35080995e",
+    "profile_digest": "ab86e4aa400639c8a51494c1c29ed96ec021214d992493f7ba004563c723b934",
+    "candidate_digest": "aed22dcde5cd2bd36ac75c47b7756723b2e8dd4d039c68127817c87615b42b9b",
+    "verdict_digest": "b8779b3363f814ab77080e5ac22b6859894b8ded80f1feb5bfa93fce378abd2b",
+    "sources_digest": "856a26a1c5e5b431650191c6c7d2c4068cf225690f727862c00e7d29f476cf11",
+    "criteria_digest": "44121355e9f507a1309183d9bb94e216caadb8f16eb0f9317718df8da832ca0a"
+  },
+  "native_status": "accepted",
+  "feedback_status": "hold",
+  "external_assessment": {
+    "id": "eb1eddcc-b357-4266-bc02-6257960422e3",
+    "body_digest": "17756a481dbb75c8cc3247341e2b1dd43c6fc30410aa688b3520c7fa891ce6af",
+    "disposition": "partial",
+    "disposition_mapping": "Root submitter mapping of mixed criterion results; the reviewer report supplies no overall typed disposition.",
+    "report_ref": "native-successor-admission-2026-10-17.json#/external_review/exact_report",
+    "report_bytes": 3346,
+    "report_sha256": "45a9569ae04366574ff919c8a3b9121424ca774fa971a2cd1b934a67a065e1d2",
+    "submitter_annotations": [],
+    "criterion_coverage": {
+      "ordering": "not_assessed",
+      "discrimination": "not_assessed"
+    }
+  },
+  "owner_decision": {
+    "id": "e8c53b6b-24e8-4032-b9a3-6592f1ed75ba",
+    "body_digest": "ebf0c95ffa37b15e8a47f4312e28292fdb729268c5ac665ae9dce04b0ff4d866",
+    "assessment_id": "eb1eddcc-b357-4266-bc02-6257960422e3",
+    "assessment_digest": "17756a481dbb75c8cc3247341e2b1dd43c6fc30410aa688b3520c7fa891ce6af",
+    "action": "hold",
+    "reason": "Retain native acceptance separately from the exact external report. Both roles receive ordering PASS and discrimination FAIL; verifier acceptance is unsupported. Hold this child result. This operator decision grants no promotion, continuation, further child or other execution authority.",
+    "distinguishing_observation": "For the requested last-parked alternative, assignment A fails the assertion and B passes; reporting actual implementation success does not answer that distinction. Existing report is attached without regrading or prompt repair."
+  },
+  "api_observations": {
+    "assessment_POST_statuses": [
+      200,
+      200,
+      409,
+      200
+    ],
+    "decision_POST_statuses": [
+      200,
+      200,
+      409,
+      200
+    ],
+    "identical_replay_before_and_after_restart": true,
+    "same_identity_changed_body_refused_409": true,
+    "original_feedback_attribution_preserved": true,
+    "distinct_normal_restart_and_fresh_protected_client": true,
+    "caseviews_unchanged": 6,
+    "prior_feedback_and_lineage_unchanged": true,
+    "new_investigation_or_Run": false,
+    "inference_requested": false
+  },
+  "boundary": "Attachment retains the existing public report and separate native acceptance, Root-mapped external partial assessment and owner hold. It performs no semantic regrading and grants no promotion, continuation or further child authority."
+}

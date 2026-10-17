@@ -57,6 +57,24 @@ function unwrap<T>(result: { data?: T; error?: unknown; response: Response }): T
   return result.data;
 }
 
+export async function submitCreationInvestigation(
+  request: components["schemas"]["InvestigationRequest"]
+): Promise<components["schemas"]["CaseView"]> {
+  return unwrap(await client.POST("/api/v1/creation/investigations", {
+    body: request,
+    headers: await csrfHeaders()
+  }));
+}
+
+export async function readCreationInvestigation(
+  caseId: string, signal?: AbortSignal
+): Promise<components["schemas"]["CaseView"]> {
+  return unwrap(await client.GET("/api/v1/creation/investigations/{case_id}", {
+    signal,
+    params: { path: { case_id: caseId } }
+  }));
+}
+
 export async function getAltarStatus(): Promise<AltarStatus> {
   const status = unwrap(await client.GET("/api/v1/altar/status")) as AltarStatus;
   csrfContract = status.csrf;

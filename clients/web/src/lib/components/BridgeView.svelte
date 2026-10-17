@@ -810,6 +810,7 @@
   {/if}
 
   <div class="bridge-thread">
+    <nav class="atlas-links" aria-label="Bridge work"><a href="/bridge?investigation=new">Investigate public source</a></nav>
     {#if !firstVisit}
       <header class="bridge-heading">
         <div>

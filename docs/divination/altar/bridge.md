@@ -9,6 +9,39 @@ Bridge is where you offer work to the Lich and return to its reply. A session, o
 
 After completing [Altar setup](index.md), open `http://127.0.0.1:7134/bridge` in the dedicated browser profile on the same host. Keep the listener on literal `127.0.0.1`; do not proxy, tunnel, or forward it.
 
+## Investigate public source
+
+Choose **Investigate public source** for a bounded software question rather than an ordinary
+chat offering. Supply the declared repository, base revision and tree/patch digest, your question,
+literal named public sources and explicit criteria. Omissions and non-goals explain the boundary;
+no repository or file is acquired for you. Confirm that every supplied item is public. The form
+shows UTF-8 byte limits; it never truncates or silently normalizes your material. The fixed
+[Creation investigation](../../compositions/creation/index.md) is tools-free and does not edit
+source, execute a workspace or promote a change.
+
+Submit once. If the response is lost, **Admission unconfirmed** keeps the original case UUID and
+body. **Check this case** reads that exact identity; a404 while submission may still be in flight
+does not prove refusal. **Replay identical request** is an explicit action using the original
+body, available only while this document retains it. No timeout, reconnect or navigation retries
+POST automatically. **Start different request** opens a consequence review. **Keep current
+request** preserves the draft and replay body; only **Discard draft and replay body** clears
+them, while earlier uncertain UUIDs remain visible. Selection of one valid case within this focus
+keeps that transient state without a loss prompt or an automatic read. Missing, invalid or duplicate
+selection leaves the focus and retains its loss warning.
+
+The URL retains only the case UUID. Sources and submitted bodies have no durable browser draft;
+reload warns before discarding transient material and cannot recover an identical replay body.
+After reload, explicitly Check the case using its UUID. Opening an investigation does not select
+a different ordinary séance or discard its drafts and consent. **Return to conversation** leaves
+this focus, and the global Bridge link keeps its ordinary session behavior.
+
+Read the retained question, source and candidate findings with citations, then the separate
+verifier verdict. A complete Run does not establish a correct report. Follow the exact admitted
+Run into Orb for execution evidence and separate native/external/owner metadata. The detail read
+may expire an overdue case; it is different from Orb's metadata-only read. Use **Refresh retained
+case** for later changes. An unavailable case, missing report, refused read and unconfirmed
+admission are separate states. No continuation, cancellation or feedback is performed by viewing.
+
 ## Offer one Intent {#follow-a-turn-to-settlement}
 
 Choose **New Séance** to create a local session, or select an existing session to continue it.
