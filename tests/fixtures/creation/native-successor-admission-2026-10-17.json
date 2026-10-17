@@ -1,0 +1,268 @@
+{
+  "schema": "lychd.creation.native-successor-admission.v1",
+  "observed_at": "2026-10-17T17:43:47.713371+00:00",
+  "source_revision": "a80d91d12e2cab5eeefe42b8eaa1e0a6171e8ebe",
+  "source_tree": "b3e11d89c0bd11ed50557d85483fc65be8b614b4",
+  "parent": {
+    "public_request_id": "3778887f-1721-4aa9-b8a5-3df8de400643",
+    "prior_feedback_observation": "native-source-projection-feedback-2026-10-17.json",
+    "native_status": "accepted",
+    "external_assessment": "partial",
+    "owner_decision": "hold",
+    "exact_latest_assessment_and_decision_bound": true,
+    "original_case_feedback_deadline_unchanged": true
+  },
+  "child": {
+    "public_request_id": "701dcbed-1ddb-4b96-80bf-3cad32f13588",
+    "request": {
+      "request_id": "701dcbed-1ddb-4b96-80bf-3cad32f13588",
+      "public_material": true,
+      "repository": "https://github.com/hexanomicon/lychd",
+      "base_revision": "18235a867b65269112077682ea07e6bfcdb87bf6",
+      "tree_or_patch_digest": "d3ce7b606a631e76835057100d425ae168d87cda",
+      "question": "At equal timestamps consider A: first consent UUID 00000000-0000-0000-0000-000000000002, second 00000000-0000-0000-0000-000000000001; B swaps those IDs. For each, would last-parked selection pass the shown assertion? Explain actual ordering and whether the unmodified random-UUID test deterministically detects that implementation. Cite decisive statements; distinguish these given assignments from assumptions about a random run.",
+      "non_goals": [
+        "No source edits, tools, external acquisition, promotion or follow-up work.",
+        "Do not claim any test was run."
+      ],
+      "omissions": [
+        "Four literal excerpts only; source line coordinates are relative to each supplied excerpt and start at 1.",
+        "Unshown ledger paths, helpers and other tests are omitted; no execution evidence is supplied."
+      ],
+      "sources": [
+        {
+          "name": "ledger-row.py",
+          "text": "@dataclass\nclass _ConsentRow:\n    id: str\n    run_id: str\n    tool_name: str\n    args: dict[str, Any]\n    call_ids: tuple[str, ...]\n    status: ConsentStatusValue = \"pending\"\n    decided_by: str | None = None\n    decided_at: datetime | None = None\n    preauth_slug: str | None = None\n    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))\n    native_review_required: bool = False\n    native_binding: NativeConsentBinding | None = None\n\n\nclass InMemoryConsentLedger:\n    \"\"\"Loop-confined consent ledger; pairs with `InMemoryRunLedger` (process-local).\"\"\"\n"
+        },
+        {
+          "name": "ledger-park.py",
+          "text": "    async def park(\n        self,\n        *,\n        run_id: str,\n        tool_name: str,\n        tool_call_id: str,\n        call_ids: tuple[str, ...],\n        args: dict[str, Any],\n        sigil: Sigil,\n    ) -> ConsentDecision:\n        \"\"\"Record a parked consent \u2014 auto-granted by a preauth, or pending.\"\"\"\n        _ = tool_call_id  # audited into the DB row; the graph state carries call_ids authoritatively\n        consent_id = str(uuid4())\n        preauth = self._match_preauth(sigil=sigil, tool_name=tool_name, args=args)\n        row = _ConsentRow(\n            id=consent_id,\n            run_id=run_id,\n            tool_name=tool_name,\n            args=deepcopy(censor(args)),\n            call_ids=call_ids,\n            status=\"granted\" if preauth is not None else \"pending\",\n            decided_by=\"codex:preauth\" if preauth is not None else None,\n            decided_at=datetime.now(UTC) if preauth is not None else None,\n            preauth_slug=preauth.slug if preauth is not None else None,\n        )\n        self._rows[consent_id] = row\n        status: Any = row.status\n        return ConsentDecision(status=status, consent_id=consent_id, preauth_slug=row.preauth_slug)\n"
+        },
+        {
+          "name": "ledger-latest.py",
+          "text": "    async def latest_for_run(self, run_id: str) -> ConsentView | None:\n        \"\"\"Return the newest consent row for a run, or None.\"\"\"\n        rows = (r for r in self._rows.values() if r.run_id == run_id)\n        row = max(rows, key=lambda item: (item.created_at, item.id), default=None)\n        return self._view(row) if row is not None else None\n"
+        },
+        {
+          "name": "test-timestamp-tie.py",
+          "text": "@pytest.mark.asyncio\nasync def test_in_memory_latest_for_run_breaks_timestamp_ties_by_id(monkeypatch: pytest.MonkeyPatch) -> None:\n    fixed = datetime(2030, 1, 1, tzinfo=UTC)\n\n    class FrozenDateTime(datetime):\n        @classmethod\n        def now(cls, tz: object = None) -> datetime:\n            return fixed if tz is not None else fixed.replace(tzinfo=None)\n\n    monkeypatch.setattr(ledger_module, \"datetime\", FrozenDateTime)\n    ledger = InMemoryConsentLedger()\n    sigil = Sigil(name=\"magus\", scopes=frozenset({\"*\"}))\n    first = await ledger.park(\n        run_id=\"run-1\",\n        tool_name=\"edit_file\",\n        tool_call_id=\"call-1\",\n        call_ids=(\"call-1\",),\n        args={},\n        sigil=sigil,\n    )\n    second = await ledger.park(\n        run_id=\"run-1\",\n        tool_name=\"edit_file\",\n        tool_call_id=\"call-2\",\n        call_ids=(\"call-2\",),\n        args={},\n        sigil=sigil,\n    )\n\n    latest = await ledger.latest_for_run(\"run-1\")\n    assert latest is not None\n    assert latest.id == max(first.consent_id, second.consent_id)\n"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "ordering",
+          "predicate": "Identify the operative ordering key and tied-time assertion; cite implementation and test statements separately."
+        },
+        {
+          "id": "discrimination",
+          "predicate": "For both given UUID assignments derive whether last-parked selection passes. Does the unmodified random-ID test deterministically exclude it? Do not assume insertion implies ID order."
+        }
+      ]
+    },
+    "request_sha256": "67aceb36bfae9a4c21710107244d9494b3bdaea7c5b209ab0745ecc35080995e",
+    "profile": "public-source-qwen@2",
+    "implementation_revision": "py.6",
+    "native_status": "accepted",
+    "candidate": {
+      "findings": [
+        {
+          "citations": [
+            {
+              "first_line": 4,
+              "last_line": 4,
+              "source": "ledger-latest.py"
+            },
+            {
+              "first_line": 32,
+              "last_line": 32,
+              "source": "test-timestamp-tie.py"
+            }
+          ],
+          "claim": "Implementation: max(rows, key=lambda item: (item.created_at, item.id)) \u2014 tie broken by id string. Test: assert latest.id == max(first.consent_id, second.consent_id).",
+          "criterion": "ordering",
+          "unknown": "None."
+        },
+        {
+          "citations": [
+            {
+              "first_line": 4,
+              "last_line": 4,
+              "source": "ledger-latest.py"
+            },
+            {
+              "first_line": 32,
+              "last_line": 32,
+              "source": "test-timestamp-tie.py"
+            }
+          ],
+          "claim": "A: first=...0002, second=...0001 \u2192 max id is ...0002 (first), so latest is first, not last-parked; assertion expects max(...0002,...0001)=...0002, passes. B: first=...0001, second=...0002 \u2192 max is ...0002 (second/last-parked); assertion passes. The unmodified random-UUID test does NOT deterministically exclude either assignment: it only checks latest.id equals the lexicographic max of the two random ids, which always holds regardless of insertion order, so it cannot detect a wrong tie-break beyond id-max.",
+          "criterion": "discrimination",
+          "unknown": "Actual random UUID values unknown; no execution evidence supplied."
+        }
+      ],
+      "summary": "latest_for_run orders by (created_at, id); with equal timestamps the larger UUID string wins. Test asserts latest.id == max(first,second)."
+    },
+    "verdict": {
+      "contradictions": [],
+      "disposition": "accepted",
+      "findings": [
+        {
+          "citations": [
+            {
+              "first_line": 4,
+              "last_line": 4,
+              "source": "ledger-latest.py"
+            },
+            {
+              "first_line": 32,
+              "last_line": 32,
+              "source": "test-timestamp-tie.py"
+            }
+          ],
+          "claim": "latest_for_run selects max by (created_at, id); test asserts latest.id == max(first.consent_id, second.consent_id).",
+          "criterion": "ordering",
+          "unknown": ""
+        },
+        {
+          "citations": [
+            {
+              "first_line": 4,
+              "last_line": 4,
+              "source": "ledger-latest.py"
+            },
+            {
+              "first_line": 32,
+              "last_line": 32,
+              "source": "test-timestamp-tie.py"
+            }
+          ],
+          "claim": "A: max id ...0002=first, latest=first, assertion passes. B: max id ...0002=second, latest=second, passes. Random-UUID test only checks id-max, always true regardless of insertion order, so it cannot detect a wrong tie-break beyond id-max.",
+          "criterion": "discrimination",
+          "unknown": "No execution evidence supplied."
+        }
+      ]
+    },
+    "candidate_adopted": true,
+    "verifier_called": true,
+    "slot_encumbered": false,
+    "attempts": [
+      {
+        "role": "constructor",
+        "adopted": true,
+        "input_packet_bytes": 9179,
+        "input_packet_sha256": "6e1be28019b62070b94774034eca4b2dd188be5eb899740e1a73b7032edfc40b",
+        "usage": {
+          "input_tokens": 3051,
+          "output_tokens": 380,
+          "precount_available": false
+        }
+      },
+      {
+        "role": "verifier",
+        "adopted": true,
+        "input_packet_bytes": 10717,
+        "input_packet_sha256": "ce7d019dff27376c02570ae2f86479a6406a8f96d9b6c2d1f0add66c00886ed4",
+        "usage": {
+          "input_tokens": 3439,
+          "output_tokens": 295,
+          "precount_available": false
+        }
+      }
+    ]
+  },
+  "external_review": {
+    "criterion_grades": {
+      "constructor": {
+        "ordering": "PASS",
+        "discrimination": "FAIL"
+      },
+      "verifier": {
+        "ordering": "PASS",
+        "discrimination": "FAIL"
+      }
+    },
+    "accepted_disposition_supported": false,
+    "expectation_written_before_output_disclosure": true,
+    "input_sha256": "3d6d64becd99db112d313c0f221d8aeab25e879179f98d9ebacb2ff86a84bcdb",
+    "expectation_sha256": "1ce591b2cdb4b74e2b38728ba2e45b6db0ee4da450321cec491fa0dec2616677",
+    "disclosed_outputs_sha256": "174bfdc06089f0f530dc043fa0c1e485d99760d482b367f9aa78349fe36d5f74",
+    "report_sha256": "45a9569ae04366574ff919c8a3b9121424ca774fa971a2cd1b934a67a065e1d2",
+    "exact_expectation": "# Blinded semantic expectation \u2014 phase 1\n\nInput SHA-256: `3d6d64becd99db112d313c0f221d8aeab25e879179f98d9ebacb2ff86a84bcdb`.\n\nCitations below identify supplied excerpt names and their one-based lines; the packet does not supply repository paths.\n\n## Expected answer\n\nThe implementation filters rows to the requested run and chooses the maximum tuple `(created_at, id)` (`ledger-latest.py:3\u20135`, especially line 4). Thus a later timestamp wins; at equal timestamps, the lexicographically greatest string ID wins. `_ConsentRow.id` is a string (`ledger-row.py:3`), and `park` generates it with `str(uuid4())` (`ledger-park.py:13`). Parking order is not the ordering key.\n\nThe test separately freezes module time (`test-timestamp-tie.py:3\u201310`); row timestamps default through `datetime.now(UTC)` (`ledger-row.py:12`). It parks first and second rows in that order (`test-timestamp-tie.py:13\u201328`), then asserts the selected ID equals `max(first.consent_id, second.consent_id)` (`test-timestamp-tie.py:30\u201332`). That assertion demands the greatest ID, not the second parked row.\n\n- **A:** First ends in `002`, second in `001`. The actual implementation returns the first row (`002`). A last-parked implementation returns the second (`001`) and **fails** the shown assertion, whose expected value is `002`.\n- **B:** First ends in `001`, second in `002`. The actual implementation returns the second row (`002`). Last-parked selection also returns `002` and **passes**.\n\nThe unmodified test does **not deterministically exclude** last-parked selection. It generates UUIDs without fixing their order (`ledger-park.py:13`). At equal timestamps, last-parked passes when the second ID is the maximum and fails when the first ID is greater. Insertion order provides no premise for UUID order.\n\n## Grading oracles\n\nRequire both independent citations: implementation tuple maximum and test ID-maximum assertion. Require correct A-fails/B-passes discrimination for the alternative last-parked behavior, and identify the actual winner in each case. Require explicit rejection of deterministic detection by the unmodified random-ID test. Reject answers that equate \u201clatest\u201d with last insertion, reverse maximum to minimum, assert guaranteed UUID monotonicity, or treat an unspecified random run as either fixed assignment.\n\nThe packet supplies no realized UUIDs for an unspecified random run, so its individual pass/fail outcome cannot be determined. No missing premise prevents the two supplied-case conclusions. A numerical failure probability would require additional randomness assumptions and is unnecessary. No test was run.\n",
+    "exact_report": "# Independent semantic review \u2014 phase 2\n\nSHA-256 receipts:\n\n- Input: `3d6d64becd99db112d313c0f221d8aeab25e879179f98d9ebacb2ff86a84bcdb`\n- Immutable expectation: `1ce591b2cdb4b74e2b38728ba2e45b6db0ee4da450321cec491fa0dec2616677`\n- Disclosed outputs: `174bfdc06089f0f530dc043fa0c1e485d99760d482b367f9aa78349fe36d5f74`\n\n| Output | Criterion | Grade |\n|---|---|---|\n| Constructor | ordering | PASS |\n| Constructor | discrimination | FAIL |\n| Verifier | ordering | PASS |\n| Verifier | discrimination | FAIL |\n\n## Constructor\n\n**Ordering PASS.** `constructor.findings[0]` correctly identifies the operative tuple maximum `(created_at, id)` and separately cites `ledger-latest.py:4` and `test-timestamp-tie.py:32`. Its statement that tied timestamps use string-ID order agrees with `ledger-row.py:3` and `ledger-park.py:13`. The cited source lines support the claim.\n\n**Discrimination FAIL.** `constructor.findings[1]` correctly computes the actual implementation's winners: first in A and second in B. However, it reports that the assertion passes in A for that actual implementation, instead of answering whether the specified alternative, last-parked selection, passes. These are distinct propositions. In A, last-parked returns second/`...0001`, whereas the assertion requires first/`...0002`; it therefore **fails**. In B, both approaches return second/`...0002`, so last-parked **passes**. The first fact needed for the requested discrimination is absent.\n\nIts random-run discussion changes the object of exclusion to \u201ceither assignment\u201d and describes ID-max as \u201calways\u201d holding. That is true of the shown correct implementation, but it does not establish the alternative's behavior. The unmodified test sometimes detects last-parked: it fails whenever the first random ID exceeds the second. It passes when the second is greatest. Thus detection is not deterministic, but it is not impossible. `ledger-latest.py:4` and `test-timestamp-tie.py:32` support this distinction; `ledger-park.py:13` supplies random IDs without guaranteed order. Correct actual winners and acknowledged unknown random values do not repair this central counterfactual omission.\n\n## Verifier\n\n**Ordering PASS.** `verifier.findings[0]` independently states the correct tuple maximum and test assertion, with the same accurate, separate citations.\n\n**Discrimination FAIL.** `verifier.findings[1]` repeats actual-implementation A-passes/B-passes and the \u201calways true\u201d random-ID framing. It neither states A-fails for last-parked nor gives the conditional detection rule. Its citations are real and relevant, but do not support treating actual implementation success as success for the alternative.\n\n**Accepted disposition is unsupported.** `verifier.disposition = accepted` with no contradictions leaves the question's decisive alternative unresolved. The requested semantic answer does not satisfy all supplied criteria; accepting it as complete is unjustified.\n\n## Limits\n\nThese grades concern only the two supplied answer records against the closed sources and immutable expectation. No random UUID realization, test run, execution outcome, causal learning, transfer, or broader implementation quality is established. Excerpt citations are packet-local names and one-based lines; repository paths were not supplied. The original expectation was not modified.\n",
+    "native_attachment_observed": false,
+    "child_owner_decision_observed": false,
+    "reviewer_label": "fresh coding agent / native_successor_semantic_review",
+    "reviewer_model_runtime_revision": "unattested",
+    "exposure": "One closed question/criteria/four-excerpt packet; independent expectation frozen before constructor/verifier outputs were disclosed. No earlier feedback, native status or campaign judgments supplied.",
+    "limits": "Source-only grading of one known counterfactual. No tests, imports, model calls, Git, network, native host operation, causal learning, unfamiliar transfer or promotion established by this reviewer."
+  },
+  "operational_observations": {
+    "configuration": "Ordinary XDG/TOML/Rune/native CLI, protected TCP API, SAQ and retained PostgreSQL; no injected configuration.",
+    "outer_elapsed_seconds": 29.802986321039498,
+    "model_calls": 2,
+    "prompt_tokens": 6490,
+    "generated_tokens": 675,
+    "role_attempts_max": 2,
+    "retries": 0,
+    "input_tokens_observed_ceiling_each": 3584,
+    "output_tokens_configured_max_each": 512,
+    "observed_usage_within_bounds": true,
+    "lifetime_seconds": 180,
+    "one_child_lineage_retained_before_publication": true,
+    "permanent_parent_one_child_debit": true,
+    "source_profile_and_request_retained": true,
+    "all_four_historical_caseviews_and_feedback03_09_unchanged": true,
+    "normal_distinct_process_restart": true,
+    "fresh_protected_client": true,
+    "original_lineage_attribution_preserved": true,
+    "observed_post_statuses": [
+      200,
+      200,
+      409,
+      409,
+      200
+    ],
+    "identical_post200_replay_before_and_after_restart": true,
+    "changed_body_refused409": true,
+    "second_child_refused409_and_absent": true,
+    "replay_and_refusal_create_no_rows_or_compute": true,
+    "row_counts": {
+      "before": {
+        "run": 4,
+        "session": 4,
+        "run_delivery": 4,
+        "creation_case": 4,
+        "creation_attempt": 6,
+        "creation_feedback": 4,
+        "creation_admission": 4,
+        "creation_successor": 0
+      },
+      "after": {
+        "run": 5,
+        "session": 5,
+        "run_delivery": 5,
+        "creation_case": 5,
+        "creation_attempt": 8,
+        "creation_feedback": 4,
+        "creation_admission": 5,
+        "creation_successor": 1
+      }
+    },
+    "ordinary_bootstrap_before": "0017",
+    "ordinary_bootstrap_after": "0018",
+    "pre_migration_private_backup_bytes": 136453,
+    "backup_container_host_transport_verified": true,
+    "backup_retained_private": true,
+    "old_private_backup_unchanged": true,
+    "backup_restore_proved": false,
+    "independent_recorded_process_identities_absent": 5,
+    "unit_group_container_and_three_ports_absent": true,
+    "original_owned_storage_exact_and_unattached": true,
+    "frozen_source_files": 1408,
+    "frozen_sdk_files": 152,
+    "frozen_source_sdk_selected_inputs_and_installed_bindings_unchanged": true,
+    "namespace_descriptors_closed": true,
+    "independent_quiescent_model_counters_match": true,
+    "root_extra_cleanup_needed": false
+  },
+  "boundary": "One explicit operator-authorized native child and custody/replay/resource observation. Its two native roles accept an answer that fails independent discrimination grading. External report is not yet natively attached to this child, and no child owner decision is observed here. Parent native accepted / external partial / owner hold remain unchanged. No next-child authority, scheduler, independent work selection, source editing, executable candidate verification, numerical confidence, semantic self-improvement, unfamiliar transfer, foreign-runtime containment, hard Provider Gate, exclusive GPU or aggregate CPU/memory attestation follows."
+}

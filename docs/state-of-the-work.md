@@ -2033,8 +2033,25 @@ pool with exactly one Session, foreign-bind refusal, feedback freshness, revoked
 unresolved claims, settled delivery, bound-but-held recovery, historical restart and permanent debit.
 Additive migration `0018` covers empty cycles and refuses downgrade while lineage remains.
 Generated OpenAPI/TypeScript, 341 frontend tests and repository static checks pass; the final test-only
-fixture repair passes focused static checks. These use trusted inert model/queue profiles; an ordinary
-native service/model successor occurrence and measured improvement remain unproved.
+fixture repair passes focused static checks. Final non-container qualification passes 5,895 tests
+with 15 explicit optional skips and 448 container deselections. Three actual Bridge baselines and
+fresh extractor/composed Scout qualification preserve the maintained receipt oracles.
+
+One [ordinary native successor observation](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/creation/native-successor-admission-2026-10-17.json)
+at source `a80d91d` uses ordinary CLI/configuration, protected API, SAQ and retained PostgreSQL.
+A private bounded backup precedes ordinary bootstrap from `0017` to `0018`; restore remains unproved.
+The explicit child retains two one-shot roles in 29.8 seconds (6,490 prompt / 675 generated tokens),
+releases its slot and preserves all four historical cases and parent feedback. Protected replay before
+and after a distinct-process restart preserves original lineage attribution with no extra inference;
+changed-body and second-child requests refuse with 409. Independent settlement confirms exact task
+process/unit/group/container/port closure, retained storage and unchanged installed bindings.
+
+The child is natively accepted, but a fresh reviewer commits source-only expectations before seeing
+its outputs and grades both roles ordering PASS / discrimination FAIL. Both answer the actual
+implementation's success instead of the requested last-parked alternative; verifier acceptance is
+unsupported. This external report is not yet natively attached to the child and no child owner decision
+is observed. Parent native acceptance, external partial assessment and owner hold remain unchanged.
+No semantic improvement, autonomous work selection or executable candidate verification is proved.
 
 The wider SDLC law defines attributable request → candidate → verification → promotion-request →
 target-owner-effect ownership. The Creation method and Ouroboros map connect work to separately
