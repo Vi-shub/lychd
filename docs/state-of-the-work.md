@@ -1935,8 +1935,20 @@ matching model counters and unchanged installed bindings. The task container is 
 storage is intentionally retained. This qualifies normal loading and retained noncompletion/replay,
 not permanent deployment, useful semantic completion, crash recovery or hostile-runtime containment.
 Native aggregate enforcement covers pids only; per-process limits and separate PostgreSQL limits
-are narrower observations. Current role instructions explicitly state the existing canonical-output
-ceiling and prefer a concise writing margin; their practical effect needs a separate occurrence.
+are narrower observations.
+
+A distinct occurrence at `7929389` states that same canonical-output ceiling and concise writing
+margin in both role instructions. Ordinary configuration, native CLI, SAQ and protected TCP
+complete both calls in approximately 23 seconds (3743 prompt and 550 generated tokens), adopting
+candidate and verdict. Native disposition is `accepted`; external review judges both **partial**:
+settlement assertions cite only replacement-message prose, and the error string is blurred with
+the exception object. The actual test supports those assertions elsewhere; a valid span alone does
+not support the claim. This is a known-task iteration, not a controlled causal comparison or
+semantic reliability benchmark. Two ordinary app starts retain the new case, exact replay issues
+no inference, and the earlier failed case survives database-container replacement with unchanged
+named storage. Independent resource/model observations settle the task processes, listeners and
+container; storage intentionally remains. No permanent daemon, autonomous editing or improvement,
+crash recovery, whole-environment closure or model-byte attestation follows.
 
 The wider SDLC law defines attributable request → candidate → verification → promotion-request →
 target-owner-effect ownership. The Creation method and Ouroboros map connect work to separately
@@ -1958,6 +1970,7 @@ attestation plane, canonical source on Radicle, Radicle node topology or downstr
 - **Verification:** [Agent boundaries](https://github.com/hexanomicon/lychd/blob/main/tests/unit/compositions/test_creation.py), [local API](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_creation.py), [PostgreSQL worker histories](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_creation_postgres_vertical.py), and [migration cycle/refusal](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_db_migrations_pg.py)
 - **Verification:** [Dated native investigation outcomes](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/creation/investigation-2026-10-17.json) retains the three distinct occurrences, exact public inputs/outputs, resource evidence and separate verdicts.
 - **Verification:** [Ordinary native configuration observation](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/creation/native-configuration-2026-10-17.json) retains the separate noncompletion, exact public packet/result, canonical-byte failure and bounded service/replay evidence.
+- **Verification:** [Ordinary native two-role observation](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/creation/native-configuration-guidance-2026-10-17.json) retains the distinct successful occurrence, exact public role packets/results, replay/custody observations and separate partial external judgment.
 - **Topic:** [Creation investigation](./compositions/creation/index.md), [Smith](./sepulcher/extensions/smith.md),
   [Creation](./sepulcher/extensions/weaver/creation.md), and [Ouroboros](./sepulcher/extensions/weaver/ouroboros.md),
   with [Development bootstrap](./sepulcher/extensions/weaver/development-bootstrap.md) and

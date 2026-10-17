@@ -33,7 +33,7 @@ def test_process_receipt_preserves_qualification_and_privacy_boundary() -> None:
     assert "The optional thinking policy was omitted" in receipt["identity_boundary"]
     assert "Creation investigation was omitted." in receipt["identity_boundary"]
     assert receipt["source_identity"] == {
-        "base_revision_declared": "3e518e812dbbb9950760ad24df916c49d3edcc37",
+        "base_revision_declared": "7929389105631f189337a602a33c7ad8edbefda6",
         "clean_checkout_attested": False,
         "atomic_transitive_closure_attested": False,
         "scope": "bounded-critical-source-and-test-fingerprints",
