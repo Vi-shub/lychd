@@ -40,7 +40,7 @@
     "src/lychd/domain/scout/review.py": "18b70408758ad408d3a251206050ced422979308cd25f9d6c35bbc82ad4764d7",
     "src/lychd/db/scout.py": "83403dfb258c46f417ae370136e9359e4c0b712170f7dc117f61b1fb81f740d3",
     "src/lychd/db/models/scout.py": "ba8eb631f8b2ee5ab72770271d4505f2ea3637723d6e191e2e0869251f1fc3cb",
-    "src/lychd/db/sessions.py": "8938fb9a3d00dc2fa1a63faaa08cfe5a1d4e420ce2cc9543eb3cb6d99679c8f9",
+    "src/lychd/db/sessions.py": "64bd8cb6f056b20051c8140ed166cc46b35388b092684ee32e442233bdbcb1c3",
     "src/lychd/interface/web/scout_admission.py": "d62c34baa5503126ad9365f87ff55e0dccfd77bd5aae340343837ac22e232fd2",
     "src/lychd/interface/web/scout_review.py": "9333e6efcc1b5fa9dad0c5e383d145afbbd5b163b6f278324abc573e876a087d",
     "src/lychd/agents/workflows/scout_chat.py": "c2c78b7504ff63e01d434496c35e2da2f6c49eee58c43bf0c3568a8453052539",
@@ -63,9 +63,9 @@
   },
   "runtime_identity": {
     "bubblewrap_digest": "64501f97e29203f11d1eaa9e897e441ef92f200c0a1eb891aed5d07f780034f2",
-    "python_tree_digest": "750356e48774e9f293a87a358a7df2e89a168fd56be95219794802594bece180",
-    "python_tree_bytes": 113924361,
-    "python_tree_entries": 5147,
+    "python_tree_digest": "3aca44e8c98b087512c3218dae9ee78281ca5e42c31b3278b9a56e4c4b3de627",
+    "python_tree_bytes": 114027032,
+    "python_tree_entries": 5156,
     "library_digests": {
       "libpthread.so.0": "a8294c61875f0dd96d9e233f9ec3caf0513c3a957c8e69a22a674e3d2c765a1f",
       "libdl.so.2": "63bd4f1cbaf5a6b04127fdf3236842b82f00814a57d75daeabf311302cf43e6b",
@@ -129,5 +129,5 @@
     "anonymous_volume_count": 1
   },
   "record_kind": "sanitized_public_composed_qualification",
-  "observed_on": "2026-10-13"
+  "observed_on": "2026-10-17"
 }

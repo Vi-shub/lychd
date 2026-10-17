@@ -50,6 +50,7 @@ _SOURCES = {
     "src/lychd/db/models/__init__.py",
     "src/lychd/db/models/creation.py",
     "src/lychd/db/migrations/versions/0016_creation_investigation.py",
+    "src/lychd/db/migrations/versions/0018_creation_successor.py",
     "src/lychd/extensions/context.py",
     "src/lychd/extensions/manager.py",
     "src/lychd/extensions/builtin/animator/vllm/register.py",
@@ -119,7 +120,7 @@ def test_maintained_local_bridge_receipt_keeps_its_exact_boundary() -> None:
     assert "The optional thinking policy was omitted" in receipt["identity_boundary"]
     assert "Creation investigation was omitted." in receipt["identity_boundary"]
     assert receipt["source_identity"] == {
-        "base_revision_declared": "18235a867b65269112077682ea07e6bfcdb87bf6",
+        "base_revision_declared": "de145ed7ae2619658ddce4cd2966d41ca3ae88be",
         "clean_checkout_attested": False,
         "atomic_transitive_closure_attested": False,
         "scope": "bounded-critical-source-and-test-fingerprints",

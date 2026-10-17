@@ -47,7 +47,7 @@ def test_native_tcp_receipt_preserves_its_observed_scope_and_privacy() -> None:
     assert "The optional thinking policy was omitted" in receipt["identity_boundary"]
     assert "Creation investigation was omitted." in receipt["identity_boundary"]
     assert receipt["source_identity"] == {
-        "revision_observed": "18235a867b65269112077682ea07e6bfcdb87bf6",
+        "revision_observed": "de145ed7ae2619658ddce4cd2966d41ca3ae88be",
         "clean_checkout_observed": False,
         "atomic_transitive_closure_attested": False,
         "scope": "bounded-critical-source-and-test-fingerprints",
