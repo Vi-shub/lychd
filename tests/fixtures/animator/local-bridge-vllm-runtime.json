@@ -77,18 +77,18 @@
   },
   "qualification_date": "2026-10-17",
   "qualification_evidence": {
-    "application_receipt_sha256": "eafc9dea896b5fd52bd71faaf8b743efe9978ea85a61b7a492edfa15fcb5f196",
-    "candidate_manifest_sha256": "1b9f2081973c4db3f9fa3ede461dfdfdcc9bb18277d303c065c4c50ac6def236",
-    "coordinator_receipt_sha256": "e1a68baa4c71288f91950dafdbec5545e5590d24f4798caa955a323805aca027",
-    "coordinator_source_sha256": "6c1505e1959442b2a9de0078a9c7e2d1f719c3a9d9cc97c26246cac6022daca8",
+    "application_receipt_sha256": "ff4ff51a4c9ce74f5e7ab3be568fda26e30a683f6596847e5f8222c76b54fa4f",
+    "candidate_manifest_sha256": "b5d8405879aac60832944138e8089f28321c21f7c01dfda1ad94cccd0da72a5f",
+    "coordinator_receipt_sha256": "bd36ee23ec0955d4be3be64b49b38f3b21735710b56016fcdc52f2d1a3fa237e",
+    "coordinator_source_sha256": "199c1fc175d2ca148df30466a30347b775dae610d3f5ed80647cd5e077824fb9",
     "joined_test_sha256_before_trial": "00e24103a907b1aa4d1b518d7bd38267a3b2d5cdd4fce1db923f6f239d11c7d2",
-    "model_profile_sha256": "2eb000620dfb2501d852d6efce7de10f89424ab26e2b2342ac613be4fcf33c9d",
-    "pytest_log_sha256": "4f63fba6068e318491d1bf08817e0880d05a36da1cda746ba63535c142712670",
-    "resource_launcher_source_sha256": "b8105f73913316031e7241529ff4676b8672ac106754d76b8daea209a18afa78",
-    "resource_receipt_sha256": "b6e862a3d571cd5ac5d8290ff0da7217be10c2cdc539a669f6d59df2c2e8a91b"
+    "model_profile_sha256": "b4f45914650f62d9b1d7796e83233e7846ad67f07e20594aefa2a2573d45d1fa",
+    "pytest_log_sha256": "8fcaeb2b1e2728964bab95a1228be77a60f28721a54da5b1c3f1854351b6eef6",
+    "resource_launcher_source_sha256": "ceeaf5a8f1ee500b870fe1818540256e8a78dd19077abd1622781d4548032702",
+    "resource_receipt_sha256": "844c15f775ff2770d1c901cda2efe69f925da671410f99528beca2793b4557ab"
   },
   "record_kind": "sanitized_public_local_bridge_qualification",
-  "retained_history_sha256": "116ee1069ac6bf153bf212d79c24a83599dc9f2e319b1befd937011a7737f7e5",
+  "retained_history_sha256": "da1c10b6d8d0c573e9c5a9f2f9dfa7708788bfacdfef3d0419dd1936bb390032",
   "runner": {
     "cleanup_verified": true,
     "coordinator_cleanup_reserve_seconds": 30,
@@ -117,8 +117,8 @@
     "src/lychd/agents/workflows/bridge_chat.py": "40d720afee98c0abd046d676e62ed1c154736fd9df7d48913ab02013a9c9ab85",
     "src/lychd/agents/workflows/nodes.py": "7b8bb849280495e295300cef7cffff7f351966004d7c0f1d016b8217bfc68b92",
     "src/lychd/app.py": "344443a2af5f2c4cdb6f94842ab4cc51c072d45f34499346e402a1ac47ec5835",
-    "src/lychd/compositions/creation/schemas.py": "28e0dbeec78613f89c22fb7c73290f1e92f723ff5383db330d3b196df55cd70c",
-    "src/lychd/compositions/creation/services.py": "e5c637c7351cd89c3d1a793d892c018bd87a13b3dbe7ae98b90f44ceea729096",
+    "src/lychd/compositions/creation/schemas.py": "b111d69523df2b5f84c7cce9fe81a8ede9f5d4b92bdcbc323a54a4c024514584",
+    "src/lychd/compositions/creation/services.py": "694d47763fe393eec6eaca43006fa63132026fc62e670a46265df5ae57c12c3b",
     "src/lychd/config/components.py": "fb35c47ba9ee2cf9cec20b955120da279610579aeddaa81ce78c2b9885f005f7",
     "src/lychd/config/constants.py": "b9d3f3e91466a0e8e2f65f491ca471d39f70b87d231a0ce9b5008c379c11cb7c",
     "src/lychd/config/settings/root.py": "a8c179f5f52a0a2260680b164958a9138fd5a75b7202f90bbe0ad1a5ccb2d0bf",
@@ -168,14 +168,14 @@
   },
   "source_identity": {
     "atomic_transitive_closure_attested": false,
-    "base_revision_declared": "de145ed7ae2619658ddce4cd2966d41ca3ae88be",
+    "base_revision_declared": "206d96ce6e54eb103cdf4e336dff31d8e4fbe7c5",
     "clean_checkout_attested": false,
     "scope": "bounded-critical-source-and-test-fingerprints"
   },
   "status": "passed",
   "timings_seconds": {
-    "command": 18.0502,
-    "pytest": 15.61
+    "command": 19.4365,
+    "pytest": 16.82
   },
   "unexercised": [
     "browser-and-full-accessibility",

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncIterator, Iterator
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from typing import Any, cast
 from uuid import UUID, uuid4
@@ -23,6 +24,7 @@ from sqlalchemy import Table, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from testcontainers.community.postgres import PostgresContainer
 
+from lychd.agents.router import Intent
 from lychd.agents.the_first_one import default_forge
 from lychd.agents.workflows import BuiltinWorkflowRegistry
 from lychd.compositions.creation.schemas import (
@@ -30,6 +32,7 @@ from lychd.compositions.creation.schemas import (
     CreationRefused,
     InvestigationRequest,
     OwnerDecision,
+    RunSummary,
     SuccessorRequest,
     canonical,
     decode,
@@ -50,8 +53,8 @@ from lychd.db.models.creation import (
 )
 from lychd.db.sessions import DbBridgeSessionStore
 from lychd.domain.codex.ledger import CodexConsentLedger
-from lychd.domain.codex.local_access import LocalOperatorAccess
-from lychd.domain.codex.sigil import default_local_sigil
+from lychd.domain.codex.local_access import LocalOperatorAccess, LocalOperatorAuthentication
+from lychd.domain.codex.sigil import Sigil, default_local_sigil
 from lychd.domain.cortex.context import ContextOrchestrator
 from lychd.domain.cortex.engine import QueueRouter, RouteRule, RunEngine
 from lychd.domain.cortex.events import InProcessEventBus
@@ -346,6 +349,134 @@ async def test_postgres_profile_two_adoption_checks_observed_usage_after_complet
     assert view.slot_encumbered is accepted
 
 
+def _assert_incomplete_run_summary(summary: RunSummary, case_id: UUID, run_id: str) -> None:
+    assert summary.case_id == case_id
+    assert summary.admission_id == case_id
+    assert summary.run_id == run_id
+    assert summary.admission_current
+    assert summary.native_status == "incomplete"
+    assert summary.reason_code == "output_bytes"
+    assert summary.constructor_present
+    assert not summary.constructor_adopted
+    assert not summary.verifier_present
+    assert not summary.verifier_adopted
+    assert not summary.candidate_present
+    assert not summary.verdict_present
+    assert summary.native_disposition is summary.external_disposition is None
+    assert summary.feedback_status == "unassessed"
+    assert summary.current_assessment_id is summary.current_decision_id is None
+    assert not summary.slot_encumbered
+
+
+def _assert_expired_reserved_summary(summary: RunSummary | None) -> None:
+    assert summary is not None
+    assert summary.native_status == "reserved"
+    assert summary.deadline_elapsed
+    assert summary.slot_encumbered
+    assert not summary.constructor_present
+    assert not summary.constructor_adopted
+
+
+async def _creation_custody(factory: async_sessionmaker[AsyncSession]) -> list[list[dict[str, Any]]]:
+    tables = (
+        CreationCase.__table__,
+        CreationAdmission.__table__,
+        CreationAttempt.__table__,
+        CreationFeedback.__table__,
+        CreationSuccessor.__table__,
+        Run.__table__,
+        RunDelivery.__table__,
+        Session.__table__,
+    )
+    async with factory() as session:
+        return [
+            [dict(row) for row in (await session.execute(select(table).order_by(table.c.id))).mappings()]
+            for table in tables
+        ]
+
+
+async def test_run_summary_exact_admission_current_authority_and_unchanged_custody(
+    factory: async_sessionmaker[AsyncSession], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    boot = Boot(factory)
+    request = request_document()
+    run_id = await boot.submit(request)
+    assert (await boot.ledger.try_claim_run(run_id, enqueue_seq=0)).acknowledged
+    attempt_id = await boot.store.claim(request.request_id, run_id, "constructor", b'{"role":"constructor"}')
+    await boot.store.complete(attempt_id, b'{"private_response":"never project"}', {"output_tokens": 80})
+    await boot.store.fail(request.request_id, "output_bytes", attempt_id)
+    await boot.ledger.set_status(run_id, RunStatus.DONE)
+    original_run = await boot.ledger.get(run_id)
+    assert original_run is not None
+    unrelated = await boot.ledger.create(
+        Intent(session_id=original_run.session_id, prompt=str(request.request_id), source="creation"),
+        workflow_name=boot.workflow.name,
+        pattern_manifest=boot.workflow.manifest.snapshot(),
+        queue_name="runs",
+        priority=50,
+    )
+    expired_request = request_document()
+    expired_run = await boot.submit(expired_request)
+    assert (await boot.ledger.try_claim_run(expired_run, enqueue_seq=0)).acknowledged
+    await boot.store.claim(expired_request.request_id, expired_run, "constructor", b'{"role":"constructor"}')
+    async with factory() as session:
+        expired_case = await session.get(CreationCase, expired_request.request_id)
+        assert expired_case is not None
+        expired_case.deadline = datetime.now(UTC) - timedelta(seconds=1)
+        await session.commit()
+
+    async def custody() -> list[list[dict[str, Any]]]:
+        return await _creation_custody(factory)
+
+    async def forbidden(*_args: Any, **_kwargs: Any) -> Any:
+        pytest.fail("A summary cannot enter a body-loading or execution transition path.")
+
+    async def read_summary(selected_run: str) -> RunSummary | None:
+        return await boot.service.summary_for_run(
+            selected_run, authentication=boot.authentication, principal=default_local_sigil()
+        )
+
+    for name in ("read", "_case", "_expire"):
+        monkeypatch.setattr(boot.store, name, forbidden)
+    boot.service.registry = boot.service.leases = None
+    before = await custody()
+    summary = await read_summary(run_id)
+    assert summary is not None
+    _assert_incomplete_run_summary(summary, request.request_id, run_id)
+    assert original_run.status is RunStatus.DONE
+    assert "never project" not in summary.model_dump_json()
+    assert request.sources[0].text not in summary.model_dump_json()
+    expired = await read_summary(expired_run)
+    _assert_expired_reserved_summary(expired)
+    assert await read_summary(unrelated.run_id) is None
+    assert await read_summary(str(uuid4())) is None
+    assert await read_summary("invalid-run-id") is None
+    assert boot.authentication is not None
+    reconstructed = LocalOperatorAuthentication(
+        subject=boot.authentication.subject,
+        authentication_generation=boot.authentication.authentication_generation,
+    )
+    for marker, principal in (
+        (None, default_local_sigil()),
+        (reconstructed, default_local_sigil()),
+        (boot.authentication, Sigil(name="scope-only", scopes=frozenset())),
+    ):
+        assert await boot.service.summary_for_run(run_id, authentication=marker, principal=principal) is None
+    restored = Boot(factory)
+    restored.service.registry = restored.service.leases = None
+    assert (
+        await restored.service.summary_for_run(
+            run_id, authentication=restored.authentication, principal=default_local_sigil()
+        )
+        == summary
+    )
+    boot.access.revoke()
+    assert await read_summary(run_id) is None
+    assert await custody() == before
+    assert not boot.messages
+    assert not restored.messages
+
+
 async def completed_feedback_case(factory: async_sessionmaker[AsyncSession]) -> tuple[Boot, UUID, Any]:
     boot = Boot(factory)
 
@@ -371,6 +502,69 @@ async def completed_feedback_case(factory: async_sessionmaker[AsyncSession]) -> 
     assert view.status == "unassessed"
     assert view.target is not None
     return boot, request.request_id, assessment_document(view.target)
+
+
+async def test_run_summary_latest_feedback_matching_owner_and_body_redaction(
+    factory: async_sessionmaker[AsyncSession],
+) -> None:
+    boot, case_id, assessment = await completed_feedback_case(factory)
+    principal = default_local_sigil()
+    entry = await boot.service.assess(case_id, assessment, authentication=boot.authentication, principal=principal)
+    decision = OwnerDecision(
+        decision_id=uuid4(),
+        assessment_id=entry.id,
+        assessment_digest=entry.body_digest,
+        target=assessment.target,
+        action="hold",
+        reason="private owner reason must not appear in Orb",
+    )
+    held = await boot.service.decide(case_id, decision, authentication=boot.authentication, principal=principal)
+    async with factory() as session:
+        row = await session.get(CreationCase, case_id)
+        assert row is not None
+        row.reason = "private exception message must not appear in Orb"
+        identity = await session.scalar(select(CreationAdmission.run_id).where(CreationAdmission.case_id == case_id))
+        assert identity is not None
+        await session.commit()
+    before = await _creation_custody(factory)
+    summary = await boot.service.summary_for_run(str(identity), authentication=boot.authentication, principal=principal)
+    assert summary is not None
+    assert summary.native_status == summary.native_disposition == "accepted"
+    assert summary.external_disposition == "partial"
+    assert summary.feedback_status == "hold"
+    assert summary.current_assessment_id == entry.id
+    assert summary.current_decision_id == held.id
+    assert summary.reason_code == "other"
+    assert summary.constructor_adopted
+    assert summary.verifier_adopted
+    assert summary.candidate_present
+    assert summary.verdict_present
+    assert boot.authentication is not None
+    for private in (
+        assessment.report,
+        decision.reason,
+        "private exception message",
+        candidate_document().summary,
+        principal.name,
+        str(boot.authentication.authentication_generation),
+    ):
+        assert private not in summary.model_dump_json()
+    assert await _creation_custody(factory) == before
+    later = assessment.model_copy(
+        update={"assessment_id": uuid4(), "report": "later private report", "disposition": "rejected"}
+    )
+    newest = await boot.service.assess(case_id, later, authentication=boot.authentication, principal=principal)
+    before_newest_read = await _creation_custody(factory)
+    changed = await boot.service.summary_for_run(str(identity), authentication=boot.authentication, principal=principal)
+    assert changed is not None
+    assert changed.native_status == changed.native_disposition == "accepted"
+    assert changed.external_disposition == "rejected"
+    assert changed.feedback_status == "review_required"
+    assert changed.current_assessment_id == newest.id
+    assert changed.current_decision_id is None
+    assert later.report not in changed.model_dump_json()
+    assert await _creation_custody(factory) == before_newest_read
+    assert len(boot.messages) == 2
 
 
 async def test_feedback_custody_replay_disagreement_restart_and_no_execution_change(

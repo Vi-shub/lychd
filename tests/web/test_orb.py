@@ -8,26 +8,36 @@ from __future__ import annotations
 import asyncio
 import json
 from contextlib import ExitStack
+from datetime import UTC, datetime
 from hashlib import sha256
-from typing import TYPE_CHECKING
+from types import SimpleNamespace
+from typing import TYPE_CHECKING, Any
+from unittest.mock import AsyncMock
+from uuid import UUID
 
 import pytest
+from litestar import Litestar
+from litestar.datastructures import State
 from litestar.testing import RequestFactory
 
 from lychd.agents.router import Intent
 from lychd.agents.workflows import DELEGATED_RITE, BuiltinWorkflowRegistry
 from lychd.agents.workflows.bridge_chat import BRIDGE_CHAT
+from lychd.compositions.creation.schemas import RunSummary
+from lychd.compositions.creation.services import InvestigationService, LocalCreationPolicy
+from lychd.domain.codex.local_access import LocalOperatorAccess
+from lychd.domain.codex.middleware import sigil_auth_middleware
+from lychd.domain.codex.sigil import default_local_sigil
 from lychd.domain.cortex.events import RunEvent, RunEventKind
 from lychd.domain.cortex.runs import RunStatus
 from lychd.domain.delegation.models import DelegatedAgentProfile, DelegatedAgentRequest
-from lychd.domain.web.contracts import OrbEventEnvelope
+from lychd.domain.web.contracts import OrbCreationSummary, OrbEventEnvelope
 from lychd.interface.web.bridge_stream import BoundedRunEventStream
-from lychd.interface.web.orb import _orb_events
+from lychd.interface.web.deps import web_dependencies
+from lychd.interface.web.orb import OrbController, _creation_summary, _orb_events
+from tests.web.conftest import TEST_ACCESS_PASSWORD, TEST_AUTHORIZATION, AsgiClient
 
 if TYPE_CHECKING:
-    from types import SimpleNamespace
-
-    from litestar import Litestar
     from litestar.testing import TestClient
     from litestar.types import HTTPDisconnectEvent, Message
 
@@ -498,3 +508,207 @@ def test_orb_disconnect_cancels_polling_and_releases_capacity(fake_services: Sim
                 stack.enter_context(fake_services.bus.reserve_http_stream("run-orb-disconnect"))
 
     asyncio.run(disconnect())
+
+
+def _creation_record(run_id: str, *, admission_current: bool = True) -> RunSummary:
+    return RunSummary(
+        case_id=UUID(int=31),
+        admission_id=UUID(int=32),
+        run_id=run_id,
+        admission_current=admission_current,
+        native_status="incomplete",
+        reason_code="output_bytes",
+        deadline=datetime(2030, 1, 1, tzinfo=UTC),
+        deadline_elapsed=False,
+        slot_encumbered=False,
+        constructor_present=True,
+        constructor_adopted=False,
+        verifier_present=False,
+        verifier_adopted=False,
+        candidate_present=False,
+        verdict_present=False,
+        native_disposition=None,
+        external_disposition=None,
+        feedback_status="unassessed",
+        current_assessment_id=None,
+        current_decision_id=None,
+    )
+
+
+def _creation_client(
+    services: SimpleNamespace, summary: RunSummary | None
+) -> tuple[AsgiClient, LocalOperatorAccess, InvestigationService]:
+    access = LocalOperatorAccess(access_password=TEST_ACCESS_PASSWORD)
+    service = InvestigationService(
+        store=SimpleNamespace(summary_for_run=AsyncMock(return_value=summary)),
+        policy=LocalCreationPolicy(access),
+        registry=None,
+        leases=None,
+        capability_key="unused",
+    )
+    services.creation = service
+    app = Litestar(
+        route_handlers=[OrbController],
+        dependencies=web_dependencies,
+        middleware=[sigil_auth_middleware(operator_access=access)],
+        state=State({"services": services}),
+    )
+    return AsgiClient(app, headers={"authorization": TEST_AUTHORIZATION}), access, service
+
+
+@pytest.mark.parametrize("admission_current", [True, False])
+def test_selected_run_projects_authorized_creation_metadata_separately_from_run_status(
+    fake_services: SimpleNamespace, *, admission_current: bool
+) -> None:
+    run_id = "run-creation-summary"
+    _seed(fake_services, run_id)
+    asyncio.run(fake_services.ledger.set_status(run_id, RunStatus.DONE))
+    summary = _creation_record(run_id, admission_current=admission_current)
+    client, _access, _service = _creation_client(fake_services, summary)
+
+    response = client.get(f"/api/v1/orb/runs/{run_id}")
+
+    assert response.status_code == 200
+    assert response.json()["run"]["status"] == "done"
+    assert response.json()["creation"] == summary.model_dump(mode="json")
+    assert response.json()["creation"]["admission_current"] is admission_current
+    assert "secret prompt" not in response.text
+    assert "raw secret" not in response.text
+
+
+@pytest.mark.parametrize("absence", ["unconfigured", "unlinked", "mismatch", "foreign-authority"])
+def test_selected_run_creation_absence_discloses_no_case(fake_services: SimpleNamespace, absence: str) -> None:
+    run_id = "run-creation-absent"
+    _seed(fake_services, run_id)
+    client, _access, service = _creation_client(fake_services, _creation_record(run_id))
+    if absence == "unconfigured":
+        fake_services.creation = None
+    elif absence == "unlinked":
+        service.store.summary_for_run.return_value = None
+    elif absence == "mismatch":
+        service.store.summary_for_run.return_value = _creation_record("another-run")
+    else:
+        service.policy = LocalCreationPolicy(LocalOperatorAccess(access_password=TEST_ACCESS_PASSWORD))
+
+    response = client.get(f"/api/v1/orb/runs/{run_id}")
+
+    assert response.status_code == 200
+    assert response.json()["creation"] is None
+    assert str(UUID(int=31)) not in response.text
+
+
+def test_selected_run_creation_operational_failure_is_not_case_absence(fake_services: SimpleNamespace) -> None:
+    run_id = "run-creation-failure"
+    _seed(fake_services, run_id)
+    client, _access, service = _creation_client(fake_services, _creation_record(run_id))
+    service.store.summary_for_run.side_effect = RuntimeError("summary_store_unavailable")
+
+    response = client.get(f"/api/v1/orb/runs/{run_id}")
+
+    assert response.status_code == 500
+
+
+def test_terminal_creation_summary_refresh_does_not_extend_run_stream(fake_services: SimpleNamespace) -> None:
+    run_id = "run-creation-terminal"
+    _seed(fake_services, run_id)
+    asyncio.run(fake_services.ledger.set_status(run_id, RunStatus.DONE))
+    client, _access, service = _creation_client(fake_services, _creation_record(run_id))
+    first = client.get(f"/api/v1/orb/runs/{run_id}").json()["creation"]
+    [settled] = _envelopes(client.get(f"/api/v1/orb/runs/{run_id}/events").text)
+    assert settled.kind == "settled"
+    assert settled.snapshot.creation is not None
+    assert settled.snapshot.creation.model_dump(mode="json") == first
+    later = _creation_record(run_id).model_copy(update={"external_disposition": "partial", "feedback_status": "hold"})
+    service.store.summary_for_run.return_value = later
+
+    refreshed = client.get(f"/api/v1/orb/runs/{run_id}").json()["creation"]
+
+    assert refreshed == later.model_dump(mode="json")
+    [reconnected] = _envelopes(client.get(f"/api/v1/orb/runs/{run_id}/events").text)
+    assert reconnected.kind == "settled"
+    assert reconnected.snapshot.creation is not None
+    assert reconnected.snapshot.creation.model_dump(mode="json") == refreshed
+    assert service.store.summary_for_run.await_count == 4
+
+
+def test_active_creation_poll_updates_metadata_and_clears_revoked_authority(
+    fake_services: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    run_id = "run-creation-live"
+    _seed(fake_services, run_id)
+    client, access, service = _creation_client(fake_services, _creation_record(run_id))
+    monkeypatch.setattr("lychd.interface.web.orb._POLL_INTERVAL_S", 0)
+
+    async def observe() -> None:
+        request = RequestFactory().get(f"/api/v1/orb/runs/{run_id}/events")
+        request.scope["auth"] = access.authenticate(username=b"magus", password=TEST_ACCESS_PASSWORD.encode())
+        request.scope["user"] = default_local_sigil()
+
+        async def read_creation() -> OrbCreationSummary | None:
+            return await _creation_summary(client.app.state, request, run_id)
+
+        stream = _orb_events(
+            fake_services.ledger, run_id, fake_services.workflows, after_seq=3, read_creation=read_creation
+        )
+        first = OrbEventEnvelope.model_validate_json(str((await anext(stream)).data))
+        assert first.snapshot.creation is not None
+        later = _creation_record(run_id).model_copy(update={"reason_code": "expired"})
+        service.store.summary_for_run.return_value = later
+        changed = OrbEventEnvelope.model_validate_json(str((await asyncio.wait_for(anext(stream), timeout=1)).data))
+        assert changed.cursor == first.cursor == 3
+        assert changed.snapshot.evidence == []
+        assert changed.snapshot.creation is not None
+        assert changed.snapshot.creation.reason_code == "expired"
+        access.revoke()
+        revoked = OrbEventEnvelope.model_validate_json(str((await asyncio.wait_for(anext(stream), timeout=1)).data))
+        assert revoked.cursor == 3
+        assert revoked.snapshot.creation is None
+        await fake_services.ledger.set_status(run_id, RunStatus.DONE)
+        settled = OrbEventEnvelope.model_validate_json(str((await anext(stream)).data))
+        assert settled.kind == "settled"
+        with pytest.raises(StopAsyncIteration):
+            await anext(stream)
+
+    asyncio.run(observe())
+
+
+@pytest.mark.parametrize("transport", ["rest", "sse"])
+def test_creation_authority_is_rechecked_after_awaited_ledger_reads(
+    fake_services: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, transport: str
+) -> None:
+    run_id = "run-creation-revoked-during-ledger"
+    _seed(fake_services, run_id)
+    client, access, service = _creation_client(fake_services, _creation_record(run_id))
+    list_events = fake_services.ledger.list_events
+
+    async def revoke_during_ledger_read(*args: Any, **kwargs: Any) -> Any:
+        result = await list_events(*args, **kwargs)
+        access.revoke()
+        return result
+
+    monkeypatch.setattr(fake_services.ledger, "list_events", revoke_during_ledger_read)
+    if transport == "rest":
+        response = client.get(f"/api/v1/orb/runs/{run_id}")
+        assert response.status_code == 200
+        assert response.json()["creation"] is None
+    else:
+
+        async def observe() -> None:
+            request = RequestFactory().get(f"/api/v1/orb/runs/{run_id}/events")
+            request.scope["auth"] = access.authenticate(username=b"magus", password=TEST_ACCESS_PASSWORD.encode())
+            request.scope["user"] = default_local_sigil()
+
+            async def read_creation() -> OrbCreationSummary | None:
+                return await _creation_summary(client.app.state, request, run_id)
+
+            stream = _orb_events(
+                fake_services.ledger, run_id, fake_services.workflows, after_seq=3, read_creation=read_creation
+            )
+            try:
+                snapshot = OrbEventEnvelope.model_validate_json(str((await anext(stream)).data)).snapshot
+                assert snapshot.creation is None
+            finally:
+                await stream.aclose()
+
+        asyncio.run(observe())
+    service.store.summary_for_run.assert_not_awaited()

@@ -428,6 +428,16 @@ the feed; this does not promise that every best-effort observation was retained.
 private bodies never enter this feed. Slow readers delay their next bounded read without queuing
 producer events. Disconnect closes the source and releases its reservation.
 
+An optional Creation summary resolves the selected Run through its retained exact admission link.
+The HTTP boundary checks current Creation read authority for every snapshot and stream poll; it
+supplies only bounded metadata through a dedicated persistence read that cannot expire or settle
+custody. Absence discloses neither case existence nor application configuration. Case status,
+response adoption, native verdict, latest external assessment and current owner disposition stay
+distinct from Run status. An earlier admission is explicitly historical: the supplied case-current
+outcome may include later admissions. Metadata updates can retain the ledger cursor, and revocation
+clears the summary. This does not extend terminal stream lifetime; later assessments or decisions
+require an explicit authoritative refresh. Browser playback never rewinds this current metadata.
+
 The parallel field opens at most three Run lenses and keeps at most 100 records in each. Its
 counts describe loaded membership, and omitted older records remain available through selected-Run
 pagination. Run changes, closed lenses, and teardown fence callbacks and abort owned reads.

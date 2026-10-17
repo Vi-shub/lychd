@@ -10,6 +10,7 @@
   import { delegationStatusLabel } from "$lib/delegation/presentation";
   import DelegateMark from "./DelegateMark.svelte";
   import AtlasLinks from "./AtlasLinks.svelte";
+  import CreationSummary from "./CreationSummary.svelte";
   import GraphCanvas from "./graph/GraphCanvas.svelte";
   import AnimatorRail from "./AnimatorRail.svelte";
   import { projectOrb, orbEvidenceNodeId, matchesOrbPattern, mergeOrbEvidence } from "$lib/graph/orb";
@@ -459,6 +460,8 @@
           <div><span>live updates</span><strong>{snapshot.live_tail.replaceAll("_", " ")}</strong></div>
           <button class="text-action" type="button" disabled={loading} onclick={() => void load(runId)}>{loading ? "Refreshing…" : "Refresh"}</button>
         </section>
+
+        <CreationSummary summary={snapshot.creation?.run_id === snapshot.run.run_id ? snapshot.creation : null} />
 
         <section class="orb-graph-panel" aria-labelledby="orb-graph-title">
           <header class="graph-heading">

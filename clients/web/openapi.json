@@ -2780,6 +2780,159 @@
         "title": "NoteRecord",
         "type": "object"
       },
+      "OrbCreationSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "admission_current": {
+            "type": "boolean"
+          },
+          "admission_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "candidate_present": {
+            "type": "boolean"
+          },
+          "case_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "constructor_adopted": {
+            "type": "boolean"
+          },
+          "constructor_present": {
+            "type": "boolean"
+          },
+          "current_assessment_id": {
+            "oneOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "current_decision_id": {
+            "oneOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "deadline": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "deadline_elapsed": {
+            "type": "boolean"
+          },
+          "external_disposition": {
+            "enum": [
+              "accepted",
+              "rejected",
+              "partial",
+              "incomplete",
+              "not_assessed",
+              null
+            ],
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "feedback_status": {
+            "enum": [
+              "unassessed",
+              "review_required",
+              "hold",
+              "rejected"
+            ],
+            "type": "string"
+          },
+          "native_disposition": {
+            "enum": [
+              "accepted",
+              "rejected",
+              "partial",
+              "incomplete",
+              null
+            ],
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "native_status": {
+            "enum": [
+              "reserved",
+              "candidate",
+              "accepted",
+              "rejected",
+              "partial",
+              "incomplete",
+              "unknown",
+              "cancelled"
+            ],
+            "type": "string"
+          },
+          "reason_code": {
+            "maxLength": 64,
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "run_id": {
+            "type": "string"
+          },
+          "slot_encumbered": {
+            "type": "boolean"
+          },
+          "verdict_present": {
+            "type": "boolean"
+          },
+          "verifier_adopted": {
+            "type": "boolean"
+          },
+          "verifier_present": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "admission_current",
+          "admission_id",
+          "candidate_present",
+          "case_id",
+          "constructor_adopted",
+          "constructor_present",
+          "current_assessment_id",
+          "current_decision_id",
+          "deadline",
+          "deadline_elapsed",
+          "external_disposition",
+          "feedback_status",
+          "native_disposition",
+          "native_status",
+          "reason_code",
+          "run_id",
+          "slot_encumbered",
+          "verdict_present",
+          "verifier_adopted",
+          "verifier_present"
+        ],
+        "title": "OrbCreationSummary",
+        "type": "object"
+      },
       "OrbEventEnvelope": {
         "additionalProperties": false,
         "properties": {
@@ -2875,6 +3028,16 @@
               "durable_best_effort"
             ],
             "type": "string"
+          },
+          "creation": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/OrbCreationSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "delegated_jobs": {
             "items": {

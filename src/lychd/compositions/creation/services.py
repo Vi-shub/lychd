@@ -32,6 +32,7 @@ from lychd.compositions.creation.schemas import (
     InvestigationRequest,
     LineageView,
     OwnerDecision,
+    RunSummary,
     SuccessorRequest,
     SuccessorView,
     Verdict,
@@ -463,6 +464,18 @@ class InvestigationService:
     async def read(self, case_id: UUID, *, authentication: object, principal: Sigil) -> CaseView:
         self.policy.http(authentication, principal, "read")
         return await self.store.read(case_id)
+
+    async def summary_for_run(self, run_id: str, *, authentication: object, principal: Sigil) -> RunSummary | None:
+        """Disclose bounded metadata only under fresh current-role read authority."""
+        try:
+            self.policy.http(authentication, principal, "read")
+            summary = await self.store.summary_for_run(run_id, authentication=authentication, principal=principal)
+            self.policy.http(authentication, principal, "read")
+        except CreationRefused as exc:
+            if str(exc) != "local_authority":
+                raise
+            return None
+        return summary
 
     async def cancel(self, case_id: UUID, *, authentication: object, principal: Sigil, engine: Any) -> CaseView:
         self.policy.http(authentication, principal, "cancel")

@@ -366,6 +366,38 @@ class DelegatedJobSummary(ClientContract):
     events: list[DelegatedJobEventView]
 
 
+class OrbCreationSummary(ClientContract):
+    """Authorized case metadata, separate from selected-Run execution status.
+
+    When admission_current is false, the case's current outcome can include later
+    admissions. Role presence means a retained response. Absence discloses neither
+    configuration nor case existence.
+    """
+
+    case_id: UUID
+    admission_id: UUID
+    run_id: str
+    admission_current: bool
+    native_status: Literal[
+        "reserved", "candidate", "accepted", "rejected", "partial", "incomplete", "unknown", "cancelled"
+    ]
+    reason_code: str | None = Field(max_length=64)
+    deadline: datetime
+    deadline_elapsed: bool
+    slot_encumbered: bool
+    constructor_present: bool
+    constructor_adopted: bool
+    verifier_present: bool
+    verifier_adopted: bool
+    candidate_present: bool
+    verdict_present: bool
+    native_disposition: Literal["accepted", "rejected", "partial", "incomplete"] | None
+    external_disposition: Literal["accepted", "rejected", "partial", "incomplete", "not_assessed"] | None
+    feedback_status: Literal["unassessed", "review_required", "hold", "rejected"]
+    current_assessment_id: UUID | None
+    current_decision_id: UUID | None
+
+
 class OrbRunSnapshot(ClientContract):
     """Selected-run Orb evidence page with explicit capture and gap limits."""
 
@@ -383,6 +415,7 @@ class OrbRunSnapshot(ClientContract):
     gaps: list[EvidenceGap]
     evidence: list[EvidenceItem]
     delegated_jobs: list[DelegatedJobSummary]
+    creation: OrbCreationSummary | None = None
     next_after_seq: int | None
 
 

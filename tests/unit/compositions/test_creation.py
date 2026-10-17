@@ -30,6 +30,7 @@ from lychd.compositions.creation.schemas import (
     ExternalAssessment,
     InvestigationRequest,
     OwnerDecision,
+    RunSummary,
     canonical,
     decode,
     digest,
@@ -852,3 +853,42 @@ def test_feedback_policy_requires_actual_marker_and_matching_action_scope(action
     ]:
         with pytest.raises(CreationRefused, match="local_authority"):
             policy.http(marker, principal, action)
+
+
+@pytest.mark.asyncio
+async def test_run_summary_service_rechecks_authority_without_execution_collaborators() -> None:
+    service, _common = stage_fixture(StageStore())
+    reader = AsyncMock(return_value=Mock(spec=RunSummary))
+    service.store = SimpleNamespace(summary_for_run=reader)
+    service.registry = service.leases = None
+    actor = service.policy.access.authenticate(username=b"magus", password=ACCESS_VALUE.encode())
+    assert actor is not None
+    principal = default_local_sigil()
+    run_id = str(uuid4())
+    assert await service.summary_for_run(run_id, authentication=actor, principal=principal) is reader.return_value
+    reader.assert_awaited_once_with(run_id, authentication=actor, principal=principal)
+    reconstructed = LocalOperatorAuthentication(
+        subject=actor.subject, authentication_generation=actor.authentication_generation
+    )
+    assert await service.summary_for_run(run_id, authentication=reconstructed, principal=principal) is None
+    assert reader.await_count == 1
+
+    async def revoke_during_read(*_args: Any, **_kwargs: Any) -> Any:
+        service.policy.access.revoke()
+        return reader.return_value
+
+    reader.side_effect = revoke_during_read
+    assert await service.summary_for_run(run_id, authentication=actor, principal=principal) is None
+    assert reader.await_count == 2
+    assert await service.summary_for_run(run_id, authentication=actor, principal=principal) is None
+    assert reader.await_count == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("error", [CreationRefused("custody_digest"), RuntimeError("summary_store_unavailable")])
+async def test_run_summary_service_preserves_operational_errors(error: Exception) -> None:
+    service, _common = stage_fixture(StageStore())
+    service.store = SimpleNamespace(summary_for_run=AsyncMock(side_effect=error))
+    actor = service.policy.access.authenticate(username=b"magus", password=ACCESS_VALUE.encode())
+    with pytest.raises(type(error), match=str(error)):
+        await service.summary_for_run(str(uuid4()), authentication=actor, principal=default_local_sigil())

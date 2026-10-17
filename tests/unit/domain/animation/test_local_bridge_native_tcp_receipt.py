@@ -47,7 +47,7 @@ def test_native_tcp_receipt_preserves_its_observed_scope_and_privacy() -> None:
     assert "The optional thinking policy was omitted" in receipt["identity_boundary"]
     assert "Creation investigation was omitted." in receipt["identity_boundary"]
     assert receipt["source_identity"] == {
-        "revision_observed": "de145ed7ae2619658ddce4cd2966d41ca3ae88be",
+        "revision_observed": "206d96ce6e54eb103cdf4e336dff31d8e4fbe7c5",
         "clean_checkout_observed": False,
         "atomic_transitive_closure_attested": False,
         "scope": "bounded-critical-source-and-test-fingerprints",
@@ -240,10 +240,10 @@ def test_native_tcp_receipt_matches_qualified_sources_and_provenance() -> None:
         "resource_launcher_source_sha256",
         "resource_receipt_sha256",
     }
-    assert evidence["coordinator_source_sha256"] == "6c1505e1959442b2a9de0078a9c7e2d1f719c3a9d9cc97c26246cac6022daca8"
+    assert evidence["coordinator_source_sha256"] == "199c1fc175d2ca148df30466a30347b775dae610d3f5ed80647cd5e077824fb9"
     assert (
         evidence["resource_launcher_source_sha256"]
-        == "b8105f73913316031e7241529ff4676b8672ac106754d76b8daea209a18afa78"
+        == "ceeaf5a8f1ee500b870fe1818540256e8a78dd19077abd1622781d4548032702"
     )
     for digest in evidence.values():
         assert re.fullmatch(r"[0-9a-f]{64}", digest)

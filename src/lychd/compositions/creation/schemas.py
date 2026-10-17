@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from hashlib import sha256
 from pathlib import PurePosixPath
 from typing import Any, Literal, NoReturn
@@ -23,6 +24,29 @@ INPUT_TOKENS = 3584
 OUTPUT_TOKENS = 512
 FEEDBACK_BYTES = 16384
 FEEDBACK_LIMIT = 16
+SUMMARY_REASON_CODES = frozenset(
+    {
+        "cancelled",
+        "expired",
+        "output_bytes",
+        "output_length",
+        "output_type",
+        "observed_usage",
+        "raw_response_bytes",
+        "role_packet_bytes",
+        "verifier_packet_reservation",
+        "invalid_json",
+        "duplicate_key",
+        "criterion_closure",
+        "citation_source",
+        "citation_span",
+        "profile_changed",
+        "grant_changed",
+        "run_fence",
+        "current_binding",
+        "other",
+    }
+)
 
 
 class CreationRefused(ValueError):  # noqa: N818 - domain refusal, not a runtime defect
@@ -193,6 +217,45 @@ class CaseView(Record):
     candidate_digest: str | None
     verdict: dict[str, Any] | None
     reason: str | None
+
+
+class RunSummary(Record):
+    """Content-free retained case metadata for one exact admitted Run.
+
+    A historical admission observes its case's current retained outcome. Role
+    presence means a retained response, not an unresolved claim. Deadline passage
+    is an observation, never permission to settle or expire that case.
+    """
+
+    case_id: UUID
+    admission_id: UUID
+    run_id: str
+    admission_current: bool
+    native_status: Literal[
+        "reserved", "candidate", "accepted", "rejected", "partial", "incomplete", "unknown", "cancelled"
+    ]
+    reason_code: str | None
+    deadline: datetime
+    deadline_elapsed: bool
+    slot_encumbered: bool
+    constructor_present: bool
+    constructor_adopted: bool
+    verifier_present: bool
+    verifier_adopted: bool
+    candidate_present: bool
+    verdict_present: bool
+    native_disposition: Literal["accepted", "rejected", "partial", "incomplete"] | None
+    external_disposition: Literal["accepted", "rejected", "partial", "incomplete", "not_assessed"] | None
+    feedback_status: Literal["unassessed", "review_required", "hold", "rejected"]
+    current_assessment_id: UUID | None
+    current_decision_id: UUID | None
+
+    @field_validator("reason_code")
+    @classmethod
+    def content_free_reason(cls, value: str | None) -> str | None:
+        if value is not None and value not in SUMMARY_REASON_CODES:
+            refuse("summary_reason")
+        return value
 
 
 def validate_output(request: InvestigationRequest, value: Candidate | Verdict) -> bytes:

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OrbEventEnvelope } from "$lib/api/models";
 import { fixtureRun } from "./__fixtures__/snapshot";
+import { incompleteCreation } from "./__fixtures__/creation";
 import { getOrbCatalogue, listenToOrb, type OrbLiveCallbacks } from "./live";
 
 class Source extends EventTarget {
@@ -80,4 +81,32 @@ describe("Orb retained-ledger feed", () => {
 it("keeps catalogue authorization refusal distinct from an empty catalogue", async () => {
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 403 }));
   await expect(getOrbCatalogue()).rejects.toThrow("cannot read");
+});
+
+describe("Creation metadata transport", () => {
+  it("retains authorized metadata without bodies and clears it at the same ledger cursor", () => {
+    const cb = callbacks(); listenToOrb("run-a", 0, cb);
+    const event = frame(); event.snapshot.creation = { ...incompleteCreation };
+    Object.assign(event.snapshot.creation, { private_response: "must not enter client state" });
+    Source.instances[0]!.emit("evidence", event);
+    expect(cb.onFrame).toHaveBeenLastCalledWith(expect.objectContaining({ snapshot: expect.objectContaining({ creation: incompleteCreation }) }));
+    const received = vi.mocked(cb.onFrame).mock.calls[0]![0].snapshot.creation;
+    expect(received).not.toHaveProperty("private_response");
+    Source.instances[0]!.emit("evidence", frame({ after_seq: 1, cursor: 1, snapshot: { ...event.snapshot, evidence: [], creation: null } }));
+    expect(vi.mocked(cb.onFrame).mock.calls[1]![0].snapshot.creation).toBeNull();
+    expect(cb.onFault).not.toHaveBeenCalled();
+  });
+
+  it.each(["foreign_run", "invalid_status", "invalid_deadline", "oversize_reason"])("refuses %s metadata before publication", (failure) => {
+    const cb = callbacks(); listenToOrb("run-a", 0, cb);
+    const event = frame(); event.snapshot.creation = { ...incompleteCreation };
+    if (failure === "foreign_run") event.snapshot.creation.run_id = "foreign";
+    if (failure === "invalid_status") Object.assign(event.snapshot.creation, { native_status: "successful" });
+    if (failure === "invalid_deadline") event.snapshot.creation.deadline = "yesterday";
+    if (failure === "oversize_reason") event.snapshot.creation.reason_code = "x".repeat(65);
+    Source.instances[0]!.emit("evidence", event);
+    expect(cb.onFrame).not.toHaveBeenCalled();
+    expect(cb.onFault).toHaveBeenCalledOnce();
+    expect(Source.instances[0]!.close).toHaveBeenCalledOnce();
+  });
 });

@@ -22,13 +22,20 @@ from lychd.agents.workflows import WorkflowRegistry, resolve_pinned_workflow
 from lychd.domain.codex.guards import requires_scopes
 from lychd.domain.cortex.events import InProcessEventBus
 from lychd.domain.cortex.runs import TERMINAL_STATUSES
-from lychd.domain.web.contracts import FrameworkError, OrbEventEnvelope, OrbRunPage, OrbRunSnapshot, OrbRunSummary
+from lychd.domain.web.contracts import (
+    FrameworkError,
+    OrbCreationSummary,
+    OrbEventEnvelope,
+    OrbRunPage,
+    OrbRunSnapshot,
+    OrbRunSummary,
+)
 from lychd.domain.web.orb import build_orb_snapshot
 from lychd.domain.web.schemas import LoomView, build_loom_view
 from lychd.interface.web.bridge_stream import BoundedRunEventStream
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator
+    from collections.abc import AsyncGenerator, Awaitable, Callable
 
     from lychd.domain.cortex.ledger import RunLedger
     from lychd.domain.cortex.runs import RunRecord
@@ -56,6 +63,38 @@ def _workflow_view(run: RunRecord, workflows: WorkflowRegistry) -> LoomView | No
     return build_loom_view(workflow) if workflow is not None else None
 
 
+async def _creation_summary(state: State, request: Request[Any, Any, Any], run_id: str) -> OrbCreationSummary | None:
+    """Map the optional application's authorized, content-free record at HTTP."""
+    service = getattr(state.services, "creation", None)
+    if service is None:
+        return None
+    summary = await service.summary_for_run(run_id, authentication=request.auth, principal=request.user)
+    if summary is None or summary.run_id != run_id:
+        return None
+    return OrbCreationSummary(
+        case_id=summary.case_id,
+        admission_id=summary.admission_id,
+        run_id=summary.run_id,
+        admission_current=summary.admission_current,
+        native_status=summary.native_status,
+        reason_code=summary.reason_code,
+        deadline=summary.deadline,
+        deadline_elapsed=summary.deadline_elapsed,
+        slot_encumbered=summary.slot_encumbered,
+        constructor_present=summary.constructor_present,
+        constructor_adopted=summary.constructor_adopted,
+        verifier_present=summary.verifier_present,
+        verifier_adopted=summary.verifier_adopted,
+        candidate_present=summary.candidate_present,
+        verdict_present=summary.verdict_present,
+        native_disposition=summary.native_disposition,
+        external_disposition=summary.external_disposition,
+        feedback_status=summary.feedback_status,
+        current_assessment_id=summary.current_assessment_id,
+        current_decision_id=summary.current_decision_id,
+    )
+
+
 async def _orb_events(
     ledger: RunLedger,
     run_id: str,
@@ -63,12 +102,14 @@ async def _orb_events(
     *,
     after_seq: int,
     delegates: DelegatedAgentCoordinatorPort | None = None,
+    read_creation: Callable[[], Awaitable[OrbCreationSummary | None]] | None = None,
 ) -> AsyncGenerator[ServerSentEventMessage]:
     """Poll retained truth without a queue or any dependency on live token delivery.
 
     Each pull retains at most one page. A slow reader delays its own next read;
     it never queues producer events or prevents Run execution. Terminal status
     settles the currently retained account, whose capture remains best effort.
+    Later external reviews require a fresh snapshot after terminal settlement.
     """
     cursor = after_seq
     previous_metadata: tuple[object, ...] | None = None
@@ -86,6 +127,7 @@ async def _orb_events(
             workflow=_workflow_view(run, workflows),
             delegates=delegates,
         )
+        snapshot.creation = await read_creation() if read_creation is not None else None
         if cursor > snapshot.ledger_head_seq:
             envelope = OrbEventEnvelope(
                 run_id=run_id,
@@ -104,6 +146,7 @@ async def _orb_events(
             snapshot.pattern,
             snapshot.capture,
             snapshot.delegated_jobs,
+            snapshot.creation,
             snapshot.known_omissions,
         )
         if snapshot.evidence or metadata != previous_metadata or terminal:
@@ -188,6 +231,7 @@ class OrbController(Controller):
     )
     async def run(
         self,
+        request: Request[Any, Any, Any],
         run_id: FromPath[str],
         state: State,
         workflows: NamedDependency[WorkflowRegistry],
@@ -201,7 +245,7 @@ class OrbController(Controller):
             raise NotFoundException(detail="Unknown run.") from exc
         if record is None:
             raise NotFoundException(detail="Unknown run.")
-        return await build_orb_snapshot(
+        snapshot = await build_orb_snapshot(
             state.services.ledger,
             record,
             after_seq=after_seq,
@@ -209,6 +253,8 @@ class OrbController(Controller):
             workflow=_workflow_view(record, workflows),
             delegates=getattr(state.services, "delegates", None),
         )
+        snapshot.creation = await _creation_summary(state, request, run_id)
+        return snapshot
 
     @get(
         "/runs/{run_id:str}/events",
@@ -250,6 +296,10 @@ class OrbController(Controller):
             raise NotFoundException(detail="Unknown run.") from exc
         if run is None:
             raise NotFoundException(detail="Unknown run.")
+
+        async def read_creation() -> OrbCreationSummary | None:
+            return await _creation_summary(state, request, run_id)
+
         return BoundedRunEventStream(
             _orb_events(
                 state.services.ledger,
@@ -257,6 +307,7 @@ class OrbController(Controller):
                 workflows,
                 after_seq=after_seq,
                 delegates=getattr(state.services, "delegates", None),
+                read_creation=read_creation,
             ),
             bus=run_bus,
             run_id=run_id,

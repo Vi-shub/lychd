@@ -22,6 +22,18 @@ const workflowSchema = z.object({
   nodes: z.array(z.object({ key: z.string(), label: z.string(), kind: z.string() })),
   edges: z.array(z.object({ key: z.string(), source: z.string(), target: z.string(), relation: z.string() }))
 });
+const creationSummarySchema = z.object({
+  case_id: z.uuid(), admission_id: z.uuid(), run_id: z.string(), admission_current: z.boolean(),
+  native_status: z.enum(["reserved", "candidate", "accepted", "rejected", "partial", "incomplete", "unknown", "cancelled"]),
+  reason_code: z.string().max(64).nullable(), deadline: z.iso.datetime({ offset: true }),
+  deadline_elapsed: z.boolean(), slot_encumbered: z.boolean(),
+  constructor_present: z.boolean(), constructor_adopted: z.boolean(),
+  verifier_present: z.boolean(), verifier_adopted: z.boolean(), candidate_present: z.boolean(), verdict_present: z.boolean(),
+  native_disposition: z.enum(["accepted", "rejected", "partial", "incomplete"]).nullable(),
+  external_disposition: z.enum(["accepted", "rejected", "partial", "incomplete", "not_assessed"]).nullable(),
+  feedback_status: z.enum(["unassessed", "review_required", "hold", "rejected"]),
+  current_assessment_id: z.uuid().nullable(), current_decision_id: z.uuid().nullable()
+});
 const runSummarySchema = z.object({ run_id: z.string(), session_id: z.string(), workflow_name: z.string(), status: z.string(), created_at: z.string(), started_at: z.string().nullable(), finished_at: z.string().nullable(), error_present: z.boolean(), bridge_path: z.string() });
 
 export const orbSnapshotSchema: z.ZodType<OrbRunSnapshot> = z.object({
@@ -30,6 +42,7 @@ export const orbSnapshotSchema: z.ZodType<OrbRunSnapshot> = z.object({
   live_tail: z.literal("ledger_poll"), next_after_seq: sequence.nullable(), known_omissions: z.array(z.string()),
   evidence: z.array(evidenceSchema).max(100), gaps: z.array(gapSchema).max(101),
   workflow: workflowSchema.nullable(),
+  creation: creationSummarySchema.nullish(),
   pattern: z.object({ pattern_id: z.string(), revision: z.string(), digest: z.string().nullable(), exact: z.boolean(), loom_path: z.string().nullable() }),
   run: runSummarySchema,
   delegated_jobs: z.array(z.object({
@@ -73,6 +86,7 @@ export function listenToOrb(runId: string, afterSeq: number, callbacks: OrbLiveC
       try { frame = envelopeSchema.parse(JSON.parse(message.data)); }
       catch { fault("The Orb feed supplied an invalid evidence envelope. Refresh the retained account."); return; }
       if (frame.kind !== kind || frame.run_id !== runId || frame.snapshot.run.run_id !== runId ||
+          (frame.snapshot.creation != null && frame.snapshot.creation.run_id !== runId) ||
           (message.lastEventId && message.lastEventId !== String(frame.cursor))) {
         fault("The Orb feed identity does not match this Run or cursor. Refresh the retained account."); return;
       }

@@ -1489,6 +1489,36 @@ export interface components {
             source_key: string;
             source_revision: string;
         };
+        /** OrbCreationSummary */
+        OrbCreationSummary: {
+            admission_current: boolean;
+            /** Format: uuid */
+            admission_id: string;
+            candidate_present: boolean;
+            /** Format: uuid */
+            case_id: string;
+            constructor_adopted: boolean;
+            constructor_present: boolean;
+            current_assessment_id: string | null;
+            current_decision_id: string | null;
+            /** Format: date-time */
+            deadline: string;
+            deadline_elapsed: boolean;
+            /** @enum {null|string} */
+            external_disposition: "accepted" | "rejected" | "partial" | "incomplete" | "not_assessed" | null;
+            /** @enum {string} */
+            feedback_status: "unassessed" | "review_required" | "hold" | "rejected";
+            /** @enum {null|string} */
+            native_disposition: "accepted" | "rejected" | "partial" | "incomplete" | null;
+            /** @enum {string} */
+            native_status: "reserved" | "candidate" | "accepted" | "rejected" | "partial" | "incomplete" | "unknown" | "cancelled";
+            reason_code: string | null;
+            run_id: string;
+            slot_encumbered: boolean;
+            verdict_present: boolean;
+            verifier_adopted: boolean;
+            verifier_present: boolean;
+        };
         /** OrbEventEnvelope */
         OrbEventEnvelope: {
             after_seq: number;
@@ -1521,6 +1551,7 @@ export interface components {
         OrbRunSnapshot: {
             /** @enum {string} */
             capture: "process_local" | "durable_best_effort";
+            creation?: components["schemas"]["OrbCreationSummary"] | null;
             delegated_jobs: components["schemas"]["DelegatedJobSummary"][];
             evidence: components["schemas"]["EvidenceItem"][];
             gaps: components["schemas"]["EvidenceGap"][];

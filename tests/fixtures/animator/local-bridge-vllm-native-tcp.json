@@ -204,19 +204,19 @@
   },
   "qualification_date": "2026-10-17",
   "qualification_evidence": {
-    "application_receipt_sha256": "203855d167972ff12d5d439defdf84d425191cc97c33d7a62c6f1cdea1e3ae06",
-    "candidate_manifest_sha256": "cc9afb0685340684d9a8c3272707fd5ed6c96b7ab61fa65789e041c15c9b528a",
-    "coordinator_receipt_sha256": "43986257e84d8f9a5a6a33e3ae6fc89a6dbd3c0cc55718aa59e25491812a59f8",
-    "coordinator_source_sha256": "6c1505e1959442b2a9de0078a9c7e2d1f719c3a9d9cc97c26246cac6022daca8",
-    "model_profile_sha256": "813f9ec3ee68f593050da59caae8fc6e67ef811acbbc62ad8c56a952b2187713",
+    "application_receipt_sha256": "61640e54a9797d73bd2799cdb87d36af91f2834f24538cf71b8d882abdadfea4",
+    "candidate_manifest_sha256": "5f2044d17b78d95e677b203e252f78f841ef680faa10070ea20c999ec4889acb",
+    "coordinator_receipt_sha256": "93a6a5a1fcbe44ebb889962d27428a95c66f941458b5b986903e0a7806f182b0",
+    "coordinator_source_sha256": "199c1fc175d2ca148df30466a30347b775dae610d3f5ed80647cd5e077824fb9",
+    "model_profile_sha256": "8b35bdaa5c3c2951a21a5f07ee3b979dbf3701884af1416e9727c6290fc778a4",
     "native_test_sha256_before_trial": "7cc36a27ccc473f5cd374655c2ee6aedf002d85ddf676e297c585b2de11a9454",
-    "pytest_log_sha256": "90a7d2e724379e271fca3d84583600ffefbed474b1deed3bcc6d978e99a6329c",
-    "resource_launcher_source_sha256": "b8105f73913316031e7241529ff4676b8672ac106754d76b8daea209a18afa78",
-    "resource_receipt_sha256": "bc3f8a37ea9be8e708629748150105775e38e5f3b55aa767c14c5d0fd5e7de25"
+    "pytest_log_sha256": "6294e324a6eeef2444ee53262e56840fa069b7ebcc8c8fd81298d62e994dc657",
+    "resource_launcher_source_sha256": "ceeaf5a8f1ee500b870fe1818540256e8a78dd19077abd1622781d4548032702",
+    "resource_receipt_sha256": "2fa702cc282f3e4d0936435a9f5eb748657e4c09e9503ea705b6884cf66d0ee2"
   },
   "record_kind": "sanitized_public_local_bridge_native_tcp_qualification",
-  "retained_history_sha256": "8676e8847378af85afe800111cbe7a361b9074f0279ffe183086420693012ad9",
-  "retained_turns_sha256": "4176e5ec89f2dcce2ffaaeebac4de980f7188229386ed8ffb987ac5439795fe9",
+  "retained_history_sha256": "1f0a01355d6f5508d8070eb6dc9a910f77098c176b1c51a08c7d0b7439da706d",
+  "retained_turns_sha256": "d8d23c83f80ee1b5b6912d10ce6a18090146f61c256dc8321b435067e7b491e7",
   "runner": {
     "cleanup_verified": true,
     "coordinator_cleanup_reserve_seconds": 30,
@@ -253,8 +253,8 @@
     "src/lychd/cli/base.py": "de2287c2bdafd87d0642bea1c83c1abf8f56cd38b64fc03029eca3585edbe10f",
     "src/lychd/cli/commands.py": "088b1fb9feeb285436c599dd494284de2c3ac5075c334e402e91eb1ac2cea026",
     "src/lychd/cli/operator.py": "af6a16996eeaf701aa2b81368e1ba71d239d6137750711d602cc3b7fe75f47e7",
-    "src/lychd/compositions/creation/schemas.py": "28e0dbeec78613f89c22fb7c73290f1e92f723ff5383db330d3b196df55cd70c",
-    "src/lychd/compositions/creation/services.py": "e5c637c7351cd89c3d1a793d892c018bd87a13b3dbe7ae98b90f44ceea729096",
+    "src/lychd/compositions/creation/schemas.py": "b111d69523df2b5f84c7cce9fe81a8ede9f5d4b92bdcbc323a54a4c024514584",
+    "src/lychd/compositions/creation/services.py": "694d47763fe393eec6eaca43006fa63132026fc62e670a46265df5ae57c12c3b",
     "src/lychd/config/components.py": "fb35c47ba9ee2cf9cec20b955120da279610579aeddaa81ce78c2b9885f005f7",
     "src/lychd/config/constants.py": "b9d3f3e91466a0e8e2f65f491ca471d39f70b87d231a0ce9b5008c379c11cb7c",
     "src/lychd/config/settings/root.py": "a8c179f5f52a0a2260680b164958a9138fd5a75b7202f90bbe0ad1a5ccb2d0bf",
@@ -299,7 +299,7 @@
     "src/lychd/interface/web/altar_services.py": "9d592f7011b557420389e4443be50caf62ac3087a993b347a3c77c2d8035ff9d",
     "src/lychd/interface/web/bridge.py": "198b2102111ac80ee38dfb8c631b39b58ce6fd7d3e296403b9f5551d87512949",
     "src/lychd/interface/web/lifespan.py": "8208f336e8ad9a508941ebf69ded1aedbe59da8b57c13bf29df9d56db0087001",
-    "src/lychd/interface/web/orb.py": "f5bc0fa7200fd3ba955468a328099fd92210fd1ebce264281baa383aac13bb48",
+    "src/lychd/interface/web/orb.py": "fda5ff0cf8bb14a9af3d1030a7e68b164a2c7ac6a6614b02b713f7a5530a4ade",
     "src/lychd/system/operator/__init__.py": "b4df3abb6a07d0d1c2fa480e3443e86a671ed07c4d2551ba8e210cc1f345a427",
     "src/lychd/system/operator/admission.py": "8312e98209e267ed7bcbeeb990416cbafd36b1127c6436ef0db701d94b0c1f3b",
     "src/lychd/system/operator/composition.py": "93b13c0aedeaccbaa98d5b040c655166d4c1b6bd771bebb632a9e42313ee0bdd",
@@ -317,13 +317,13 @@
   "source_identity": {
     "atomic_transitive_closure_attested": false,
     "clean_checkout_observed": false,
-    "revision_observed": "de145ed7ae2619658ddce4cd2966d41ca3ae88be",
+    "revision_observed": "206d96ce6e54eb103cdf4e336dff31d8e4fbe7c5",
     "scope": "bounded-critical-source-and-test-fingerprints"
   },
   "status": "passed",
   "timings_seconds": {
-    "command": 21.8395,
-    "pytest": 19.52
+    "command": 22.485,
+    "pytest": 20.15
   },
   "unexercised": [
     "installed-command-or-caged-Vessel",

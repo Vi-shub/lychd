@@ -6,13 +6,16 @@ from datetime import datetime, timedelta
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import func, select, text
+from sqlalchemy import case, func, select, text
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import aliased
 
 from lychd.compositions.creation.schemas import (
     FEEDBACK_LIMIT,
     INPUT_TOKENS,
     OUTPUT_TOKENS,
     RESPONSE_BYTES,
+    SUMMARY_REASON_CODES,
     CaseView,
     ContinueRequest,
     ExternalAssessment,
@@ -23,6 +26,7 @@ from lychd.compositions.creation.schemas import (
     LineageEntry,
     LineageView,
     OwnerDecision,
+    RunSummary,
     SuccessorRequest,
     canonical,
     decode,
@@ -566,6 +570,104 @@ class DbCreationStore:
             runs = tuple(str(admission.run_id) for admission in admissions if admission.run_id is not None)
             await session.commit()
         return runs
+
+    async def summary_for_run(self, run_id: str, *, authentication: object, principal: Sigil) -> RunSummary | None:
+        """Select metadata without loading bodies, locking, expiring or committing.
+
+        One statement observes the case and latest feedback in the same database
+        snapshot. Its unique admission binding is the only Run-to-case lookup.
+        """
+        self.policy.http(authentication, principal, "read")
+        try:
+            identity = UUID(run_id)
+        except ValueError:
+            return None
+        assessment, decision = aliased(CreationFeedback), aliased(CreationFeedback)
+        latest_assessment = (
+            select(assessment.id)
+            .where(assessment.case_id == CreationCase.id, assessment.kind == "assessment")
+            .order_by(assessment.sequence.desc())
+            .limit(1)
+            .correlate(CreationCase)
+            .scalar_subquery()
+        )
+        latest_disposition = (
+            select(func.convert_from(assessment.body_bytes, "UTF8").cast(JSONB)["disposition"].astext)
+            .where(assessment.case_id == CreationCase.id, assessment.kind == "assessment")
+            .order_by(assessment.sequence.desc())
+            .limit(1)
+            .correlate(CreationCase)
+            .scalar_subquery()
+        )
+        decision_filter = (
+            decision.case_id == CreationCase.id,
+            decision.kind == "decision",
+            decision.assessment_id == latest_assessment,
+        )
+        latest_decision = (
+            select(decision.id)
+            .where(*decision_filter)
+            .order_by(decision.sequence.desc())
+            .limit(1)
+            .correlate(CreationCase)
+            .scalar_subquery()
+        )
+        latest_action = (
+            select(func.convert_from(decision.body_bytes, "UTF8").cast(JSONB)["action"].astext)
+            .where(*decision_filter)
+            .order_by(decision.sequence.desc())
+            .limit(1)
+            .correlate(CreationCase)
+            .scalar_subquery()
+        )
+
+        def attempted(role: str, *, adopted: bool = False) -> Any:
+            filters = [
+                CreationAttempt.case_id == CreationCase.id,
+                CreationAttempt.role == role,
+                CreationAttempt.response_bytes.is_not(None),
+            ]
+            if adopted:
+                filters.append(CreationAttempt.adopted.is_(True))
+            return select(CreationAttempt.id).where(*filters).correlate(CreationCase).exists()
+
+        statement = (
+            select(
+                CreationCase.id.label("case_id"),
+                CreationAdmission.id.label("admission_id"),
+                (CreationCase.current_admission_id == CreationAdmission.id).label("admission_current"),
+                CreationCase.status.label("native_status"),
+                case(
+                    (CreationCase.reason.in_(SUMMARY_REASON_CODES), CreationCase.reason),
+                    (CreationCase.reason.is_not(None), "other"),
+                ).label("reason_code"),
+                CreationCase.deadline,
+                (CreationCase.deadline <= func.clock_timestamp()).label("deadline_elapsed"),
+                CreationCase.slot.is_not(None).label("slot_encumbered"),
+                attempted("constructor").label("constructor_present"),
+                attempted("constructor", adopted=True).label("constructor_adopted"),
+                attempted("verifier").label("verifier_present"),
+                attempted("verifier", adopted=True).label("verifier_adopted"),
+                CreationCase.candidate_bytes.is_not(None).label("candidate_present"),
+                CreationCase.verdict_bytes.is_not(None).label("verdict_present"),
+                case((CreationCase.verdict_bytes.is_not(None), CreationCase.status)).label("native_disposition"),
+                latest_disposition.label("external_disposition"),
+                case(
+                    (latest_action == "hold", "hold"),
+                    (latest_action == "reject", "rejected"),
+                    (latest_assessment.is_not(None), "review_required"),
+                    else_="unassessed",
+                ).label("feedback_status"),
+                latest_assessment.label("current_assessment_id"),
+                latest_decision.label("current_decision_id"),
+            )
+            .join(CreationAdmission, CreationAdmission.case_id == CreationCase.id)
+            .where(CreationAdmission.run_id == identity)
+        )
+        async with self.factory() as session:
+            row = (await session.execute(statement)).mappings().one_or_none()
+            self.policy.http(authentication, principal, "read")
+            return RunSummary.model_validate({**row, "run_id": str(identity)}) if row is not None else None
 
     async def read(self, case_id: UUID, *, expire: bool = True) -> CaseView:
         async with self.factory() as session:

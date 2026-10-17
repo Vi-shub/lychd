@@ -132,6 +132,26 @@ Responses project the case, original request, admissions, attempts, candidate, v
 noncompletion. Generated OpenAPI owns the transport schema. Authentication, Origin and CSRF remain
 server gates. The browser and callers do not create durable truth by display.
 
+## Selected-Run summary
+
+The existing Orb selected-Run snapshot and retained-evidence feed may include an authorized
+Creation summary. Its identity comes only from the retained exact admission-to-Run relationship;
+workflow names, adjacent Sessions and browser state cannot establish it. Each read checks current
+local-role authority, including every active stream poll. Missing metadata establishes neither the
+existence of a case nor whether Creation is configured.
+
+This dedicated metadata read does not expire or settle a case, release its execution slot, adopt a
+response or load source, provider response, candidate or report bodies. It can report an elapsed
+deadline while the slot remains encumbered. It separates constructor/verifier retention and
+adoption, native status/verdict, latest external assessment and current owner decision. A historical
+admission remains linked to its original Run while the summary explicitly describes the case's
+current outcome, which may include later admissions. A newer assessment makes an older decision
+non-current according to the feedback contract below.
+
+Orb labels these details separately from Run execution status and its recorded-evidence playback.
+The feed still closes when retained terminal evidence drains; later assessment and owner updates
+need Refresh. This projection grants no Creation action or source-edit authority.
+
 ## External assessment and owner hold
 
 The first feedback contract appends an external report and explicit local owner `hold` or `reject`

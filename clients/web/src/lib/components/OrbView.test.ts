@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { OrbRunSnapshot } from "$lib/api/models";
+import { incompleteCreation } from "$lib/orb/__fixtures__/creation";
 
 vi.mock("$app/navigation", () => ({ goto: vi.fn() }));
 vi.mock("$app/state", async () => {
@@ -664,6 +665,44 @@ describe("Orb loaded evidence browsing", () => {
     expect(await screen.findByText(/Station attempt IDs appear under multiple station subjects/)).toBeTruthy();
     expect(screen.getByRole("option", { name: /Station observations · publish/ })).toBeTruthy();
     expect(screen.getByRole("option", { name: /Station observations · review/ })).toBeTruthy();
+    view.unmount();
+  });
+});
+
+describe("Creation evidence in the selected Run", () => {
+  it("keeps DONE separate from incomplete custody, applies metadata-only updates and clears revoked details", async () => {
+    vi.mocked(getOrbRun).mockResolvedValue({ ...snapshot, creation: incompleteCreation });
+    const view = render(OrbView, { runId: "run-a" });
+    await screen.findByRole("region", { name: "Creation outcome" });
+    expect(view.container.querySelector(".run-status")?.textContent).toBe("done");
+    expect(screen.getByText("incomplete")).toBeTruthy();
+    const callbacks = vi.mocked(listenToOrb).mock.calls[0]![2];
+    await act(() => callbacks.onFrame({ schema_version: 1, run_id: "run-a", kind: "evidence", after_seq: 0, cursor: 0,
+      snapshot: { ...snapshot, evidence: [], creation: { ...incompleteCreation, native_status: "accepted", native_disposition: "accepted",
+        external_disposition: "partial", feedback_status: "hold", current_decision_id: "43a159ef-e563-485f-a5f9-772b52bf59d7" } }
+    }));
+    expect(screen.getByText("partial")).toBeTruthy();
+    expect(screen.getByText("hold")).toBeTruthy();
+    await act(() => callbacks.onFrame({ schema_version: 1, run_id: "run-a", kind: "settled", after_seq: 0, cursor: 0,
+      snapshot: { ...snapshot, evidence: [], creation: null }
+    }));
+    expect(screen.queryByRole("region", { name: "Creation outcome" })).toBeNull();
+    expect(screen.queryByText(incompleteCreation.case_id)).toBeNull();
+    view.unmount();
+  });
+
+  it("refreshes later feedback after settlement and does not display a foreign Run summary", async () => {
+    vi.mocked(getOrbRun).mockResolvedValueOnce({ ...snapshot, creation: incompleteCreation })
+      .mockResolvedValueOnce({ ...snapshot, creation: { ...incompleteCreation, feedback_status: "review_required" } })
+      .mockResolvedValueOnce({ ...snapshot, creation: { ...incompleteCreation, run_id: "another-run" } });
+    const view = render(OrbView, { runId: "run-a" });
+    await screen.findByRole("region", { name: "Creation outcome" });
+    await act(() => vi.mocked(listenToOrb).mock.calls[0]![2].onConnection("settled"));
+    await fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
+    expect(await screen.findByText(/Feedback: review required/)).toBeTruthy();
+    await fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
+    await waitFor(() => expect(screen.queryByRole("region", { name: "Creation outcome" })).toBeNull());
+    expect(screen.queryByText(incompleteCreation.case_id)).toBeNull();
     view.unmount();
   });
 });

@@ -1419,6 +1419,15 @@ the lens.
 
 Initial read recovery and loaded-record subject/attempt browsing preserve the current route and historical selection. Refresh and pagination do not move focus when an unchanged job hint becomes available.
 
+An optional, current-authority-checked Creation summary follows the selected Run's exact retained
+admission link. A dedicated metadata query preserves custody even when a deadline has elapsed
+and the slot remains encumbered. The client separates Run status, case status, constructor/verifier
+adoption, native verdict, latest external assessment and current owner disposition. Historical
+admissions explicitly display case-current outcome; absence discloses no case existence. Active
+SSE polls refresh or clear this metadata without changing the evidence cursor. Later feedback
+after terminal settlement requires explicit Refresh. No source, prompt, response, candidate,
+report or free-text reason body enters the summary.
+
 **Boundary — Not yet:** Loaded graph counts are not complete-history counts. The current manifest
 supplies no nested subworkflow or parent-Run identity. There is no durable Oculus read model,
 Sigma/Graphology adapter, cross-process completeness, health query, artifact custody, or annotation.
@@ -1430,7 +1439,7 @@ The shared renderer's cross-engine forced-collection qualification remains under
 
 - **Source:** [Orb controller](https://github.com/hexanomicon/lychd/blob/main/src/lychd/interface/web/orb.py), [Run catalogue queries](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/cortex/ledger.py), [parallel field](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/OrbField.svelte), and [selected-Run client](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/OrbView.svelte)
 - **Verification:** [Orb API and stream tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_orb.py), [catalogue privacy and pagination tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_orb_catalogue.py), [parallel-field tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/OrbField.test.ts), [folded coverage tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/graph/orb.test.ts), [selected-Run tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/OrbView.test.ts), and [feed recovery tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/orb/live.test.ts)
-- **Law:** [Observability](./adr/29-observability.md)
+- **Law:** [Observability](./adr/29-observability.md), [Altar projection](./adr/15-frontend.md#snapshots-streams-and-recovery), and [Creation summary](./compositions/creation/index.md#selected-run-summary)
 
 ### Structured logging configuration {#structured-logging}
 
