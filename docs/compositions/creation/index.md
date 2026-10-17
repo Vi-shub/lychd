@@ -11,7 +11,7 @@ investigation should remain intelligible when its conversation and worker have e
 
 ## Contract
 
-**`creation.investigation` revision `1`** publishes **`creation.investigate@1`** for bounded
+**`creation.investigation` revision `2`** publishes **`creation.investigate@2`** for bounded
 public-source software investigation. It owns the immutable request, source bundle, role
 reservations, inference attempts, candidate and attributed verdict. Run owns execution and delivery;
 Dispatcher owns grants. The wider [Creation method](../../sepulcher/extensions/weaver/creation.md)
@@ -30,14 +30,14 @@ patch identity, question, non-goals, criterion IDs, omissions, exact role bindin
 A filename or hash without its bytes is insufficient. Declared base identity is not an independently
 observed live Git tree. Changed inputs require another request; an old report keeps its old target.
 
-Revision 1 permits at most 8 sources and 4096 total source bytes, 512 question bytes and 4 criteria of
+Revision 2 permits at most 8 sources and 4096 total source bytes, 512 question bytes and 4 criteria of
 192 bytes each. Relative source names are bounded and cannot escape a root; duplicate keys/names,
 malformed UTF-8 and inconsistent byte spans refuse. Canonical candidate and verdict each have a
 1536-byte ceiling. Citations identify retained source bytes and valid spans; valid citations do
 not make their interpretation correct.
 
-The fixed `public-source-qwen@1` profile selects one exact configured shared, non-dedicated local
-Soulstone/vLLM/Qwen3.8-27B Chat capability. Its captured generation is 4096 context, 256 output,
+The fixed `public-source-qwen@2` profile selects one exact configured shared, non-dedicated local
+Soulstone/vLLM/Qwen3.8-27B Chat capability. Its captured generation is 4096 context, 512 output,
 temperature 0 and `qwen3.8-non-thinking`. Missing or changed binding, unsupported profile, unavailable
 WARM grant or fallback refuses. No model lifecycle request is admitted. Agent and SDK retries are 0;
 only structured final output is available, with no executable toolsets.
@@ -51,8 +51,9 @@ The complete serialized role packet includes instructions, source, question, cri
 schema. Its 12288-byte envelope reserves the verifier's maximum candidate before construction.
 Never truncate source, criteria or candidate to make it fit. Use supported pre-counts and the
 existing per-request context/output guard. This local Chat profile has no pre-transmission token
-counter: record that absence and check observed usage before adoption. A byte envelope does not
-prove a hard 4096-token transmission bound or future provider availability. Invalid or over-budget
+counter: record that absence and check observed usage before adoption. Its observed input ceiling
+is 3584 tokens, reserving 512 of the 4096 context tokens for output. A byte envelope does not prove
+a hard 4096-token transmission bound or future provider availability. Invalid or over-budget
 complete output settles as retained noncompletion, without a repair call.
 
 ## Construct, challenge and retain
@@ -88,11 +89,11 @@ fence before inference claim and adoption. Revocation or startup change ends old
 credential holder reads historical cases under fresh current-role policy. Original initiator and
 all later admission records remain immutable.
 
-Explicit opt-in assembly selects revision 1 and its exact capability:
+Explicit opt-in assembly selects revision 2 and its exact capability:
 
 ```toml
 [weaver.creation]
-revision = "1"
+revision = "2"
 capability_key = "<exact configured public-source-qwen capability key>"
 ```
 
@@ -110,6 +111,24 @@ Responses project the case, original request, admissions, attempts, candidate, v
 noncompletion. Generated OpenAPI owns the transport schema. Authentication, Origin and CSRF remain
 server gates. The browser and callers do not create durable truth by display.
 
+## Revision continuity
+
+Revision 2 is the only current selector and Pattern. Its exact `public-source-qwen@2` profile
+raises the per-role output allowance from 256 to 512 tokens; the two-role aggregate ceiling is
+1024 generated tokens. The context remains 4096, with 3584 reserved for observed input. Source,
+packet, response and canonical output byte bounds, deadlines and one-shot attempts are unchanged.
+
+The initial revision 1 live prototype retained a constructor response ending at its 256-token
+limit and adopted no candidate or verdict. Keep that failed occurrence and its original bindings.
+Current-role GET may read historical revision 1 cases. Creation write actions through selector 2
+refuse their submit replay, cancellation and continuation; it never rewrites or executes those
+records. Cancellation of a current revision 2 case checks its retained contract identity and
+current local authority, not model availability or a freshly resolved capability. It grants no
+execution or renewed reservation. Full profile matching remains required for admission,
+continuation and stage adoption.
+A new profile requires a separately admitted case and reservation, not renewal of the old one.
+Same-profile identical replay retains its existing identities without another inference.
+
 ## Interruption and continuation
 
 Identical replay returns retained identities/results; conflicting replay refuses. Cancellation
@@ -117,7 +136,7 @@ fences application adoption before requesting Run cancellation; the actual Run s
 races. Late complete bytes may remain attributed evidence without accepted disposition.
 
 A claimed call without a complete durable response remains incomplete/unknown. Timeout, cancellation,
-expiry or startup cannot make it unclaimed or release its encumbered slot. Revision 1 has no automatic
+expiry or startup cannot make it unclaimed or release its encumbered slot. Revision 2 has no automatic
 unknown-outcome release. Known terminal completion or proved not-issued failure may release capacity.
 
 Generic startup reconciliation remains unchanged: an orphan Run can become FAILED. A fresh current

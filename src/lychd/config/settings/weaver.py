@@ -57,7 +57,7 @@ class DelegationCastingSettings(DelegatedRuntimeBinding):
 class CreationCastingSettings(SettingsSection):
     """Opt into the exact bounded investigation revision and local capability."""
 
-    revision: Literal["1"]
+    revision: Literal["2"]
     capability_key: str = Field(min_length=1)
 
 
@@ -65,7 +65,7 @@ class WeaverSettings(SettingsSection):
     """Opt-in casting configuration; omission preserves each legacy route."""
 
     creation: CreationCastingSettings | None = None
-    """Select creation.investigate@1; omission disables investigation admission."""
+    """Select creation.investigate@2; omission disables investigation admission."""
 
     delegation: DelegationCastingSettings | None = None
     """Select one exact runtime for delegated_rite@2; omission preserves reference-only @1."""

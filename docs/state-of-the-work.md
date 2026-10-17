@@ -1249,16 +1249,16 @@ forced-collection qualification and complete production-browser acceptance remai
 **Proved now:** The Portfolio publishes Native Reference Composition contracts and examples; the
 default boot catalogue contains the Core `bridge_chat` lineage (revisions 1, 2 and 3) and
 `delegated_rite` lineage (revisions 1 and 2). An explicit application selector additionally registers
-the bounded `creation.investigate@1` Pattern.
+the bounded `creation.investigate@2` Pattern.
 The accepted designs include [Health](./compositions/health/index.md) for attributable personal
 clinical records and bounded diagnostic and care proposals,
 [Keeper](./compositions/keeper/index.md) for animal and colony care,
 [Cultivator](./compositions/cultivator/index.md) for cultivation, and the narrowed
 [Homestead revision 2](./compositions/homestead/index.md#revision-continuity) for site and stores stewardship.
 
-[Creation investigation](./compositions/creation/index.md) revision 1 has an explicitly selected
+[Creation investigation](./compositions/creation/index.md) revision 2 has an explicitly selected
 PostgreSQL application, protected local submit/read/cancel/continue API and serial
-`creation.investigate@1` Pattern. It retains immutable public sources, role reservations, one-shot
+`creation.investigate@2` Pattern. It retains immutable public sources, role reservations, one-shot
 claims, complete provider bytes, a candidate and a fresh attributed verdict. The
 [Creation delivery boundary](#smith-forge-promotion) keeps its focused evidence and remaining gaps.
 
@@ -1898,7 +1898,7 @@ Native autonomous Creation and target-owner promotion remain designed.
 
 **State:** Partial
 
-**Proved now:** The narrower [Creation investigation](./compositions/creation/index.md) revision 1
+**Proved now:** The narrower [Creation investigation](./compositions/creation/index.md) revision 2
 has a PostgreSQL store, explicit selector, protected local API, fixed serial Pattern and distinct
 constructor/verifier AgentSpecs. It retains original request/source/profile bytes, admission
 attribution, reserved attempts, complete provider responses and separate candidate/verdict. Current

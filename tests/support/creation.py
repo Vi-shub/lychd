@@ -11,7 +11,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
-from lychd.compositions.creation.schemas import Candidate, InvestigationRequest, Verdict
+from lychd.compositions.creation.schemas import OUTPUT_TOKENS, Candidate, InvestigationRequest, Verdict
 from lychd.domain.animation.capabilities import (
     CapabilityGrant,
     CapabilityPhase,
@@ -85,7 +85,7 @@ def capability() -> CapabilitySpec:
             "concurrency": {"dedicated": False},
             "generation_profile": {
                 "max_context": 4096,
-                "max_tokens": 256,
+                "max_tokens": OUTPUT_TOKENS,
                 "temperature": 0,
                 "thinking": "qwen3.8-non-thinking",
             },
@@ -106,7 +106,11 @@ class InertCreationGrant(CapabilityGrant):
     """The inert model has no provider; its captured settings remain observable."""
 
     def model_settings(self) -> Any:
-        return {"max_tokens": 256, "temperature": 0, "extra_body": {"chat_template_kwargs": {"enable_thinking": False}}}
+        return {
+            "max_tokens": OUTPUT_TOKENS,
+            "temperature": 0,
+            "extra_body": {"chat_template_kwargs": {"enable_thinking": False}},
+        }
 
 
 class CreationDispatcher:

@@ -12,15 +12,15 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 COMPOSITION = "creation.investigation"
 PATTERN = "creation.investigate"
-PROFILE = "public-source-qwen@1"
+PROFILE = "public-source-qwen@2"
 OUTPUT_BYTES = 1536
 PACKET_BYTES = 12288
 RESPONSE_BYTES = 65536
 SOURCE_BYTES = 4096
 SOURCE_NAME_BYTES = 128
 REQUEST_BYTES = 16384
-INPUT_TOKENS = 3840
-OUTPUT_TOKENS = 256
+INPUT_TOKENS = 3584
+OUTPUT_TOKENS = 512
 
 
 class CreationRefused(ValueError):  # noqa: N818 - domain refusal, not a runtime defect

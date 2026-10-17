@@ -29,6 +29,8 @@ from lychd.compositions.creation.schemas import (
     CreationRefused,
     InvestigationRequest,
     canonical,
+    decode,
+    digest,
     validate_output,
 )
 from lychd.compositions.creation.services import InvestigationService, LocalCreationPolicy, register_agents
@@ -286,3 +288,46 @@ async def test_postgres_claim_survives_unknown_output_and_blocks_other_admission
     assert late.candidate is None
     assert late.attempts[0]["response"] is not None
     assert not late.attempts[0]["adopted"]
+
+
+@pytest.mark.parametrize(
+    ("input_tokens", "output_tokens", "accepted"),
+    [(3584, 512, True), (3585, 512, False), (3584, 513, False)],
+)
+async def test_postgres_profile_two_adoption_checks_observed_usage_after_complete_custody(
+    factory: async_sessionmaker[AsyncSession], input_tokens: int, output_tokens: int, *, accepted: bool
+) -> None:
+    boot = Boot(factory)
+    request = request_document()
+    run_id = await boot.submit(request)
+    assert (await boot.ledger.try_claim_run(run_id, enqueue_seq=0)).acknowledged is True
+    attempt_id = await boot.store.claim(request.request_id, run_id, "constructor", b'{"role":"constructor"}')
+    response = ModelMessagesTypeAdapter.dump_json(
+        [
+            ModelResponse(
+                parts=[ToolCallPart("final_result", candidate_document().model_dump(mode="json"))],
+                usage=RequestUsage(input_tokens=input_tokens, output_tokens=output_tokens),
+                finish_reason="stop",
+            )
+        ]
+    )
+    usage = {"input_tokens": input_tokens, "output_tokens": output_tokens, "precount_available": False}
+    await boot.store.complete(attempt_id, response, usage)
+    output = canonical(candidate_document())
+    receipt = validate_output(request, candidate_document())
+    if accepted:
+        await boot.store.adopt(attempt_id, run_id, output, receipt)
+    else:
+        with pytest.raises(CreationRefused, match="observed_usage"):
+            await boot.store.adopt(attempt_id, run_id, output, receipt)
+        await boot.store.fail(request.request_id, "observed_usage", attempt_id)
+    view = await boot.store.read(request.request_id)
+    assert len(view.attempts) == 1
+    assert view.attempts[0]["response"] == decode(response)
+    assert view.attempts[0]["response_digest"] == digest(response)
+    assert view.attempts[0]["usage"] == usage
+    assert view.attempts[0]["adopted"] is accepted
+    assert view.candidate == (candidate_document().model_dump(mode="json") if accepted else None)
+    assert view.verdict is None
+    assert view.status == ("candidate" if accepted else "incomplete")
+    assert view.slot_encumbered is accepted

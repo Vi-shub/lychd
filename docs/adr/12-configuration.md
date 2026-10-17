@@ -77,8 +77,8 @@ runtime. Provider/Gate configuration and compatible-road fallback need their own
 
 ### Exact Creation investigation selection
 
-Optional `[weaver.creation]` selects `revision = "1"` and one exact `capability_key` for
-`creation.investigation@1` / `creation.investigate@1`. Omission disables its admission. This
+Optional `[weaver.creation]` selects `revision = "2"` and one exact `capability_key` for
+`creation.investigation@2` / `creation.investigate@2`. Omission disables its admission. This
 bounded application requires PostgreSQL, current local operator policy and its fixed
 [public-source profile](../compositions/creation/index.md#admit-one-question). The captured local
 shared vLLM/Qwen Chat declaration must match its generation and policy; no alias, fallback,

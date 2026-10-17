@@ -98,8 +98,8 @@ def investigation_workflow(service: InvestigationService) -> Workflow:
     )
     manifest = PatternManifest(
         key=PATTERN,
-        revision="1",
-        implementation_revision="py.1",
+        revision="2",
+        implementation_revision="py.2",
         checkpoint_schema="creation-investigation-state-v1",
         entry_node="prepare",
         nodes=(

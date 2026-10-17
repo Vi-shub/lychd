@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from typing import Any, Literal, cast
+from unittest.mock import Mock
 from uuid import UUID, uuid4
 
 import pytest
@@ -17,7 +18,10 @@ from pydantic_ai.usage import RequestUsage
 
 from lychd.agents.context_limits import limit_model_requests
 from lychd.agents.the_first_one import default_forge
+from lychd.agents.workflows import builtin_workflow_registry
 from lychd.compositions.creation.schemas import (
+    INPUT_TOKENS,
+    OUTPUT_TOKENS,
     CaseView,
     CreationRefused,
     InvestigationRequest,
@@ -35,11 +39,15 @@ from lychd.compositions.creation.services import (
     Role,
     check_packets,
     register_agents,
+    require_profile,
 )
 from lychd.compositions.creation.workflow import investigation_workflow
+from lychd.config.settings.weaver import CreationCastingSettings, WeaverSettings
+from lychd.domain.animation.capabilities import CapabilitySpec
 from lychd.domain.codex.local_access import LocalOperatorAccess, LocalOperatorAuthentication
 from lychd.domain.codex.sigil import Sigil, default_local_sigil
 from lychd.domain.cortex.leases import LeaseLedger
+from lychd.interface.web.altar_services import _build_creation  # pyright: ignore[reportPrivateUsage]
 from tests.support.creation import (
     CreationDispatcher,
     CreationRegistry,
@@ -50,6 +58,78 @@ from tests.support.creation import (
 )
 
 ACCESS_VALUE = "inert-test-password"
+
+
+def test_exact_profile_two_budget_manifest_and_selector() -> None:
+    service, _common = stage_fixture(StageStore())
+    profile = service.profile()
+    assert (profile["composition"], profile["revision"], profile["profile"]) == (
+        "creation.investigation",
+        "2",
+        "public-source-qwen@2",
+    )
+    assert profile["pattern"]["revision"] == "2"
+    assert profile["pattern"]["implementation_revision"] == "py.2"
+    assert profile["pattern"]["checkpoint_schema"] == "creation-investigation-state-v1"
+    assert profile["context_tokens"] == INPUT_TOKENS + OUTPUT_TOKENS == 4096
+    assert INPUT_TOKENS == 3584
+    assert profile["output_tokens"] == CONSTRUCTOR.max_tokens == VERIFIER.max_tokens == OUTPUT_TOKENS == 512
+    assert profile["role_seconds"] == profile["recovery_seconds"] == 30
+    assert profile["lifetime_seconds"] == 180
+    assert profile["agent_retries"] == profile["sdk_retries"] == CONSTRUCTOR.retries == VERIFIER.retries == 0
+    assert profile["precount_available"] is False
+    assert WeaverSettings().creation is None
+    assert CreationCastingSettings(revision="2", capability_key=capability().key).revision == "2"
+    with pytest.raises(ValidationError):
+        CreationCastingSettings.model_validate({"revision": "1", "capability_key": capability().key})
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("max_tokens", 256),
+        ("max_tokens", 511),
+        ("max_tokens", 513),
+        ("max_context", 4095),
+        ("max_context", 4097),
+        ("temperature", 0.1),
+        ("top_p", 0.9),
+        ("thinking", None),
+    ],
+)
+def test_profile_two_refuses_old_or_nearby_generation_bindings(field: str, value: Any) -> None:
+    data = capability().model_dump(mode="json")
+    data["generation_profile"][field] = value
+    with pytest.raises(CreationRefused, match="unsupported_capability"):
+        require_profile(CapabilitySpec.model_validate(data))
+
+
+def test_selected_assembly_registers_only_profile_two_and_omission_stays_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Exercise the exact private opt-in assembly without opening a database.
+    monkeypatch.setattr("lychd.db.engine.get_session_factory", object)
+    selection = WeaverSettings(creation=CreationCastingSettings(revision="2", capability_key=capability().key))
+    common = {
+        "persistence": "postgres",
+        "access": LocalOperatorAccess(access_password=ACCESS_VALUE),
+        "registry": CreationRegistry(),
+        "leases": LeaseLedger(),
+        "workflows": builtin_workflow_registry(),
+    }
+    service, registered, _forge = _build_creation(
+        settings=cast("Any", SimpleNamespace(weaver=selection)), **cast("Any", common)
+    )
+    assert service is not None
+    assert registered.get("creation.investigate") is registered.get_revision("creation.investigate", "2")
+    assert registered.is_active("creation.investigate", "2")
+    assert registered.get_revision("creation.investigate", "1") is None
+    disabled, original, _forge = _build_creation(
+        settings=cast("Any", SimpleNamespace(weaver=WeaverSettings())), **cast("Any", common)
+    )
+    assert disabled is None
+    assert original is common["workflows"]
+    assert original.get("creation.investigate") is None
 
 
 @pytest.mark.parametrize("change", ["path", "duplicate", "bytes", "public", "question"])
@@ -187,7 +267,10 @@ async def test_two_real_agent_assemblies_have_fresh_messages_and_custody_before_
     service, common = stage_fixture(store)
     messages: list[bytes] = []
 
-    async def respond(history: Any, _info: Any) -> ModelResponse:
+    async def respond(history: Any, info: Any) -> ModelResponse:
+        assert info.model_settings["max_tokens"] == 512
+        assert info.model_settings["temperature"] == 0
+        assert info.model_settings["extra_body"] == {"chat_template_kwargs": {"enable_thinking": False}}
         messages.append(ModelMessagesTypeAdapter.dump_json(history))
         output = candidate_document() if len(messages) == 1 else verdict_document()
         return ModelResponse(
@@ -198,7 +281,7 @@ async def test_two_real_agent_assemblies_have_fresh_messages_and_custody_before_
                     tool_call_id="private-constructor-call" if len(messages) == 1 else "review-call",
                 )
             ],
-            usage=RequestUsage(input_tokens=100, output_tokens=80),
+            usage=RequestUsage(input_tokens=3584, output_tokens=512),
         )
 
     common.dispatcher = CreationDispatcher(FunctionModel(respond), service.leases)
@@ -212,6 +295,67 @@ async def test_two_real_agent_assemblies_have_fresh_messages_and_custody_before_
     assert b"private-constructor-call" not in messages[1]
     assert candidate_document().summary.encode() in messages[1]
     assert len(store.responses) == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("role", ["constructor", "verifier"])
+@pytest.mark.parametrize("binding", ["changed", "missing"])
+async def test_profile_drift_after_complete_model_response_refuses_adoption_without_another_call(
+    role: Role, binding: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    store = StageStore()
+    service, common = stage_fixture(store)
+    assert store.view is not None
+    original_candidate = candidate_document().model_dump(mode="json") if role == "verifier" else None
+    store.view = store.view.model_copy(
+        update={"candidate": original_candidate, "status": "candidate" if role == "verifier" else "reserved"}
+    )
+    original_profile = canonical(store.view.profile)
+    replacement = capability().model_copy(update={"registrant_id": "changed-registration"})
+    assert require_profile(replacement) is replacement
+    registry = SimpleNamespace(get_capability=Mock(return_value=replacement if binding == "changed" else None))
+    complete = store.complete
+
+    async def complete_then_change(attempt_id: UUID, response: bytes, usage: dict[str, Any]) -> None:
+        await complete(attempt_id, response, usage)
+        service.registry = registry
+
+    monkeypatch.setattr(store, "complete", complete_then_change)
+    output = candidate_document() if role == "constructor" else verdict_document()
+    calls: list[str] = []
+
+    async def respond(_messages: Any, _info: Any) -> ModelResponse:
+        calls.append(role)
+        return ModelResponse(
+            parts=[ToolCallPart("final_result", output.model_dump(mode="json"), tool_call_id="complete-call")],
+            usage=RequestUsage(input_tokens=100, output_tokens=80),
+            finish_reason="stop",
+            provider_response_id="complete-before-profile-drift",
+        )
+
+    common.dispatcher = CreationDispatcher(FunctionModel(respond), service.leases)
+    await service.stage(uuid4(), str(uuid4()), role, common)
+    assert calls == [role]
+    assert store.events == [f"claim:{role}", "complete", "fail"]
+    assert store.failures == ["profile_changed" if binding == "changed" else "unsupported_capability"]
+    assert store.view.candidate == original_candidate
+    assert store.view.verdict is None
+    assert canonical(store.view.profile) == original_profile
+    assert len(common.dispatcher.calls) == 1
+    assert not service.leases.active()
+    registry.get_capability.assert_called_once_with(capability().key)
+    assert len(store.responses) == 1
+    retained = ModelMessagesTypeAdapter.validate_json(store.responses[0])[0]
+    assert isinstance(retained, ModelResponse)
+    assert retained.provider_response_id == "complete-before-profile-drift"
+    assert retained.finish_reason == "stop"
+    assert retained.usage.input_tokens == 100
+    assert retained.usage.output_tokens == 80
+    assert store.usages == [{"input_tokens": 100, "output_tokens": 80, "precount_available": False}]
+    part = retained.parts[0]
+    assert isinstance(part, ToolCallPart)
+    assert part.tool_call_id == "complete-call"
+    assert part.args == output.model_dump(mode="json")
 
 
 @pytest.mark.asyncio
@@ -245,7 +389,9 @@ async def test_complete_response_custody_survives_context_guard_failure() -> Non
 
     model = FunctionModel(respond)
     observed = ObservedModel(model, store=store, attempt_id=uuid4(), before=before)
-    wrapped, _limits = limit_model_requests(observed, context_window=4096, output_reserve=256, counter_model=model)
+    wrapped, _limits = limit_model_requests(
+        observed, context_window=4096, output_reserve=OUTPUT_TOKENS, counter_model=model
+    )
     assert wrapped is not None
     with pytest.raises(UsageLimitExceeded, match="input_tokens_limit"):
         await wrapped.request([], None, ModelRequestParameters())

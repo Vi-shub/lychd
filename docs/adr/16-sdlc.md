@@ -64,9 +64,9 @@ it does not execute the live effect.
 
 `PATH_LAB_DIR` and its read-write Vessel mount support trusted preparation in the Lab; the image’s `/app` remains read-only. This writable directory supplies neither an operational code Forge nor execution isolation.
 
-[Creation investigation](../compositions/creation/index.md) revision 1 fixes the narrower native
+[Creation investigation](../compositions/creation/index.md) revision 2 fixes the narrower native
 application contract for immutable public-source questions, retained analysis candidates and
-separately attributed verdicts. Its Pattern is `creation.investigate@1`; the wider Creation method
+separately attributed verdicts. Its Pattern is `creation.investigate@2`; the wider Creation method
 does not become one application or coordinator. That profile creates an artifact without an
 executable workspace and requests no promotion. The broader custody, compatibility, review and
 promotion records below remain accepted design. No autonomous repair loop, Tomb executor, verified

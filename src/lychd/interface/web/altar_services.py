@@ -355,7 +355,7 @@ def _build_creation(
     workflows = replace(
         workflows,
         workflows=(*workflows.workflows, workflow),
-        active_revisions=(*workflows.active_revisions, (workflow.name, "1")),
+        active_revisions=(*workflows.active_revisions, (workflow.name, workflow.manifest.revision)),
         route_precedence=(workflow.name, *workflows.route_precedence),
     )
     register_agents(forge)
