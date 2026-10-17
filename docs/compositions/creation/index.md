@@ -146,9 +146,13 @@ and exact body without automatic retry; an explicit Check cannot turn an in-flig
 proof of non-admission. Identical replay needs the original body, which reload does not recover.
 The protected detail read may perform existing expiration and includes retained operational
 records. Its report disclosure renders validated request/candidate/verdict text, requires current
-read authority after awaited storage and fences changed selection. It supplies no continuation,
-feedback, successor, source-edit or promotion authority. Run completion and native/external/owner
-judgments remain separate; later updates need explicit Refresh.
+read authority after awaited storage and fences changed selection. **Load feedback** separately
+reads the protected historical projection without expiring execution. Current assessment/decision
+IDs select the displayed judgments; later assessments leave earlier owner holds historical.
+**Reload feedback** is explicit, and a refused read clears protected feedback. Report/reason text
+and server annotation coverage confer no semantic pass. Viewing supplies no continuation, feedback
+mutation, successor, source-edit or promotion authority. Run completion and native/external/owner
+judgments remain separate; later case changes need explicit Refresh.
 
 ## Selected-Run summary
 

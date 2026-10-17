@@ -25,3 +25,46 @@ it("uses the existing protected same-origin/CSRF transport with literal unchange
   expect(await sent[0]!.text()).toBe(JSON.stringify(body));
   expect(sent[1]!.method).toBe("GET"); expect(sent[1]!.url).toBe(`http://localhost/api/v1/creation/investigations/${body.request_id}`);
 });
+
+
+function browserRequests(): void {
+  const NativeRequest = globalThis.Request;
+  class BrowserRequest extends NativeRequest {
+    constructor(input: RequestInfo | URL, init?: RequestInit) {
+      super(typeof input === "string" ? new URL(input, "http://localhost") : input, init);
+    }
+  }
+  vi.stubGlobal("Request", BrowserRequest);
+}
+
+it("reads historical feedback with the exact protected GET and propagates cancellation without a CSRF read", async () => {
+  browserRequests();
+  const caseId = "00000000-0000-4000-8000-000000000001";
+  const feedback: components["schemas"]["FeedbackView"] = {
+    case_id: caseId, assessments: [], decisions: [], current_assessment_id: null,
+    current_decision_id: null, native_status: "complete", native_verdict: null,
+    status: "unassessed", target: null
+  };
+  const sent: Request[] = [];
+  vi.stubGlobal("fetch", vi.fn(async (request: Request) => {
+    sent.push(request); return Response.json(feedback);
+  }));
+  vi.resetModules(); const { readCreationFeedback } = await import("./client");
+  const controller = new AbortController();
+  expect(await readCreationFeedback(caseId, controller.signal)).toEqual(feedback);
+  expect(sent).toHaveLength(1);
+  expect(sent[0]!.method).toBe("GET");
+  expect(sent[0]!.url).toBe(`http://localhost/api/v1/creation/investigations/${caseId}/feedback`);
+  expect(sent[0]!.headers.has("Authorization")).toBe(false);
+  expect(sent[0]!.signal.aborted).toBe(false);
+  controller.abort(); expect(sent[0]!.signal.aborted).toBe(true);
+});
+
+it("preserves a protected feedback refusal as a typed status for the disclosure to clear", async () => {
+  browserRequests();
+  vi.stubGlobal("fetch", vi.fn(async () => Response.json({ detail: "Not permitted" }, { status: 403 })));
+  vi.resetModules(); const { readCreationFeedback, ApiError } = await import("./client");
+  const failure: unknown = await readCreationFeedback("00000000-0000-4000-8000-000000000001").catch((error: unknown) => error);
+  expect(failure).toBeInstanceOf(ApiError);
+  expect(failure).toMatchObject({ status: 403 });
+});

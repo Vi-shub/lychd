@@ -117,7 +117,17 @@ material on refusal. The detail read may perform existing expiration and transpo
 operational records; it is not the non-mutating Orb metadata feed. Render only validated retained
 request, candidate, citations and separate verdict as text. Run completion, native case status,
 external assessment and owner disposition remain distinct. Later changes require explicit
-Refresh; viewing grants no continuation, cancellation, feedback or successor action.
+Refresh; viewing grants no continuation, cancellation, feedback mutation or successor action.
+
+The report may explicitly load the existing protected historical feedback projection. It starts
+not loaded and performs no automatic read on mount, selection or later changes. The server's
+current assessment and decision IDs select current judgments; a newer assessment cannot inherit
+an older hold. Empty unassessed, external not-assessed, review-required, refused and unavailable
+states remain distinguishable. Selection changes and teardown fence and abort owned reads;
+current-authority refusal clears protected feedback. Render the current report, owner reason and
+supplied annotation coverage as escaped text, validating unknown dictionary fields before display.
+Native acceptance, external assessment and owner disposition confer no browser execution or
+promotion authority. An explicit reload uses current read authority; disclosure appends no feedback.
 
 ### User-specific working interfaces
 

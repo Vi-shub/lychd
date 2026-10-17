@@ -37,10 +37,17 @@ this focus, and the global Bridge link keeps its ordinary session behavior.
 
 Read the retained question, source and candidate findings with citations, then the separate
 verifier verdict. A complete Run does not establish a correct report. Follow the exact admitted
-Run into Orb for execution evidence and separate native/external/owner metadata. The detail read
-may expire an overdue case; it is different from Orb's metadata-only read. Use **Refresh retained
-case** for later changes. An unavailable case, missing report, refused read and unconfirmed
-admission are separate states. No continuation, cancellation or feedback is performed by viewing.
+Run into Orb for execution evidence. **Load feedback** opens the separately protected historical
+judgments in this report: native verdict, external assessment, owner disposition and feedback
+status. The external report, owner reason and annotation coverage remain distinct; a native
+accepted verdict does not supply owner permission, and coverage is not a semantic pass. A newer
+assessment requires owner review rather than inheriting an older hold. Use **Reload feedback**
+for later changes. A refused read clears that feedback; unavailable is different from unassessed.
+
+The detail read may expire an overdue case; the historical feedback read does not. Use **Refresh
+retained case** for later case changes. An unavailable case, missing report, refused read and
+unconfirmed admission are separate states. Viewing appends no feedback and authorizes no
+continuation, cancellation or successor.
 
 ## Offer one Intent {#follow-a-turn-to-settlement}
 

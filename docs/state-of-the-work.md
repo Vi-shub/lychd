@@ -1961,14 +1961,19 @@ Keep/Discard controls and preserves keyboard focus during a pending Check. Ordin
 session/draft state stays separate.
 
 The report renders validated retained sources, candidate and native verdict as text, with exact
-admission Run links to Orb. External assessment and owner disposition are explicitly not loaded
-here; Orb retains their separate summary. Late reads cannot replace a changed selection, and a
-current-authority refusal clears displayed protected material. Detail GET, fresh POST and replay
-POST recheck their existing action authority after awaited case reads; this adds no read-scope
-requirement to submit. Deterministic regressions reproduce all three revoked-during-await cases.
-Integrated frontend checks pass 414 tests with zero Svelte errors/warnings, and the focused
-Creation/API suite passes 90 tests. This UI adds no source editing, feedback editor, automatic
-continuation or new execution authority.
+admission Run links to Orb. **Load feedback** explicitly reads the existing protected historical
+projection; mounting or selecting a case performs no feedback read. Current IDs select the
+external assessment and owner decision, so a later assessment cannot inherit an older hold.
+Native verdict, external assessment, owner disposition and feedback status have separate scalar
+summaries; the current report, reason and supplied annotation coverage are escaped text. Refused,
+unavailable, unassessed and external not-assessed states remain distinct. Selection and teardown
+abort owned reads and fence late results; refusal clears protected feedback.
+
+Detail GET, fresh POST and replay POST retain their existing current-authority rechecks after
+awaited case reads; this adds no read-scope requirement to submit. Deterministic regressions
+reproduce all three revoked-during-await cases. Integrated frontend checks pass 430 tests with
+zero Svelte errors/warnings; the affected protected Creation web contract passes nine tests.
+This UI adds no source editing, feedback mutation, automatic continuation or execution authority.
 
 A dated operator observation at `3e518e81` also records an actual Qwen3.8 constructor/verifier pair:
 two calls retain separate outputs, two ordinary application lifespans preserve custody, changed-base
@@ -2139,7 +2144,7 @@ attestation plane, canonical source on Radicle, Radicle node topology or downstr
 - **Verification:** [Unfamiliar native noncompletion](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/creation/native-successor-2026-10-17.json) retains the exact public role packet, unadopted output, separate schema/byte failures and attributed citation review.
 - **Verification:** [Known-case source projection](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/creation/native-source-projection-2026-10-17.json) retains both exact projected packets/results, native accepted, separate partial external judgments and normal restart/closure observations.
 - **Verification:** [Native attachment of the later review](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/creation/native-source-projection-feedback-2026-10-17.json) retains the subsequent exact-report attachment, separate partial/hold, typed coverage, replay/restart and zero-inference settlement.
-- **Verification:** [Current-authority read regressions](https://github.com/hexanomicon/lychd/blob/main/tests/unit/compositions/test_creation_read_authority.py), [intake lifecycle](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/creation/intake.test.ts), [Investigation UI](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/CreationInvestigation.test.ts), and [generated transport](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/api/creation.test.ts)
+- **Verification:** [Current-authority read regressions](https://github.com/hexanomicon/lychd/blob/main/tests/unit/compositions/test_creation_read_authority.py), [intake lifecycle](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/creation/intake.test.ts), [Investigation UI](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/CreationInvestigation.test.ts), [feedback disclosure](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/CreationFeedback.test.ts), and [generated transport](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/api/creation.test.ts)
 - **Topic:** [Creation investigation](./compositions/creation/index.md), [Smith](./sepulcher/extensions/smith.md),
   [Creation](./sepulcher/extensions/weaver/creation.md), and [Ouroboros](./sepulcher/extensions/weaver/ouroboros.md),
   with [Development bootstrap](./sepulcher/extensions/weaver/development-bootstrap.md) and

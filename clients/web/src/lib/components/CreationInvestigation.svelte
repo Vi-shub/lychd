@@ -2,6 +2,7 @@
   import { afterNavigate, beforeNavigate } from "$app/navigation";
   import { getContext, onDestroy, tick } from "svelte";
   import { readCreationInvestigation, submitCreationInvestigation } from "$lib/api/client";
+  import CreationFeedback from "./CreationFeedback.svelte";
   import { altarNavigationContext, type AltarNavigation } from "$lib/navigation/instruments";
   import {
     emptyDraft, initialIntakeState, InvestigationIntake, investigationHref, investigationSelection, prepareRequest, utf8Bytes
@@ -210,7 +211,8 @@
         Admission <code>{admission.admission_id}</code>:
         {#if admission.run_id}<a href={`/orb/${encodeURIComponent(admission.run_id)}`}>Look into the Orb · {admission.run_id}</a>{:else}No Run link retained.{/if}
       </li>{/each}</ul>
-      <p>External assessment: not loaded here. Owner disposition: not loaded here. These are separate judgments; inspect their current authorized metadata with the exact Run in Orb. A native accepted verdict is not final owner acceptance.</p>
+      <p>A native accepted verdict is not final owner acceptance.</p>
+      {#key report.case_id}<CreationFeedback caseId={report.case_id} />{/key}
       <details><summary>Retained question and declared target</summary><h3>{report.request.question}</h3>
         <dl><dt>Repository</dt><dd>{report.request.repository}</dd><dt>Base revision</dt><dd>{report.request.base_revision}</dd><dt>Declared tree/patch digest</dt><dd>{report.request.tree_or_patch_digest}</dd></dl>
         <h4>Criteria</h4><ul>{#each report.request.criteria as criterion (criterion.id)}<li>{criterion.id}: {criterion.predicate}</li>{/each}</ul>

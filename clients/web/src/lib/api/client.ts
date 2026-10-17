@@ -75,6 +75,15 @@ export async function readCreationInvestigation(
   }));
 }
 
+export async function readCreationFeedback(
+  caseId: string, signal?: AbortSignal
+): Promise<components["schemas"]["FeedbackView"]> {
+  return unwrap(await client.GET("/api/v1/creation/investigations/{case_id}/feedback", {
+    signal,
+    params: { path: { case_id: caseId } }
+  }));
+}
+
 export async function getAltarStatus(): Promise<AltarStatus> {
   const status = unwrap(await client.GET("/api/v1/altar/status")) as AltarStatus;
   csrfContract = status.csrf;

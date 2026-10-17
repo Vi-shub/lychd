@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import { beforeNavigate } from "$app/navigation";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiError, readCreationInvestigation, submitCreationInvestigation } from "$lib/api/client";
+import { ApiError, readCreationFeedback, readCreationInvestigation, submitCreationInvestigation } from "$lib/api/client";
 import type { CaseView, InvestigationRequest } from "$lib/creation/intake";
 import CreationInvestigation from "./CreationInvestigation.svelte";
 
@@ -11,12 +11,13 @@ vi.mock("$app/navigation", () => ({ beforeNavigate: vi.fn(), afterNavigate: (cal
 } }));
 vi.mock("$lib/api/client", async (original) => {
   const actual = await original<typeof import("$lib/api/client")>();
-  return { ...actual, readCreationInvestigation: vi.fn(), submitCreationInvestigation: vi.fn() };
+  return { ...actual, readCreationFeedback: vi.fn(), readCreationInvestigation: vi.fn(), submitCreationInvestigation: vi.fn() };
 });
 const a = "00000000-0000-4000-8000-000000000001";
 const b = "00000000-0000-4000-8000-000000000002";
 const run = "00000000-0000-4000-8000-000000000003";
 const read = vi.mocked(readCreationInvestigation);
+const feedbackRead = vi.mocked(readCreationFeedback);
 const post = vi.mocked(submitCreationInvestigation);
 function view(id = a): CaseView {
   return { case_id: id, status: "accepted", deadline: "2026-10-17T12:00:00+00:00", slot_encumbered: false, reason: null,
@@ -44,7 +45,7 @@ function guardNavigation(target: string, source: string, type: "link" | "popstat
 }
 beforeEach(() => {
   navigationHooks.after = []; vi.mocked(beforeNavigate).mockClear();
-  read.mockReset(); post.mockReset(); vi.spyOn(window, "confirm").mockReturnValue(true);
+  read.mockReset(); feedbackRead.mockReset(); post.mockReset(); vi.spyOn(window, "confirm").mockReturnValue(true);
 });
 afterEach(() => { vi.restoreAllMocks(); });
 
@@ -56,7 +57,9 @@ describe("Bridge Creation investigation focus", () => {
     await screen.findByText("Retained investigation");
     expect(post).toHaveBeenCalledOnce(); expect(onSelect).toHaveBeenCalledWith(post.mock.calls[0]![0].request_id);
     expect(screen.getByRole("link", { name: `Look into the Orb · ${run}` }).getAttribute("href")).toBe(`/orb/${run}`);
-    expect(screen.getByText(/External assessment: not loaded here/).textContent).toContain("Owner disposition: not loaded here");
+    expect(screen.getByRole("region", { name: "External feedback" }).textContent).toMatch(/not loaded/i);
+    expect(screen.getByRole("button", { name: "Load feedback" })).toBeTruthy();
+    expect(feedbackRead).not.toHaveBeenCalled();
     expect(screen.getByText(/A native accepted verdict is not final owner acceptance/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: /cancel|continue|assessment|decision/i })).toBeNull();
   });
