@@ -1989,6 +1989,23 @@ replay without new inference. Independent resource/model settlement passes; owne
 private backup remain. Private operator lineage supplies no native successor authority. This is a
 failed transfer observation, not useful native completion or measured improvement.
 
+Explicit numbered-source presentation now reconstructs the exact original request and UTF-8 bytes;
+concise per-field guidance changes both instruction keys to v4 and implementation to `py.5`.
+Dense-line overflow refuses before admission; existing packet/output limits remain unchanged.
+A dated known-case correction at `18235a8` completes both roles in approximately 28 seconds,
+using 6216 prompt and 646 generated tokens across two calls. Both retained packets roundtrip;
+1115/1023-byte canonical outputs meet the unchanged 1536-byte ceiling. Native `accepted` and
+external judgment remain separate: fresh source-only review gives both outputs ordering PASS,
+discrimination PARTIAL. The operative test citation is now line 32, but both roles categorically
+assert that the last parked random UUID is greatest; their own qualification denies guaranteed
+UUID/insertion order. The verifier accepts that same defect. The correct counterexample is
+conditional on the second ID being greater. Normal restart and observed protected POST replay
+preserve the new case, three historical cases and parent hold without new inference. Independent
+resource/model settlement passes; the external report is retained here, not yet appended through
+native feedback. This is one known-case correction observation, not causal improvement, unfamiliar
+transfer or native successor authority. An earlier zero-inference transport failure and its narrow
+observer-only repair remain separately recorded; its precise cause is unproved.
+
 The wider SDLC law defines attributable request → candidate → verification → promotion-request →
 target-owner-effect ownership. The Creation method and Ouroboros map connect work to separately
 governed evaluation, memory, training and body change. The Development bootstrap procedure orders
@@ -2014,6 +2031,7 @@ attestation plane, canonical source on Radicle, Radicle node topology or downstr
 - **Verification:** [Ordinary native two-role observation](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/creation/native-configuration-guidance-2026-10-17.json) retains the distinct successful occurrence, exact public role packets/results, replay/custody observations and separate partial external judgment.
 - **Verification:** [Ordinary native feedback observation](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/creation/native-feedback-2026-10-17.json) retains the exact external report, separate native/external/owner dispositions, normal restart/replay and bounded resource observations.
 - **Verification:** [Unfamiliar native noncompletion](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/creation/native-successor-2026-10-17.json) retains the exact public role packet, unadopted output, separate schema/byte failures and attributed citation review.
+- **Verification:** [Known-case source projection](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/creation/native-source-projection-2026-10-17.json) retains both exact projected packets/results, native accepted, separate partial external judgments and normal restart/closure observations.
 - **Topic:** [Creation investigation](./compositions/creation/index.md), [Smith](./sepulcher/extensions/smith.md),
   [Creation](./sepulcher/extensions/weaver/creation.md), and [Ouroboros](./sepulcher/extensions/weaver/ouroboros.md),
   with [Development bootstrap](./sepulcher/extensions/weaver/development-bootstrap.md) and
