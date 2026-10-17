@@ -85,6 +85,7 @@ async def test_effect_fence_is_monotonic_and_shutdown_covers_future_runs() -> No
     fence.fence_all("other")
     assert fence.reason("cancelled", 0) == "run_cancelled"
     assert fence.reason("future", 0) == "shutdown"
+    assert fence.reason("hop", 1) == "shutdown"
 
 
 def test_effect_fence_refuses_other_control_loops() -> None:
