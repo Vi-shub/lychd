@@ -39,7 +39,11 @@ not make their interpretation correct.
 Each role packet supplies deterministic per-source line counts using the same retained UTF-8 byte
 line-splitting convention as citation validation. These inclusive, one-based limits guide the
 model; original source/request bytes and strict span validation remain unchanged. A model result
-never repairs, clamps or extends its own citation.
+never repairs, clamps or extends its own citation. Role instructions also state the existing
+1536-byte total canonical-result ceiling and prefer concise output with a writing margin. This is
+guidance for the model, not a new acceptance limit or an output-repair mechanism. Changed
+instructions receive new instruction and implementation identities under the same captured-profile
+fences.
 
 The fixed `public-source-qwen@2` profile selects one exact configured shared, non-dedicated local
 Soulstone/vLLM/Qwen3.8-27B Chat capability. Its captured generation is 4096 context, 512 output,

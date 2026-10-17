@@ -71,9 +71,9 @@ def test_exact_profile_two_budget_manifest_and_selector() -> None:
         "public-source-qwen@2",
     )
     assert profile["pattern"]["revision"] == "2"
-    assert profile["pattern"]["implementation_revision"] == "py.3"
-    assert CONSTRUCTOR.instructions_key == "creation-constructor-v2"
-    assert VERIFIER.instructions_key == "creation-verifier-v2"
+    assert profile["pattern"]["implementation_revision"] == "py.4"
+    assert CONSTRUCTOR.instructions_key == "creation-constructor-v3"
+    assert VERIFIER.instructions_key == "creation-verifier-v3"
     assert profile["pattern"]["checkpoint_schema"] == "creation-investigation-state-v1"
     assert profile["context_tokens"] == INPUT_TOKENS + OUTPUT_TOKENS == 4096
     assert INPUT_TOKENS == 3584
@@ -359,10 +359,10 @@ async def test_prior_instruction_and_implementation_closure_cannot_be_reused(
     original = store.view
     historical = decode(canonical(original.profile))
     historical["constructor"]["instructions_digest"] = (
-        "a61a84e59c6e351169be4767a77b7d24f8c67929e6700f97a7696d80e051d918"
+        "0ee1c848c2b03742a64f5be73b7eb9a3ee2e058e641749a63e28b604477cd121"
     )
-    historical["verifier"]["instructions_digest"] = "c52e049f8d8b5d5e91f4e1d7f07cde4763b2a3d4d20ea6ded91f42b39e1ab5ed"
-    historical["pattern"]["implementation_revision"] = "py.2"
+    historical["verifier"]["instructions_digest"] = "ddd2d1c7b8d3ab25bb09ab9c2ccb290ffcc41e8a06ad3cf90e261f1b7d7ff978"
+    historical["pattern"]["implementation_revision"] = "py.3"
     historical["pattern"].pop("digest")
     historical["pattern"]["digest"] = digest(canonical(historical["pattern"]))
     previous = original.model_copy(update={"profile": historical, "profile_digest": digest(canonical(historical))})

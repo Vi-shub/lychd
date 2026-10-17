@@ -1925,6 +1925,19 @@ profile injects settings, Rune and extension declarations and a refusing runtime
 real application; it qualifies neither normal configuration/deployment, semantic reliability,
 independent-model verification nor autonomous improvement.
 
+A separate dated observation at `b3820bd` uses ordinary XDG/TOML/Rune loading, native CLI,
+credential-backed loopback TCP, live SAQ workers and a separately owned SCRAM PostgreSQL cluster,
+with no fixture injection. One complete constructor response is retained as `incomplete/output_bytes`:
+its canonical result is 1619 bytes against the unchanged 1536-byte ceiling. No candidate is adopted
+and no verifier runs. An ordinary native CLI restart preserves exact case custody; exact replay
+performs no additional inference. Root independently observes unit/group/process/listener closure,
+matching model counters and unchanged installed bindings. The task container is removed; its named
+storage is intentionally retained. This qualifies normal loading and retained noncompletion/replay,
+not permanent deployment, useful semantic completion, crash recovery or hostile-runtime containment.
+Native aggregate enforcement covers pids only; per-process limits and separate PostgreSQL limits
+are narrower observations. Current role instructions explicitly state the existing canonical-output
+ceiling and prefer a concise writing margin; their practical effect needs a separate occurrence.
+
 The wider SDLC law defines attributable request → candidate → verification → promotion-request →
 target-owner-effect ownership. The Creation method and Ouroboros map connect work to separately
 governed evaluation, memory, training and body change. The Development bootstrap procedure orders
@@ -1944,6 +1957,7 @@ attestation plane, canonical source on Radicle, Radicle node topology or downstr
 - **Source:** [Investigation service](https://github.com/hexanomicon/lychd/blob/main/src/lychd/compositions/creation/services.py), [Pattern](https://github.com/hexanomicon/lychd/blob/main/src/lychd/compositions/creation/workflow.py), [PostgreSQL owner](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/creation.py), and [protected API](https://github.com/hexanomicon/lychd/blob/main/src/lychd/interface/api/creation.py)
 - **Verification:** [Agent boundaries](https://github.com/hexanomicon/lychd/blob/main/tests/unit/compositions/test_creation.py), [local API](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_creation.py), [PostgreSQL worker histories](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_creation_postgres_vertical.py), and [migration cycle/refusal](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_db_migrations_pg.py)
 - **Verification:** [Dated native investigation outcomes](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/creation/investigation-2026-10-17.json) retains the three distinct occurrences, exact public inputs/outputs, resource evidence and separate verdicts.
+- **Verification:** [Ordinary native configuration observation](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/creation/native-configuration-2026-10-17.json) retains the separate noncompletion, exact public packet/result, canonical-byte failure and bounded service/replay evidence.
 - **Topic:** [Creation investigation](./compositions/creation/index.md), [Smith](./sepulcher/extensions/smith.md),
   [Creation](./sepulcher/extensions/weaver/creation.md), and [Ouroboros](./sepulcher/extensions/weaver/ouroboros.md),
   with [Development bootstrap](./sepulcher/extensions/weaver/development-bootstrap.md) and
