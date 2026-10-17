@@ -1904,16 +1904,26 @@ constructor/verifier AgentSpecs. It retains original request/source/profile byte
 attribution, reserved attempts, complete provider responses and separate candidate/verdict. Current
 credential-backed local object/action policy and actual Run state fence claims and adoption.
 Invalid, duplicate-key and length-terminated output remains retained noncompletion without repair
-calls. Valid citations establish exact source spans, not semantic correctness.
+calls. Valid citations establish exact source spans, not semantic correctness. Deterministic line
+counts guide both roles without changing source bytes or relaxing citation validation.
 
-Focused tests exercise actual Agent assembly and fresh verifier messages, cancellation, response
-custody before context validation and both output refusals. Three disposable PostgreSQL checks
-passed: candidate retention followed by unchanged orphan reconciliation and a new, freshly authorized
-verification Run; unknown claims that retain the application slot through cancellation; and migration
-`0016` empty-cycle/retained-custody downgrade refusal. These worker histories reconstruct adapters
-in one process, use a captured queue and inert model, and do not establish an OS-kill, live broker
-or real Qwen result. Generated OpenAPI/TypeScript and the frontend checks pass; the selected live
-application/model profile remains unqualified.
+Focused unit/API and real PostgreSQL cases cover admission refusal, observed-usage limits,
+authority and profile changes, cancellation winning adoption, worker loss after candidate commit
+followed by one explicit fresh-authority verification Run, and unknown claims retaining the slot.
+Migration `0016` covers empty-cycle and retained-custody downgrade refusal. Those worker histories
+reconstruct adapters in one process with a captured queue and inert model; they do not prove an
+OS-kill or live broker. Generated OpenAPI/TypeScript and the frontend checks pass.
+
+A dated operator observation at `3e518e81` also records an actual Qwen3.8 constructor/verifier pair:
+two calls retain separate outputs, two ordinary application lifespans preserve custody, changed-base
+replay refuses, and exact replay under fresh current credentials performs no inference. Native
+verification returns `accepted`; a separate coding-agent review judges the content **partial**:
+the core assertions are supported, but generic-message assurance is overstated and replacement
+wording lacks the appropriate source citation. The native verifier misses those qualifications.
+The earlier length-limited and invalid-span occurrences remain failed observations. This one-case
+profile injects settings, Rune and extension declarations and a refusing runtime actuator into the
+real application; it qualifies neither normal configuration/deployment, semantic reliability,
+independent-model verification nor autonomous improvement.
 
 The wider SDLC law defines attributable request → candidate → verification → promotion-request →
 target-owner-effect ownership. The Creation method and Ouroboros map connect work to separately
@@ -1933,6 +1943,7 @@ attestation plane, canonical source on Radicle, Radicle node topology or downstr
 
 - **Source:** [Investigation service](https://github.com/hexanomicon/lychd/blob/main/src/lychd/compositions/creation/services.py), [Pattern](https://github.com/hexanomicon/lychd/blob/main/src/lychd/compositions/creation/workflow.py), [PostgreSQL owner](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/creation.py), and [protected API](https://github.com/hexanomicon/lychd/blob/main/src/lychd/interface/api/creation.py)
 - **Verification:** [Agent boundaries](https://github.com/hexanomicon/lychd/blob/main/tests/unit/compositions/test_creation.py), [local API](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_creation.py), [PostgreSQL worker histories](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_creation_postgres_vertical.py), and [migration cycle/refusal](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_db_migrations_pg.py)
+- **Verification:** [Dated native investigation outcomes](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/creation/investigation-2026-10-17.json) retains the three distinct occurrences, exact public inputs/outputs, resource evidence and separate verdicts.
 - **Topic:** [Creation investigation](./compositions/creation/index.md), [Smith](./sepulcher/extensions/smith.md),
   [Creation](./sepulcher/extensions/weaver/creation.md), and [Ouroboros](./sepulcher/extensions/weaver/ouroboros.md),
   with [Development bootstrap](./sepulcher/extensions/weaver/development-bootstrap.md) and
