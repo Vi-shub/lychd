@@ -27,6 +27,7 @@ from lychd.agents.workflows import WorkflowRegistry, resolve_pinned_workflow
 from lychd.domain.codex.guards import requires_scopes
 from lychd.domain.codex.ledger import ConsentLedger
 from lychd.domain.codex.schemas import ConsentBindingConflict, NativeConsentBinding, require_native_binding
+from lychd.domain.cortex.bridge_preference import BridgePreferenceError
 from lychd.domain.cortex.engine import RunEngine
 from lychd.domain.cortex.events import InProcessEventBus, RunEvent, RunEventKind
 from lychd.domain.cortex.ledger import RunAdmissionConflictError
@@ -282,7 +283,7 @@ class BridgeController(Controller):
         name="bridge:send",
         operation_id="sendBridgeMessage",
         guards=[requires_scopes("runs:submit")],
-        responses={HTTP_404_NOT_FOUND: ResponseSpec(FrameworkError, generate_examples=False)},
+        responses={code: ResponseSpec(FrameworkError, generate_examples=False) for code in (404, 503)},
     )
     async def send(
         self,
@@ -333,6 +334,11 @@ class BridgeController(Controller):
                 exclusive_session=True,
                 scout_declaration=scout_declaration,
             )
+        except BridgePreferenceError as exc:
+            raise ServiceUnavailableException(
+                detail="Bridge preference admission is unavailable; retry as a new admission after readiness is restored.",
+                extra={"code": exc.code.value},
+            ) from None
         except (RunAdmissionConflictError, ScoutWorkflowError) as exc:
             raise ValidationException(detail=str(exc)) from exc
         refreshed = await bridge_sessions.get_session(session_id)

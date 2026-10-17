@@ -101,6 +101,49 @@ Revision 4 adds one explicitly declared public page, native consent and transien
 Context. Its [Scout configuration](../scout.md#public-page-answers) selects a qualified static
 runtime and finite budgets. Neither profile turns a Scroll or source-authored text into tool authority.
 
+### Prefer a ready route at admission
+
+Revision 2 may instead rank exactly two declared local Chat routes:
+
+```toml
+[weaver.bridge]
+revision = "2"
+
+[weaver.bridge.preference]
+schema_version = 1
+routes = [
+  { capability_key = "local-a:chat:model-a", weight = 9 },
+  { capability_key = "local-b:chat:model-b", weight = 1 },
+]
+```
+
+Replace both keys with literal identities from the declared inventory. Omit `capability_key`
+from `[weaver.bridge]` when using `preference`; revision 2 accepts exactly one of them. Both
+routes, including a disabled one, must declare local Soulstone Chat with tool support. Revisions
+3 and 4 retain their exact-key configuration and reject `preference`.
+
+Weights are integer preferences from 0 through 1,000,000, with a positive total; they are not
+traffic percentages, measured quality, or additional authority. Zero disables eligibility and
+omits that route's retained phase and observation time. Admission directly refreshes each Animator
+hosting an enabled route once, as a complete Animator batch, within one cooperative five-second
+bound. That batch may include a disabled capability sharing the same Animator. After the batch, only observed-warm routes with unchanged declarations and
+an unchanged, open admission generation remain eligible. Highest weight wins; an equal weight
+uses ascending literal capability key. This observes readiness without activating a model,
+preparing a grant or entering inference. Malformed or failed probes abort admission; a valid
+non-warm observation excludes that route. An empty eligible set returns a content-free 503 code
+before retaining a Run or user turn.
+
+The Run retains the complete policy, its digest, dated observations and one exact selected key.
+An idempotent replay returns that retained decision before any new probe. Configuration changes
+apply only to new admissions. Execution and restart keep the selected key under the existing
+Bridge tools, consent and retry rules; later unavailability may pause or refuse execution. The
+batch does not reserve future readiness, and it supplies no execution fallback.
+
+The selected Run's Orb inspector shows these retained observations and exclusions. They describe
+admission time, not current availability. Follow [configured Bridge casting](../../../state-of-the-work.md#configured-bridge-casting)
+for the qualification boundary and [Dispatcher law](../../../adr/22-dispatcher.md) for the
+selection and execution distinction.
+
 ## Follow the Scroll
 
 Choose the route that matches the question:

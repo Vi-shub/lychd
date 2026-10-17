@@ -11,6 +11,7 @@
   import DelegateMark from "./DelegateMark.svelte";
   import AtlasLinks from "./AtlasLinks.svelte";
   import CreationSummary from "./CreationSummary.svelte";
+  import BridgePreferenceSummary from "./BridgePreferenceSummary.svelte";
   import GraphCanvas from "./graph/GraphCanvas.svelte";
   import AnimatorRail from "./AnimatorRail.svelte";
   import { projectOrb, orbEvidenceNodeId, matchesOrbPattern, mergeOrbEvidence } from "$lib/graph/orb";
@@ -675,6 +676,7 @@
           <p>Select an evidence row to read its exact identity, recorded fields, and available counterpart links.</p>
         </section>
       {/if}
+      <BridgePreferenceSummary summary={snapshot?.bridge_preference} />
     </aside>
 
     {#if snapshot?.delegated_jobs.length}
@@ -757,7 +759,7 @@
   }
 
   .orb-main { gap: 1.2rem; }
-  .orb-inspector { width: auto; min-width: 0; display: flex; position: sticky; top: 4.5rem; }
+  .orb-inspector { width: auto; min-width: 0; display: flex; flex-direction: column; gap: 1rem; position: sticky; top: 4.5rem; }
   .panel { background: var(--color-obsidian); box-shadow: none; }
   .panel-head { flex-wrap: wrap; padding: 1rem; }
   .panel-head::before { content: none; }

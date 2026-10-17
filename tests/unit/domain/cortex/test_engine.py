@@ -13,8 +13,9 @@ from typing import Any, cast
 import pytest
 
 from lychd.agents.router import Intent
-from lychd.agents.workflows import BRIDGE_CHAT, builtin_workflow_registry
+from lychd.agents.workflows import BRIDGE_CHAT, BRIDGE_CHAT_BOUND, BuiltinWorkflowRegistry, builtin_workflow_registry
 from lychd.domain.codex.schemas import ConsentView
+from lychd.domain.cortex.bridge_preference import BridgePreference, BridgePreferenceDecision, BridgePreferenceError
 from lychd.domain.cortex.context import ContextOrchestrator
 from lychd.domain.cortex.engine import QueueRouter, RouteRule, RunEngine, enqueue_run, run_job_key
 from lychd.domain.cortex.events import InProcessEventBus, RunEvent, RunEventKind
@@ -242,6 +243,119 @@ def _engine() -> tuple[RunEngine, InMemoryRunLedger, dict[str, _FakeQueue]]:
         consents=_TestConsentAuthority(),
     )
     return engine, ledger, queues
+
+
+def _bridge_preference_decision() -> BridgePreferenceDecision:
+    now = datetime.now(UTC)
+    return BridgePreferenceDecision.model_validate(
+        {
+            "policy": {
+                "schema_version": 1,
+                "routes": [
+                    {"capability_key": "a:chat:answer", "weight": 2},
+                    {"capability_key": "b:chat:answer", "weight": 1},
+                ],
+            },
+            "policy_digest": BridgePreference.model_validate(
+                {
+                    "schema_version": 1,
+                    "routes": [
+                        {"capability_key": "a:chat:answer", "weight": 2},
+                        {"capability_key": "b:chat:answer", "weight": 1},
+                    ],
+                }
+            ).digest,
+            "batch_started_at": now,
+            "batch_finished_at": now,
+            "observations": [
+                {
+                    "capability_key": key,
+                    "phase": "warm",
+                    "observed_at": now,
+                    "admission_open": True,
+                    "exclusion_code": None,
+                }
+                for key in ("a:chat:answer", "b:chat:answer")
+            ],
+            "selected_capability_key": "a:chat:answer",
+        }
+    )
+
+
+@pytest.mark.asyncio
+async def test_bridge_preference_admits_once_and_replay_ignores_current_policy() -> None:
+    engine, ledger, queues = _engine()
+    decision = _bridge_preference_decision()
+    calls: list[BridgePreference] = []
+
+    async def select(policy: BridgePreference) -> BridgePreferenceDecision:
+        calls.append(policy)
+        return decision
+
+    engine.workflows = BuiltinWorkflowRegistry(workflows=(BRIDGE_CHAT_BOUND,))
+    engine.bridge_preference = decision.policy
+    engine.bridge_preference_selector = select
+    intent = Intent(session_id="preference", prompt="inert admission", source="bridge")
+    admitted = await engine.submit(intent, idempotency_key="preference-once")
+    restored = await ledger.get(admitted.run_id)
+    assert restored is not None
+    assert restored.admitted_capability_key == decision.selected_capability_key
+    assert restored.admitted_bridge_preference == decision
+    assert restored.to_intent().admitted_bridge_preference == decision
+    assert restored.pattern_manifest == BRIDGE_CHAT_BOUND.manifest.snapshot()
+    engine.bridge_preference = None
+    engine.bridge_preference_selector = None
+    replayed = await engine.submit(intent, idempotency_key="preference-once")
+    assert replayed.run_id == admitted.run_id
+    assert calls == [decision.policy]
+    assert len(queues["runs"].enqueued) == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("corruption", ["digest", "selected", "admitted"])
+async def test_bridge_preference_actual_memory_retention_refuses_corruption(corruption: str) -> None:
+    _engine_instance, ledger, _queues = _engine()
+    decision = _bridge_preference_decision()
+    admitted_key = decision.selected_capability_key
+    if corruption == "digest":
+        decision = decision.model_copy(update={"policy_digest": "0" * 64})
+    elif corruption == "selected":
+        decision = decision.model_copy(update={"selected_capability_key": "b:chat:answer"})
+    else:
+        admitted_key = "b:chat:answer"
+    unvalidated = Intent(session_id="preference", prompt="inert", source="bridge").model_copy(
+        update={
+            "admitted_capability_key": admitted_key,
+            "admitted_bridge_preference": decision,
+        }
+    )
+    with pytest.raises(BridgePreferenceError, match="preference_binding"):
+        await ledger.create(unvalidated, workflow_name="bridge_chat", queue_name="runs", priority=70)
+    assert await ledger.list_for_session("preference") == []
+
+
+@pytest.mark.asyncio
+async def test_bridge_preference_rejects_caller_metadata_and_selector_corruption_before_run() -> None:
+    engine, ledger, queues = _engine()
+    decision = _bridge_preference_decision()
+    caller = Intent(session_id="preference", prompt="inert", source="bridge").model_copy(
+        update={
+            "admitted_capability_key": decision.selected_capability_key,
+            "admitted_bridge_preference": decision,
+        }
+    )
+    with pytest.raises(ValueError, match="server-owned"):
+        await engine.submit(caller)
+
+    async def corrupt(_policy: BridgePreference) -> BridgePreferenceDecision:
+        return decision.model_copy(update={"policy_digest": "0" * 64})
+
+    engine.workflows = BuiltinWorkflowRegistry(workflows=(BRIDGE_CHAT_BOUND,))
+    engine.bridge_preference, engine.bridge_preference_selector = decision.policy, corrupt
+    with pytest.raises(BridgePreferenceError, match="preference_binding"):
+        await engine.submit(Intent(session_id="preference", prompt="inert", source="bridge"))
+    assert await ledger.list_for_session("preference") == []
+    assert queues["runs"].enqueued == []
 
 
 class _BoundedSessionAdmissionLedger(InMemoryRunLedger):

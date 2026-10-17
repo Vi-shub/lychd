@@ -1489,6 +1489,29 @@ export interface components {
             source_key: string;
             source_revision: string;
         };
+        /** OrbBridgePreferenceRoute */
+        OrbBridgePreferenceRoute: {
+            admission_open: boolean;
+            capability_key: string;
+            /** @enum {null|string} */
+            exclusion_code: "disabled" | "not_warm" | "admission_closed" | "readiness_changed" | null;
+            observed_at: string | null;
+            /** @enum {null|string} */
+            phase: "cold" | "activatable" | "warming" | "warm" | "error" | "unknown" | null;
+            weight: number;
+        };
+        /** OrbBridgePreferenceSummary */
+        OrbBridgePreferenceSummary: {
+            /** Format: date-time */
+            batch_finished_at: string;
+            /** Format: date-time */
+            batch_started_at: string;
+            policy_digest: string;
+            /** @constant */
+            policy_schema_version: 1;
+            routes: components["schemas"]["OrbBridgePreferenceRoute"][];
+            selected_capability_key: string;
+        };
         /** OrbCreationSummary */
         OrbCreationSummary: {
             admission_current: boolean;
@@ -1549,6 +1572,7 @@ export interface components {
         };
         /** OrbRunSnapshot */
         OrbRunSnapshot: {
+            bridge_preference?: components["schemas"]["OrbBridgePreferenceSummary"] | null;
             /** @enum {string} */
             capture: "process_local" | "durable_best_effort";
             creation?: components["schemas"]["OrbCreationSummary"] | null;
@@ -2999,6 +3023,15 @@ export interface operations {
             };
             /** @description Additional response */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

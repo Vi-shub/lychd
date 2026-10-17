@@ -7,9 +7,10 @@ admits a durable delivery. Graph execution occurs only inside ``perform_run``.
 
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from lychd.domain.archive import ArchiveProfile
+from lychd.domain.cortex.bridge_preference import BridgePreferenceDecision, validate_retained_preference
 from lychd.domain.delegation.routing import DelegatedRuntimeBinding
 from lychd.domain.scout.profile import ScoutBinding
 
@@ -34,6 +35,12 @@ class Intent(BaseModel):
     # Server-owned admission metadata. submit rejects this from callers; only the
     # admission path and RunRecord.to_intent may populate it for durable execution.
     admitted_capability_key: str | None = Field(default=None, min_length=1)
+    admitted_bridge_preference: BridgePreferenceDecision | None = None
     admitted_archive: ArchiveProfile | None = None
     admitted_delegation: DelegatedRuntimeBinding | None = None
     admitted_scout: ScoutBinding | None = None
+
+    @model_validator(mode="after")
+    def validate_bridge_preference_binding(self) -> Intent:
+        validate_retained_preference(self.admitted_bridge_preference, self.admitted_capability_key)
+        return self

@@ -55,11 +55,12 @@ from lychd.domain.animation.errors import HardwareTransitionRequired
 from lychd.domain.artifacts import ArtifactRef
 from lychd.domain.codex.ledger import CodexConsentLedger
 from lychd.domain.codex.sigil import Sigil
+from lychd.domain.cortex.bridge_preference import BridgePreference, BridgePreferenceDecision, BridgePreferenceError
 from lychd.domain.cortex.events import InProcessEventBus, RunEvent, RunEventKind
 from lychd.domain.cortex.graph import build_serial_graph
 from lychd.domain.cortex.graph_runner import GraphRunner
 from lychd.domain.cortex.ledger import DbRunLedger, RunAdmissionConflictError
-from lychd.domain.cortex.runs import IllegalRunTransitionError, RunDeliveryState, RunStatus
+from lychd.domain.cortex.runs import IllegalRunTransitionError, RunDeliveryState, RunRecord, RunStatus
 from lychd.domain.cortex.stasis import DurableStasisPhylactery
 from lychd.domain.delegation.models import (
     TERMINAL_DELEGATED_AGENT_STATUSES,
@@ -885,6 +886,108 @@ async def test_idempotent_admission_converges_across_database_sessions(
             Intent(session_id="s", prompt="different work", source="bridge"),
             **kwargs,
         )
+
+
+def _preference_intent(*, reverse: bool = False) -> Intent:
+    policy = BridgePreference.model_validate(
+        {
+            "schema_version": 1,
+            "routes": [
+                {"capability_key": "a:chat:answer", "weight": 1 if reverse else 2},
+                {"capability_key": "b:chat:answer", "weight": 2 if reverse else 1},
+            ],
+        }
+    )
+    now = datetime.now(UTC)
+    selected = "b:chat:answer" if reverse else "a:chat:answer"
+    decision = BridgePreferenceDecision.model_validate(
+        {
+            "policy": policy,
+            "policy_digest": policy.digest,
+            "batch_started_at": now,
+            "batch_finished_at": now,
+            "observations": [
+                {
+                    "capability_key": route.capability_key,
+                    "phase": "warm",
+                    "observed_at": now,
+                    "admission_open": True,
+                    "exclusion_code": None,
+                }
+                for route in policy.routes
+            ],
+            "selected_capability_key": selected,
+        }
+    )
+    return Intent(
+        session_id="preference",
+        prompt="inert retained admission",
+        source="bridge",
+        admitted_capability_key=selected,
+        admitted_bridge_preference=decision,
+    )
+
+
+@pytest.mark.asyncio
+async def test_bridge_preference_retains_concurrent_winner_and_refuses_jsonb_corruption(
+    pg_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    first, second = DbRunLedger(session_factory=pg_factory), DbRunLedger(session_factory=pg_factory)
+
+    async def create(ledger: DbRunLedger, intent: Intent) -> tuple[RunRecord, bool]:
+        return await ledger.create_idempotent(
+            intent,
+            idempotency_key="bridge:preference:once",
+            workflow_name="bridge_chat",
+            queue_name="runs",
+            priority=70,
+        )
+
+    admitted = await asyncio.gather(
+        create(first, _preference_intent()), create(second, _preference_intent(reverse=True))
+    )
+    assert sorted(created for _run, created in admitted) == [False, True]
+    winner = admitted[0][0]
+    assert winner.admitted_bridge_preference is not None
+    assert winner.admitted_bridge_preference == admitted[1][0].admitted_bridge_preference
+    assert winner.admitted_capability_key == admitted[1][0].admitted_capability_key
+    restored = await DbRunLedger(session_factory=pg_factory).get(winner.run_id)
+    assert restored is not None
+    assert restored.to_intent().admitted_bridge_preference == winner.admitted_bridge_preference
+    replay = await second.get_idempotent(
+        Intent(session_id="preference", prompt="inert retained admission", source="bridge"),
+        idempotency_key="bridge:preference:once",
+    )
+    assert replay is not None
+    assert replay.admitted_bridge_preference == winner.admitted_bridge_preference
+    async with pg_factory() as session:
+        row = await session.get(Run, UUID(winner.run_id))
+        assert row is not None
+        original = dict(row.intent)
+    assert original["admitted_bridge_preference"] == winner.admitted_bridge_preference.model_dump(mode="json")
+    for field, value in (
+        ("policy_digest", "0" * 64),
+        ("selected_capability_key", "foreign:chat:answer"),
+        ("admitted_capability_key", "foreign:chat:answer"),
+    ):
+        payload = dict(original)
+        if field == "admitted_capability_key":
+            payload[field] = value
+        else:
+            payload["admitted_bridge_preference"] = dict(original["admitted_bridge_preference"]) | {field: value}
+        async with pg_factory() as session, session.begin():
+            row = await session.get(Run, UUID(winner.run_id))
+            assert row is not None
+            row.intent = payload
+        with pytest.raises(BridgePreferenceError, match="preference_binding"):
+            await first.get(winner.run_id)
+    async with pg_factory() as session, session.begin():
+        row = await session.get(Run, UUID(winner.run_id))
+        assert row is not None
+        row.intent = original
+    recovered = await first.get(winner.run_id)
+    assert recovered is not None
+    assert recovered.admitted_bridge_preference == winner.admitted_bridge_preference
 
 
 @pytest.mark.asyncio

@@ -8,17 +8,20 @@ from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from lychd.config.settings.section import SettingsSection
 from lychd.domain.archive import ArchiveProfile
+from lychd.domain.cortex.bridge_preference import BridgePreference
 from lychd.domain.delegation.routing import DelegatedRuntimeBinding
 from lychd.domain.scout.profile import ScoutProfile
 
 
 class BridgeCastingSettings(SettingsSection):
-    """Select the configured Bridge revision and one exact capability identity."""
+    """Select exact Bridge execution, optionally ranked once at revision-2 admission."""
 
     revision: Literal["2", "3", "4"]
     """The exact registered Bridge revision supporting a persisted capability binding."""
-    capability_key: str = Field(min_length=1)
+    capability_key: str | None = Field(default=None, min_length=1)
     """The exact animator:family:model capability key, never a model alias or pool."""
+    preference: BridgePreference | None = None
+    """Revision-2-only bounded local Chat preference; execution retains one exact key."""
     archive: ArchiveProfile | None = None
     """Mandatory exact public-note binding for the read-only revision 3."""
     scout: ScoutProfile | None = None
@@ -26,6 +29,13 @@ class BridgeCastingSettings(SettingsSection):
 
     @model_validator(mode="after")
     def _require_archive_binding(self) -> BridgeCastingSettings:
+        if self.revision == "2":
+            if (self.capability_key is None) == (self.preference is None):
+                msg = "Bridge revision 2 requires capability_key XOR preference."
+                raise ValueError(msg)
+        elif self.capability_key is None or self.preference is not None:
+            msg = "Bridge revisions 3 and 4 require capability_key and reject preference."
+            raise ValueError(msg)
         if (self.revision == "3") != (self.archive is not None):
             msg = "Bridge revision 3 requires archive; revision 2 does not accept it."
             raise ValueError(msg)
@@ -36,7 +46,9 @@ class BridgeCastingSettings(SettingsSection):
 
     @field_validator("capability_key")
     @classmethod
-    def _require_exact_capability_key(cls, value: str) -> str:
+    def _require_exact_capability_key(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
         if not value.strip() or value != value.strip():
             msg = "Bridge capability_key must be nonblank and have no surrounding whitespace."
             raise ValueError(msg)

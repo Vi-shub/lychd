@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OrbEventEnvelope } from "$lib/api/models";
 import { fixtureRun } from "./__fixtures__/snapshot";
 import { incompleteCreation } from "./__fixtures__/creation";
+import { coldPreferredRoute } from "./__fixtures__/preference";
 import { getOrbCatalogue, listenToOrb, type OrbLiveCallbacks } from "./live";
 
 class Source extends EventTarget {
@@ -104,6 +105,57 @@ describe("Creation metadata transport", () => {
     if (failure === "invalid_status") Object.assign(event.snapshot.creation, { native_status: "successful" });
     if (failure === "invalid_deadline") event.snapshot.creation.deadline = "yesterday";
     if (failure === "oversize_reason") event.snapshot.creation.reason_code = "x".repeat(65);
+    Source.instances[0]!.emit("evidence", event);
+    expect(cb.onFrame).not.toHaveBeenCalled();
+    expect(cb.onFault).toHaveBeenCalledOnce();
+    expect(Source.instances[0]!.close).toHaveBeenCalledOnce();
+  });
+});
+
+describe("Routing preference metadata transport", () => {
+  it("retains supplied observations, strips bodies, and accepts a metadata-only clear", () => {
+    const cb = callbacks(); listenToOrb("run-a", 0, cb);
+    const event = frame(); event.snapshot.bridge_preference = structuredClone(coldPreferredRoute);
+    Object.assign(event.snapshot.bridge_preference, { private_body: "must not enter client state" });
+    Source.instances[0]!.emit("evidence", event);
+    const received = vi.mocked(cb.onFrame).mock.calls[0]![0].snapshot.bridge_preference;
+    expect(received).toEqual(coldPreferredRoute);
+    expect(received).not.toHaveProperty("private_body");
+    Source.instances[0]!.emit("evidence", frame({ after_seq: 1, cursor: 1,
+      snapshot: { ...event.snapshot, evidence: [], bridge_preference: null }
+    }));
+    expect(vi.mocked(cb.onFrame).mock.calls[1]![0].snapshot.bridge_preference).toBeNull();
+    expect(cb.onFault).not.toHaveBeenCalled();
+  });
+
+  it("retains a disabled route without a phase or timestamp", () => {
+    const cb = callbacks(); listenToOrb("run-a", 0, cb);
+    const event = frame(); event.snapshot.bridge_preference = { ...coldPreferredRoute,
+      routes: [{ ...coldPreferredRoute.routes[0]!, weight: 0, phase: null, observed_at: null,
+        admission_open: false, exclusion_code: "disabled" }, coldPreferredRoute.routes[1]!]
+    };
+    Source.instances[0]!.emit("evidence", event);
+    expect(vi.mocked(cb.onFrame).mock.calls[0]![0].snapshot.bridge_preference).toEqual(event.snapshot.bridge_preference);
+    expect(cb.onFault).not.toHaveBeenCalled();
+  });
+
+  it.each(["extra_route", "missing_route", "duplicate_route", "negative_weight", "fractional_weight", "oversize_weight", "unknown_phase", "unknown_exclusion", "invalid_time", "empty_key", "oversize_key", "invalid_digest", "version"])("refuses malformed %s before publishing it", (failure) => {
+    const cb = callbacks(); listenToOrb("run-a", 0, cb);
+    const event = frame(); const preference = structuredClone(coldPreferredRoute);
+    if (failure === "extra_route") preference.routes.push({ ...preference.routes[0]! });
+    if (failure === "missing_route") preference.routes.pop();
+    if (failure === "duplicate_route") preference.routes[1]!.capability_key = preference.routes[0]!.capability_key;
+    if (failure === "negative_weight") preference.routes[0]!.weight = -1;
+    if (failure === "fractional_weight") preference.routes[0]!.weight = 0.5;
+    if (failure === "oversize_weight") preference.routes[0]!.weight = 1_000_001;
+    if (failure === "unknown_phase") Object.assign(preference.routes[0]!, { phase: "ready" });
+    if (failure === "unknown_exclusion") Object.assign(preference.routes[0]!, { exclusion_code: "not_preferred" });
+    if (failure === "invalid_time") preference.routes[0]!.observed_at = "yesterday";
+    if (failure === "empty_key") preference.routes[0]!.capability_key = "";
+    if (failure === "oversize_key") preference.routes[0]!.capability_key = "x".repeat(513);
+    if (failure === "invalid_digest") preference.policy_digest = "not-a-policy-digest";
+    if (failure === "version") Object.assign(preference, { policy_schema_version: 2 });
+    event.snapshot.bridge_preference = preference;
     Source.instances[0]!.emit("evidence", event);
     expect(cb.onFrame).not.toHaveBeenCalled();
     expect(cb.onFault).toHaveBeenCalledOnce();

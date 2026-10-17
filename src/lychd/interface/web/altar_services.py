@@ -20,6 +20,7 @@ from lychd.domain.animation.services.declarations import (
     compile_animator_declarations,
 )
 from lychd.domain.animation.services.registry import AnimatorRegistry
+from lychd.domain.cortex.bridge_preference import BridgePreferenceSelector
 from lychd.domain.cortex.cancellation import RunCancellationCoordinator
 from lychd.domain.cortex.context import ContextOrchestrator
 from lychd.domain.cortex.dispatcher import Dispatcher
@@ -517,6 +518,8 @@ def build_altar_services(
         consents=consents,
         release_context=context_orchestrator.release,
         bridge_capability_key=bridge_casting.capability_key if bridge_casting is not None else None,
+        bridge_preference=bridge_casting.preference if bridge_casting is not None else None,
+        bridge_preference_selector=BridgePreferenceSelector(registry, leases).select,
         bridge_archive=bridge_casting.archive if bridge_casting is not None else None,
         delegation_binding=delegation_binding,
         bridge_scout=bridge_casting.scout if bridge_casting is not None else None,

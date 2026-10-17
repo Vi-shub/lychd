@@ -146,6 +146,7 @@ async def _orb_events(
             snapshot.pattern,
             snapshot.capture,
             snapshot.delegated_jobs,
+            snapshot.bridge_preference,
             snapshot.creation,
             snapshot.known_omissions,
         )

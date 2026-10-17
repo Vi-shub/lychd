@@ -45,14 +45,36 @@ creates a runtime. Settings also owns the fixed `runs` and `rites` physical queu
 concurrency; routing can name only those queues. Global port claims and Rune port claims are
 arbitrated before any unit is written.
 
-The bounded Core Bridge selector is the first local slice: optional
-`[weaver.bridge]` requires `revision = "2"` and one exact `capability_key`. It activates the
-registered `bridge_chat@2`; omission keeps `bridge_chat@1` active. Admission stamps the selected
-key into durable Run intent before publication, and Graph state retains it across pauses. A changed
-Settings generation affects new admissions only; idempotent retries keep their original selection.
-This is capability identity pinning, not an executable/declaration generation fingerprint or the
-general portable Resolution Lock. No configurable pool, arbitrary Pattern, AgentSpec, or Context
-profile selector ships through this section.
+The bounded Core Bridge selector uses optional `[weaver.bridge]` to select the registered
+`bridge_chat@2`; omission keeps `bridge_chat@1` active. Revision 2 admits exactly one of an exact
+`capability_key` or a versioned `preference`. The preference grammar has `schema_version = 1`
+and exactly two distinct route entries, each containing a literal canonical registry
+`capability_key` of at most 512 characters and a strict integer `weight` from 0 through 1,000,000. Booleans, coercion,
+aliases and a zero total are refused. Zero disables that route's eligibility; larger weights rank
+first, with ascending canonical key breaking a tie. Weights are unitless ordinal preferences
+without normalization, not traffic share or measured quality. Both declarations must satisfy the
+local Chat/tools contract in
+[Dispatcher](22-dispatcher.md#bridge-preference-at-admission), including a disabled route.
+
+Admission resolves an existing idempotent Run before considering current policy or readiness.
+A fresh preference admission retains its immutable policy and weights, canonical policy digest,
+safe phase observations, server-observed observation and batch times, closed exclusion codes and
+selected exact key in the existing Run intent JSONB before publication. The digest is SHA-256 of
+canonical typed policy bytes, including `schema_version = 1`, not a generated JSON Schema
+fingerprint. Concurrent admission losers return the retained winner. This metadata is server-owned;
+callers cannot supply or replace it. Graph state retains the selected key across pauses; replay
+and restart use that key without
+another preference selection. A changed Settings generation affects new admissions only.
+Retention excludes free probe reasons, endpoints, principals, credentials and authentication
+generations. This remains capability identity pinning rather than a durable
+executable/declaration-generation fingerprint or the general portable Resolution Lock.
+
+This admission policy preserves the existing `bridge_chat@2` Pattern, calls, tools, consent,
+retries and token bounds. It supplies no post-selection fallback. The Altar must explain the
+retained policy, observations, exclusions and selection at admission, the absence of fallback,
+and the distinct replay/restart and new-admission semantics before this feature is published.
+Display neither grants authority nor establishes current readiness. Implementation and delivery
+evidence remain owned by [State of Work](../state-of-the-work.md).
 
 An explicit `revision = "3"` selects the read-only Archive answer profile and additionally
 requires an `archive` binding with exact `local-public-notes@1` profile, namespace UUID, trusted
@@ -60,6 +82,8 @@ local subject, and policy revision. It is valid only with PostgreSQL and the sam
 custody profile. The whole binding is retained at Run admission; changed settings cannot rewrite
 an admitted casting. This selector grants no remote identity, namespace access, ingestion, or
 embedding capability. Intake and promotion remain separate explicit Archive operations.
+Revisions 3 and 4 continue to require their exact `capability_key` and their own Archive or Scout
+binding respectively; neither accepts `preference`.
 
 ### Exact delegated casting selection
 

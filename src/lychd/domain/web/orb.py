@@ -17,6 +17,8 @@ from lychd.domain.web.contracts import (
     DelegatedJobSummary,
     EvidenceGap,
     EvidenceItem,
+    OrbBridgePreferenceRoute,
+    OrbBridgePreferenceSummary,
     OrbRunSnapshot,
     OrbRunSummary,
     PatternReference,
@@ -33,6 +35,35 @@ _CAPTURES = {"process_local", "durable_best_effort"}
 _MAX_DELEGATED_JOBS = 32
 _MAX_DELEGATED_EVENTS_PER_JOB = 64
 type CaptureClass = Literal["process_local", "durable_best_effort"]
+
+
+def _bridge_preference_view(run: RunRecord) -> OrbBridgePreferenceSummary | None:
+    """Project retained selection facts without config reads, probes or reselection."""
+    decision = run.admitted_bridge_preference
+    if decision is None:
+        return None
+    if decision.selected_capability_key != run.admitted_capability_key:
+        msg = "Retained Bridge preference does not match its admitted capability."
+        raise ValueError(msg)
+    weights = {route.capability_key: route.weight for route in decision.policy.routes}
+    return OrbBridgePreferenceSummary(
+        policy_schema_version=decision.policy.schema_version,
+        policy_digest=decision.policy_digest,
+        batch_started_at=decision.batch_started_at,
+        batch_finished_at=decision.batch_finished_at,
+        selected_capability_key=decision.selected_capability_key,
+        routes=[
+            OrbBridgePreferenceRoute(
+                capability_key=observation.capability_key,
+                weight=weights[observation.capability_key],
+                phase=observation.phase.value if observation.phase is not None else None,
+                observed_at=observation.observed_at,
+                admission_open=observation.admission_open,
+                exclusion_code=observation.exclusion_code,
+            )
+            for observation in decision.observations
+        ],
+    )
 
 
 async def build_orb_snapshot(
@@ -98,6 +129,7 @@ async def build_orb_snapshot(
             ),
         ),
         workflow=workflow,
+        bridge_preference=_bridge_preference_view(run),
         capture=typed_capture,
         ledger_head_seq=ledger_head_seq,
         page_end_seq=page[-1].seq if page else None,

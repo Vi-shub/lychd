@@ -366,6 +366,28 @@ class DelegatedJobSummary(ClientContract):
     events: list[DelegatedJobEventView]
 
 
+class OrbBridgePreferenceRoute(ClientContract):
+    """One retained admission observation; it is not current readiness."""
+
+    capability_key: str = Field(min_length=1, max_length=512)
+    weight: int = Field(strict=True, ge=0, le=1_000_000)
+    phase: Literal["cold", "activatable", "warming", "warm", "error", "unknown"] | None
+    observed_at: datetime | None
+    admission_open: bool
+    exclusion_code: Literal["disabled", "not_warm", "admission_closed", "readiness_changed"] | None
+
+
+class OrbBridgePreferenceSummary(ClientContract):
+    """Allowlisted immutable selection facts, never browser policy authority."""
+
+    policy_schema_version: Literal[1]
+    policy_digest: str = Field(min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$")
+    batch_started_at: datetime
+    batch_finished_at: datetime
+    selected_capability_key: str = Field(min_length=1, max_length=512)
+    routes: list[OrbBridgePreferenceRoute] = Field(min_length=2, max_length=2)
+
+
 class OrbCreationSummary(ClientContract):
     """Authorized case metadata, separate from selected-Run execution status.
 
@@ -415,6 +437,7 @@ class OrbRunSnapshot(ClientContract):
     gaps: list[EvidenceGap]
     evidence: list[EvidenceItem]
     delegated_jobs: list[DelegatedJobSummary]
+    bridge_preference: OrbBridgePreferenceSummary | None = None
     creation: OrbCreationSummary | None = None
     next_after_seq: int | None
 

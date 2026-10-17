@@ -28,9 +28,11 @@
   "source_fingerprints": {
     "src/lychd/domain/codex/local_access.py": "4617db35469740582fb947ff96a98d6c5b7c90a85af027c4b8f115c715d68de3",
     "src/lychd/domain/codex/ledger.py": "9deb0e385b96a7b6ab9f6a844564c1ae1edd2feced68794de361b08868d00d17",
+    "src/lychd/domain/cortex/bridge_preference.py": "0f8754465af54823e82ce76cb24977bb6334852b134991e51341bcf1a74da75b",
     "src/lychd/domain/cortex/cancellation.py": "e98663a9cd73aa256842429b039c9ca554905255bd24b786ba70db56b910b2e6",
-    "src/lychd/domain/cortex/engine.py": "2276bced167e86019f0c366111030a0c42206981999aa76fe4a274a238091fc7",
-    "src/lychd/domain/cortex/ledger.py": "d25b769d89f7098a1c902ae45f3ce5664309ad49ca1acc9f187809e9e9930597",
+    "src/lychd/domain/cortex/engine.py": "9c4a7b97d071fe49973635293ad09a8df06296294a315dc71071faf316006ba8",
+    "src/lychd/domain/cortex/ledger.py": "382e0fb120043454da20adba06742fe437089062a7c6c8785785c63e6d73ea1c",
+    "src/lychd/domain/cortex/runs.py": "c4ca74dd40641f737222106687c76ef4ea2739175c02fb10941217415551a26f",
     "src/lychd/domain/scout/attempts.py": "b446ad02a0ffed58648a92bfa3bbfa3c8cb9033a5e38786e9529e8a99e819a99",
     "src/lychd/domain/scout/authority.py": "8c804d9f78c26dd7460738d09ce8e1b083497c8a88767204de5ed0513e70f3c7",
     "src/lychd/domain/scout/destination.py": "5cd67b1be68397673b86982afe5b36f2d3fbf26ef8c64da4397dc15d0edf683f",
@@ -45,6 +47,7 @@
     "src/lychd/interface/web/scout_review.py": "9333e6efcc1b5fa9dad0c5e383d145afbbd5b163b6f278324abc573e876a087d",
     "src/lychd/agents/workflows/scout_chat.py": "c2c78b7504ff63e01d434496c35e2da2f6c49eee58c43bf0c3568a8453052539",
     "src/lychd/agents/scout_context.py": "28ac0738e34463565957959180539a5734e659065dc615974db36ba68730733f",
+    "src/lychd/agents/router.py": "4231a56080dedb68bbf780ba176e4c90821e5434206691f72687bbd55da51cc0",
     "src/lychd/system/scout_worker.py": "b1cd9ba101653e276ff66847419f07b24589dcc5b76d92df867fc115475d2f66",
     "src/lychd/system/services/scout_workflow.py": "e0d66589855a0daa258e653474b82e706e43ef42a147f67b88d57ff8695a6aee",
     "src/lychd/system/services/scout_dns.py": "9bb3842fd92f35c99331aa14bb46f1250be700de599679454c061e9fba40acc9",
@@ -59,13 +62,13 @@
     "tests/scout_postgres_fixture.py": "664645a1c51686828e5046ac9048e34cb74f819dfe10b67c6122e0e0dd899123",
     "tests/scout_workflow_fixture.py": "f8402b3fb521b5b3022df345b63daec5d4f1da45992a258fc8553de5788e88b2",
     "tests/integration/test_scout_extraction_runtime.py": "6a7967b36c56eb97977a025302e6c6163d3bbb76699a9546e2586ada1ce12920",
-    "tests/integration/test_scout_composed_runtime.py": "87184fabee8e92c8a768db5d8af6404b11709135c2ccd7a33893ff59b934ef64"
+    "tests/integration/test_scout_composed_runtime.py": "9aa6c4e577142bb6fdb0717e56998cb84d94fe448f1f021bf29ed0961afc7cbc"
   },
   "runtime_identity": {
     "bubblewrap_digest": "64501f97e29203f11d1eaa9e897e441ef92f200c0a1eb891aed5d07f780034f2",
     "python_tree_digest": "3aca44e8c98b087512c3218dae9ee78281ca5e42c31b3278b9a56e4c4b3de627",
-    "python_tree_bytes": 114027032,
     "python_tree_entries": 5156,
+    "python_tree_bytes": 114027032,
     "library_digests": {
       "libpthread.so.0": "a8294c61875f0dd96d9e233f9ec3caf0513c3a957c8e69a22a674e3d2c765a1f",
       "libdl.so.2": "63bd4f1cbaf5a6b04127fdf3236842b82f00814a57d75daeabf311302cf43e6b",

@@ -85,6 +85,7 @@ def test_every_explicit_error_operation_publishes_the_shared_framework_error(
         ("/api/v1/bridge/sessions/{session_id}", "get", "404"),
         ("/api/v1/bridge/sessions/{session_id}/inspector", "get", "404"),
         ("/api/v1/bridge/sessions/{session_id}/messages", "post", "404"),
+        ("/api/v1/bridge/sessions/{session_id}/messages", "post", "503"),
         ("/api/v1/loom/source/patterns/{pattern_id}/{revision}", "get", "404"),
         ("/api/v1/loom/source/workflows/{workflow}", "get", "404"),
         ("/api/v1/loom/{pattern_id}/{revision}", "get", "404"),

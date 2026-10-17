@@ -2780,6 +2780,118 @@
         "title": "NoteRecord",
         "type": "object"
       },
+      "OrbBridgePreferenceRoute": {
+        "additionalProperties": false,
+        "properties": {
+          "admission_open": {
+            "type": "boolean"
+          },
+          "capability_key": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "exclusion_code": {
+            "enum": [
+              "disabled",
+              "not_warm",
+              "admission_closed",
+              "readiness_changed",
+              null
+            ],
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "observed_at": {
+            "oneOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "phase": {
+            "enum": [
+              "cold",
+              "activatable",
+              "warming",
+              "warm",
+              "error",
+              "unknown",
+              null
+            ],
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "weight": {
+            "maximum": 1000000.0,
+            "minimum": 0.0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "admission_open",
+          "capability_key",
+          "exclusion_code",
+          "observed_at",
+          "phase",
+          "weight"
+        ],
+        "title": "OrbBridgePreferenceRoute",
+        "type": "object"
+      },
+      "OrbBridgePreferenceSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "batch_finished_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "batch_started_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "policy_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "type": "string"
+          },
+          "policy_schema_version": {
+            "const": 1,
+            "type": "integer"
+          },
+          "routes": {
+            "items": {
+              "$ref": "#/components/schemas/OrbBridgePreferenceRoute"
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array"
+          },
+          "selected_capability_key": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "batch_finished_at",
+          "batch_started_at",
+          "policy_digest",
+          "policy_schema_version",
+          "routes",
+          "selected_capability_key"
+        ],
+        "title": "OrbBridgePreferenceSummary",
+        "type": "object"
+      },
       "OrbCreationSummary": {
         "additionalProperties": false,
         "properties": {
@@ -3022,6 +3134,16 @@
       "OrbRunSnapshot": {
         "additionalProperties": false,
         "properties": {
+          "bridge_preference": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/OrbBridgePreferenceSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "capture": {
             "enum": [
               "process_local",
@@ -6302,6 +6424,16 @@
             "description": "Bad request syntax or unsupported method"
           },
           "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "503": {
             "content": {
               "application/json": {
                 "schema": {

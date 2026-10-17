@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { OrbRunSnapshot } from "$lib/api/models";
 import { incompleteCreation } from "$lib/orb/__fixtures__/creation";
+import { coldPreferredRoute } from "$lib/orb/__fixtures__/preference";
 
 vi.mock("$app/navigation", () => ({ goto: vi.fn() }));
 vi.mock("$app/state", async () => {
@@ -703,6 +704,28 @@ describe("Creation evidence in the selected Run", () => {
     await fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
     await waitFor(() => expect(screen.queryByRole("region", { name: "Creation outcome" })).toBeNull());
     expect(screen.queryByText(incompleteCreation.case_id)).toBeNull();
+    view.unmount();
+  });
+});
+
+describe("Routing preference in the Run inspector", () => {
+  it("retains supplied preference metadata at the same cursor and hides legacy absence", async () => {
+    const view = render(OrbView, { runId: "run-a" });
+    await screen.findByRole("heading", { name: "Inspect a record" });
+    expect(screen.queryByRole("region", { name: "Routing preference" })).toBeNull();
+    const callbacks = vi.mocked(listenToOrb).mock.calls[0]![2];
+    await act(() => callbacks.onFrame({ schema_version: 1, run_id: "run-a", kind: "evidence", after_seq: 0, cursor: 0,
+      snapshot: { ...snapshot, evidence: [], bridge_preference: coldPreferredRoute }
+    }));
+    const preference = screen.getByRole("region", { name: "Routing preference" });
+    expect(within(preference).getByRole("table")).toBeTruthy();
+    expect(preference.closest("aside.orb-inspector")).toBeTruthy();
+    expect(within(preference).getByText(coldPreferredRoute.policy_digest)).toBeTruthy();
+    await act(() => callbacks.onFrame({ schema_version: 1, run_id: "run-a", kind: "settled", after_seq: 0, cursor: 0,
+      snapshot: { ...snapshot, evidence: [], bridge_preference: null }
+    }));
+    expect(screen.queryByRole("region", { name: "Routing preference" })).toBeNull();
+    expect(screen.queryByText(coldPreferredRoute.policy_digest)).toBeNull();
     view.unmount();
   });
 });

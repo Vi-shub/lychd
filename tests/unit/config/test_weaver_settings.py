@@ -12,11 +12,73 @@ from pydantic import ValidationError
 from lychd.agents.workflows import BRIDGE_CHAT, BRIDGE_CHAT_ARCHIVE, BRIDGE_CHAT_BOUND, builtin_workflow_registry
 from lychd.config.settings import BridgeCastingSettings, Settings, SettingsSnapshot, WeaverSettings
 from lychd.domain.archive import ArchiveProfile, ArchiveSubject
+from lychd.domain.cortex.bridge_preference import BridgePreference, BridgePreferenceRoute
 from tests.scout_fixtures import scout_profile
 
 
 def test_absent_bridge_selection_preserves_legacy_configuration() -> None:
     assert WeaverSettings().bridge is None
+
+
+def _preference() -> BridgePreference:
+    return BridgePreference(
+        schema_version=1,
+        routes=(
+            BridgePreferenceRoute(capability_key="desk:chat:answer", weight=100),
+            BridgePreferenceRoute(capability_key="backup:chat:answer", weight=1),
+        ),
+    )
+
+
+def test_preference_is_opt_in_revision_two_and_snapshot_retains_typed_policy(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config_path = tmp_path / "preference.toml"
+    config_path.write_text(
+        '[weaver.bridge]\nrevision="2"\n[weaver.bridge.preference]\nschema_version=1\n'
+        '[[weaver.bridge.preference.routes]]\ncapability_key="desk:chat:answer"\nweight=100\n'
+        '[[weaver.bridge.preference.routes]]\ncapability_key="backup:chat:answer"\nweight=1\n'
+    )
+    monkeypatch.setattr("lychd.config.settings.root.PATH_LYCHD_TOML", config_path)
+    settings = Settings()
+    assert settings.weaver.bridge is not None
+    assert settings.weaver.bridge.capability_key is None
+    assert settings.weaver.bridge.preference == _preference()
+    assert builtin_workflow_registry(weaver=settings.weaver).default is BRIDGE_CHAT_BOUND
+    snapshot = SettingsSnapshot.capture(settings)
+    settings.weaver.bridge.preference = _preference().model_copy(update={"schema_version": 99})
+    restored = snapshot.materialize()
+    assert restored.weaver.bridge is not None
+    assert restored.weaver.bridge.preference == _preference()
+
+
+@pytest.mark.parametrize("revision", ["2", "3", "4"])
+def test_preference_never_combines_with_exact_mode_or_other_revisions(revision: str) -> None:
+    with pytest.raises(ValidationError):
+        BridgeCastingSettings.model_validate(
+            {"revision": revision, "capability_key": "desk:chat:answer", "preference": _preference()}
+        )
+
+
+@pytest.mark.parametrize(
+    "patch",
+    [
+        {"schema_version": True},
+        {"schema_version": "1"},
+        {"schema_version": 2},
+        {"schema_version": None},
+        {"routes": [{"capability_key": "a:chat:x", "weight": 1}]},
+        {"routes": [{"capability_key": "a:chat:x", "weight": 1}] * 3},
+        {"routes": [{"capability_key": "a:chat:x", "weight": 1}] * 2},
+        {"routes": [{"capability_key": "a:chat:x", "weight": 0}, {"capability_key": "b:chat:x", "weight": 0}]},
+        {"routes": [{"capability_key": "x" * 513, "weight": 1}, {"capability_key": "b:chat:x", "weight": 0}]},
+        {"routes": [{"capability_key": " a:chat:x", "weight": 1}, {"capability_key": "b:chat:x", "weight": 0}]},
+    ],
+)
+def test_preference_refuses_unversioned_or_unbounded_policy(patch: dict[str, Any]) -> None:
+    payload = _preference().model_dump() | patch
+    with pytest.raises(ValidationError):
+        BridgePreference.model_validate(payload)
 
 
 def test_scout_profile_requires_revision_four_and_keeps_older_revisions_retained() -> None:

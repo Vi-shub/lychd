@@ -164,6 +164,9 @@ def _assert_idempotent_replay(record: RunRecord, intent: Intent) -> None:
 
 def _intent_payload(intent: Intent, *, idempotency_key: str | None = None) -> dict[str, Any]:
     """Serialize the durable Intent plus optional admission identity."""
+    from lychd.domain.cortex.bridge_preference import validate_retained_preference
+
+    preference = validate_retained_preference(intent.admitted_bridge_preference, intent.admitted_capability_key)
     return {
         "session_id": intent.session_id,
         "run_id": intent.run_id,
@@ -173,6 +176,7 @@ def _intent_payload(intent: Intent, *, idempotency_key: str | None = None) -> di
         "sigil_scopes": sorted(intent.sigil_scopes),
         "priority": intent.priority,
         "admitted_capability_key": intent.admitted_capability_key,
+        "admitted_bridge_preference": preference.model_dump(mode="json") if preference is not None else None,
         "admitted_archive": intent.admitted_archive.model_dump(mode="json") if intent.admitted_archive else None,
         "admitted_scout": intent.admitted_scout.model_dump(mode="json") if intent.admitted_scout else None,
         "admitted_delegation": intent.admitted_delegation.model_dump(mode="json")
@@ -431,7 +435,13 @@ def _reject_generic_resume(current: RunStatus, target: RunStatus, *, run_id: str
 
 def _copy_run_record(record: RunRecord) -> RunRecord:
     """Detach mutable in-memory Run truth at the adapter boundary."""
-    return deepcopy(record)
+    from lychd.domain.cortex.bridge_preference import validate_retained_preference
+
+    copied = deepcopy(record)
+    copied.admitted_bridge_preference = validate_retained_preference(
+        copied.admitted_bridge_preference, copied.admitted_capability_key
+    )
+    return copied
 
 
 def _copy_run_event(event: RunEvent) -> RunEvent:
@@ -551,6 +561,9 @@ class InMemoryRunLedger:
         hold_delivery: bool,
     ) -> RunRecord:
         """Insert one in-memory Run and its initial delivery."""
+        from lychd.domain.cortex.bridge_preference import validate_retained_preference
+
+        preference = validate_retained_preference(intent.admitted_bridge_preference, intent.admitted_capability_key)
         record = RunRecord(
             run_id=run_id,
             session_id=intent.session_id,
@@ -565,6 +578,7 @@ class InMemoryRunLedger:
             sigil_scopes=intent.sigil_scopes,
             requested_priority=intent.priority,
             admitted_capability_key=intent.admitted_capability_key,
+            admitted_bridge_preference=preference,
             admitted_archive=intent.admitted_archive,
             admitted_delegation=intent.admitted_delegation,
             admitted_scout=intent.admitted_scout,
@@ -2055,6 +2069,7 @@ class DbRunLedger:
     def _to_record(row: object) -> RunRecord:
         """Map a `Run` ORM row to a storage-agnostic `RunRecord`."""
         from lychd.agents.router import Intent
+        from lychd.domain.cortex.bridge_preference import validate_retained_preference
 
         intent: dict[str, object] = getattr(row, "intent", {}) or {}
         scopes_val = intent.get("sigil_scopes", [])
@@ -2071,6 +2086,9 @@ class DbRunLedger:
                 "sigil_scopes": scopes,
                 "priority": intent.get("priority"),
                 "admitted_capability_key": intent.get("admitted_capability_key"),
+                "admitted_bridge_preference": validate_retained_preference(
+                    intent.get("admitted_bridge_preference"), intent.get("admitted_capability_key")
+                ),
                 "admitted_archive": intent.get("admitted_archive"),
                 "admitted_delegation": intent.get("admitted_delegation"),
                 "admitted_scout": intent.get("admitted_scout"),
@@ -2090,6 +2108,7 @@ class DbRunLedger:
             sigil_scopes=scopes,
             requested_priority=parsed_intent.priority,
             admitted_capability_key=parsed_intent.admitted_capability_key,
+            admitted_bridge_preference=parsed_intent.admitted_bridge_preference,
             admitted_archive=parsed_intent.admitted_archive,
             admitted_delegation=parsed_intent.admitted_delegation,
             admitted_scout=parsed_intent.admitted_scout,

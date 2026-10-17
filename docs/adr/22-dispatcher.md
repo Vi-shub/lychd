@@ -171,6 +171,40 @@ permanent denial. The exact key intersects every other demand constraint; it can
 admission, or Portal quarantine. A model alias alone still denotes an eligible pool. An unknown,
 incompatible, or unavailable exact key never substitutes another candidate.
 
+### Bridge preference at admission
+
+The bounded revision-2 [Bridge preference](12-configuration.md#current-selections) ranks only
+the two configured literal registry keys before a fresh Run is admitted. Validate both complete
+declarations before probing: each must have `SourceKind.SOULSTONE`, family `CHAT` and
+`supports_tools = true`. Zero-weight routes are disabled, not exempt from declaration validation.
+
+For positive-weight routes, perform one successful direct
+`refresh_capability_states_for_animator` batch per distinct Animator and consume its returned
+immutable states. A complete Animator batch may include a zero-weight capability sharing that
+Animator; its phase/time are omitted from the retained decision and it remains ineligible. Never
+substitute cached observations through a refresh-or-cached helper.
+The complete probe batch has one fixed five-second **cooperative** timeout and no retry.
+Timeout, cancellation, malformed observations or operational probe failure abort admission with
+content-free public refusal codes; an earlier successful route is not selected after a later
+probe fails. Existing adapters retain ownership of probe cancellation and cleanup. Five seconds
+does not establish a hard process, network or cleanup containment limit.
+
+After all probe awaits, recheck that the validated declarations are unchanged and read current
+lease admission. A changed declaration aborts admission. Capture each Animator's admission
+generation before its probe; a changed generation at the final check excludes its routes with
+the safe `readiness_changed` code, even if admission has reopened. Only a positive-weight route
+with a successfully observed `WARM` phase and currently `OPEN` admission is eligible. Other
+successfully observed phases and closed admission are bounded exclusions. Select the greatest
+weight among eligible routes, breaking a tie by ascending canonical key; an empty eligible set
+refuses admission without activation, grant preparation or model entry.
+
+Retain server-observed times and the bounded observations under Configuration's custody law.
+The batch is not an atomic cross-Animator readiness snapshot or a reservation. It cannot promise
+that the selected route will remain ready through persistence, queueing or execution. Existing
+exact-key Dispatcher issue and generation checks still apply; execution may enter Stasis or
+refuse, and never substitutes the other preference route. This policy changes neither grant,
+provider-entry, cleanup nor Bridge call/tool/consent/token-budget semantics.
+
 ### Refresh the selected route
 
 An invalidated or absent cached observation ranks as `UNKNOWN`, so the selected

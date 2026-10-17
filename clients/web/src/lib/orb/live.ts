@@ -35,6 +35,17 @@ const creationSummarySchema = z.object({
   current_assessment_id: z.uuid().nullable(), current_decision_id: z.uuid().nullable()
 });
 const runSummarySchema = z.object({ run_id: z.string(), session_id: z.string(), workflow_name: z.string(), status: z.string(), created_at: z.string(), started_at: z.string().nullable(), finished_at: z.string().nullable(), error_present: z.boolean(), bridge_path: z.string() });
+const bridgePreferenceSchema = z.object({
+  policy_schema_version: z.literal(1), policy_digest: z.string().regex(/^[0-9a-f]{64}$/),
+  batch_started_at: z.iso.datetime({ offset: true }), batch_finished_at: z.iso.datetime({ offset: true }),
+  selected_capability_key: z.string().min(1).max(512),
+  routes: z.array(z.object({
+    capability_key: z.string().min(1).max(512), weight: z.number().int().min(0).max(1_000_000),
+    phase: z.enum(["cold", "activatable", "warming", "warm", "error", "unknown"]).nullable(),
+    observed_at: z.iso.datetime({ offset: true }).nullable(), admission_open: z.boolean(),
+    exclusion_code: z.enum(["disabled", "not_warm", "admission_closed", "readiness_changed"]).nullable()
+  })).length(2)
+}).refine((summary) => new Set(summary.routes.map((route) => route.capability_key)).size === 2);
 
 export const orbSnapshotSchema: z.ZodType<OrbRunSnapshot> = z.object({
   schema_version: z.literal(1), snapshot_at: z.string(), capture: z.enum(["process_local", "durable_best_effort"]),
@@ -43,6 +54,7 @@ export const orbSnapshotSchema: z.ZodType<OrbRunSnapshot> = z.object({
   evidence: z.array(evidenceSchema).max(100), gaps: z.array(gapSchema).max(101),
   workflow: workflowSchema.nullable(),
   creation: creationSummarySchema.nullish(),
+  bridge_preference: bridgePreferenceSchema.nullish(),
   pattern: z.object({ pattern_id: z.string(), revision: z.string(), digest: z.string().nullable(), exact: z.boolean(), loom_path: z.string().nullable() }),
   run: runSummarySchema,
   delegated_jobs: z.array(z.object({

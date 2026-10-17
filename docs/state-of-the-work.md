@@ -425,17 +425,35 @@ The same selector also admits the bounded [public-note](#karma-semantic-memory) 
 [Scout public-page](#scout-web-acquisition) revisions; their authority and evidence boundaries
 remain with those records.
 
+Revision 2 also accepts a bounded two-route local Chat preference instead of an exact configured
+key. Strict integer weights rank only freshly observed warm routes with unchanged declarations
+and open, unchanged admission generations after one cooperative five-second probe batch. Zero
+disables eligibility and omits retained phase/time; a shared Animator's complete probe may still
+include that capability. Ties use literal key order. Admission retains the complete policy, digest,
+observations and selected exact key. Idempotent replay bypasses selection; controlled reconstructed
+records retain the decision, and malformed retained bindings refuse reconstruction. A safe 503
+code reports probe failure or an empty eligible set before retaining a Run or user turn.
+Real PostgreSQL concurrent sessions retain one winning policy and exact key; a reconstructed
+adapter and idempotent lookup return that decision, while changed JSONB digests, selected keys
+or admitted bindings refuse reconstruction.
+
 **Boundary — Not yet:** This pins capability identity, not a model artifact or runtime declaration
-generation. No configurable pool, portable Resolution Lock, general Pattern/AgentSpec/Context
-selector, or live-model receipt is delivered by this slice. Settings validation does not contact an
-engine; unknown or incompatible capability keys fail at execution. The database JSON adapter is
-covered without claiming a PostgreSQL restart receipt.
+generation for future execution. The preference batch reserves no future readiness; existing exact-key
+execution, tools, consent and retry rules still apply. There is no execution fallback, adaptive or
+multimodal route policy, portable Resolution Lock, or general Pattern/AgentSpec/Context selector.
+Settings loading does not contact an engine. The exact-key configuration checks declaration at
+execution; the preference mode checks both declarations at admission, including disabled routes.
+Live two-route preference remains unqualified; existing default-Bridge receipts do not establish
+it. The synthetic PostgreSQL controls use ORM metadata and do not claim migrations or a server restart.
 
 **Evidence**
 
 - **Source:** [Weaver settings](https://github.com/hexanomicon/lychd/blob/main/src/lychd/config/settings/weaver.py), [Bridge workflow](https://github.com/hexanomicon/lychd/blob/main/src/lychd/agents/workflows/bridge_chat.py), and [Dispatcher](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/cortex/dispatcher.py)
 - **Verification:** [Configuration tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/config/test_weaver_settings.py), [configured registry tests](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_configured_registry.py), [casting workflows](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_bridge_casting_workflow.py), and [exact selection tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_dispatcher_exact_selection.py)
-- **Topic:** [Choose a Bridge capability](./sepulcher/extensions/weaver/index.md#choose-a-bridge-capability)
+- **Source:** [Preference admission](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/cortex/bridge_preference.py), [Run admission](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/cortex/engine.py), and [retained decisions](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/cortex/ledger.py)
+- **Verification:** [Preference controls](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_bridge_preference.py), [Run admission and replay](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_engine.py), and [safe HTTP refusals](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_bridge_preference.py)
+- **Verification:** [PostgreSQL retained winner and corruption controls](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_db_run_ledger_pg.py)
+- **Topic:** [Choose a Bridge capability](./sepulcher/extensions/weaver/index.md#choose-a-bridge-capability) and [prefer a ready route](./sepulcher/extensions/weaver/index.md#prefer-a-ready-route-at-admission)
 - **Law:** [Configuration](./adr/12-configuration.md), [Workflow](./adr/28-workflow.md), and [Dispatcher](./adr/22-dispatcher.md)
 
 ### Pydantic AI 2.55.0 cognitive adapter {#pydantic-ai-adapter}
@@ -1428,6 +1446,13 @@ SSE polls refresh or clear this metadata without changing the evidence cursor. L
 after terminal settlement requires explicit Refresh. No source, prompt, response, candidate,
 report or free-text reason body enters the summary.
 
+An optional two-route preference inspector shows the selected Run's immutable admission decision:
+literal keys, unitless weights, dated phases, admission openness, exclusions and selected key,
+with the policy digest and observation window. REST and settled SSE project the same allowlisted
+metadata from the retained Run without refreshing readiness or applying current configuration.
+The client identifies these as admission-time observations and marks fallback as unavailable;
+legacy Runs omit the inspector. A keyboard-focusable table region contains overflow at narrow widths.
+
 **Boundary — Not yet:** Loaded graph counts are not complete-history counts. The current manifest
 supplies no nested subworkflow or parent-Run identity. There is no durable Oculus read model,
 Sigma/Graphology adapter, cross-process completeness, health query, artifact custody, or annotation.
@@ -1439,6 +1464,8 @@ The shared renderer's cross-engine forced-collection qualification remains under
 
 - **Source:** [Orb controller](https://github.com/hexanomicon/lychd/blob/main/src/lychd/interface/web/orb.py), [Run catalogue queries](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/cortex/ledger.py), [parallel field](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/OrbField.svelte), and [selected-Run client](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/OrbView.svelte)
 - **Verification:** [Orb API and stream tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_orb.py), [catalogue privacy and pagination tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_orb_catalogue.py), [parallel-field tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/OrbField.test.ts), [folded coverage tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/graph/orb.test.ts), [selected-Run tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/OrbView.test.ts), and [feed recovery tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/orb/live.test.ts)
+- **Source:** [Retained preference projection](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/web/orb.py) and [preference inspector](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/BridgePreferenceSummary.svelte)
+- **Verification:** [Preference API and settled stream](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_orb_preference.py), [preference inspector controls](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/BridgePreferenceSummary.test.ts), and [typed stream metadata](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/orb/live.test.ts)
 - **Law:** [Observability](./adr/29-observability.md), [Altar projection](./adr/15-frontend.md#snapshots-streams-and-recovery), and [Creation summary](./compositions/creation/index.md#selected-run-summary)
 
 ### Structured logging configuration {#structured-logging}

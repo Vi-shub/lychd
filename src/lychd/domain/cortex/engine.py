@@ -26,6 +26,13 @@ import structlog
 
 from lychd.domain.archive.contracts import MAX_QUERY_CHARS
 from lychd.domain.cortex.admission import RunAdmissionCoordinator
+from lychd.domain.cortex.bridge_preference import (
+    BridgePreference,
+    BridgePreferenceCode,
+    BridgePreferenceDecision,
+    BridgePreferenceError,
+    validate_retained_preference,
+)
 from lychd.domain.cortex.cancellation import RunCancellationCoordinator
 from lychd.domain.cortex.priority import saq_wire_priority, validate_priority
 from lychd.domain.cortex.runs import TERMINAL_STATUSES, RunDeliveryState, RunHandle, RunStatus
@@ -405,6 +412,8 @@ class RunEngine:
         "admissions",
         "bridge_archive",
         "bridge_capability_key",
+        "bridge_preference",
+        "bridge_preference_selector",
         "bridge_scout",
         "bus",
         "cancellations",
@@ -436,6 +445,8 @@ class RunEngine:
         effects: RunEffectLifecycle | None = None,
         release_context: Callable[[str], None] | None = None,
         bridge_capability_key: str | None = None,
+        bridge_preference: BridgePreference | None = None,
+        bridge_preference_selector: Callable[[BridgePreference], Awaitable[BridgePreferenceDecision]] | None = None,
         bridge_archive: ArchiveProfile | None = None,
         bridge_scout: ScoutProfile | None = None,
         scout_admission: ScoutAdmission | None = None,
@@ -446,6 +457,12 @@ class RunEngine:
         self.bus = bus
         self.workflows = workflows
         self.bridge_capability_key = bridge_capability_key
+        self.bridge_preference = (
+            BridgePreference.model_validate(bridge_preference.model_dump(mode="python"))
+            if bridge_preference is not None
+            else None
+        )
+        self.bridge_preference_selector = bridge_preference_selector
         self.bridge_archive = bridge_archive
         self.bridge_scout = bridge_scout
         self.scout_admission = scout_admission
@@ -484,6 +501,7 @@ class RunEngine:
         """
         if (
             intent.admitted_capability_key is not None
+            or intent.admitted_bridge_preference is not None
             or intent.admitted_archive is not None
             or intent.admitted_delegation is not None
             or intent.admitted_scout is not None
@@ -588,7 +606,7 @@ class RunEngine:
                 return await self._replayed_run_handle(existing)
 
         workflow = self.workflows.route(intent)
-        intent = self._bind_workflow_intent(intent, workflow, scout_declaration)
+        intent = await self._bind_workflow_intent(intent, workflow, scout_declaration)
         queue_name, priority = self.queue_router.resolve(intent)
         if queue_name not in self.queues:
             msg = f"Run queue {queue_name!r} is not configured."
@@ -672,7 +690,7 @@ class RunEngine:
         ) != run.admitted_scout.model_dump(exclude=exclude):
             raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
 
-    def _bind_workflow_intent(
+    async def _bind_workflow_intent(
         self, intent: Intent, workflow: Workflow, scout_declaration: ScoutDeclarationProof | None = None
     ) -> Intent:
         """Stamp selected bindings only for a fresh explicitly configured admission."""
@@ -692,24 +710,47 @@ class RunEngine:
             return intent.model_copy(update={"admitted_delegation": self.delegation_binding})
         if workflow.manifest.key != "bridge_chat" or workflow.manifest.revision not in {"2", "3"}:
             return intent
+        if workflow.manifest.revision == "2" and self.bridge_preference is not None:
+            decision = await self._select_bridge_preference()
+            return intent.model_copy(
+                update={
+                    "admitted_capability_key": decision.selected_capability_key,
+                    "admitted_bridge_preference": decision,
+                }
+            )
         if not self.bridge_capability_key or not self.bridge_capability_key.strip():
             msg = "Configured Bridge requires an exact capability key before admission."
             raise ValueError(msg)
         archive = None
         if workflow.manifest.revision == "3":
-            if self.bridge_archive is None:
-                msg = "bridge_chat@3 requires its configured Archive binding before admission."
-                raise ValueError(msg)
-            if not intent.prompt.strip() or len(intent.prompt) > MAX_QUERY_CHARS or "\x00" in intent.prompt:
-                msg = "The Archive answer profile requires a nonblank question of at most 2000 characters without NUL."
-                raise ValueError(msg)
-            archive = self.bridge_archive
+            archive = self._bind_archive(intent)
         return intent.model_copy(
             update={
                 "admitted_capability_key": self.bridge_capability_key,
                 "admitted_archive": archive,
             }
         )
+
+    def _bind_archive(self, intent: Intent) -> ArchiveProfile:
+        if self.bridge_archive is None:
+            msg = "bridge_chat@3 requires its configured Archive binding before admission."
+            raise ValueError(msg)
+        if not intent.prompt.strip() or len(intent.prompt) > MAX_QUERY_CHARS or "\x00" in intent.prompt:
+            msg = "The Archive answer profile requires a nonblank question of at most 2000 characters without NUL."
+            raise ValueError(msg)
+        return self.bridge_archive
+
+    async def _select_bridge_preference(self) -> BridgePreferenceDecision:
+        """Check server-owned selection again before retaining its exact binding."""
+        if self.bridge_capability_key is not None or self.bridge_preference_selector is None:
+            raise BridgePreferenceError(BridgePreferenceCode.BINDING)
+        if self.bridge_preference is None:
+            raise BridgePreferenceError(BridgePreferenceCode.BINDING)
+        decision = await self.bridge_preference_selector(self.bridge_preference)
+        validated = validate_retained_preference(decision, decision.selected_capability_key)
+        if validated is None or validated.policy != self.bridge_preference:
+            raise BridgePreferenceError(BridgePreferenceCode.BINDING)
+        return validated
 
     async def _publish_admission(self, run: RunRecord) -> RunHandle:
         """Open the live projection and publish one already-durable admission."""

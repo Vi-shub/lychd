@@ -31,15 +31,18 @@ _SOURCES = {
     "src/lychd/domain/animation/services/registry.py",
     "src/lychd/domain/animation/services/adapters/runtimes/openai_compat.py",
     "src/lychd/domain/animation/services/adapters/surfaces.py",
+    "src/lychd/domain/cortex/bridge_preference.py",
     "src/lychd/domain/cortex/context.py",
     "src/lychd/domain/cortex/dispatcher.py",
     "src/lychd/domain/cortex/engine.py",
     "src/lychd/domain/cortex/graph_runner.py",
     "src/lychd/domain/cortex/leases.py",
     "src/lychd/domain/cortex/ledger.py",
+    "src/lychd/domain/cortex/runs.py",
     "src/lychd/agents/context_limits.py",
     "src/lychd/agents/factory.py",
     "src/lychd/agents/outputs.py",
+    "src/lychd/agents/router.py",
     "src/lychd/agents/the_first_one.py",
     "src/lychd/agents/workflows/bridge_chat.py",
     "src/lychd/agents/workflows/nodes.py",
@@ -120,7 +123,7 @@ def test_maintained_local_bridge_receipt_keeps_its_exact_boundary() -> None:
     assert "The optional thinking policy was omitted" in receipt["identity_boundary"]
     assert "Creation investigation was omitted." in receipt["identity_boundary"]
     assert receipt["source_identity"] == {
-        "base_revision_declared": "206d96ce6e54eb103cdf4e336dff31d8e4fbe7c5",
+        "base_revision_declared": "90ba8b91ff0f75271b1b2a46b46de97763d924b1",
         "clean_checkout_attested": False,
         "atomic_transitive_closure_attested": False,
         "scope": "bounded-critical-source-and-test-fingerprints",
@@ -247,7 +250,7 @@ def test_maintained_local_bridge_receipt_matches_critical_sources() -> None:
         evidence["joined_test_sha256_before_trial"]
         == receipt["source_fingerprints"]["tests/integration/test_local_bridge_runtime.py"]
     )
-    assert evidence["coordinator_source_sha256"] == "199c1fc175d2ca148df30466a30347b775dae610d3f5ed80647cd5e077824fb9"
+    assert evidence["coordinator_source_sha256"] == "f121abd3e39fbf85f5e83fc5445a2107a86449a1b4389e46d8b65526634acca4"
     assert (
         evidence["resource_launcher_source_sha256"]
         == "ceeaf5a8f1ee500b870fe1818540256e8a78dd19077abd1622781d4548032702"
