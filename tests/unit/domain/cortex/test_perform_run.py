@@ -15,7 +15,7 @@ import json
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 import pydantic_ai.models
 import pytest
@@ -882,7 +882,10 @@ async def test_perform_run_failure_after_model_reply_does_not_diagnose_capabilit
     async def fail_after_model_response(*args: Any, **kwargs: Any) -> None:
         pumped = await original_pump(*args, **kwargs)
         assert pumped.output.answer == "model answered"
-        assert any(isinstance(message, dict) and message.get("kind") == "response" for message in pumped.new_messages)
+        assert any(
+            isinstance(message, dict) and cast("dict[str, Any]", message).get("kind") == "response"
+            for message in pumped.new_messages
+        )
         observed_replies.append(pumped.output.answer)
         raise failure
 
