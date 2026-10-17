@@ -1244,16 +1244,23 @@ forced-collection qualification and complete production-browser acceptance remai
 
 ### Composition Portfolio {#composition-portfolio-delivery}
 
-**State:** Designed
+**State:** Partial
 
 **Proved now:** The Portfolio publishes Native Reference Composition contracts and examples; the
-boot catalogue contains only the Core `bridge_chat` lineage (revisions 1, 2 and 3) and
-`delegated_rite` lineage (revisions 1 and 2).
+default boot catalogue contains the Core `bridge_chat` lineage (revisions 1, 2 and 3) and
+`delegated_rite` lineage (revisions 1 and 2). An explicit application selector additionally registers
+the bounded `creation.investigate@1` Pattern.
 The accepted designs include [Health](./compositions/health/index.md) for attributable personal
 clinical records and bounded diagnostic and care proposals,
 [Keeper](./compositions/keeper/index.md) for animal and colony care,
 [Cultivator](./compositions/cultivator/index.md) for cultivation, and the narrowed
 [Homestead revision 2](./compositions/homestead/index.md#revision-continuity) for site and stores stewardship.
+
+[Creation investigation](./compositions/creation/index.md) revision 1 has an explicitly selected
+PostgreSQL application, protected local submit/read/cancel/continue API and serial
+`creation.investigate@1` Pattern. It retains immutable public sources, role reservations, one-shot
+claims, complete provider bytes, a candidate and a fresh attributed verdict. The
+[Creation delivery boundary](#smith-forge-promotion) keeps its focused evidence and remaining gaps.
 
 Blockworld has an explicitly assembled, inactive one-block placement Pattern. Portable tests drive
 real Run admission, the worker, serial Graph, native Consent review, HTTP decision, and resume with
@@ -1287,9 +1294,9 @@ shared JDK 17 toolchain checks. ViewModel and instrumented Activity tests are au
 input batches before recomposition and lifecycle-bound expiry sampling; this combined checkout
 has not yet been qualified with an Android SDK, emulator or handset.
 
-**Do not expect yet:** There is no Composition store or selector, Product catalogue or selector,
-Portfolio Pattern registration, Suite execution, application scheduling, or a domain/effect
-path enabled in normal application assembly for any Portfolio member or Product. Blockworld has no
+**Boundary — Not yet:** Creation's one application selector supplies no general Composition or
+Product catalogue, shared store, Suite execution or application scheduler. Other Portfolio members
+have no domain/effect path enabled in normal application assembly. Blockworld has no
 server, bot, Minecraft adapter, production route or review producer registration. Its portable
 fixture alone does not establish database atomicity or migration safety; those boundaries have
 separate disposable PostgreSQL receipts. Neither fixture qualifies live game effects or a deployed
@@ -1889,34 +1896,49 @@ Native autonomous Creation and target-owner promotion remain designed.
 
 ### Creation and Forge promotion {#smith-forge-promotion}
 
-**State:** Designed
+**State:** Partial
 
-**Proved now:** SDLC law defines an attributable request → candidate → verification →
-promotion-request → target-owner-effect chain. The Creation workflow and Ouroboros map connect
-candidate work to separately governed evaluation, memory, training and body change; these are
-documented methods with no additional registered Pattern or coordinator.
-The Development bootstrap procedure orders operator-controlled work and incremental native
-qualification; its task queue, pilot limits and provider research are documentation, not an
-implemented scheduler, foreign-runtime host or autonomous development application.
+**Proved now:** The narrower [Creation investigation](./compositions/creation/index.md) revision 1
+has a PostgreSQL store, explicit selector, protected local API, fixed serial Pattern and distinct
+constructor/verifier AgentSpecs. It retains original request/source/profile bytes, admission
+attribution, reserved attempts, complete provider responses and separate candidate/verdict. Current
+credential-backed local object/action policy and actual Run state fence claims and adoption.
+Invalid, duplicate-key and length-terminated output remains retained noncompletion without repair
+calls. Valid citations establish exact source spans, not semantic correctness.
 
-**Do not expect yet:** There is no Creation contract or process-local state-machine implementation,
-workspace, filesystem or command executor, database recovery, safe Forge, autonomous repair,
-target-owner promotion effect, rollback execution, or self-extension runtime. There is likewise no
-instantiated distributed repository identity or maintainer roster, executable key-custody and
-rotation mechanism, governance-epoch ledger, quorum verifier, signed portable promotion envelope,
-independent attestation plane, canonical source on Radicle, Radicle node topology, or
-downstream-mirror cutover.
+Focused tests exercise actual Agent assembly and fresh verifier messages, cancellation, response
+custody before context validation and both output refusals. Three disposable PostgreSQL checks
+passed: candidate retention followed by unchanged orphan reconciliation and a new, freshly authorized
+verification Run; unknown claims that retain the application slot through cancellation; and migration
+`0016` empty-cycle/retained-custody downgrade refusal. These worker histories reconstruct adapters
+in one process, use a captured queue and inert model, and do not establish an OS-kill, live broker
+or real Qwen result. Generated OpenAPI/TypeScript and the frontend checks pass; the selected live
+application/model profile remains unqualified.
+
+The wider SDLC law defines attributable request → candidate → verification → promotion-request →
+target-owner-effect ownership. The Creation method and Ouroboros map connect work to separately
+governed evaluation, memory, training and body change. The Development bootstrap procedure orders
+operator-controlled work and incremental qualification; these methods introduce no general scheduler
+or autonomous development service.
+
+**Boundary — Not yet:** This investigation performs no source editing, executable workspace,
+filesystem/command execution, safe Forge, autonomous repair, target-owner promotion, rollback or
+self-extension. Its local credential role supplies no remote IAM or person-level tenancy; an
+unknown issued inference has no automatic slot-release path. There is likewise no instantiated
+distributed repository identity or maintainer roster, executable key-custody/rotation mechanism,
+governance-epoch ledger, quorum verifier, signed portable promotion envelope, independent
+attestation plane, canonical source on Radicle, Radicle node topology or downstream-mirror cutover.
 
 **Evidence**
 
-- **Topic:** [Smith](./sepulcher/extensions/smith.md),
-  [Creation](./sepulcher/extensions/weaver/creation.md), and
-  [Ouroboros](./sepulcher/extensions/weaver/ouroboros.md), with
-  [Development bootstrap](./sepulcher/extensions/weaver/development-bootstrap.md) and
+- **Source:** [Investigation service](https://github.com/hexanomicon/lychd/blob/main/src/lychd/compositions/creation/services.py), [Pattern](https://github.com/hexanomicon/lychd/blob/main/src/lychd/compositions/creation/workflow.py), [PostgreSQL owner](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/creation.py), and [protected API](https://github.com/hexanomicon/lychd/blob/main/src/lychd/interface/api/creation.py)
+- **Verification:** [Agent boundaries](https://github.com/hexanomicon/lychd/blob/main/tests/unit/compositions/test_creation.py), [local API](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_creation.py), [PostgreSQL worker histories](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_creation_postgres_vertical.py), and [migration cycle/refusal](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_db_migrations_pg.py)
+- **Topic:** [Creation investigation](./compositions/creation/index.md), [Smith](./sepulcher/extensions/smith.md),
+  [Creation](./sepulcher/extensions/weaver/creation.md), and [Ouroboros](./sepulcher/extensions/weaver/ouroboros.md),
+  with [Development bootstrap](./sepulcher/extensions/weaver/development-bootstrap.md) and
   [coding-runtime research](./sepulcher/extensions/weaver/coding-runtime-research.md)
-- **Law:** [SDLC](./adr/16-sdlc.md),
-  [Packaging](./adr/17-packaging.md#forge-neutral-source-trust), and
-  [Evolution](./adr/18-evolution.md#future-quorum-roster)
+- **Law:** [SDLC](./adr/16-sdlc.md), [Packaging](./adr/17-packaging.md#forge-neutral-source-trust),
+  and [Evolution](./adr/18-evolution.md#future-quorum-roster)
 
 ### Remote IAM {#remote-iam}
 
