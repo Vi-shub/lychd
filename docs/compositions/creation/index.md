@@ -36,6 +36,11 @@ malformed UTF-8 and inconsistent byte spans refuse. Canonical candidate and verd
 1536-byte ceiling. Citations identify retained source bytes and valid spans; valid citations do
 not make their interpretation correct.
 
+Each role packet supplies deterministic per-source line counts using the same retained UTF-8 byte
+line-splitting convention as citation validation. These inclusive, one-based limits guide the
+model; original source/request bytes and strict span validation remain unchanged. A model result
+never repairs, clamps or extends its own citation.
+
 The fixed `public-source-qwen@2` profile selects one exact configured shared, non-dedicated local
 Soulstone/vLLM/Qwen3.8-27B Chat capability. Its captured generation is 4096 context, 512 output,
 temperature 0 and `qwen3.8-non-thinking`. Missing or changed binding, unsupported profile, unavailable
@@ -126,6 +131,13 @@ records. Cancellation of a current revision 2 case checks its retained contract 
 current local authority, not model availability or a freshly resolved capability. It grants no
 execution or renewed reservation. Full profile matching remains required for admission,
 continuation and stage adoption.
+A later reviewed implementation closure (`py.3`) adds only this citation-coordinate guidance and
+changes its instruction identities. Composition, Pattern and profile revisions stay 2: requests,
+results, budgets, authority and recovery law are unchanged. Exact captured manifest/profile equality
+refuses historical-closure execution or continuation; historical read and current-revision
+cancellation retain their existing policy. The earlier implementation's invalid-span response remains
+a failed occurrence. A new case may test the new closure; it never repairs or renews that occurrence.
+
 A new profile requires a separately admitted case and reservation, not renewal of the old one.
 Same-profile identical replay retains its existing identities without another inference.
 

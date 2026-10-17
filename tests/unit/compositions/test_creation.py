@@ -5,13 +5,13 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from typing import Any, Literal, cast
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock
 from uuid import UUID, uuid4
 
 import pytest
 from pydantic import ValidationError
 from pydantic_ai.exceptions import UsageLimitExceeded
-from pydantic_ai.messages import ModelMessagesTypeAdapter, ModelResponse, TextPart, ToolCallPart
+from pydantic_ai.messages import ModelMessagesTypeAdapter, ModelResponse, TextPart, ToolCallPart, UserPromptPart
 from pydantic_ai.models import ModelRequestParameters
 from pydantic_ai.models.function import FunctionModel
 from pydantic_ai.usage import RequestUsage
@@ -23,6 +23,7 @@ from lychd.compositions.creation.schemas import (
     INPUT_TOKENS,
     OUTPUT_TOKENS,
     CaseView,
+    ContinueRequest,
     CreationRefused,
     InvestigationRequest,
     canonical,
@@ -40,6 +41,7 @@ from lychd.compositions.creation.services import (
     check_packets,
     register_agents,
     require_profile,
+    role_packet,
 )
 from lychd.compositions.creation.workflow import investigation_workflow
 from lychd.config.settings.weaver import CreationCastingSettings, WeaverSettings
@@ -69,7 +71,9 @@ def test_exact_profile_two_budget_manifest_and_selector() -> None:
         "public-source-qwen@2",
     )
     assert profile["pattern"]["revision"] == "2"
-    assert profile["pattern"]["implementation_revision"] == "py.2"
+    assert profile["pattern"]["implementation_revision"] == "py.3"
+    assert CONSTRUCTOR.instructions_key == "creation-constructor-v2"
+    assert VERIFIER.instructions_key == "creation-verifier-v2"
     assert profile["pattern"]["checkpoint_schema"] == "creation-investigation-state-v1"
     assert profile["context_tokens"] == INPUT_TOKENS + OUTPUT_TOKENS == 4096
     assert INPUT_TOKENS == 3584
@@ -164,6 +168,48 @@ def test_duplicate_keys_and_citation_byte_spans_are_deterministic_not_a_semantic
     with pytest.raises(CreationRefused, match="citation_span"):
         validate_output(request, type(candidate_document()).model_validate(bad))
     assert verdict_document().disposition == "rejected"
+
+
+@pytest.mark.parametrize("role", ["constructor", "verifier"])
+def test_role_packet_line_counts_preserve_utf8_sources_and_match_strict_byte_spans(role: Role) -> None:
+    data = request_document().model_dump(mode="json")
+    data["sources"] = [
+        {"name": "crlf.py", "text": "a\r\nb\r\n"},
+        {"name": "unicode.py", "text": "\u03b1\u2028\u03b2\n\u7d42"},
+        {"name": "carriage.py", "text": "a\rb"},
+        {"name": "single.py", "text": "終"},
+        {"name": "empty.py", "text": ""},
+    ]
+    request = InvestigationRequest.model_validate(data)
+    before = canonical(request)
+    counts = {"crlf.py": 2, "unicode.py": 2, "carriage.py": 2, "single.py": 1, "empty.py": 0}
+    candidate = candidate_document().model_dump(mode="json")
+    candidate["findings"][0]["citations"] = [{"source": "crlf.py", "first_line": 2, "last_line": 2}]
+    packet = decode(role_packet(request, role, candidate if role == "verifier" else None))
+    assert packet["user"]["line_counts"] == counts
+    assert canonical(packet["user"]["request"]) == before == canonical(request)
+    assert [source["text"].encode("utf-8") for source in packet["user"]["request"]["sources"]] == [
+        b"a\r\nb\r\n",
+        b"\xce\xb1\xe2\x80\xa8\xce\xb2\n\xe7\xb5\x82",
+        b"a\rb",
+        b"\xe7\xb5\x82",
+        b"",
+    ]
+    assert packet["user"]["candidate"] == (candidate if role == "verifier" else None)
+    assert "inclusive 1-based" in packet["instructions"]
+    assert "1 <= first_line <= last_line <= line_counts[source]" in packet["instructions"]
+    check_packets(request)
+    output = candidate_document() if role == "constructor" else verdict_document()
+    spans = {"crlf.py": (3, 6), "unicode.py": (8, 11), "carriage.py": (2, 3), "single.py": (0, 3)}
+    for name, count in counts.items():
+        document = output.model_dump(mode="json")
+        document["findings"][0]["citations"] = [{"source": name, "first_line": max(1, count), "last_line": count + 1}]
+        with pytest.raises(CreationRefused, match="citation_span"):
+            validate_output(request, type(output).model_validate(document))
+        if count:
+            document["findings"][0]["citations"][0].update(first_line=count, last_line=count)
+            span = decode(validate_output(request, type(output).model_validate(document)))["citations"][0]
+            assert (span["start"], span["stop"]) == spans[name]
 
 
 def test_role_policy_requires_actual_current_marker_not_sigil_or_reconstructed_fields() -> None:
@@ -271,6 +317,11 @@ async def test_two_real_agent_assemblies_have_fresh_messages_and_custody_before_
         assert info.model_settings["max_tokens"] == 512
         assert info.model_settings["temperature"] == 0
         assert info.model_settings["extra_body"] == {"chat_template_kwargs": {"enable_thinking": False}}
+        user_prompt = next(part for message in history for part in message.parts if isinstance(part, UserPromptPart))
+        assert isinstance(user_prompt.content, str)
+        user = decode(user_prompt.content.encode("utf-8"))
+        assert user["line_counts"] == {"check.py": 2}
+        assert user["request"] == cast("CaseView", store.view).request.model_dump(mode="json")
         messages.append(ModelMessagesTypeAdapter.dump_json(history))
         output = candidate_document() if len(messages) == 1 else verdict_document()
         return ModelResponse(
@@ -295,6 +346,84 @@ async def test_two_real_agent_assemblies_have_fresh_messages_and_custody_before_
     assert b"private-constructor-call" not in messages[1]
     assert candidate_document().summary.encode() in messages[1]
     assert len(store.responses) == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("action", ["replay", "continue", "claim", "adopt"])
+async def test_prior_instruction_and_implementation_closure_cannot_be_reused(
+    action: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    store = StageStore()
+    service, common = stage_fixture(store)
+    assert store.view is not None
+    original = store.view
+    historical = decode(canonical(original.profile))
+    historical["constructor"]["instructions_digest"] = (
+        "a61a84e59c6e351169be4767a77b7d24f8c67929e6700f97a7696d80e051d918"
+    )
+    historical["verifier"]["instructions_digest"] = "c52e049f8d8b5d5e91f4e1d7f07cde4763b2a3d4d20ea6ded91f42b39e1ab5ed"
+    historical["pattern"]["implementation_revision"] = "py.2"
+    historical["pattern"].pop("digest")
+    historical["pattern"]["digest"] = digest(canonical(historical["pattern"]))
+    previous = original.model_copy(update={"profile": historical, "profile_digest": digest(canonical(historical))})
+    store.view = original if action == "adopt" else previous
+    monkeypatch.setattr(store, "read", AsyncMock(return_value=previous), raising=False)
+    engine, sessions = SimpleNamespace(submit=AsyncMock()), SimpleNamespace(create_session=AsyncMock())
+    authentication = service.policy.access.authenticate(username=b"magus", password=b"inert-test-password")
+    calls: list[str] = []
+    complete = store.complete
+
+    async def complete_then_restore_prior_pattern(attempt_id: UUID, response: bytes, usage: dict[str, Any]) -> None:
+        await complete(attempt_id, response, usage)
+        service.pattern = historical["pattern"]
+
+    async def respond(_messages: Any, _info: Any) -> ModelResponse:
+        calls.append("constructor")
+        return ModelResponse(
+            parts=[ToolCallPart("final_result", candidate_document().model_dump(mode="json"))],
+            usage=RequestUsage(input_tokens=100, output_tokens=80),
+        )
+
+    common.dispatcher = CreationDispatcher(FunctionModel(respond), service.leases)
+    if action == "adopt":
+        monkeypatch.setattr(store, "complete", complete_then_restore_prior_pattern)
+    if action in {"claim", "adopt"}:
+        await service.stage(uuid4(), str(uuid4()), "constructor", common)
+        assert store.events == (["claim:constructor", "complete", "fail"] if action == "adopt" else ["fail"])
+        assert store.failures == ["profile_changed"]
+    elif action == "replay":
+        with pytest.raises(CreationRefused, match="conflicting_replay"):
+            await service.submit(
+                previous.request,
+                authentication=authentication,
+                principal=default_local_sigil(),
+                engine=engine,
+                sessions=sessions,
+            )
+        assert store.events == []
+    else:
+        with pytest.raises(CreationRefused, match="profile_changed"):
+            await service.continue_case(
+                previous.case_id,
+                ContinueRequest(
+                    admission_id=uuid4(),
+                    request_digest=previous.request_digest,
+                    candidate_digest="a" * 64,
+                    profile_digest=previous.profile_digest,
+                ),
+                authentication=authentication,
+                principal=default_local_sigil(),
+                engine=engine,
+                sessions=sessions,
+            )
+        assert store.events == []
+    assert calls == (["constructor"] if action == "adopt" else [])
+    assert len(store.responses) == len(common.dispatcher.calls) == (1 if action == "adopt" else 0)
+    assert store.view.candidate is None
+    assert store.view.verdict is None
+    assert not service.leases.active()
+    engine.submit.assert_not_awaited()
+    sessions.create_session.assert_not_awaited()
 
 
 @pytest.mark.asyncio
