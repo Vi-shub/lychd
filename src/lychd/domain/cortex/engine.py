@@ -588,6 +588,10 @@ class RunEngine:
                 return await self._replayed_run_handle(existing)
 
         workflow = self.workflows.route(intent)
+        if (workflow.manifest.key, workflow.manifest.revision) == ("bridge_chat", "5"):
+            from lychd.agents.workflows.evolution_compare import parse_comparison_prompt
+
+            parse_comparison_prompt(intent.prompt)
         intent = self._bind_workflow_intent(intent, workflow, scout_declaration)
         queue_name, priority = self.queue_router.resolve(intent)
         if queue_name not in self.queues:

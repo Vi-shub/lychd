@@ -126,7 +126,9 @@ return the exact finding and affected joins to the independent verifier; reopen 
 review for changed authority, a shared invariant or a concrete cross-boundary finding. Required
 final checks still apply. Do not rerun unchanged passing gates or grow reports merely to consume
 allowance: compare time to a useful accepted result, meaningful escaped defects, repair rounds
-and the human attention required.
+and the human attention required. Keep a handle for every launched check and observe its
+terminal state. A yielded command or elapsed time limit is unfinished evidence; settle its
+owned process before concluding.
 
 A practical four-slot campaign rotates one Lead and up to three workers; that is a pilot choice,
 not a model-count law. Settle shared interfaces before distributing writers, and serialize changes

@@ -18,6 +18,7 @@ from lychd.agents.workflows.archive_chat import BRIDGE_CHAT_ARCHIVE
 from lychd.agents.workflows.base import Trigger, Workflow, pattern_snapshot_is_valid
 from lychd.agents.workflows.bridge_chat import BRIDGE_CHAT, BRIDGE_CHAT_BOUND
 from lychd.agents.workflows.delegated_rite import DELEGATED_RITE, DELEGATED_RITE_BOUND
+from lychd.agents.workflows.evolution_compare import BRIDGE_CHAT_EVOLUTION
 from lychd.agents.workflows.scout_chat import BRIDGE_CHAT_SCOUT
 
 if TYPE_CHECKING:
@@ -28,6 +29,7 @@ __all__ = [
     "BRIDGE_CHAT",
     "BRIDGE_CHAT_ARCHIVE",
     "BRIDGE_CHAT_BOUND",
+    "BRIDGE_CHAT_EVOLUTION",
     "BRIDGE_CHAT_SCOUT",
     "DELEGATED_RITE",
     "DELEGATED_RITE_BOUND",
@@ -249,6 +251,8 @@ def builtin_workflow_registry(*, weaver: WeaverSettings | None = None) -> Builti
         bridge = BRIDGE_CHAT_ARCHIVE
     if weaver is not None and weaver.bridge is not None and weaver.bridge.revision == "4":
         bridge = BRIDGE_CHAT_SCOUT
+    if weaver is not None and weaver.bridge is not None and weaver.bridge.revision == "5":
+        bridge = BRIDGE_CHAT_EVOLUTION
     delegate = DELEGATED_RITE_BOUND if weaver is not None and weaver.delegation is not None else DELEGATED_RITE
     return BuiltinWorkflowRegistry(
         workflows=(
@@ -256,6 +260,7 @@ def builtin_workflow_registry(*, weaver: WeaverSettings | None = None) -> Builti
             BRIDGE_CHAT_BOUND,
             BRIDGE_CHAT_ARCHIVE,
             BRIDGE_CHAT_SCOUT,
+            BRIDGE_CHAT_EVOLUTION,
             DELEGATED_RITE,
             DELEGATED_RITE_BOUND,
         ),
