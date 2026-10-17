@@ -1950,6 +1950,24 @@ named storage. Independent resource/model observations settle the task processes
 container; storage intentionally remains. No permanent daemon, autonomous editing or improvement,
 crash recovery, whole-environment closure or model-byte attestation follows.
 
+A separate protected feedback surface now retains an exact external UTF-8 report, claimed reviewer
+and authenticated submitting authority against the original request/profile/candidate/verdict and
+source/criterion identities. Optional submitter annotations stay distinct from the report; absent
+criteria remain `not_assessed`. An explicit owner `hold` or `reject` preserves the native verdict.
+Canonical identical replay returns original attribution; conflicting identity refuses. Case locking
+serializes append sequence and current decision, and a new assessment makes prior decisions
+historical. Feedback neither expires nor mutates original execution and requires settled bound
+Runs/deliveries, resolved inference and no matching local lease. Historical revision 2 assessment
+needs no current model readiness. There is no successor proposal or execution path.
+
+Focused tests cover current credentials, scopes, Origin/CSRF, duplicate JSON, literal report and
+canonical target bounds. Fourteen real PostgreSQL cases cover custody, restart attribution,
+concurrent sequence/decisions, capacity/replay, post-lock revocation and settlement refusals. The
+complete affected migration module passes 89 cases, including additive `0017`, original custody
+and retained-feedback downgrade refusal. Generated API/client checks and 341 frontend tests pass;
+previous OpenAPI paths/schemas are unchanged. These trusted inert-model checks issue no inference.
+Actual attachment of the retained external report through ordinary native service remains unqualified.
+
 The wider SDLC law defines attributable request → candidate → verification → promotion-request →
 target-owner-effect ownership. The Creation method and Ouroboros map connect work to separately
 governed evaluation, memory, training and body change. The Development bootstrap procedure orders
@@ -1959,7 +1977,9 @@ or autonomous development service.
 **Boundary — Not yet:** This investigation performs no source editing, executable workspace,
 filesystem/command execution, safe Forge, autonomous repair, target-owner promotion, rollback or
 self-extension. Its local credential role supplies no remote IAM or person-level tenancy; an
-unknown issued inference has no automatic slot-release path. There is likewise no instantiated
+unknown issued inference has no automatic slot-release path. External feedback supplies no native
+successor lineage/admission, automatic correction or measured recursive improvement. There is
+likewise no instantiated
 distributed repository identity or maintainer roster, executable key-custody/rotation mechanism,
 governance-epoch ledger, quorum verifier, signed portable promotion envelope, independent
 attestation plane, canonical source on Radicle, Radicle node topology or downstream-mirror cutover.
