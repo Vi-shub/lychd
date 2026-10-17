@@ -1853,7 +1853,7 @@ evaluation, model registration, rollback, or production promotion.
   [discernment training](./sepulcher/extensions/soulforge/discernment-training.md)
 - **Law:** [Training](./adr/33-training.md)
 
-### Evolution historical comparison {#evolution-comparison}
+### Offline Evolution comparison {#evolution-comparison}
 
 **State:** Available
 
@@ -1862,25 +1862,18 @@ retain, reconcile, replace or reject dispositions against an exact base, candida
 history. For retain, reconcile and replace, missing required, failing, conflicting or mismatched
 summaries block; replacement requires declared owner retirement and transition/recovery evidence. Deterministic reports distinguish completed
 comparison, recorded rejection and blocked work. Focused tests cover insecure-contract retirement
-with unrelated-extension preservation, exact replay and strict input refusal. Opt-in Bridge
-revision 5 carries the same calculation through native admission and worker settlement into a
-retained labelled reply. In-process memory tests prove canonical replay, changed-prompt refusal
-and absence of inference, consent or target activation; revisions 1–4 remain retained.
+with unrelated-extension preservation, exact replay and strict input refusal.
 
 **Boundary:** This is consistency checking over admitted claims. It does not retrieve or
 authenticate artifacts, establish factual test results or independent evaluation, create a Drift
-Outcome or Promotion Request, persist an adoption ledger, start autonomous development, or authorize activation. The new
-conversation profile is qualified in process with memory stores; this entry claims no production,
-PostgreSQL or independent-process acceptance. Native Creation and target-owner promotion remain
-designed.
+Outcome or Promotion Request, persist an adoption ledger, dispatch work, or authorize activation.
+Native autonomous Creation and target-owner promotion remain designed.
 
 **Evidence**
 
 - **Source:** [Comparison contract and calculation](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/evolution/comparison.py) and [offline utility](https://github.com/hexanomicon/lychd/blob/main/scripts/compare_evolution.py)
-- **Source:** [Deterministic Bridge score](https://github.com/hexanomicon/lychd/blob/main/src/lychd/agents/workflows/evolution_compare.py)
 - **Verification:** [Historical comparison and input-boundary tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/test_evolution.py)
-- **Verification:** [Native comparison conversation](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_bridge_evolution.py) and [state/profile checks](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_evolution_compare.py)
-- **Topic:** [Bridge operation](./divination/altar/bridge.md#historical-comparison) and [Ouroboros operation](./sepulcher/extensions/weaver/ouroboros.md#run-an-offline-historical-comparison)
+- **Topic:** [Ouroboros operation](./sepulcher/extensions/weaver/ouroboros.md#run-an-offline-historical-comparison)
 - **Law:** [Evolution](./adr/18-evolution.md#synchronic-syncretizer)
 
 ### Creation and Forge promotion {#smith-forge-promotion}

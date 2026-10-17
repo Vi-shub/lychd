@@ -131,9 +131,6 @@ active summaries concern this exact candidate, whose failing checks still block 
 disposition. The caller retains the packet and its references: a deterministic digest is neither
 durable custody nor an adoption ledger. [State of Work](../../../state-of-the-work.md#evolution-comparison)
 keeps this mechanism distinct from the still-designed native lifecycle and target-owner effects.
-The opt-in [Bridge comparison profile](../../../divination/altar/bridge.md#historical-comparison)
-uses the same calculation under an ordinary Run and retains its labelled result in conversation;
-it does not ask a model to manufacture the admitted claims.
 
 ## Carry the distinction, not the entire conversation
 

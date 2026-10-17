@@ -180,8 +180,7 @@ canonical namespace.
 Fixed source registry retains bridge_chat@1 (Bridge conversation, context, Agent turn, optional consent
 Gate, reply), adds bridge_chat@2 with an admission-pinned exact capability key and bridge_chat@3
 with that key plus an explicit public-note Archive profile. Opt-in bridge_chat@4 binds one
-authenticated public-page declaration and Scout profile. Opt-in bridge_chat@5 compares an
-operator-admitted historical comparison packet without inference or model tools. The registry also retains
+authenticated public-page declaration and Scout profile. The registry also retains
 delegated_rite@1 (exact `/delegate` command token, reference job, Durable Stasis,
 result/reply). Optional delegated_rite@2 retains one configured runtime/profile through Run admission
 and checkpoint validation; neither revision supplies an external coding-agent/Tomb plane. One boot-composed catalogue
@@ -232,29 +231,6 @@ unless the answer already reached its retained settlement checkpoint. An answer 
 text and is retained as ordinary Bridge history; transient acquisition is not a promise that no
 derived text persists. The first profile follows no redirects. Revisions 1–3 retain their manifests
 and recovery contracts. State of Work owns delivery and end-to-end qualification separately.
-
-The opt-in `bridge_chat@5` revision is a deterministic conversation profile. Its command is
-`/compare-history` followed by a newline and one `evolution-comparison@1` JSON packet under
-[Evolution's comparison boundary](18-evolution.md#synchronic-syncretizer). Existing Bridge
-outer-whitespace normalization precedes admission; exact retry identity concerns the resulting
-admitted prompt, not the original HTTP bytes. Different admitted bytes under the same request
-identity refuse. The existing 100,000-character Bridge bound remains; direct admission and
-checkpoint decoding also refuse an invalid or over-bound comparison command before calculation.
-
-Configuration selects revision 5 without a capability key, Archive profile or Scout profile;
-these model-bearing bindings are refused rather than ignored. New admission validates the packet
-before creating or publishing work. Its score calculates the comparison and settles a fixed,
-explicitly attributed Bridge reply under the canonical Run. It obtains no model grant, tool,
-Context assembly, consent, artifact resolution, evaluation, network access or target-owner effect.
-The reply states that the inputs are admitted claims and the result grants no adoption authority.
-A completed Run records completed calculation, including a blocked or rejected comparison.
-
-The checkpoint binds Run, session, admitted prompt and priority and derives its calculation from
-those bindings; it cannot substitute a different packet or report on continuation. Settled output
-is ordinary retained Bridge history, not model-produced history, authenticated evidence or an
-Evolution adoption ledger. Retry and recovery retain the admitted revision even when the active
-profile changes. Revisions 1–4 retain their manifests and recovery contracts. State of Work owns
-which conversation and process/database qualification has actually passed.
 
 ## Pattern identity
 
@@ -354,8 +330,8 @@ from a similar label. Placement-specific Agent and Context assembly occurs after
 Reader may receive an exact `structure` or `verbatim` projection without acquiring Writer tools,
 while a Writer must separately satisfy its declared effect and authority contract. The current
 source delivers the fixed v2 registry and a bounded `[weaver.bridge]` selector for `bridge_chat@2`
-or the public-note `bridge_chat@3` and public-page `bridge_chat@4` profiles, plus deterministic
-comparison `bridge_chat@5`. For model-bearing revisions, its exact capability key is server-admitted Run intent, copied into typed Graph state; a missing key refuses admission or checkpoint decoding,
+or the public-note `bridge_chat@3` and public-page `bridge_chat@4` profiles.
+Its exact capability key is server-admitted Run intent, copied into typed Graph state; a missing key refuses admission or checkpoint decoding,
 and an unavailable target never falls back to another runtime. The worker binds the revision's
 state validator to persisted Run intent; the Graph runner checks fresh and restored state before
 node execution, including hardware re-entry. A differing key, Run/session identity, prompt, or

@@ -56,9 +56,6 @@ RecallNotes → AnswerNotes → SettleNoteAnswer → End
 bridge_chat@4 (configured Scout and exact local capability)
 PreparePageReview → AwaitPageConsent → AcquireAndAnswerPage → SettlePageAnswer → End
 
-bridge_chat@5 (configured deterministic comparison)
-CompareAndSettle → End
-
 delegated_rite@1 (default) / delegated_rite@2 (configured exact runtime)
 DispatchDelegate ⇢ ProjectDelegatedReply → End
 ```
@@ -103,11 +100,6 @@ revision 2's tool-capable conversation.
 Revision 4 adds one explicitly declared public page, native consent and transient local-model
 Context. Its [Scout configuration](../scout.md#public-page-answers) selects a qualified static
 runtime and finite budgets. Neither profile turns a Scroll or source-authored text into tool authority.
-
-Revision 5 performs [historical comparison](../../../divination/altar/bridge.md#historical-comparison)
-without a model. It accepts only the comparison command and packet, takes no capability key,
-Archive or Scout binding, and keeps its result explicitly comparison-only. Existing revisions
-remain available for retained work.
 
 ## Follow the Scroll
 

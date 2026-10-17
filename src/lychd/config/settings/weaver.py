@@ -13,11 +13,11 @@ from lychd.domain.scout.profile import ScoutProfile
 
 
 class BridgeCastingSettings(SettingsSection):
-    """Select an exact Bridge revision and only the bindings that profile uses."""
+    """Select the configured Bridge revision and one exact capability identity."""
 
-    revision: Literal["2", "3", "4", "5"]
-    """The exact registered Bridge revision; revision 5 is deterministic."""
-    capability_key: str | None = Field(default=None, min_length=1)
+    revision: Literal["2", "3", "4"]
+    """The exact registered Bridge revision supporting a persisted capability binding."""
+    capability_key: str = Field(min_length=1)
     """The exact animator:family:model capability key, never a model alias or pool."""
     archive: ArchiveProfile | None = None
     """Mandatory exact public-note binding for the read-only revision 3."""
@@ -26,9 +26,6 @@ class BridgeCastingSettings(SettingsSection):
 
     @model_validator(mode="after")
     def _require_archive_binding(self) -> BridgeCastingSettings:
-        if (self.revision == "5") == (self.capability_key is not None):
-            msg = "Bridge revision 5 forbids capability_key; revisions 2-4 require it."
-            raise ValueError(msg)
         if (self.revision == "3") != (self.archive is not None):
             msg = "Bridge revision 3 requires archive; revision 2 does not accept it."
             raise ValueError(msg)
@@ -39,8 +36,8 @@ class BridgeCastingSettings(SettingsSection):
 
     @field_validator("capability_key")
     @classmethod
-    def _require_exact_capability_key(cls, value: str | None) -> str | None:
-        if value is not None and (not value.strip() or value != value.strip()):
+    def _require_exact_capability_key(cls, value: str) -> str:
+        if not value.strip() or value != value.strip():
             msg = "Bridge capability_key must be nonblank and have no surrounding whitespace."
             raise ValueError(msg)
         return value

@@ -203,39 +203,6 @@ This profile answers one page independently, using no earlier conversation histo
 It does not search for URLs, follow redirects or retry a lost acquisition. A refused or expired
 review grants no contact. Loom shows the exact `bridge_chat@4` score; Orb keeps the Run outcome.
 
-## Historical comparison {#historical-comparison}
-
-The opt-in `bridge_chat@5` profile compares one explicitly admitted historical packet without
-inference. Select it through the normal [configuration lifecycle](../../sepulcher/extensions/weaver/index.md#choose-a-bridge-capability):
-
-```toml
-[weaver.bridge]
-revision = "5"
-```
-
-This profile refuses a capability key, Archive binding or Scout binding. Remove those fields
-when selecting it; the existing local access and loopback boundary still apply. It changes the
-default for new Bridge work, not the revision of an already admitted Run.
-
-The composer shows the command guidance. Offer `/compare-history`, a newline, and one complete
-`evolution-comparison@1` JSON packet from the [comparison contract and examples](../../sepulcher/extensions/weaver/ouroboros.md#run-an-offline-historical-comparison).
-This is an explicit declaration, not a request for a model to invent evidence or decide which
-contracts to retire. Each calculation is independent of earlier conversation history. Bridge
-keeps the 100,000-character prompt bound and its existing outer-whitespace normalization;
-retry identity pins the admitted prompt. Changed admitted bytes under the same request identity
-refuse, even when the JSON would describe equivalent values.
-
-The reply identifies LychD's deterministic calculation and retains its report in this conversation
-under the canonical Run. Follow that Run into Orb or its exact score in Loom. A DONE Run can hold
-`blocked` or `rejection_recorded`; it means calculation completed, not that a candidate may be
-adopted. Inputs remain caller-admitted claims: the calculation authenticates no receipt or owner,
-executes no verification, and grants no promotion or activation authority. It adds no provider
-messages to model history.
-
-[State of Work](../../state-of-the-work.md#evolution-comparison) records the in-process conversation
-qualification separately from production, database and independent-process qualification. This
-profile supplies neither automatic GitHub intake nor an autonomous development lifecycle.
-
 ## Two crossings still being designed
 
 **Pin and Ask** would carry an authorized typed reference into a new Intent. Before admission, a preview would identify the reference, show what material would be included or summarized, disclose unavailable or redacted material, and state the permission involved. The Vessel would then reauthorize the request. Pinning a reference grants no retrieval or mutation authority.

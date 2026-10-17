@@ -121,6 +121,12 @@ identity. An admitted read-only sample can establish compatibility without launc
 effect. Pure fixtures establish their model, not that environment. If a required sample is
 unavailable, retain the qualification gap and select work whose claim does not depend upon it.
 
+Before committing to construction that changes shared source, trace maintained receipts that
+pin the affected modules and check the cost and feasibility of fresh qualification, including
+prerequisites and cleanup. Choose a smaller boundary when that burden is disproportionate to the
+intended increment. Preserve earlier receipts as dated evidence; refreshing their fingerprints
+cannot substitute for requalification.
+
 End an inquiry when another observation cannot change the admitted choice. After a repair,
 return the exact finding and affected joins to the independent verifier; reopen whole-candidate
 review for changed authority, a shared invariant or a concrete cross-boundary finding. Required

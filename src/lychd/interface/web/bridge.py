@@ -89,11 +89,6 @@ def _composer_view(state: State) -> BridgeComposer | None:
         return None
     identity = workflow.manifest.key, workflow.manifest.revision
     guidance = None
-    if identity == ("bridge_chat", "5"):
-        guidance = (
-            "Send /compare-history followed by a newline and one evolution-comparison@1 JSON packet. "
-            "LychD checks your admitted claims without a model; the result grants no adoption authority."
-        )
     if (
         identity == ("bridge_chat", "4")
         and isinstance(getattr(engine, "bridge_scout", None), ScoutProfile)
