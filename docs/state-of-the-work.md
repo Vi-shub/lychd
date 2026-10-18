@@ -1761,6 +1761,19 @@ The explicitly trusted functional UI profile enforces time, stop and PID control
 no hard CPU/memory ceiling, hostile-browser safety, installed lifetime or broad clean shutdown.
 Earlier failed pilots remain failed.
 
+
+A separate [native Altar filter session](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/scout/native-altar-filter-2026-10-18.json)
+on clean source `3e221f56` exercises the ordinary controls in actual Chrome through an explicitly
+API-mediated, no-redirect/no-retry transport. In approximately 8.68 seconds, exactly two protected
+CSRF POSTs show the retained field's legitimate zero `RTX` matches with a visible explanation,
+then restore all 50 individually visible rows in source order through an empty-query submission.
+The complete protected document and four permanent-accounting summaries remain equal; no new
+acquisition, inference or reset occurs. Independent outcome review and resource closure pass;
+17 captured process records represent 16 distinct identities. Two SAQ shutdown-grace warnings
+remain. This bounded functional session qualifies neither Chrome-direct HTTP, a persistent
+endpoint, hard browser CPU/memory containment nor clean application shutdown. Earlier failed
+attempts remain failed; no new full-row SQL snapshot is claimed.
+
 Separate [pinned SearXNG service fixtures](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/scout/searxng-service-fixture-2026-10-18.json)
 now cross actual authenticated local HTTP, the upstream web application, dispatch thread,
 asyncio processor, host-sealed fixture TLS and engine parser. The unmodified dispatch baseline

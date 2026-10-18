@@ -1,0 +1,186 @@
+{
+  "schema": "lychd.scavenger.native-altar-filter.v1",
+  "observed_at": "2026-10-18T20:15:52.814496+00:00",
+  "source_identity": {
+    "revision": "3e221f5603797e4dc107df6d950ef34e910d088d",
+    "tree": "4b90fe4f183b490f281bf4d6d16ac7b4708090e9",
+    "clean_snapshot": true,
+    "dirty_candidate": false,
+    "source_files": 1481,
+    "candidate_manifest_sha256": "9821235cc312cb78402575767d00ba6d780acbce9817b4072175f50aca54450f"
+  },
+  "profile": {
+    "application": "scavenger@3",
+    "native_entry": "ordinary CLI and in-process runs/rites SAQ workers",
+    "browser": "trusted-functional-operator-ui@1",
+    "transport": "playwright-api-mediated-local@1",
+    "node": "24.18.1",
+    "playwright": "1.62.1",
+    "chrome": "153.0.8010.52",
+    "chromium_sandbox": true,
+    "fresh_basic_authentication": true,
+    "authentication_transport": "APIRequestContext exact-origin preemptive Basic; no redirect/retry forwarding",
+    "HTTP_methods": [
+      "GET",
+      "POST"
+    ],
+    "hard_time_seconds": 90,
+    "hard_stop_seconds": 5,
+    "hard_pids_max": 256,
+    "kill_mode": "control-group",
+    "restart": "no",
+    "no_new_privileges": true,
+    "cpu_memory_hard_limits_enforced": false
+  },
+  "observation": {
+    "outer_elapsed_seconds": 8.677965671056882,
+    "native_processes": 1,
+    "field_occurrences": 50,
+    "canonical_whole_live_documents_equal": true,
+    "filter_revision": "literal-casefold@1",
+    "filter_queries": [
+      "RTX",
+      ""
+    ],
+    "visible_counts": [
+      0,
+      50
+    ],
+    "visible_no_local_matches_status": true,
+    "empty_query_restores_all_fifty_individually_visible_source_order_rows": true,
+    "rendered_rows_sha256": [
+      "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "f4910d6eb6ccfd62a81a3a208fafa6d3745aa81cb1d835a84c3c3b1d0d15c520"
+    ],
+    "observation_digest": "18cea2112d80182b2e769ac48d8a378f4abd7b31c2572f06f1117d93ef4974ff",
+    "assertions": [
+      "protected_navigation_200",
+      "full_canonical_document_equal",
+      "API_mediated_exact_two_csrf_filter_posts",
+      "RTX_zero_rows_visible_no_matches_status",
+      "empty_restores_50_source_order",
+      "inert_locators",
+      "retained_acquired_time_source_coverage_attribution",
+      "compiled_asset_hashes"
+    ],
+    "browser_GET_responses": 24,
+    "browser_POST_responses": 2,
+    "all_recorded_browser_responses_200": true,
+    "browser_denied_requests": 0,
+    "browser_errors": [],
+    "context_and_browser_closed": true,
+    "permanent_accounting_equal_at": [
+      "before-native",
+      "after-get",
+      "after-browser",
+      "after-native-close"
+    ],
+    "accounting": {
+      "attempts": 1,
+      "successful": 1,
+      "budgets": [
+        {
+          "scope": "binding",
+          "active_claims": 0,
+          "connects_used": 3,
+          "transmissions_used": 5,
+          "wire_bytes_used": 1876,
+          "connects_reserved": 0,
+          "transmissions_reserved": 0,
+          "wire_bytes_reserved": 0
+        },
+        {
+          "scope": "host",
+          "active_claims": 0,
+          "connects_used": 3,
+          "transmissions_used": 5,
+          "wire_bytes_used": 1876,
+          "connects_reserved": 0,
+          "transmissions_reserved": 0,
+          "wire_bytes_reserved": 0
+        }
+      ]
+    },
+    "new_full_row_SQL_snapshot": false,
+    "submits": 0,
+    "consent_decisions": 0,
+    "filter_mutations": 2,
+    "new_acquisitions": 0,
+    "model_calls": 0,
+    "budget_reset": false
+  },
+  "log_observation": {
+    "complete_uncensored_bytes": 20324,
+    "captures": {
+      "readback-app-01.stdout": {
+        "bytes": 250,
+        "sha256": "1c5249154ff4a09c21d542969afd828e857a20241963fe18daf5975bfc345820",
+        "complete_uncensored_bytes_read": true,
+        "heartbeat_manager_crash_messages": 0,
+        "stopped_loop_before_future_completed_messages": 0,
+        "traceback_headers": 0,
+        "error_level_messages": 0,
+        "shutdown_grace_warnings": 0,
+        "stuck_cancellation_warnings": 0
+      },
+      "readback-app-01.stderr": {
+        "bytes": 14271,
+        "sha256": "e00e648c9f0d2cabcd44e553e4073f29102c8297ba904619dc888206b4cf63a4",
+        "complete_uncensored_bytes_read": true,
+        "heartbeat_manager_crash_messages": 0,
+        "stopped_loop_before_future_completed_messages": 0,
+        "traceback_headers": 0,
+        "error_level_messages": 0,
+        "shutdown_grace_warnings": 2,
+        "stuck_cancellation_warnings": 0
+      },
+      "browser-readback-04.stdout": {
+        "bytes": 5803,
+        "sha256": "c6dc5419b39631f04c5a011aa2a8ee786b4e776f6dd3b74134520634446e1df7",
+        "complete_uncensored_bytes_read": true,
+        "heartbeat_manager_crash_messages": 0,
+        "stopped_loop_before_future_completed_messages": 0,
+        "traceback_headers": 0,
+        "error_level_messages": 0,
+        "shutdown_grace_warnings": 0,
+        "stuck_cancellation_warnings": 0
+      },
+      "browser-readback-04.stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "complete_uncensored_bytes_read": true,
+        "heartbeat_manager_crash_messages": 0,
+        "stopped_loop_before_future_completed_messages": 0,
+        "traceback_headers": 0,
+        "error_level_messages": 0,
+        "shutdown_grace_warnings": 0,
+        "stuck_cancellation_warnings": 0
+      }
+    },
+    "interpretation": "Native logs retain the experimental embedded-server notice and two SAQ shutdown-grace cancellation warnings. No captured traceback, error-level, heartbeat-manager or stopped-loop failure; browser stderr and outer launch log empty. No broad clean-shutdown or SDK-internal credential-diagnostic claim."
+  },
+  "settlement": {
+    "independently_reconciled": true,
+    "captured_process_identity_records": 17,
+    "distinct_known_process_start_identities_absent": 16,
+    "recorded_process_groups_absent": 6,
+    "owned_units_cgroups_process_groups_ports_container_absent": true,
+    "same_retained_volume_unattached": true,
+    "source_SDK_runtime_credential_metadata_installed_and_prior_resources_unchanged": true,
+    "exact_owned_browser_scratch_removed": true
+  },
+  "provenance_sha256": {
+    "coordinator": "018371cd563d990af73d898e0ce6003aecdbc65b372763ea58a49badf4293937",
+    "browser_harness": "54731fb7365c9deb2547a98e70da0319e54d61afb5c747a39c6aac7a0a875e74",
+    "compiled_asset_manifest": "cc116be2b776b7746a4f53c8d204b97de5eb9115b98388c21eece2297cb9183d",
+    "filter_oracle": "42fc224adfe38591602dcc0a03cb86a52511a076e159382170ed53b1be3093ff",
+    "browser_terminal_receipt": "8c2a1e2841ec55ff86ec5166be427461076c5bdb681f611dbbeb087180c531f1",
+    "external_settlement": "fceecb5820a839c8bb75bbe630762abf9653dceb6a341850660b0fb46fd99eca",
+    "complete_log_assessment": "378387474c498b6ac69ee706dce69cb7583143f439c980cf7be05cc916f89238",
+    "Root_log_judgment": "1ea9caed13e03d4b0f7e577f160895ba9a8cf9af092d5a20673eedd2dabc589a",
+    "private_adoption": "ebd5374db9ad968c1abc9ae677d988ed044783c34cec138448bb8e540c597872",
+    "independent_outcome_review": "1cb21693437289a15668625740e472b8ebfe95e573d2f1fd779b9808b79eab73",
+    "scratch_cleanup": "db522e38e959fde2673c81f225000032d3c199edfbedb825bb9f4376c04d2061"
+  },
+  "boundary": "Dated temporary same-host ordinary operator UI filter session through API-mediated network passage only. No Chrome-direct HTTP, persistent endpoint, new acquisition, inference, installed cutover, new full-row SQL snapshot, active-work or clean application shutdown, Android/cross-engine/hostile-browser safety, Coffin/foreign-runtime containment, hard CPU/memory ceiling or autonomous improvement qualification. Earlier failed acquisition/browser cases remain failed. Private field bodies, credentials, paths and host identities omitted."
+}
