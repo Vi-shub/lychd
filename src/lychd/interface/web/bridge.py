@@ -336,7 +336,10 @@ class BridgeController(Controller):
             )
         except BridgePreferenceError as exc:
             raise ServiceUnavailableException(
-                detail="Bridge preference admission is unavailable; retry as a new admission after readiness is restored.",
+                detail=(
+                    "The Bridge could not confirm this request. "
+                    "Check the existing session before sending another message."
+                ),
                 extra={"code": exc.code.value},
             ) from None
         except (RunAdmissionConflictError, ScoutWorkflowError) as exc:
