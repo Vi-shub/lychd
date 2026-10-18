@@ -52,12 +52,23 @@ class _ReservedStreamResponse(ASGIResponse):
                 await close()
 
 
+async def _encoded_messages(source: AsyncIterator[ServerSentEventMessage]) -> AsyncIterator[bytes]:
+    """Use Litestar's public message framing for an already asynchronous source."""
+    async for message in source:
+        yield message.encode()
+
+
 class BoundedRunEventStream(ServerSentEvent):
     """Keep Litestar's SSE encoding while reserving its complete ASGI lifetime."""
 
     def __init__(self, content: AsyncIterator[ServerSentEventMessage], *, bus: InProcessEventBus, run_id: str) -> None:
         """Bind semantic events to the Run whose HTTP stream capacity they consume."""
         super().__init__(content)
+        # This constructor has no response-wide SSE prefix. Litestar's general
+        # iterator otherwise offloads even that empty prefix to a worker thread.
+        # Keep its headers and message encoder, and consume our async source on
+        # its own control loop through the existing lifetime reservation.
+        self.iterator = _encoded_messages(content)
         self._bus = bus
         self._run_id = run_id
         self._source = content
