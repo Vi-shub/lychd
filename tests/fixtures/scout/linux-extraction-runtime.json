@@ -20,14 +20,14 @@
   "identity_boundary": "Worker, supervisor, domain contract, qualification harness, dedicated Python tree, Bubblewrap and explicitly mounted libraries were fingerprinted unchanged before and after the proof. Host supervisor transitive imports are not an atomic runtime snapshot.",
   "kernel": "7.1.8-1-default",
   "library_digests": {
-    "ld-linux-x86-64.so.2": "1f36b4d1ad5b25dc469e317e02f1bf26dfb0043c68d40e30f6c519a2b036f52f",
-    "libc.so.6": "090f858814642a3f28e5f4ae6499667e7901e47902ca3e72fb9c8a1967a3b8df",
-    "libdl.so.2": "63bd4f1cbaf5a6b04127fdf3236842b82f00814a57d75daeabf311302cf43e6b",
-    "libgcc_s.so.1": "5778a7f283887fc36d9a943b1574f1dca1554d5f71c28cf34e7626aff1d09c22",
-    "libm.so.6": "e5c9c200788060abf69bc820a72e0747c076184a8d7377cb560b3e305d404639",
     "libpthread.so.0": "a8294c61875f0dd96d9e233f9ec3caf0513c3a957c8e69a22a674e3d2c765a1f",
+    "libdl.so.2": "63bd4f1cbaf5a6b04127fdf3236842b82f00814a57d75daeabf311302cf43e6b",
+    "libutil.so.1": "b1ac84b9ee01ef65761dc768d6c320cfe38cc21645519b7a991cdc2d039f307a",
+    "libm.so.6": "e5c9c200788060abf69bc820a72e0747c076184a8d7377cb560b3e305d404639",
     "librt.so.1": "d1508af6aa94a0e93125e0580a0f875662e4db4696757c2df17bb529aeb44b1f",
-    "libutil.so.1": "b1ac84b9ee01ef65761dc768d6c320cfe38cc21645519b7a991cdc2d039f307a"
+    "libgcc_s.so.1": "5778a7f283887fc36d9a943b1574f1dca1554d5f71c28cf34e7626aff1d09c22",
+    "libc.so.6": "090f858814642a3f28e5f4ae6499667e7901e47902ca3e72fb9c8a1967a3b8df",
+    "ld-linux-x86-64.so.2": "1f36b4d1ad5b25dc469e317e02f1bf26dfb0043c68d40e30f6c519a2b036f52f"
   },
   "limits": {
     "address_space_bytes": 268435456,
@@ -39,18 +39,18 @@
     "process_limit": 1,
     "wall_seconds": 5
   },
-  "observed_on": "2026-10-13",
+  "observed_on": "2026-10-18",
   "profile": "scout-static-extract@1",
   "python": "3.15.0",
-  "python_tree_bytes": 113895263,
-  "python_tree_digest": "8d7ecc94ad2dc38d261ce99b8719c44befb6fe7c239d279fb82ccbebf23ae51f",
-  "python_tree_entries": 5146,
+  "python_tree_bytes": 114027032,
+  "python_tree_digest": "3aca44e8c98b087512c3218dae9ee78281ca5e42c31b3278b9a56e4c4b3de627",
+  "python_tree_entries": 5156,
   "record_kind": "sanitized_public_extraction_qualification",
   "schema": 1,
   "source_sha256": {
-    "src/lychd/domain/scout/extraction.py": "403cc56c1f8890a99ae2d744b558e9eb45042cf8403ad9f7102fa75aeeb93da8",
-    "src/lychd/system/scout_worker.py": "b1cd9ba101653e276ff66847419f07b24589dcc5b76d92df867fc115475d2f66",
-    "src/lychd/system/services/scout_extraction.py": "803dbcec9c5031ed2c05eb258146a8df0f0c5cb572a9306c31032f3d4079732a",
+    "src/lychd/domain/scout/extraction.py": "107ad489b36d6f87b6439825a4fb17adc5b00feb10b3b0054a1b267780f9219d",
+    "src/lychd/system/scout_worker.py": "01a187f62f8da632c344394d0c1bc8c7f7365eed8c21e530ef6257fef0f1ce7f",
+    "src/lychd/system/services/scout_extraction.py": "cfcca8c6ad5ec9c439934b643e76ce6d096ff5b5ca59ccc0ee9e585ef7c38ad9",
     "tests/integration/test_scout_extraction_runtime.py": "6a7967b36c56eb97977a025302e6c6163d3bbb76699a9546e2586ada1ce12920"
   },
   "status": "passed"

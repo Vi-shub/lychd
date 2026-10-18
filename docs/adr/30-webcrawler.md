@@ -403,6 +403,58 @@ or a passing extraction fixture alone does not establish containment. This extra
 mechanism: Fetch/Extract grants, egress decisions, durable acquisition attempts, workflow binding
 and artifact custody remain separately owned prerequisites to a Scout passage.
 
+### Native RSS 2.0 extraction profile
+
+The `scout-rss-extract@1` profile shares the fixed worker's physical containment and
+supervisor with text extraction; it has a separate request and structured return. The existing
+static text profile still accepts only HTML/plain text. Its two-field private header must refuse
+XML. RSS needs the exact additional profile identity and one of `text/xml`, `application/xml`, or
+`application/rss+xml`; a media label alone cannot select it. Neither mechanism admits Fetch,
+recurring watching, custody or any item contact.
+
+The first profile accepts strict UTF-8 RSS 2.0, one unnamespaced `rss` root and one `channel`.
+A declaration, when present, must name XML 1.0 and UTF-8. It retains channel title, locator and
+summary, and at most 100 item observations with title, original locator, summary and optional
+publisher date/identifier. Channel title/locator/summary are required; each item needs a locator
+and nonempty title or projected summary. Duplicate selected fields, nested XML inside those
+fields, non-whitespace text in structural RSS/channel/item containers, malformed/truncated XML
+and missing required values refuse the complete result.
+Namespace extensions and unselected elements/attributes are omitted with declared loss and an
+omitted-element count; they cannot impersonate selected fields. Publisher dates and identifiers
+remain claims, never verified freshness, global identity or a deduplication authority.
+
+| Resource | RSS ceiling |
+| --- | --- |
+| Decoded UTF-8 input | 1 MiB |
+| Element count / depth / items | 10,000 / 64 / 100 |
+| Title / locator / summary | 1,024 / 4,096 / 8,192 UTF-8 bytes per field |
+| Publisher date / identifier | 128 / 1,024 UTF-8 bytes per field |
+| Serialized return | 240 KiB, within the enclosing passage's remaining return budget |
+| Child wall / CPU / address space | 5 seconds / 2 seconds / 256 MiB, no wider than static extraction |
+
+A field or output ceiling refuses rather than truncating items. XML-decoded scalar construction
+is bounded before trimming or description projection, even if that later transformation would
+shorten the field; the projected value is checked again. XML whitespace surrounding a
+selected scalar is removed without rewriting locator paths or queries. RSS descriptions containing
+escaped HTML or CDATA use the fixed HTML text strategy inside the same child; source instructions
+remain data. Description attributes are omitted after control checks; numeric references are
+checked before HTML5 replacement can erase a forbidden control. Selected locators are independently checked by the parent against Scout's existing
+pure HTTPS destination-syntax contract. That validation performs no DNS or contact and grants
+neither; each later contact needs fresh current authority.
+
+Parsing uses the runtime's Expat with reparse deferral enabled and version at least 2.6.0, under
+the same pre-input hard process limits. DTDs, entity declarations, external entities and processing
+instructions refuse before they can acquire authority or resources. XML declarations are handled
+separately; encoding declarations cannot broaden strict UTF-8. Raw and entity-decoded text obey
+the existing control-character policy, including omitted material. Construction-time element/depth
+and input bounds apply to omitted material too; selected fields are bounded incrementally. No
+DOM, external resource loader, browser or Core XML parser substitutes for the isolated child.
+
+Qualification must join ordinary and hostile RSS behavior to the exact shared worker, supervisor,
+interpreter and containment closure. A changed worker requires fresh evidence for existing text
+profiles as well; an earlier static receipt cannot qualify RSS. Network acquisition and native
+workflow admission remain subsequent, separately proved boundaries.
+
 ## Destination and data boundary
 
 Every external acquisition URL, redirect, and new connection is independently authorized: canonical HTTPS

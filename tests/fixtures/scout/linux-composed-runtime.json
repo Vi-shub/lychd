@@ -37,7 +37,7 @@
     "src/lychd/domain/scout/authority.py": "8c804d9f78c26dd7460738d09ce8e1b083497c8a88767204de5ed0513e70f3c7",
     "src/lychd/domain/scout/destination.py": "5cd67b1be68397673b86982afe5b36f2d3fbf26ef8c64da4397dc15d0edf683f",
     "src/lychd/domain/scout/transport.py": "301869408a134330354419508d789de5a561d3d31f08564876a66714d4b3517e",
-    "src/lychd/domain/scout/extraction.py": "403cc56c1f8890a99ae2d744b558e9eb45042cf8403ad9f7102fa75aeeb93da8",
+    "src/lychd/domain/scout/extraction.py": "107ad489b36d6f87b6439825a4fb17adc5b00feb10b3b0054a1b267780f9219d",
     "src/lychd/domain/scout/profile.py": "92fee092e4b741941b92c04ae0dca5977528fbd0db24031d44b19a8c1bd3a03a",
     "src/lychd/domain/scout/review.py": "18b70408758ad408d3a251206050ced422979308cd25f9d6c35bbc82ad4764d7",
     "src/lychd/db/scout.py": "83403dfb258c46f417ae370136e9359e4c0b712170f7dc117f61b1fb81f740d3",
@@ -48,13 +48,13 @@
     "src/lychd/agents/workflows/scout_chat.py": "c2c78b7504ff63e01d434496c35e2da2f6c49eee58c43bf0c3568a8453052539",
     "src/lychd/agents/scout_context.py": "28ac0738e34463565957959180539a5734e659065dc615974db36ba68730733f",
     "src/lychd/agents/router.py": "4231a56080dedb68bbf780ba176e4c90821e5434206691f72687bbd55da51cc0",
-    "src/lychd/system/scout_worker.py": "b1cd9ba101653e276ff66847419f07b24589dcc5b76d92df867fc115475d2f66",
+    "src/lychd/system/scout_worker.py": "01a187f62f8da632c344394d0c1bc8c7f7365eed8c21e530ef6257fef0f1ce7f",
     "src/lychd/system/services/scout_workflow.py": "e0d66589855a0daa258e653474b82e706e43ef42a147f67b88d57ff8695a6aee",
     "src/lychd/system/services/scout_dns.py": "9bb3842fd92f35c99331aa14bb46f1250be700de599679454c061e9fba40acc9",
     "src/lychd/system/services/scout_socket.py": "aa1e0cfefc62fb58368251ce479d3f1219f9ff3d5c976e72fe070689f2d88672",
     "src/lychd/system/services/scout_http.py": "91ef0647841b5c9f35c7aa02e85ec3a2c06c5c86a9563e0e1f6a6f89f65dcefe",
     "src/lychd/system/services/scout_fetch.py": "7b4102ecf198a796a88e8cedba74025f54937015385c11f34ba5a10ee336c14e",
-    "src/lychd/system/services/scout_extraction.py": "803dbcec9c5031ed2c05eb258146a8df0f0c5cb572a9306c31032f3d4079732a",
+    "src/lychd/system/services/scout_extraction.py": "cfcca8c6ad5ec9c439934b643e76ce6d096ff5b5ca59ccc0ee9e585ef7c38ad9",
     "tests/agents/fakes.py": "c73e07fa778217f69ce1e31bf0cad1210f8544fe1f020573e155c2f25e70af9d",
     "tests/agents/conftest.py": "fed84a8f94cb0f3e5166fc0e54b611e1086e17c08c9c879cb31b179cc6656adb",
     "tests/scout_fixtures.py": "5576575bbf46c91f4ecbab340ead8eba26ea1a5ff671c247f49b636e4f8345c9",
@@ -80,9 +80,9 @@
       "ld-linux-x86-64.so.2": "1f36b4d1ad5b25dc469e317e02f1bf26dfb0043c68d40e30f6c519a2b036f52f"
     },
     "code": {
-      "scout_worker.py": "b1cd9ba101653e276ff66847419f07b24589dcc5b76d92df867fc115475d2f66",
-      "scout_extraction.py": "803dbcec9c5031ed2c05eb258146a8df0f0c5cb572a9306c31032f3d4079732a",
-      "extraction.py": "403cc56c1f8890a99ae2d744b558e9eb45042cf8403ad9f7102fa75aeeb93da8",
+      "scout_worker.py": "01a187f62f8da632c344394d0c1bc8c7f7365eed8c21e530ef6257fef0f1ce7f",
+      "scout_extraction.py": "cfcca8c6ad5ec9c439934b643e76ce6d096ff5b5ca59ccc0ee9e585ef7c38ad9",
+      "extraction.py": "107ad489b36d6f87b6439825a4fb17adc5b00feb10b3b0054a1b267780f9219d",
       "test_scout_extraction_runtime.py": "6a7967b36c56eb97977a025302e6c6163d3bbb76699a9546e2586ada1ce12920"
     }
   },
@@ -132,5 +132,5 @@
     "anonymous_volume_count": 1
   },
   "record_kind": "sanitized_public_composed_qualification",
-  "observed_on": "2026-10-17"
+  "observed_on": "2026-10-18"
 }

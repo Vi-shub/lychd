@@ -339,6 +339,30 @@ generated `receipt.json` stays below basetemp; the sanitized maintained receipt 
 that receipt's freshness test and requires review and requalification. This proves only the
 identified local extractor, not Scout Fetch, workflow integration or the general Coffin boundary.
 
+The separate RSS proof reuses that exact shared runtime and requires Expat 2.6 or newer with
+reparse deferral enabled. Run the unchanged static proof first against the current complete
+source/runtime closure, then supply its actual generated raw receipt (the maintained sanitized
+static fixture is not that input):
+
+```bash
+LYCHD_REQUIRE_SCOUT_EXTRACTION_PROOF=1 \
+LYCHD_REQUIRE_SCOUT_RSS_EXTRACTION_PROOF=1 \
+LYCHD_SCOUT_EXTRACTION_PROFILE=/absolute/path/runtime.json \
+LYCHD_SCOUT_STATIC_EXTRACTION_RECEIPT=/absolute/current-run/receipt.json \
+make test M=container N=0 \
+  PYTEST_TARGETS=tests/integration/test_scout_rss_extraction_runtime.py \
+  K=test_scout_rss_extraction_host_boundary PYTEST_BASETEMP=/tmp/lychd-scout-rss-proof
+```
+
+Use a second fresh basetemp and keep both source and runtime unchanged through the joined proof.
+Inspect its generated sanitized receipt and observed process settlement before admitting a
+[maintained RSS copy](tests/fixtures/scout/linux-rss-extraction-runtime.json). Ordinary CI checks
+that copy's exact six source fingerprints and its agreement with the maintained static runtime.
+The RSS proof adds actual ordinary/hostile child calls, exact launch/protocol observations and
+RSS-request output/timeout/cancellation cases; the fresh static proof owns the shared host-access,
+resource-exhaustion and detached-descendant/death tests. Neither proves native feed admission,
+network acquisition, digest custody or watching.
+
 Scout's DNS/TLS proof uses real local servers inside a fresh Linux user/network namespace. It
 requires `unshare`, `ip`, OpenSSL and the installed Python dependencies. Only loopback exists;
 the public-classified fixture address below is assigned inside that isolated namespace, never

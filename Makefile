@@ -32,7 +32,9 @@ CI_PYTEST_TARGETS := tests/unit/config tests/unit/db \
 	tests/unit/system/services/test_init_binding_sites.py tests/unit/system/services/test_bind_compilation.py \
 	tests/unit/system/test_schemas.py tests/unit/system/services/test_artifact_custody.py \
 	tests/unit/system/services/test_artifact_publication.py \
-	tests/unit/system/test_scout_worker.py tests/unit/system/services/test_scout_extraction.py \
+	tests/unit/system/test_scout_worker.py tests/unit/system/test_scout_rss_worker.py \
+	tests/unit/system/services/test_scout_extraction.py \
+	tests/unit/system/services/test_scout_rss_extraction.py \
 	tests/unit/system/services/test_scout_dns.py tests/unit/system/services/test_scout_socket.py \
 	tests/unit/system/services/test_scout_http.py tests/unit/system/services/test_scout_fetch.py \
 	tests/unit/system/services/test_scout_workflow.py tests/codex/test_local_access.py \

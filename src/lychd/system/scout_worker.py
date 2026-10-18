@@ -1,4 +1,4 @@
-"""Fixed, stdlib-only text projection worker; its caller owns actual containment.
+"""Fixed, stdlib-only text and RSS projection; its caller owns actual containment.
 
 Run as ``python -I -S -B /worker.py``. Input is one bounded ASCII JSON header
 line, the declared UTF-8 body, and EOF. No document supplies executable options.
@@ -8,6 +8,7 @@ sanitization. Untrusted instructions remain untrusted text after projection.
 HTML uses a bounded lexical stack, not a DOM. Matching end tags close through
 their ancestors; optional end tags may remain open at EOF. Incomplete tokens or
 raw-text sections refuse. Suppressed ancestors remain suppressed until closed.
+RSS uses fixed Expat handlers with bounded scalars and no resource loader.
 The supervisor must independently enforce wall time, denied network/filesystem
 authority, bounded pipes, cancellation, and complete process-tree settlement.
 """
@@ -21,13 +22,31 @@ import re
 import sys
 from html import unescape
 from html.parser import HTMLParser
-from typing import BinaryIO, Literal, TypedDict, cast
+from typing import BinaryIO, Literal, Never, TypedDict, cast
+from xml.parsers import expat
 
 MAX_HEADER_BYTES = 256
 MAX_BODY_BYTES = 4 * 1024 * 1024
 MAX_OUTPUT_BYTES = 240 * 1024
 MAX_HTML_ELEMENTS = 50_000
 MAX_HTML_DEPTH = 128
+RSS_PROFILE = "scout-rss-extract@1"
+RSS_STRATEGY = "rss-items@1"
+RSS_MEDIA = frozenset({"text/xml", "application/xml", "application/rss+xml"})
+RSS_MAX_BODY_BYTES = 1024 * 1024
+RSS_MAX_ITEMS = 100
+RSS_MAX_ELEMENTS = 10_000
+RSS_MAX_DEPTH = 64
+RSS_FIELD_BYTES = {"title": 1024, "link": 4096, "summary": 8192, "published": 128, "identifier": 1024}
+RSS_TRANSFORMATIONS = (
+    "utf8-bom-removed-if-present",
+    "newlines-lf",
+    "rss-xml-entities-decoded",
+    "rss-field-surrounding-whitespace-trimmed",
+    "rss-unselected-elements-and-attributes-omitted",
+    "rss-description-html-text@1",
+    "rss-publisher-dates-and-identifiers-unverified",
+)
 CPU_LIMIT_SECONDS = 2
 MEMORY_LIMIT_BYTES = 256 * 1024 * 1024
 CORE_LIMIT_BYTES = 0
@@ -126,6 +145,35 @@ class ExtractionResult(TypedDict):
     text: str
     strategy: str
     transformations: list[str]
+
+
+class RssChannelResult(TypedDict):
+    """Selected publisher channel claims in the bounded RSS return."""
+
+    title: str
+    link: str
+    summary: str
+
+
+class RssItemResult(TypedDict):
+    """An item locator and publisher claims, without new contact authority."""
+
+    title: str
+    link: str
+    summary: str
+    published: str | None
+    identifier: str | None
+
+
+class RssExtractionResult(TypedDict):
+    """Separate RSS protocol shape; no coverage or custody claim."""
+
+    status: Literal["ok"]
+    strategy: str
+    transformations: list[str]
+    channel: RssChannelResult
+    items: list[RssItemResult]
+    omitted_elements: int
 
 
 class WorkerRefusal(ValueError):  # noqa: N818 - Matches the closed protocol refusal vocabulary.
@@ -245,7 +293,7 @@ class _TextProjection(HTMLParser):
         return "\n".join(line for line in lines if line)
 
 
-def _serialize(result: ExtractionResult) -> bytes:
+def _serialize(result: ExtractionResult | RssExtractionResult) -> bytes:
     output = (json.dumps(result, ensure_ascii=False, separators=(",", ":")) + "\n").encode("utf-8")
     if len(output) > MAX_OUTPUT_BYTES:
         raise WorkerRefusal("output_limit")
@@ -285,6 +333,227 @@ def extract_text(body: bytes, media_type: str) -> ExtractionResult:
     return result
 
 
+_RSS_CHANNEL_FIELDS = {"title": "title", "link": "link", "description": "summary"}
+_RSS_ITEM_FIELDS = {**_RSS_CHANNEL_FIELDS, "pubDate": "published", "guid": "identifier"}
+_RSS_MIN_EXPAT_VERSION = (2, 6, 0)
+_XML_WHITESPACE = " \t\r\n"
+_RSS_HTML_NUMERIC_REFERENCE = re.compile(r"&#(x[0-9a-f]+|[0-9]+);?", re.IGNORECASE | re.ASCII)
+
+
+def _deny_xml_declaration(*_args: object) -> Never:
+    raise WorkerRefusal("declaration")
+
+
+def _rss_xml_declaration(version: str, encoding: str | None, standalone: int) -> None:
+    del standalone
+    if version != "1.0" or encoding is None or encoding.lower() != "utf-8":
+        raise WorkerRefusal("declaration")
+
+
+def _rss_namespace(_prefix: str | None, uri: str | None) -> None:
+    _normalize(uri or "")
+
+
+class _RssDescriptionProjection(_TextProjection):
+    """Check discarded HTML attributes before numeric-reference remapping can erase controls."""
+
+    def _check_attributes(self, attrs: list[tuple[str, str | None]]) -> None:
+        for _name, value in attrs:
+            if value is not None:
+                _normalize(value)
+        # The selected scalar bounds this lexical scan before HTMLParser sees it.
+        # Scan source spelling once: &amp;#x85; must remain inert, not decode twice.
+        for reference in _RSS_HTML_NUMERIC_REFERENCE.finditer(self.get_starttag_text() or ""):
+            name = reference.group(1)
+            try:
+                value = int(name[1:], 16) if name.lower().startswith("x") else int(name, 10)
+                text = chr(value)
+            except (ValueError, OverflowError):
+                raise WorkerRefusal("control") from None
+            if _SURROGATE_START <= value <= _SURROGATE_END:
+                raise WorkerRefusal("control")
+            _normalize(text)
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        self._check_attributes(attrs)
+        super().handle_starttag(tag, attrs)
+
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        self._check_attributes(attrs)
+        super().handle_startendtag(tag, attrs)
+
+
+class _RssProjection:
+    """Retain only direct RSS scalars; bound every element, including omitted subtrees."""
+
+    def __init__(self) -> None:
+        self.stack: list[str] = []
+        self.elements = 0
+        self.omitted_elements = 0
+        self.channel_seen = False
+        self.channel: dict[str, str] = {}
+        self.current_item: dict[str, str] | None = None
+        self.items: list[RssItemResult] = []
+        self.field: str | None = None
+        self.field_target: dict[str, str] | None = None
+        self.field_parts: list[str] = []
+        self.field_bytes = 0
+
+    def _start_field(self, field: str, target: dict[str, str]) -> None:
+        if field in target:
+            raise WorkerRefusal("structure")
+        self.field = field
+        self.field_target = target
+        self.field_parts = []
+        self.field_bytes = 0
+
+    def start(self, name: str, attrs: dict[str, str]) -> None:
+        self.elements += 1
+        if self.elements > RSS_MAX_ELEMENTS or len(self.stack) + 1 > RSS_MAX_DEPTH:
+            raise WorkerRefusal("structure")
+        for value in attrs.values():
+            _normalize(value)
+        if self.field is not None:
+            raise WorkerRefusal("structure")
+        self._select(name, attrs)
+        self.stack.append(name)
+
+    def _select(self, name: str, attrs: dict[str, str]) -> None:
+        if not self.stack:
+            if name != "rss" or attrs.get("version") != "2.0":
+                raise WorkerRefusal("structure")
+        elif self.stack == ["rss"] and name == "channel":
+            if self.channel_seen:
+                raise WorkerRefusal("structure")
+            self.channel_seen = True
+        elif self.stack == ["rss", "channel"] and name == "item":
+            if len(self.items) >= RSS_MAX_ITEMS:
+                raise WorkerRefusal("structure")
+            self.current_item = {}
+        elif self.stack == ["rss", "channel"] and name in _RSS_CHANNEL_FIELDS:
+            self._start_field(_RSS_CHANNEL_FIELDS[name], self.channel)
+        elif self.stack == ["rss", "channel", "item"] and name in _RSS_ITEM_FIELDS:
+            if self.current_item is None:
+                raise WorkerRefusal("structure")
+            self._start_field(_RSS_ITEM_FIELDS[name], self.current_item)
+        else:
+            self.omitted_elements += 1
+
+    def data(self, data: str) -> None:
+        data = _normalize(data)
+        if self.field is None:
+            if self.stack in (["rss"], ["rss", "channel"], ["rss", "channel", "item"]) and data.strip(_XML_WHITESPACE):
+                raise WorkerRefusal("structure")
+            return
+        self.field_bytes += len(data.encode("utf-8"))
+        if self.field_bytes > RSS_FIELD_BYTES[self.field]:
+            raise WorkerRefusal("output_limit")
+        self.field_parts.append(data)
+
+    def _finish_field(self) -> None:
+        if self.field is None or self.field_target is None:
+            raise WorkerRefusal("structure")
+        text = "".join(self.field_parts).strip(_XML_WHITESPACE)
+        if self.field == "summary":
+            parser = _RssDescriptionProjection()
+            parser.feed(text)
+            text = parser.result()
+        if len(text.encode("utf-8")) > RSS_FIELD_BYTES[self.field]:
+            raise WorkerRefusal("output_limit")
+        self.field_target[self.field] = text
+        self.field = None
+        self.field_target = None
+        self.field_parts = []
+        self.field_bytes = 0
+
+    def _finish_item(self) -> None:
+        fields = self.current_item
+        if fields is None or not fields.get("link") or not (fields.get("title") or fields.get("summary")):
+            raise WorkerRefusal("structure")
+        self.items.append(
+            {
+                "title": fields.get("title", ""),
+                "link": fields["link"],
+                "summary": fields.get("summary", ""),
+                "published": fields.get("published"),
+                "identifier": fields.get("identifier"),
+            }
+        )
+        self.current_item = None
+
+    def end(self, _name: str) -> None:
+        if self.field is not None:
+            self._finish_field()
+        elif self.stack == ["rss", "channel", "item"]:
+            self._finish_item()
+        self.stack.pop()
+
+    def result(self) -> RssExtractionResult:
+        if (
+            self.stack
+            or not self.channel_seen
+            or any(not self.channel.get(field) for field in ("title", "link", "summary"))
+        ):
+            raise WorkerRefusal("structure")
+        return {
+            "status": "ok",
+            "strategy": RSS_STRATEGY,
+            "transformations": list(RSS_TRANSFORMATIONS),
+            "channel": {
+                "title": self.channel["title"],
+                "link": self.channel["link"],
+                "summary": self.channel["summary"],
+            },
+            "items": self.items,
+            "omitted_elements": self.omitted_elements,
+        }
+
+
+def extract_rss(body: bytes) -> RssExtractionResult:
+    """Project bounded UTF-8 RSS scalars without contacting publisher locators.
+
+    XML-decoded field construction is bounded before whitespace trimming and
+    description projection. Every omitted subtree still receives structural and
+    control checks; unsupported declarations refuse the complete document.
+    """
+    if type(body) is not bytes:
+        raise WorkerRefusal("protocol")
+    if len(body) > RSS_MAX_BODY_BYTES:
+        raise WorkerRefusal("input_limit")
+    try:
+        text = _normalize(body.decode("utf-8-sig", errors="strict"))
+    except UnicodeDecodeError:
+        raise WorkerRefusal("utf8") from None
+    if expat.version_info < _RSS_MIN_EXPAT_VERSION:
+        raise WorkerRefusal("resource")
+    parser = expat.ParserCreate(namespace_separator="\x1f")
+    try:
+        parser.SetReparseDeferralEnabled(True)  # noqa: FBT003 - Expat requires a positional boolean.
+        if not parser.GetReparseDeferralEnabled():
+            raise WorkerRefusal("resource")
+    except AttributeError:
+        raise WorkerRefusal("resource") from None
+    if not parser.SetParamEntityParsing(expat.XML_PARAM_ENTITY_PARSING_NEVER):
+        raise WorkerRefusal("resource")
+    projection = _RssProjection()
+    parser.StartElementHandler = projection.start
+    parser.EndElementHandler = projection.end
+    parser.CharacterDataHandler = projection.data
+    parser.XmlDeclHandler = _rss_xml_declaration
+    parser.StartNamespaceDeclHandler = _rss_namespace
+    parser.StartDoctypeDeclHandler = _deny_xml_declaration
+    parser.EntityDeclHandler = _deny_xml_declaration
+    parser.ExternalEntityRefHandler = _deny_xml_declaration
+    parser.ProcessingInstructionHandler = _deny_xml_declaration
+    try:
+        parser.Parse(text, True)  # noqa: FBT003 - Expat requires a positional final-input flag.
+    except expat.ExpatError:
+        raise WorkerRefusal("structure") from None
+    result = projection.result()
+    _serialize(result)
+    return result
+
+
 def _header_pairs(pairs: list[tuple[str, object]]) -> dict[str, object]:
     result: dict[str, object] = {}
     for key, value in pairs:
@@ -292,6 +561,22 @@ def _header_pairs(pairs: list[tuple[str, object]]) -> dict[str, object]:
             raise WorkerRefusal("protocol")
         result[key] = value
     return result
+
+
+def _request_header(fields: dict[str, object]) -> tuple[str, int]:
+    """Select one exact private protocol without widening legacy text media."""
+    if set(fields) == {"media_type", "body_bytes"}:
+        allowed_media, maximum = frozenset({"text/plain", "text/html"}), MAX_BODY_BYTES
+    elif set(fields) == {"profile", "media_type", "body_bytes"} and fields["profile"] == RSS_PROFILE:
+        allowed_media, maximum = RSS_MEDIA, RSS_MAX_BODY_BYTES
+    else:
+        raise WorkerRefusal("protocol")
+    media_type, size = fields["media_type"], fields["body_bytes"]
+    if type(media_type) is not str or media_type not in allowed_media or type(size) is not int:
+        raise WorkerRefusal("protocol")
+    if not 0 <= size <= maximum:
+        raise WorkerRefusal("input_limit")
+    return media_type, size
 
 
 def _read_request(source: BinaryIO) -> tuple[bytes, str]:
@@ -305,13 +590,7 @@ def _read_request(source: BinaryIO) -> tuple[bytes, str]:
     if type(value) is not dict:
         raise WorkerRefusal("protocol")
     fields = cast("dict[str, object]", value)
-    if set(fields) != {"media_type", "body_bytes"}:
-        raise WorkerRefusal("protocol")
-    media_type, size = fields["media_type"], fields["body_bytes"]
-    if type(media_type) is not str or media_type not in {"text/plain", "text/html"} or type(size) is not int:
-        raise WorkerRefusal("protocol")
-    if not 0 <= size <= MAX_BODY_BYTES:
-        raise WorkerRefusal("input_limit")
+    media_type, size = _request_header(fields)
     parts: list[bytes] = []
     remaining = size
     while remaining:
@@ -329,7 +608,7 @@ def run(source: BinaryIO, destination: BinaryIO) -> int:
     """Consume exactly one request and write one bounded response, without limits setup."""
     try:
         body, media_type = _read_request(source)
-        output = _serialize(extract_text(body, media_type))
+        output = _serialize(extract_rss(body) if media_type in RSS_MEDIA else extract_text(body, media_type))
         exit_code = 0
     except WorkerRefusal as error:
         output, exit_code = _REFUSAL_LINES[error.code], 2

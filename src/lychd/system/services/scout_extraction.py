@@ -19,7 +19,17 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Literal, cast
 
-from lychd.domain.scout.extraction import ExtractedText, ExtractionCode, ExtractionError, ExtractionMedia
+from lychd.domain.scout.destination import DestinationError, preflight_destination
+from lychd.domain.scout.extraction import (
+    ExtractedFeed,
+    ExtractedText,
+    ExtractionCode,
+    ExtractionError,
+    ExtractionMedia,
+    FeedChannel,
+    FeedItem,
+    RssMedia,
+)
 from lychd.system.scout_worker import (
     HTML_STRATEGY,
     HTML_TRANSFORMATIONS,
@@ -29,6 +39,14 @@ from lychd.system.scout_worker import (
     PLAIN_STRATEGY,
     PLAIN_TRANSFORMATIONS,
     REFUSAL_CODES,
+    RSS_FIELD_BYTES,
+    RSS_MAX_BODY_BYTES,
+    RSS_MAX_ELEMENTS,
+    RSS_MAX_ITEMS,
+    RSS_MEDIA,
+    RSS_PROFILE,
+    RSS_STRATEGY,
+    RSS_TRANSFORMATIONS,
 )
 
 _WALL_SECONDS = 5.0
@@ -161,7 +179,7 @@ def _invalid_constant(value: str) -> object:
     raise ExtractionError(ExtractionCode.PROTOCOL)
 
 
-def _result(record: bytes, body: bytes, media_type: ExtractionMedia, exit_code: int) -> ExtractedText:
+def _payload(record: bytes, exit_code: int) -> dict[str, object]:
     if not record or len(record) > MAX_OUTPUT_BYTES or not record.endswith(b"\n") or record.count(b"\n") != 1:
         raise ExtractionError(ExtractionCode.PROTOCOL)
     try:
@@ -178,6 +196,11 @@ def _result(record: bytes, body: bytes, media_type: ExtractionMedia, exit_code: 
         if type(code) is not str or code not in REFUSAL_CODES or exit_code != _WORKER_REFUSAL_EXIT:
             raise ExtractionError(ExtractionCode.PROTOCOL)
         raise ExtractionError(ExtractionCode.WORKER, worker_code=code)
+    return payload
+
+
+def _result(record: bytes, body: bytes, media_type: ExtractionMedia, exit_code: int) -> ExtractedText:
+    payload = _payload(record, exit_code)
     strategy = PLAIN_STRATEGY if media_type == "text/plain" else HTML_STRATEGY
     transformations = PLAIN_TRANSFORMATIONS if media_type == "text/plain" else HTML_TRANSFORMATIONS
     text = payload.get("text")
@@ -204,6 +227,86 @@ def _result(record: bytes, body: bytes, media_type: ExtractionMedia, exit_code: 
         text_digest=sha256(encoded).hexdigest(),
         strategy=strategy,
         transformations=transformations,
+    )
+
+
+def _feed_field(value: object, field_name: str) -> str:
+    if type(value) is not str:
+        raise ExtractionError(ExtractionCode.PROTOCOL)
+    try:
+        size = len(value.encode("utf-8"))
+    except UnicodeError:
+        raise ExtractionError(ExtractionCode.PROTOCOL) from None
+    if size > RSS_FIELD_BYTES[field_name] or _FORBIDDEN_CONTROLS.search(value) or value != value.strip(" \t\r\n"):
+        raise ExtractionError(ExtractionCode.PROTOCOL)
+    if field_name == "link":
+        try:
+            preflight_destination(value)
+        except DestinationError:
+            raise ExtractionError(ExtractionCode.PROTOCOL) from None
+    return value
+
+
+def _feed_fields(value: object, *, item: bool) -> dict[str, object]:
+    if type(value) is not dict:
+        raise ExtractionError(ExtractionCode.PROTOCOL)
+    fields = cast("dict[str, object]", value)
+    required = {"title", "link", "summary", "published", "identifier"} if item else {"title", "link", "summary"}
+    if set(fields) != required:
+        raise ExtractionError(ExtractionCode.PROTOCOL)
+    cleaned: dict[str, object] = {}
+    for key, field_value in fields.items():
+        cleaned[key] = (
+            None if key in {"published", "identifier"} and field_value is None else _feed_field(field_value, key)
+        )
+    if not (cleaned["title"] or cleaned["summary"]) or (not item and not all(cleaned.values())):
+        raise ExtractionError(ExtractionCode.PROTOCOL)
+    return cleaned
+
+
+def _feed_result(record: bytes, body: bytes, media_type: RssMedia, exit_code: int) -> ExtractedFeed:
+    """Validate the bounded JSON return; Core never parses acquired XML."""
+    if type(media_type) is not str or media_type not in RSS_MEDIA:
+        raise ExtractionError(ExtractionCode.PROTOCOL)
+    payload = _payload(record, exit_code)
+    omitted = payload.get("omitted_elements")
+    items = payload.get("items")
+    if (
+        set(payload) != {"status", "strategy", "transformations", "channel", "items", "omitted_elements"}
+        or payload["status"] != "ok"
+        or exit_code != 0
+        or payload["strategy"] != RSS_STRATEGY
+        or payload["transformations"] != list(RSS_TRANSFORMATIONS)
+        or type(omitted) is not int
+        or not 0 <= omitted <= RSS_MAX_ELEMENTS
+        or type(items) is not list
+        or len(items) > RSS_MAX_ITEMS
+    ):
+        raise ExtractionError(ExtractionCode.PROTOCOL)
+    channel = _feed_fields(payload["channel"], item=False)
+    observations: list[FeedItem] = []
+    for item_value in cast("list[object]", items):
+        item = _feed_fields(item_value, item=True)
+        observations.append(
+            FeedItem(
+                title=cast("str", item["title"]),
+                link=cast("str", item["link"]),
+                summary=cast("str", item["summary"]),
+                published=cast("str | None", item["published"]),
+                identifier=cast("str | None", item["identifier"]),
+            )
+        )
+    return ExtractedFeed(
+        media_type=media_type,
+        channel=FeedChannel(
+            cast("str", channel["title"]), cast("str", channel["link"]), cast("str", channel["summary"])
+        ),
+        items=tuple(observations),
+        omitted_elements=omitted,
+        source_digest=sha256(body).hexdigest(),
+        record_digest=sha256(record).hexdigest(),
+        strategy=RSS_STRATEGY,
+        transformations=RSS_TRANSFORMATIONS,
     )
 
 
@@ -354,13 +457,52 @@ async def extract_static_text(
         raise ExtractionError(ExtractionCode.INPUT)
     if type(media_type) is not str or media_type not in {"text/plain", "text/html"}:
         raise ExtractionError(ExtractionCode.MEDIA)
-    command = _command(runtime)
     header = (json.dumps({"media_type": media_type, "body_bytes": len(body)}, separators=(",", ":")) + "\n").encode(
         "ascii"
     )
     if len(header) > MAX_HEADER_BYTES:
         raise ExtractionError(ExtractionCode.PROTOCOL)
-    observation._child = None  # noqa: SLF001 - A scheduled launch needs proved cleanup before settlement.
+    record, exit_code = await _supervise(body, header, runtime, observation)
+    return _result(record, body, media_type, exit_code)
+
+
+async def extract_rss_feed(
+    body: bytes,
+    *,
+    media_type: RssMedia,
+    runtime: ScoutExtractionRuntime,
+    lifecycle: ExtractionLifecycle | None = None,
+) -> ExtractedFeed:
+    """Extract the exact RSS profile in the shared fixed, network-denied worker.
+
+    This accepts no acquisition locator, grants, provider options or parser code.
+    Cancellation and uncertain cleanup have the same owned lifecycle as text
+    extraction; the structured response grants neither contact nor custody.
+    """
+    observation = ExtractionLifecycle() if lifecycle is None else lifecycle
+    if type(observation) is not ExtractionLifecycle:
+        raise ExtractionError(ExtractionCode.CONTAINMENT)
+    observation._begin()  # pyright: ignore[reportPrivateUsage] # noqa: SLF001
+    if type(body) is not bytes or len(body) > RSS_MAX_BODY_BYTES:
+        raise ExtractionError(ExtractionCode.INPUT)
+    if type(media_type) is not str or media_type not in RSS_MEDIA:
+        raise ExtractionError(ExtractionCode.MEDIA)
+    header = (
+        json.dumps({"profile": RSS_PROFILE, "media_type": media_type, "body_bytes": len(body)}, separators=(",", ":"))
+        + "\n"
+    ).encode("ascii")
+    if len(header) > MAX_HEADER_BYTES:
+        raise ExtractionError(ExtractionCode.PROTOCOL)
+    record, exit_code = await _supervise(body, header, runtime, observation)
+    return _feed_result(record, body, media_type, exit_code)
+
+
+async def _supervise(
+    body: bytes, header: bytes, runtime: ScoutExtractionRuntime, observation: ExtractionLifecycle
+) -> tuple[bytes, int]:
+    """Own the same bounded launch, pipes and complete cleanup for both profiles."""
+    command = _command(runtime)
+    observation._child = None  # pyright: ignore[reportPrivateUsage] # noqa: SLF001 - Supervisor owns the lifecycle.
     spawn = asyncio.create_task(
         asyncio.create_subprocess_exec(
             *command,
@@ -384,4 +526,4 @@ async def extract_static_text(
         raise ExtractionError(ExtractionCode.CONTAINMENT) from None
     finally:
         await _finish_cleanup(spawn, observation)
-    return _result(record, body, media_type, exit_code)
+    return record, exit_code

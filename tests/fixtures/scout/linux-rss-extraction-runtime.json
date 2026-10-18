@@ -1,0 +1,150 @@
+{
+  "after": {
+    "runtime": {
+      "bubblewrap_digest": "64501f97e29203f11d1eaa9e897e441ef92f200c0a1eb891aed5d07f780034f2",
+      "code": {
+        "extraction.py": "107ad489b36d6f87b6439825a4fb17adc5b00feb10b3b0054a1b267780f9219d",
+        "scout_extraction.py": "cfcca8c6ad5ec9c439934b643e76ce6d096ff5b5ca59ccc0ee9e585ef7c38ad9",
+        "scout_worker.py": "01a187f62f8da632c344394d0c1bc8c7f7365eed8c21e530ef6257fef0f1ce7f",
+        "test_scout_extraction_runtime.py": "6a7967b36c56eb97977a025302e6c6163d3bbb76699a9546e2586ada1ce12920"
+      },
+      "libraries": {
+        "ld-linux-x86-64.so.2": "1f36b4d1ad5b25dc469e317e02f1bf26dfb0043c68d40e30f6c519a2b036f52f",
+        "libc.so.6": "090f858814642a3f28e5f4ae6499667e7901e47902ca3e72fb9c8a1967a3b8df",
+        "libdl.so.2": "63bd4f1cbaf5a6b04127fdf3236842b82f00814a57d75daeabf311302cf43e6b",
+        "libgcc_s.so.1": "5778a7f283887fc36d9a943b1574f1dca1554d5f71c28cf34e7626aff1d09c22",
+        "libm.so.6": "e5c9c200788060abf69bc820a72e0747c076184a8d7377cb560b3e305d404639",
+        "libpthread.so.0": "a8294c61875f0dd96d9e233f9ec3caf0513c3a957c8e69a22a674e3d2c765a1f",
+        "librt.so.1": "d1508af6aa94a0e93125e0580a0f875662e4db4696757c2df17bb529aeb44b1f",
+        "libutil.so.1": "b1ac84b9ee01ef65761dc768d6c320cfe38cc21645519b7a991cdc2d039f307a"
+      },
+      "python_tree_bytes": 114027032,
+      "python_tree_digest": "3aca44e8c98b087512c3218dae9ee78281ca5e42c31b3278b9a56e4c4b3de627",
+      "python_tree_entries": 5156
+    },
+    "source_sha256": {
+      "src/lychd/domain/scout/destination.py": "5cd67b1be68397673b86982afe5b36f2d3fbf26ef8c64da4397dc15d0edf683f",
+      "src/lychd/domain/scout/extraction.py": "107ad489b36d6f87b6439825a4fb17adc5b00feb10b3b0054a1b267780f9219d",
+      "src/lychd/system/scout_worker.py": "01a187f62f8da632c344394d0c1bc8c7f7365eed8c21e530ef6257fef0f1ce7f",
+      "src/lychd/system/services/scout_extraction.py": "cfcca8c6ad5ec9c439934b643e76ce6d096ff5b5ca59ccc0ee9e585ef7c38ad9",
+      "tests/integration/test_scout_extraction_runtime.py": "6a7967b36c56eb97977a025302e6c6163d3bbb76699a9546e2586ada1ce12920",
+      "tests/integration/test_scout_rss_extraction_runtime.py": "9999cc0b0ff02db9cd94330a02e235d1bdfb0d92e012ab3468b0864e7bad49ed"
+    }
+  },
+  "architecture": "x86_64",
+  "before": {
+    "runtime": {
+      "bubblewrap_digest": "64501f97e29203f11d1eaa9e897e441ef92f200c0a1eb891aed5d07f780034f2",
+      "code": {
+        "extraction.py": "107ad489b36d6f87b6439825a4fb17adc5b00feb10b3b0054a1b267780f9219d",
+        "scout_extraction.py": "cfcca8c6ad5ec9c439934b643e76ce6d096ff5b5ca59ccc0ee9e585ef7c38ad9",
+        "scout_worker.py": "01a187f62f8da632c344394d0c1bc8c7f7365eed8c21e530ef6257fef0f1ce7f",
+        "test_scout_extraction_runtime.py": "6a7967b36c56eb97977a025302e6c6163d3bbb76699a9546e2586ada1ce12920"
+      },
+      "libraries": {
+        "ld-linux-x86-64.so.2": "1f36b4d1ad5b25dc469e317e02f1bf26dfb0043c68d40e30f6c519a2b036f52f",
+        "libc.so.6": "090f858814642a3f28e5f4ae6499667e7901e47902ca3e72fb9c8a1967a3b8df",
+        "libdl.so.2": "63bd4f1cbaf5a6b04127fdf3236842b82f00814a57d75daeabf311302cf43e6b",
+        "libgcc_s.so.1": "5778a7f283887fc36d9a943b1574f1dca1554d5f71c28cf34e7626aff1d09c22",
+        "libm.so.6": "e5c9c200788060abf69bc820a72e0747c076184a8d7377cb560b3e305d404639",
+        "libpthread.so.0": "a8294c61875f0dd96d9e233f9ec3caf0513c3a957c8e69a22a674e3d2c765a1f",
+        "librt.so.1": "d1508af6aa94a0e93125e0580a0f875662e4db4696757c2df17bb529aeb44b1f",
+        "libutil.so.1": "b1ac84b9ee01ef65761dc768d6c320cfe38cc21645519b7a991cdc2d039f307a"
+      },
+      "python_tree_bytes": 114027032,
+      "python_tree_digest": "3aca44e8c98b087512c3218dae9ee78281ca5e42c31b3278b9a56e4c4b3de627",
+      "python_tree_entries": 5156
+    },
+    "source_sha256": {
+      "src/lychd/domain/scout/destination.py": "5cd67b1be68397673b86982afe5b36f2d3fbf26ef8c64da4397dc15d0edf683f",
+      "src/lychd/domain/scout/extraction.py": "107ad489b36d6f87b6439825a4fb17adc5b00feb10b3b0054a1b267780f9219d",
+      "src/lychd/system/scout_worker.py": "01a187f62f8da632c344394d0c1bc8c7f7365eed8c21e530ef6257fef0f1ce7f",
+      "src/lychd/system/services/scout_extraction.py": "cfcca8c6ad5ec9c439934b643e76ce6d096ff5b5ca59ccc0ee9e585ef7c38ad9",
+      "tests/integration/test_scout_extraction_runtime.py": "6a7967b36c56eb97977a025302e6c6163d3bbb76699a9546e2586ada1ce12920",
+      "tests/integration/test_scout_rss_extraction_runtime.py": "9999cc0b0ff02db9cd94330a02e235d1bdfb0d92e012ab3468b0864e7bad49ed"
+    }
+  },
+  "checks": [
+    "fresh_exact_static_qualification_joined",
+    "dedicated_runtime_expat_and_preinput_limits",
+    "rss_ordinary_three_media_and_attributed_fields",
+    "rss_empty_and_100_item_feeds",
+    "rss_field_byte_boundaries",
+    "rss_real_hostile_child_refusals",
+    "rss_parent_locator_refusals_after_child",
+    "rss_parent_input_media_refusals_without_child",
+    "legacy_xml_media_refused_without_child",
+    "rss_serialized_output_ceiling",
+    "rss_stdout_stderr_floods",
+    "rss_timeout_and_cancellation_settled",
+    "rss_exact_command_pipes_and_lifecycle",
+    "source_runtime_and_static_receipt_unchanged"
+  ],
+  "evidence_boundary": "Identified local RSS child and matching current static confinement proof only; no Fetch, admission/workflow, custody, inference, monitoring or arbitrary-host compatibility.",
+  "host_python": "3.15.0",
+  "identity_boundary": "Before/after file and runtime digests are observed, not an atomic host snapshot. Host-supervisor transitive imports are not a complete identified interpreter closure.",
+  "kernel": "7.1.8-1-default",
+  "limits": {
+    "child_address_space_bytes": 268435456,
+    "child_core_bytes": 0,
+    "child_cpu_seconds": 2,
+    "child_process_limit": 1,
+    "child_wall_seconds": 5,
+    "cleanup_seconds": 2,
+    "header_bytes": 256,
+    "output_record_bytes": 245760,
+    "pipe_chunk_bytes": 4096,
+    "proof_recovery_seconds": 2,
+    "rss_depth": 64,
+    "rss_elements": 10000,
+    "rss_field_bytes": {
+      "identifier": 1024,
+      "link": 4096,
+      "published": 128,
+      "summary": 8192,
+      "title": 1024
+    },
+    "rss_input_bytes": 1048576,
+    "rss_items": 100,
+    "rss_proof_work_seconds": 180,
+    "runtime_inventory_bytes": 536870912,
+    "runtime_inventory_entries": 20000,
+    "stderr_bytes": 8192
+  },
+  "observations": {
+    "bounded_complete_records": 39,
+    "entry": [
+      "/runtime/bin/python3",
+      "-I",
+      "-S",
+      "-B",
+      "/worker.py"
+    ],
+    "largest_complete_record_bytes": 10917,
+    "launches": 43,
+    "original_worker_command_sha256": "803313154649220564451d9086f75467de28877045d52840e20b4e13c8e6c512"
+  },
+  "profile": "scout-rss-extract@1",
+  "record_kind": "sanitized_public_rss_extraction_qualification",
+  "resource_boundary": "CPU/AS/core/NPROC are child rlimits, not cgroup quotas or RSS measurements. No token/spend limit is exercised. Runtime hashing has entry/byte bounds and sits outside the proof work clock. The platform subagent is not LychD Coffin containment.",
+  "schema": 1,
+  "shared_boundary": "Reuses explicit static _runtime/_fingerprint/_file_digest and current static proof's filesystem/network/environment/descriptors/nested-userns/process-denial, CPU/AS, pipe floods and timeout/cancel/parent-death new-session-descendant checks. RSS probes retain _worker_copy limits; their never-reached plain-text success payload is not used as RSS extraction evidence.",
+  "shared_static": {
+    "checks": [
+      "real_html_extraction",
+      "real_plain_text_extraction",
+      "real_hostile_extraction_refusals",
+      "network_filesystem_environment_descriptor_namespace_and_process_denial",
+      "address_space_exhaustion",
+      "cpu_exhaustion",
+      "bounded_stdout_and_stderr_floods",
+      "timeout_settles_new_session_descendant",
+      "cancellation_settles_new_session_descendant",
+      "parent_death_settles_new_session_descendant",
+      "runtime_and_code_unchanged"
+    ],
+    "generated_receipt_sha256": "fd477645b84d57b28105c28ef6b75ad2cb6fe03b1331206c5dce9ec718acdbdd",
+    "profile": "scout-static-extract@1"
+  },
+  "status": "passed"
+}

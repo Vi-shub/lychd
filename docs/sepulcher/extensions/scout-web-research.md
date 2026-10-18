@@ -6,7 +6,8 @@ icon: material/rss
 # Scout: search, feeds and the Bazoš passage
 
 **Maturity: candidate study, reviewed 18 October 2026.** This study selects the next experiment;
-it does not deliver a provider, XML extractor, crawler, monitoring service or standing authority.
+the separately qualified RSS extractor is recorded in State. Native feed acquisition/workflow,
+monitoring and standing authority remain outside this study.
 [Scout](scout.md), [ADR 30](../../adr/30-webcrawler.md) and
 [State](../../state-of-the-work.md#scout-web-acquisition) retain those boundaries.
 
@@ -15,7 +16,7 @@ it does not deliver a provider, XML extractor, crawler, monitoring service or st
 | Need | Smallest useful path | Current boundary |
 | --- | --- | --- |
 | Understand one known public page | Existing static HTTPS Fetch and isolated HTML/text Extract | Opt-in public-page workflow; actual host/profile qualification remains necessary |
-| Observe recent Bazoš listings | One advertised category RSS feed, then local extraction/filtering | Feed fetch/extraction profile is the next candidate; XML is currently unsupported |
+| Observe recent Bazoš listings | One advertised category RSS feed, then local extraction/filtering | Separate RSS extraction is qualified; native XML Fetch and the feed workflow remain candidates |
 | Discover sources across the web | SearXNG, one qualified engine and one result page | No admitted engine, Rune or adapter ships; upstream-request mediation remains a prerequisite |
 | Read a page whose useful content requires JavaScript | Separately admitted Fetch + Render + Extract | Crawl4AI remains a later isolated candidate, not an automatic fallback |
 
@@ -40,7 +41,8 @@ filtered search URLs, mobile identities, extra pages or another endpoint after r
 The existing fixed Scout extractor processed the acquired category HTML in its isolated,
 network-denied child and returned 11,461 bytes of text; the child was reaped. Supplying the RSS
 response under its actual `text/xml` type correctly refused before child launch. This separates
-a useful HTML path from the missing XML path. Recasting XML as HTML, ignoring the media check or
+the dated useful HTML path from the then-missing XML path. The later separate RSS profile
+now extracts bounded RSS 2.0; this did not widen that old header or the public-page workflow. Recasting XML as HTML, ignoring the media check or
 running a second parser inside Core would conceal that gap.
 
 The current HTML strategy deliberately drops attributes, including link targets. Its text
@@ -68,8 +70,8 @@ pre-transmission transport gate in ADR 30. Do not count installing a stock conta
 ## Next vertical slice: one feed, one attributed digest
 
 Start with the advertised PC RSS 2.0 feed and one explicit public purpose. Reuse Scout's durable
-attempts, current-authority checks, destination transport and reservations. First establish a
-versioned XML media/extraction contract; do not silently widen `static-public-page@1` or
+attempts, current-authority checks, destination transport and reservations. The separate
+versioned RSS extraction contract is now qualified; native XML Fetch/admission remains next; do not silently widen `static-public-page@1` or
 `scout-static-extract@1`. The existing media refusal remains a required negative control.
 
 The candidate must prove:

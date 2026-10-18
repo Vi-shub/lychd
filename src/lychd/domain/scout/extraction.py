@@ -7,6 +7,7 @@ from enum import StrEnum
 from typing import Literal
 
 type ExtractionMedia = Literal["text/plain", "text/html"]
+type RssMedia = Literal["text/xml", "application/xml", "application/rss+xml"]
 
 
 class ExtractionCode(StrEnum):
@@ -50,3 +51,44 @@ class ExtractedText:
     strategy: str
     transformations: tuple[str, ...]
     extractor: Literal["scout-static-extract@1"] = "scout-static-extract@1"
+
+
+@dataclass(frozen=True, slots=True)
+class FeedChannel:
+    """Publisher-supplied text and locator, without contact or trust authority."""
+
+    title: str = field(repr=False)
+    link: str = field(repr=False)
+    summary: str = field(repr=False)
+
+
+@dataclass(frozen=True, slots=True)
+class FeedItem:
+    """One untrusted observation; dates and identifiers remain publisher claims."""
+
+    title: str = field(repr=False)
+    link: str = field(repr=False)
+    summary: str = field(repr=False)
+    published: str | None = field(repr=False)
+    identifier: str | None = field(repr=False)
+
+
+@dataclass(frozen=True, slots=True)
+class ExtractedFeed:
+    """Ephemeral RSS observations, without source eligibility or byte custody.
+
+    Digests identify supplied decoded bytes and the complete worker record, not
+    network wire bytes. The acquisition owner supplies locator/attempt attribution.
+    Item locators confer no follow-up contact permission; a finite response does
+    not establish coverage of the source website.
+    """
+
+    media_type: RssMedia
+    channel: FeedChannel = field(repr=False)
+    items: tuple[FeedItem, ...] = field(repr=False)
+    omitted_elements: int
+    source_digest: str = field(repr=False)
+    record_digest: str = field(repr=False)
+    strategy: str
+    transformations: tuple[str, ...]
+    extractor: Literal["scout-rss-extract@1"] = "scout-rss-extract@1"

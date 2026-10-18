@@ -1624,6 +1624,18 @@ with observed new-session descendants. It fingerprints the runtime closure and s
 test prevents a historical pass from silently qualifying changed code. This proves the local
 extraction mechanism, not arbitrary host compatibility or acquisition authority.
 
+A separate `scout-rss-extract@1` profile now projects strict UTF-8 RSS 2.0 into immutable
+channel/item observations in that same fixed child. It accepts three explicit XML media types;
+the old static header and public-page media contract still refuse XML. Expat declarations,
+entities, controls (including omitted attributes), element/depth/item/field bounds and the complete
+return ceiling have independent behavioral tests. A fresh identified runtime proof joins the
+current static confinement proof to 43 actual RSS/probe launches, ordinary and hostile inputs,
+parent locator validation, pipe flooding, timeout and cancellation with observed cleanup.
+Its maintained receipt fingerprints the worker, parent, domain, destination syntax and both proof
+harnesses; ordinary CI checks source freshness and agreement with the maintained static runtime.
+This proves RSS extraction only. Native XML Fetch, a model-free feed Pattern, retained digest,
+Altar feed instrument and recurring watching remain unfinished.
+
 The native acquisition mechanisms now use explicit A/AAAA DNS-over-TCP observations, a pinned
 hostname-verified TLS connection, a gate at every network write, bounded HTTP/gzip decoding and
 exact manual redirects. A maintained Linux receipt proves real DNS/TLS/HTTP and extraction in an
@@ -1703,6 +1715,7 @@ unimplemented outside the shared Pod.
 - **Source:** [Pure destination preflight](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/scout/destination.py), [fixed extraction worker](https://github.com/hexanomicon/lychd/blob/main/src/lychd/system/scout_worker.py), and [Linux supervisor](https://github.com/hexanomicon/lychd/blob/main/src/lychd/system/services/scout_extraction.py)
 - **Verification:** [Destination boundary tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/scout/test_destination.py), [worker tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/test_scout_worker.py), [supervision and receipt-freshness tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_scout_extraction.py), [live host proof](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_scout_extraction_runtime.py), and [maintained qualification receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/scout/linux-extraction-runtime.json)
 - **Source:** [Native acquisition](https://github.com/hexanomicon/lychd/blob/main/src/lychd/system/services/scout_fetch.py), [gated transport](https://github.com/hexanomicon/lychd/blob/main/src/lychd/system/services/scout_socket.py), and [Run effect fences](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/cortex/cancellation.py)
+- **Verification:** [RSS behavioral tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/test_scout_rss_worker.py), [RSS return validation and freshness](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_scout_rss_extraction.py), [RSS live child proof](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_scout_rss_extraction_runtime.py), and [maintained RSS receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/scout/linux-rss-extraction-runtime.json)
 - **Verification:** [Acquisition and freshness tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_scout_fetch.py), [HTTP decoder tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_scout_http.py), [Run fencing tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_cancellation.py), [isolated network proof](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_scout_fetch_runtime.py), and [maintained transport receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/scout/linux-fetch-runtime.json)
 - **Source:** [Current authority](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/scout/authority.py), [durable attempts](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/scout.py), [owned coordinator](https://github.com/hexanomicon/lychd/blob/main/src/lychd/system/services/scout_workflow.py), and [public-page casting](https://github.com/hexanomicon/lychd/blob/main/src/lychd/agents/workflows/scout_chat.py)
 - **Verification:** [Authority contracts](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/scout/test_authority.py), [PostgreSQL attempts](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_scout_attempts_pg.py), [migration custody](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_scout_migrations_pg.py), [coordinator boundaries](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_scout_workflow.py), and [transient workflow projection](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_scout_chat.py)
