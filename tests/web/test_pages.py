@@ -13,7 +13,15 @@ if TYPE_CHECKING:
 
 @pytest.mark.parametrize(
     "path",
-    ["/atlas", "/bridge", "/nexus", "/loom", "/orb"],
+    [
+        "/atlas",
+        "/bridge",
+        "/nexus",
+        "/loom",
+        "/orb",
+        "/scavenger",
+        "/scavenger?observation=00000000-0000-4000-8000-000000000001",
+    ],
 )
 def test_pages_return_compiled_svelte_shell(
     altar_client: TestClient[Litestar],

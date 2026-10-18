@@ -897,6 +897,116 @@
         "title": "BridgeTurnView",
         "type": "object"
       },
+      "CampaignSeed": {
+        "additionalProperties": false,
+        "properties": {
+          "budget_minor": {
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "currency": {
+            "const": "EUR",
+            "type": "string"
+          },
+          "deadline": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "disclosure_policy": {
+            "const": "none",
+            "type": "string"
+          },
+          "evidence_standard": {
+            "type": "string"
+          },
+          "hard_criteria": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 16,
+            "type": "array"
+          },
+          "inventory": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 16,
+            "type": "array"
+          },
+          "learning_mode": {
+            "const": "none",
+            "type": "string"
+          },
+          "need": {
+            "type": "string"
+          },
+          "operating_mode": {
+            "const": "Watch",
+            "type": "string"
+          },
+          "preferences": {
+            "items": {
+              "$ref": "#/components/schemas/Preference"
+            },
+            "maxItems": 16,
+            "type": "array"
+          },
+          "region": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "schema_version": {
+            "const": "CampaignSeed@1",
+            "default": "CampaignSeed@1",
+            "type": "string"
+          },
+          "source_policy": {
+            "const": "admitted-public-feed-only@1",
+            "type": "string"
+          },
+          "subject_profile": {
+            "enum": [
+              "Bazaar@1",
+              "Technology@1"
+            ],
+            "type": "string"
+          },
+          "travel_delivery": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "budget_minor",
+          "currency",
+          "deadline",
+          "disclosure_policy",
+          "evidence_standard",
+          "hard_criteria",
+          "inventory",
+          "learning_mode",
+          "need",
+          "operating_mode",
+          "preferences",
+          "region",
+          "source_policy",
+          "subject_profile",
+          "travel_delivery"
+        ],
+        "title": "CampaignSeed",
+        "type": "object"
+      },
       "CaseView": {
         "additionalProperties": false,
         "properties": {
@@ -1349,6 +1459,30 @@
         "title": "DelegatedRuntimeObservation",
         "type": "object"
       },
+      "DeleteObservationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "observation_digest": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "request_digest": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "observation_digest",
+          "request_digest"
+        ],
+        "title": "DeleteObservationRequest",
+        "type": "object"
+      },
       "DerivationRequest": {
         "additionalProperties": false,
         "properties": {
@@ -1672,24 +1806,14 @@
           },
           "exposure": {
             "items": {
-              "oneOf": [
-                {
-                  "type": "string"
-                },
-                {}
-              ]
+              "type": "string"
             },
             "maxItems": 4,
             "type": "array"
           },
           "limitations": {
             "items": {
-              "oneOf": [
-                {
-                  "type": "string"
-                },
-                {}
-              ]
+              "type": "string"
             },
             "maxItems": 4,
             "type": "array"
@@ -1706,12 +1830,7 @@
           "submitter_annotations": {
             "default": [],
             "items": {
-              "oneOf": [
-                {
-                  "$ref": "#/components/schemas/Finding"
-                },
-                {}
-              ]
+              "$ref": "#/components/schemas/Finding"
             },
             "maxItems": 4,
             "type": "array"
@@ -1918,12 +2037,7 @@
         "properties": {
           "citations": {
             "items": {
-              "oneOf": [
-                {
-                  "$ref": "#/components/schemas/Citation"
-                },
-                {}
-              ]
+              "$ref": "#/components/schemas/Citation"
             },
             "maxItems": 4,
             "type": "array"
@@ -2076,12 +2190,7 @@
           },
           "criteria": {
             "items": {
-              "oneOf": [
-                {
-                  "$ref": "#/components/schemas/Criterion"
-                },
-                {}
-              ]
+              "$ref": "#/components/schemas/Criterion"
             },
             "maxItems": 4,
             "minItems": 1,
@@ -2089,24 +2198,14 @@
           },
           "non_goals": {
             "items": {
-              "oneOf": [
-                {
-                  "type": "string"
-                },
-                {}
-              ]
+              "type": "string"
             },
             "maxItems": 4,
             "type": "array"
           },
           "omissions": {
             "items": {
-              "oneOf": [
-                {
-                  "type": "string"
-                },
-                {}
-              ]
+              "type": "string"
             },
             "maxItems": 4,
             "type": "array"
@@ -2129,12 +2228,7 @@
           },
           "sources": {
             "items": {
-              "oneOf": [
-                {
-                  "$ref": "#/components/schemas/Source"
-                },
-                {}
-              ]
+              "$ref": "#/components/schemas/Source"
             },
             "maxItems": 8,
             "minItems": 1,
@@ -2239,6 +2333,24 @@
           "outgoing"
         ],
         "title": "LineageView",
+        "type": "object"
+      },
+      "LiteralFilter": {
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "revision": {
+            "const": "literal-casefold@1",
+            "default": "literal-casefold@1",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "LiteralFilter",
         "type": "object"
       },
       "LoomEdgeView": {
@@ -2418,6 +2530,111 @@
           "trigger_hint"
         ],
         "title": "LoomView",
+        "type": "object"
+      },
+      "MarketObservation": {
+        "additionalProperties": false,
+        "properties": {
+          "acquired_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "acquisition_binding_digest": {
+            "type": "string"
+          },
+          "acquisition_profile": {
+            "const": "rss-public-feed@1",
+            "default": "rss-public-feed@1",
+            "type": "string"
+          },
+          "admission_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "contacted_url": {
+            "type": "string"
+          },
+          "coverage": {
+            "const": "bounded-feed-response-only",
+            "default": "bounded-feed-response-only",
+            "type": "string"
+          },
+          "extractor": {
+            "const": "scout-rss-extract@1",
+            "default": "scout-rss-extract@1",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ObservationItem"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "observation_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "omitted_elements": {
+            "maximum": 10000.0,
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "pattern_digest": {
+            "type": "string"
+          },
+          "profile": {
+            "const": "bazos-pc-title-link@1",
+            "default": "bazos-pc-title-link@1",
+            "type": "string"
+          },
+          "record_digest": {
+            "type": "string"
+          },
+          "requested_url": {
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "MarketObservation@1",
+            "default": "MarketObservation@1",
+            "type": "string"
+          },
+          "scout_receipt_digest": {
+            "type": "string"
+          },
+          "scout_receipt_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "seed_digest": {
+            "type": "string"
+          },
+          "source_digest": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "acquired_at",
+          "acquisition_binding_digest",
+          "admission_id",
+          "contacted_url",
+          "items",
+          "observation_id",
+          "omitted_elements",
+          "pattern_digest",
+          "record_digest",
+          "requested_url",
+          "run_id",
+          "scout_receipt_digest",
+          "scout_receipt_id",
+          "seed_digest",
+          "source_digest"
+        ],
+        "title": "MarketObservation",
         "type": "object"
       },
       "MessageAccepted": {
@@ -2778,6 +2995,328 @@
           "source_revision"
         ],
         "title": "NoteRecord",
+        "type": "object"
+      },
+      "ObservationAdmission": {
+        "additionalProperties": false,
+        "properties": {
+          "admission_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "run_status": {
+            "$ref": "#/components/schemas/RunStatus"
+          }
+        },
+        "required": [
+          "admission_id",
+          "run_id",
+          "run_status"
+        ],
+        "title": "ObservationAdmission",
+        "type": "object"
+      },
+      "ObservationDeleted": {
+        "additionalProperties": false,
+        "properties": {
+          "admission_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "observation_digest": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "request_digest": {
+            "type": "string"
+          },
+          "status": {
+            "const": "deleted",
+            "default": "deleted",
+            "type": "string"
+          }
+        },
+        "required": [
+          "admission_id",
+          "observation_digest",
+          "request_digest"
+        ],
+        "title": "ObservationDeleted",
+        "type": "object"
+      },
+      "ObservationDocument": {
+        "additionalProperties": false,
+        "properties": {
+          "acquisition_status": {
+            "enum": [
+              "prepared",
+              "claimed",
+              "unknown_after_crash",
+              "succeeded",
+              "refused",
+              null
+            ],
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "admission_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "initial_filter": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/LiteralFilter"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "observation": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MarketObservation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "observation_digest": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "request_digest": {
+            "type": "string"
+          },
+          "run_id": {
+            "oneOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "run_status": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RunStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "seed": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CampaignSeed"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "seed_document": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "enum": [
+              "reserved",
+              "pending",
+              "awaiting_consent",
+              "observed",
+              "unavailable",
+              "unknown",
+              "deleted"
+            ],
+            "type": "string"
+          },
+          "terminal_disposition": {
+            "enum": [
+              "pending",
+              "unknown",
+              "terminal"
+            ],
+            "type": "string"
+          },
+          "view": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ObservationView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "acquisition_status",
+          "admission_id",
+          "initial_filter",
+          "observation",
+          "observation_digest",
+          "request_digest",
+          "run_id",
+          "run_status",
+          "seed",
+          "seed_document",
+          "status",
+          "terminal_disposition",
+          "view"
+        ],
+        "title": "ObservationDocument",
+        "type": "object"
+      },
+      "ObservationItem": {
+        "additionalProperties": false,
+        "properties": {
+          "duplicate_of": {
+            "exclusiveMaximum": 100,
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "link": {
+            "type": "string"
+          },
+          "ordinal": {
+            "exclusiveMaximum": 100.0,
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "title": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "duplicate_of",
+          "link",
+          "ordinal",
+          "title"
+        ],
+        "title": "ObservationItem",
+        "type": "object"
+      },
+      "ObservationView": {
+        "additionalProperties": false,
+        "properties": {
+          "casefold_unicode_version": {
+            "type": "string"
+          },
+          "duplicate_count": {
+            "type": "integer"
+          },
+          "field_digest": {
+            "type": "string"
+          },
+          "filter": {
+            "$ref": "#/components/schemas/LiteralFilter"
+          },
+          "missing_title_count": {
+            "type": "integer"
+          },
+          "observation_digest": {
+            "type": "string"
+          },
+          "observation_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "total_count": {
+            "type": "integer"
+          },
+          "unmatched_count": {
+            "type": "integer"
+          },
+          "visible_count": {
+            "type": "integer"
+          },
+          "visible_ordinals": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "casefold_unicode_version",
+          "duplicate_count",
+          "field_digest",
+          "filter",
+          "missing_title_count",
+          "observation_digest",
+          "observation_id",
+          "total_count",
+          "unmatched_count",
+          "visible_count",
+          "visible_ordinals"
+        ],
+        "title": "ObservationView",
+        "type": "object"
+      },
+      "ObserveMarketRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "initial_filter": {
+            "$ref": "#/components/schemas/LiteralFilter"
+          },
+          "request_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "seed": {
+            "$ref": "#/components/schemas/CampaignSeed"
+          }
+        },
+        "required": [
+          "initial_filter",
+          "request_id",
+          "seed"
+        ],
+        "title": "ObserveMarketRequest",
         "type": "object"
       },
       "OrbBridgePreferenceRoute": {
@@ -3262,8 +3801,25 @@
       "OrbRunSummary": {
         "additionalProperties": false,
         "properties": {
+          "application_path": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "bridge_path": {
-            "type": "string"
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "created_at": {
             "format": "date-time",
@@ -3413,6 +3969,23 @@
         "title": "PatternReference",
         "type": "object"
       },
+      "Preference": {
+        "additionalProperties": false,
+        "properties": {
+          "criterion": {
+            "type": "string"
+          },
+          "weight": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "criterion",
+          "weight"
+        ],
+        "title": "Preference",
+        "type": "object"
+      },
       "RecallItem": {
         "additionalProperties": false,
         "properties": {
@@ -3437,12 +4010,7 @@
         "properties": {
           "items": {
             "items": {
-              "oneOf": [
-                {
-                  "$ref": "#/components/schemas/RecallItem"
-                },
-                {}
-              ]
+              "$ref": "#/components/schemas/RecallItem"
             },
             "maxItems": 20,
             "type": "array"
@@ -3544,12 +4112,7 @@
           },
           "selected": {
             "items": {
-              "oneOf": [
-                {
-                  "$ref": "#/components/schemas/RecallSelection"
-                },
-                {}
-              ]
+              "$ref": "#/components/schemas/RecallSelection"
             },
             "maxItems": 20,
             "type": "array"
@@ -3972,6 +4535,57 @@
           "transition_request_id"
         ],
         "title": "RunProjectionSnapshot",
+        "type": "object"
+      },
+      "RunStatus": {
+        "description": "The canonical run lifecycle state machine.",
+        "enum": [
+          "queued",
+          "running",
+          "awaiting_hardware",
+          "awaiting_consent",
+          "awaiting_delegate",
+          "cancelling",
+          "done",
+          "failed",
+          "cancelled"
+        ],
+        "title": "RunStatus",
+        "type": "string"
+      },
+      "ScavengerState": {
+        "additionalProperties": false,
+        "properties": {
+          "configured": {
+            "type": "boolean"
+          },
+          "current": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ObservationDocument"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "profile": {
+            "enum": [
+              "bazos-pc-title-link@1",
+              null
+            ],
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "configured",
+          "current",
+          "profile"
+        ],
+        "title": "ScavengerState",
         "type": "object"
       },
       "SessionCreated": {
@@ -8207,6 +8821,679 @@
           }
         },
         "summary": "Events"
+      }
+    },
+    "/api/v1/scavenger": {
+      "get": {
+        "deprecated": false,
+        "operationId": "getScavengerState",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScavengerState"
+                }
+              }
+            },
+            "description": "Request fulfilled, document follows",
+            "headers": {
+              "cache-control": {
+                "deprecated": false,
+                "required": false,
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          }
+        },
+        "summary": "Current"
+      }
+    },
+    "/api/v1/scavenger/observations": {
+      "post": {
+        "deprecated": false,
+        "operationId": "submitMarketObservation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ObserveMarketRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObservationAdmission"
+                }
+              }
+            },
+            "description": "Request fulfilled, document follows",
+            "headers": {
+              "cache-control": {
+                "deprecated": false,
+                "required": false,
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          }
+        },
+        "summary": "Submit"
+      }
+    },
+    "/api/v1/scavenger/observations/{admission_id}": {
+      "get": {
+        "deprecated": false,
+        "operationId": "readMarketObservation",
+        "parameters": [
+          {
+            "deprecated": false,
+            "in": "path",
+            "name": "admission_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObservationDocument"
+                }
+              }
+            },
+            "description": "Request fulfilled, document follows",
+            "headers": {
+              "cache-control": {
+                "deprecated": false,
+                "required": false,
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          }
+        },
+        "summary": "Read"
+      }
+    },
+    "/api/v1/scavenger/observations/{admission_id}/consent": {
+      "get": {
+        "deprecated": false,
+        "operationId": "getMarketObservationConsent",
+        "parameters": [
+          {
+            "deprecated": false,
+            "in": "path",
+            "name": "admission_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ConsentCard"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Request fulfilled, document follows",
+            "headers": {
+              "cache-control": {
+                "deprecated": false,
+                "required": false,
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          }
+        },
+        "summary": "Consent"
+      }
+    },
+    "/api/v1/scavenger/observations/{admission_id}/delete": {
+      "post": {
+        "deprecated": false,
+        "operationId": "deleteMarketObservation",
+        "parameters": [
+          {
+            "deprecated": false,
+            "in": "path",
+            "name": "admission_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteObservationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObservationDeleted"
+                }
+              }
+            },
+            "description": "Request fulfilled, document follows",
+            "headers": {
+              "cache-control": {
+                "deprecated": false,
+                "required": false,
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          }
+        },
+        "summary": "Delete"
+      }
+    },
+    "/api/v1/scavenger/observations/{admission_id}/view": {
+      "post": {
+        "deprecated": false,
+        "operationId": "filterMarketObservation",
+        "parameters": [
+          {
+            "deprecated": false,
+            "in": "path",
+            "name": "admission_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LiteralFilter"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObservationView"
+                }
+              }
+            },
+            "description": "Request fulfilled, document follows",
+            "headers": {
+              "cache-control": {
+                "deprecated": false,
+                "required": false,
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          }
+        },
+        "summary": "View"
       }
     }
   },

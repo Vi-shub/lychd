@@ -729,3 +729,13 @@ describe("Routing preference in the Run inspector", () => {
     view.unmount();
   });
 });
+
+it("returns an app-owned Run to Scavenger without exposing a nonexistent Bridge session", async () => {
+  const path = "/scavenger?observation=00000000-0000-4000-8000-000000000001";
+  vi.mocked(getOrbRun).mockResolvedValue({ ...snapshot, run: { ...snapshot.run, bridge_path: null,
+    application_path: path, workflow_name: "scavenger.observe_market", session_id: "scavenger:opaque-reference" } });
+  render(OrbView, { runId: "run-a" });
+  const link = await screen.findByRole("link", { name: "Scavenger market" });
+  expect(link.getAttribute("href")).toBe(path);
+  expect(screen.queryByRole("link", { name: "Bridge" })).toBeNull();
+});

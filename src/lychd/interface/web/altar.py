@@ -47,7 +47,7 @@ class AltarController(Controller):
         return Response(content=_ALTAR_FAVICON, media_type="image/svg+xml")
 
     @get(
-        ["/atlas", "/bridge", "/nexus", "/loom", "/orb"],
+        ["/atlas", "/bridge", "/nexus", "/loom", "/orb", "/scavenger"],
         name="altar:instrument",
         guards=[requires_scopes("altar:read")],
         include_in_schema=False,

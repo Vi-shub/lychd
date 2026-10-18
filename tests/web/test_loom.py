@@ -36,6 +36,7 @@ def test_catalogue_lists_registered_workflow(
         ("bridge_chat", "4", False, False, None),
         ("delegated_rite", "1", True, False, 1),
         ("delegated_rite", "2", False, False, None),
+        ("scavenger.observe_market", "2", False, False, None),
     ]
     entry = catalogue[0]
     assert entry["pattern_id"] == _NAME

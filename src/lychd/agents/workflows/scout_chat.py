@@ -253,7 +253,7 @@ class SettlePageAnswer(BaseNode[ScoutChatState, WorkflowServices, BridgeReply]):
 
 def _make_state(intent: Intent) -> ScoutChatState:
     binding = intent.admitted_scout
-    if binding is None or intent.admitted_capability_key is None or intent.run_id is None:
+    if type(binding) is not ScoutBinding or intent.admitted_capability_key is None or intent.run_id is None:
         raise ScoutWorkflowError(ScoutWorkflowCode.ADMISSION)
     command = parse_page_question(intent.prompt)
     if (command.url, command.question) != (binding.declaration.url, binding.question):

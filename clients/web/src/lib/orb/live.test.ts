@@ -162,3 +162,12 @@ describe("Routing preference metadata transport", () => {
     expect(Source.instances[0]!.close).toHaveBeenCalledOnce();
   });
 });
+
+it("retains nullable Bridge and an explicit application return in validated live snapshots", () => {
+  const cb = callbacks(); listenToOrb("run-a", 0, cb); const value = frame();
+  value.snapshot.run.bridge_path = null;
+  value.snapshot.run.application_path = "/scavenger?observation=00000000-0000-4000-8000-000000000001";
+  Source.instances[0]!.emit("evidence", value);
+  expect(cb.onFault).not.toHaveBeenCalled();
+  expect(vi.mocked(cb.onFrame).mock.calls[0]?.[0].snapshot.run.application_path).toBe(value.snapshot.run.application_path);
+});

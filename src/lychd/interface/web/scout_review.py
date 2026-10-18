@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Literal
 from uuid import UUID
 
 from lychd.domain.scout.authority import ScoutAction
-from lychd.domain.scout.review import page_review
+from lychd.domain.scout.review import scout_review
 from lychd.domain.web.consent_reviews import (
     ConsentReviewForbiddenError,
     ConsentReviewUnavailableError,
@@ -56,7 +56,7 @@ class ScoutConsentReviews:
             raise ConsentReviewForbiddenError
         snapshot = await self._store.read(UUID(native.action_id))
         p = snapshot.preparation
-        expected, document = page_review(p)
+        expected, document = scout_review(p)
         if (
             snapshot.native_binding != native
             or expected != native

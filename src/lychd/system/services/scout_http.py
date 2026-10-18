@@ -9,18 +9,20 @@ from __future__ import annotations
 
 import re
 import zlib
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import NoReturn
+from typing import NoReturn, cast
 
 import h11
 
 from lychd.domain.scout.destination import DestinationCandidate, DestinationError, preflight_destination
-from lychd.domain.scout.extraction import ExtractionMedia
+from lychd.domain.scout.extraction import ExtractionMedia, RssMedia
 from lychd.domain.scout.transport import FetchCode, FetchError
 
 MAX_HEADER_BYTES = 64 * 1024
 MAX_WIRE_BODY_BYTES = 2 * 1024 * 1024
 MAX_DECODED_BODY_BYTES = 4 * 1024 * 1024
+MAX_RSS_DECODED_BODY_BYTES = 1024 * 1024
 MAX_EXPANSION_RATIO = 20
 MAX_LOCATION_BYTES = 4096
 _FEED_BYTES = 4096
@@ -33,6 +35,11 @@ _CONTROL_VALUE = re.compile(rb"[\x00-\x1f\x7f]")
 _LOCATION = re.compile(rb"[!-~]+")
 _CHUNK_SIZE = re.compile(rb"[0-9a-fA-F]{1,20}")
 _CONTENT_TYPE = re.compile(rb'(text/html|text/plain)(?: *; *charset *= *(?:utf-8|"utf-8"))? *', re.IGNORECASE)
+
+_RSS_CONTENT_TYPE = re.compile(
+    rb'(application/rss\+xml|application/xml|text/xml)(?: *; *charset *= *(?:utf-8|"utf-8"))? *',
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -58,8 +65,31 @@ class HttpResponse:
     decoded_body_bytes: int
 
 
+@dataclass(frozen=True, slots=True)
+class RssResponse:
+    """Completed feed representation with the same separated HTTP byte counts."""
+
+    status: int
+    media_type: RssMedia | None
+    body: bytes = field(repr=False)
+    location: str | None = field(repr=False)
+    header_bytes: int
+    wire_body_bytes: int
+    encoded_body_bytes: int
+    decoded_body_bytes: int
+
+
 def serialize_get(candidate: DestinationCandidate) -> bytes:
     """Serialize host-owned headers while preserving the exact path/query meaning."""
+    return _serialize_get(candidate, b"text/html,text/plain")
+
+
+def serialize_rss_get(candidate: DestinationCandidate) -> bytes:
+    """Serialize one fixed RSS/XML GET without caller-supplied headers."""
+    return _serialize_get(candidate, b"application/rss+xml,application/xml,text/xml")
+
+
+def _serialize_get(candidate: DestinationCandidate, accept: bytes) -> bytes:
     try:
         if type(candidate) is not DestinationCandidate or candidate != preflight_destination(candidate.original_url):
             raise FetchError(FetchCode.DESTINATION)
@@ -77,7 +107,7 @@ def serialize_get(candidate: DestinationCandidate) -> bytes:
                 target=target.encode("ascii"),
                 headers=[
                     (b"Host", authority.encode("ascii")),
-                    (b"Accept", b"text/html,text/plain"),
+                    (b"Accept", accept),
                     (b"Accept-Encoding", b"gzip, identity"),
                     (b"Connection", b"close"),
                 ],
@@ -171,7 +201,7 @@ class _ChunkFraming:
                 offset += 1
 
 
-class HttpResponseParser:
+class _ResponseParser[Media: str, Response](ABC):
     """Consume one bounded HTTP/1.1 GET response using h11's framing machinery.
 
     Remaining body budgets may narrow the fixed profile, including to zero.
@@ -185,13 +215,14 @@ class HttpResponseParser:
     def __init__(
         self,
         *,
-        remaining_wire_bytes: int = MAX_WIRE_BODY_BYTES,
-        remaining_decoded_bytes: int = MAX_DECODED_BODY_BYTES,
+        remaining_wire_bytes: int,
+        remaining_decoded_bytes: int,
+        maximum_decoded_bytes: int,
     ) -> None:
         """Pin finite narrowing budgets without acquiring or sending anything."""
         for value, maximum in (
             (remaining_wire_bytes, MAX_WIRE_BODY_BYTES),
-            (remaining_decoded_bytes, MAX_DECODED_BODY_BYTES),
+            (remaining_decoded_bytes, maximum_decoded_bytes),
         ):
             if type(value) is not int or not 0 <= value <= maximum:
                 raise FetchError(FetchCode.LIMIT)
@@ -207,7 +238,7 @@ class HttpResponseParser:
         self._gzip_enabled = False
         self._chunks: _ChunkFraming | None = None
         self._status: int | None = None
-        self._media_type: ExtractionMedia | None = None
+        self._media_type: Media | None = None
         self._location: str | None = None
         self._complete = False
         self._finished = False
@@ -250,10 +281,7 @@ class HttpResponseParser:
         self._configure_framing(headers)
         if status == _OK_STATUS:
             media = _single(headers, b"content-type")
-            match = _CONTENT_TYPE.fullmatch(media) if media is not None else None
-            if match is None:
-                self._refuse(FetchCode.MEDIA)
-            self._media_type = "text/html" if match[1].lower() == b"text/html" else "text/plain"
+            self._media_type = self._parse_media(media)
         else:
             location = _single(headers, b"location")
             if not location or len(location) > MAX_LOCATION_BYTES or _LOCATION.fullmatch(location) is None:
@@ -358,7 +386,7 @@ class HttpResponseParser:
             self._failure = error.code
             raise
 
-    def finish(self) -> HttpResponse:
+    def finish(self) -> Response:
         """Mark real transport EOF and return only a complete validated response."""
         if self._failure is not None:
             raise FetchError(self._failure)
@@ -381,8 +409,77 @@ class HttpResponseParser:
             except UnicodeDecodeError:
                 self._refuse(FetchCode.ENCODING)
         self._finished = True
+        return self._result(self._status, body)
+
+    @abstractmethod
+    def _parse_media(self, media: bytes | None) -> Media:
+        """Apply the fixed representation profile."""
+
+    @abstractmethod
+    def _result(self, status: int, body: bytes) -> Response:
+        """Build the profile-specific immutable response."""
+
+
+class HttpResponseParser(_ResponseParser[ExtractionMedia, HttpResponse]):
+    """Decode the unchanged bounded HTML/plain-text HTTP/1.1 profile."""
+
+    def __init__(
+        self,
+        *,
+        remaining_wire_bytes: int = MAX_WIRE_BODY_BYTES,
+        remaining_decoded_bytes: int = MAX_DECODED_BODY_BYTES,
+    ) -> None:
+        """Pin finite narrowing budgets without acquiring or sending anything."""
+        super().__init__(
+            remaining_wire_bytes=remaining_wire_bytes,
+            remaining_decoded_bytes=remaining_decoded_bytes,
+            maximum_decoded_bytes=MAX_DECODED_BODY_BYTES,
+        )
+
+    def _parse_media(self, media: bytes | None) -> ExtractionMedia:
+        match = _CONTENT_TYPE.fullmatch(media) if media is not None else None
+        if match is None:
+            self._refuse(FetchCode.MEDIA)
+        return "text/html" if match[1].lower() == b"text/html" else "text/plain"
+
+    def _result(self, status: int, body: bytes) -> HttpResponse:
         return HttpResponse(
-            status=self._status,
+            status=status,
+            media_type=self._media_type,
+            body=body,
+            location=self._location,
+            header_bytes=self.header_bytes,
+            wire_body_bytes=self.wire_body_bytes,
+            encoded_body_bytes=self.encoded_body_bytes,
+            decoded_body_bytes=self.decoded_body_bytes,
+        )
+
+
+class RssResponseParser(_ResponseParser[RssMedia, RssResponse]):
+    """Decode only fixed RSS/XML media, strict UTF-8 and at most 1 MiB decoded."""
+
+    def __init__(
+        self,
+        *,
+        remaining_wire_bytes: int = MAX_WIRE_BODY_BYTES,
+        remaining_decoded_bytes: int = MAX_RSS_DECODED_BODY_BYTES,
+    ) -> None:
+        """Pin finite narrowing budgets without acquiring or sending anything."""
+        super().__init__(
+            remaining_wire_bytes=remaining_wire_bytes,
+            remaining_decoded_bytes=remaining_decoded_bytes,
+            maximum_decoded_bytes=MAX_RSS_DECODED_BODY_BYTES,
+        )
+
+    def _parse_media(self, media: bytes | None) -> RssMedia:
+        match = _RSS_CONTENT_TYPE.fullmatch(media) if media is not None else None
+        if match is None:
+            self._refuse(FetchCode.MEDIA)
+        return cast("RssMedia", match[1].decode("ascii").lower())
+
+    def _result(self, status: int, body: bytes) -> RssResponse:
+        return RssResponse(
+            status=status,
             media_type=self._media_type,
             body=body,
             location=self._location,

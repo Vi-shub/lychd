@@ -49,7 +49,9 @@ if TYPE_CHECKING:
     from lychd.agents.factory import AgentForge
     from lychd.agents.workflows import WorkflowRegistry
     from lychd.compositions.creation.services import InvestigationService
+    from lychd.compositions.scavenger.services import ScavengerService
     from lychd.config.runes.registry import RuneRegistry
+    from lychd.config.settings import BridgeCastingSettings, ScavengerCastingSettings
     from lychd.config.settings.root import Settings
     from lychd.domain.animation.extension import RegisteredPortalDefinition, RegisteredSoulstoneDefinition
     from lychd.domain.animation.services.adapters.contracts import PortalDefinition, SoulstoneRuntimeAdapter
@@ -64,6 +66,8 @@ if TYPE_CHECKING:
     from lychd.domain.delegation.routing import DelegatedRuntimeBinding
     from lychd.domain.orchestration.actuator import RuntimeActuator
     from lychd.domain.orchestration.containment import SoftActivationGuard
+    from lychd.domain.scout.authority import ScoutHostAuthorizer
+    from lychd.domain.scout.feed import ScoutFeedProfile
     from lychd.domain.scout.profile import ScoutProfile
     from lychd.domain.web.atlas import AtlasStorePort
     from lychd.domain.web.consent_reviews import ConsentReviewProducer
@@ -72,6 +76,7 @@ if TYPE_CHECKING:
     from lychd.domain.web.swap_requests import SwapRequestLedger
     from lychd.extensions.delegation import RegisteredDelegatedRuntime
     from lychd.interface.web.scout_admission import ScoutAdmissionService
+    from lychd.interface.web.scout_feed_admission import ScoutFeedAdmissionService
     from lychd.system.services.scout_workflow import ScoutWorkflowService
 
 
@@ -95,6 +100,8 @@ class AltarServices:
     ledger: RunLedger
     bus: InProcessEventBus
     substrate: RunSubstrate
+    scavenger: ScavengerService | None = None
+    feed_admission: ScoutFeedAdmissionService | None = None
     creation: InvestigationService | None = None
     archive: ArchiveService | None = None
     archive_derivation: ArchiveDerivationService | None = None
@@ -243,28 +250,36 @@ def _build_archive(
     ), policy.subject_for
 
 
-def _build_scout(
+def _build_scout_runtime(
     *,
     persistence: str,
-    profile: ScoutProfile | None,
+    profile: ScoutProfile | ScoutFeedProfile,
     capability_key: str | None,
     access: LocalOperatorAccess | None,
     ledger: RunLedger,
     consents: ConsentLedger,
     reviews: ConsentReviewProducer | None,
-) -> tuple[ScoutWorkflowService | None, ScoutAdmissionService | None, ConsentReviewProducer | None]:
-    """Compose one explicit PostgreSQL profile with actual credential-backed authority."""
-    if profile is None:
-        return None, None, reviews
-    if persistence != "postgres" or access is None or capability_key is None:
-        msg = "Scout requires PostgreSQL, the actual local credential owner and an exact local chat capability."
+) -> tuple[ScoutWorkflowService, ScoutHostAuthorizer, ConsentReviewProducer]:
+    """Construct the one physical Scout owner shared by both exact profile factories."""
+    from lychd.domain.scout.feed import ScoutFeedProfile
+    from lychd.domain.scout.profile import ScoutProfile
+
+    if persistence != "postgres" or access is None:
+        msg = "Scout requires PostgreSQL and the actual local credential owner."
+        raise ValueError(msg)
+    if type(profile) is ScoutFeedProfile:
+        if capability_key is not None:
+            msg = "The feed Scout profile cannot borrow a model capability."
+            raise ValueError(msg)
+    elif type(profile) is not ScoutProfile or capability_key is None:
+        msg = "The page Scout profile requires an exact local chat capability."
         raise ValueError(msg)
     from lychd.db.engine import get_session_factory
     from lychd.db.scout import DbScoutAttemptStore
     from lychd.domain.cortex.cancellation import RunEffectFence
+    from lychd.domain.scout.attempts import SCOUT_FEED_PURPOSE
     from lychd.domain.scout.authority import ScoutAction, ScoutHostAuthorizer, ScoutHostPolicy
     from lychd.domain.scout.profile import SCOUT_ANSWER_PURPOSE
-    from lychd.interface.web.scout_admission import ScoutAdmissionService
     from lychd.interface.web.scout_review import ScoutConsentReviews
     from lychd.system.services.scout_workflow import ScoutCompletions, ScoutWorkflowService
 
@@ -274,7 +289,7 @@ def _build_scout(
             policy_revision=profile.policy_revision,
             revocation_generation=profile.revocation_generation,
             actions=frozenset(ScoutAction),
-            purposes=frozenset({SCOUT_ANSWER_PURPOSE}),
+            purposes=frozenset({SCOUT_FEED_PURPOSE if type(profile) is ScoutFeedProfile else SCOUT_ANSWER_PURPOSE}),
             categories=frozenset({"public-web-locator"}),
             binding_digests=frozenset({profile.binding_digest}),
             resolver_custody_digests=frozenset({profile.resolver_custody_digest}),
@@ -297,10 +312,88 @@ def _build_scout(
         authorizer=authorizer,
         fence=RunEffectFence(),
     )
-    return (
-        service,
-        ScoutAdmissionService(access=access, authorizer=authorizer, profile=profile),
-        ScoutConsentReviews(access=access, authorizer=authorizer, store=store, other=reviews),
+    return service, authorizer, ScoutConsentReviews(access=access, authorizer=authorizer, store=store, other=reviews)
+
+
+def _build_scout(
+    *,
+    persistence: str,
+    profile: ScoutProfile | None,
+    capability_key: str | None,
+    access: LocalOperatorAccess | None,
+    ledger: RunLedger,
+    consents: ConsentLedger,
+    reviews: ConsentReviewProducer | None,
+) -> tuple[ScoutWorkflowService | None, ScoutAdmissionService | None, ConsentReviewProducer | None]:
+    """Compose the exact page profile without changing its existing typed contract."""
+    if profile is None:
+        return None, None, reviews
+    if persistence != "postgres" or access is None or capability_key is None:
+        msg = "Scout requires PostgreSQL, the actual local credential owner and an exact local chat capability."
+        raise ValueError(msg)
+    from lychd.interface.web.scout_admission import ScoutAdmissionService
+
+    service, authorizer, reviews = _build_scout_runtime(
+        persistence=persistence,
+        profile=profile,
+        capability_key=capability_key,
+        access=access,
+        ledger=ledger,
+        consents=consents,
+        reviews=reviews,
+    )
+    return service, ScoutAdmissionService(access=access, authorizer=authorizer, profile=profile), reviews
+
+
+def _build_feed_scout(
+    *,
+    persistence: str,
+    profile: ScoutFeedProfile,
+    access: LocalOperatorAccess | None,
+    ledger: RunLedger,
+    consents: ConsentLedger,
+    reviews: ConsentReviewProducer | None,
+) -> tuple[ScoutWorkflowService, ScoutFeedAdmissionService, ConsentReviewProducer]:
+    """Compose the distinct model-free issuer with the same physical Scout owner."""
+    if persistence != "postgres" or access is None:
+        msg = "Scout requires PostgreSQL and the actual local credential owner."
+        raise ValueError(msg)
+    from lychd.interface.web.scout_feed_admission import ScoutFeedAdmissionService
+
+    service, authorizer, reviews = _build_scout_runtime(
+        persistence=persistence,
+        profile=profile,
+        capability_key=None,
+        access=access,
+        ledger=ledger,
+        consents=consents,
+        reviews=reviews,
+    )
+    return service, ScoutFeedAdmissionService(access=access, authorizer=authorizer, profile=profile), reviews
+
+
+def _build_scavenger(
+    *,
+    settings: Settings,
+    access: LocalOperatorAccess | None,
+    scout: ScoutWorkflowService | None,
+) -> ScavengerService | None:
+    """Bind the exact receiving application to the shared credential/Scout owners."""
+    selection = settings.weaver.scavenger
+    if selection is None:
+        return None
+    if access is None or scout is None:
+        msg = "Scavenger requires its actual local authority and shared native Scout."
+        raise ValueError(msg)
+    from lychd.agents.workflows.observe_market import OBSERVE_MARKET
+    from lychd.compositions.scavenger.services import LocalScavengerPolicy, ScavengerService
+    from lychd.db.engine import get_session_factory
+    from lychd.db.scavenger import DbScavengerStore
+
+    return ScavengerService(
+        store=DbScavengerStore(get_session_factory(), pattern=OBSERVE_MARKET.manifest.snapshot()),
+        policy=LocalScavengerPolicy(access=access, profile=selection.scout, owner=default_sigil().name),
+        scout=scout,
     )
 
 
@@ -363,6 +456,32 @@ def _build_creation(
     return creation, workflows, forge
 
 
+def _configured_castings(
+    *,
+    settings: Settings,
+    profile: str | None,
+    operator_access: LocalOperatorAccess | None,
+    workflows: WorkflowRegistry | None,
+    delegated_runtime_adapters: Sequence[DelegatedAgentRuntime],
+) -> tuple[BridgeCastingSettings | None, ScavengerCastingSettings | None, DelegatedRuntimeBinding | None, str]:
+    """Validate selected native castings before constructing any process-owned services."""
+    bridge_casting = settings.weaver.bridge
+    scavenger_casting = settings.weaver.scavenger
+    if scavenger_casting is not None and workflows is not None:
+        msg = "Explicit workflow registry injection cannot be combined with [weaver.scavenger] configuration."
+        raise ValueError(msg)
+    delegation_binding = _configured_delegation_binding(settings, delegated_runtime_adapters, workflows)
+    if workflows is not None and (bridge_casting is not None or settings.weaver.creation is not None):
+        msg = "Explicit workflow registry injection cannot be combined with [weaver.bridge] configuration."
+        raise ValueError(msg)
+    if profile is None:
+        profile = settings.server.database.profile
+    if scavenger_casting is not None and (profile != "postgres" or operator_access is None):
+        msg = "Scavenger requires PostgreSQL and the actual local credential owner."
+        raise ValueError(msg)
+    return bridge_casting, scavenger_casting, delegation_binding, profile
+
+
 def build_altar_services(
     *,
     queues: Mapping[str, RunQueue],
@@ -391,13 +510,13 @@ def build_altar_services(
     """
     if settings is None:
         settings = get_settings()
-    bridge_casting = settings.weaver.bridge
-    delegation_binding = _configured_delegation_binding(settings, delegated_runtime_adapters, workflows)
-    if workflows is not None and (bridge_casting is not None or settings.weaver.creation is not None):
-        msg = "Explicit workflow registry injection cannot be combined with [weaver.bridge] configuration."
-        raise ValueError(msg)
-    if profile is None:
-        profile = settings.server.database.profile
+    bridge_casting, scavenger_casting, delegation_binding, profile = _configured_castings(
+        settings=settings,
+        profile=profile,
+        operator_access=operator_access,
+        workflows=workflows,
+        delegated_runtime_adapters=delegated_runtime_adapters,
+    )
     archive, archive_subject_resolver = _build_archive(profile, settings.archive_profile)
     queues = protect_run_queues(queues)
     routing = {
@@ -451,15 +570,28 @@ def build_altar_services(
     bridge_sessions = _build_session_store(profile, sigil_name=default_sigil().name)
     atlas = _build_atlas_store(profile)
     consents = _build_consent_ledger(profile)
-    scout, scout_admission, consent_reviews = _build_scout(
-        persistence=profile,
-        profile=bridge_casting.scout if bridge_casting is not None else None,
-        capability_key=bridge_casting.capability_key if bridge_casting is not None else None,
-        access=operator_access,
-        ledger=ledger,
-        consents=consents,
-        reviews=consent_reviews,
-    )
+    if scavenger_casting is None:
+        scout, scout_admission, consent_reviews = _build_scout(
+            persistence=profile,
+            profile=bridge_casting.scout if bridge_casting is not None else None,
+            capability_key=bridge_casting.capability_key if bridge_casting is not None else None,
+            access=operator_access,
+            ledger=ledger,
+            consents=consents,
+            reviews=consent_reviews,
+        )
+        feed_admission = None
+    else:
+        scout, feed_admission, consent_reviews = _build_feed_scout(
+            persistence=profile,
+            profile=scavenger_casting.scout,
+            access=operator_access,
+            ledger=ledger,
+            consents=consents,
+            reviews=consent_reviews,
+        )
+        scout_admission = None
+    scavenger = _build_scavenger(settings=settings, access=operator_access, scout=scout)
     tickets, swap_requests = TicketStore(), _build_swap_request_ledger(profile)
     projector = EventProjector(
         fragments=fragments, sessions=bridge_sessions, consents=consents, consent_reviews=consent_reviews
@@ -503,7 +635,9 @@ def build_altar_services(
         delegates=delegates,
         archive=archive,
         archive_subject_resolver=archive_subject_resolver,
-        scout=scout,
+        scout=scout if scout_admission is not None else None,
+        feed_scout=scout if feed_admission is not None else None,
+        scavenger=scavenger,
         effects=scout,
     )
     run_engine = RunEngine(
@@ -524,9 +658,13 @@ def build_altar_services(
         delegation_binding=delegation_binding,
         bridge_scout=bridge_casting.scout if bridge_casting is not None else None,
         scout_admission=scout_admission,
+        feed_scout=scavenger_casting.scout if scavenger_casting is not None else None,
+        feed_scout_admission=feed_admission,
         effects=scout,
     )
     return AltarServices(
+        scavenger=scavenger,
+        feed_admission=feed_admission,
         creation=creation,
         archive_derivation=archive_derivation,
         registry=registry,

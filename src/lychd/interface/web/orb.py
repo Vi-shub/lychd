@@ -30,7 +30,7 @@ from lychd.domain.web.contracts import (
     OrbRunSnapshot,
     OrbRunSummary,
 )
-from lychd.domain.web.orb import build_orb_snapshot
+from lychd.domain.web.orb import bridge_context_path, build_orb_snapshot
 from lychd.domain.web.schemas import LoomView, build_loom_view
 from lychd.interface.web.bridge_stream import BoundedRunEventStream
 
@@ -215,7 +215,7 @@ class OrbController(Controller):
                     started_at=run.started_at,
                     finished_at=run.finished_at,
                     error_present=run.error_present,
-                    bridge_path=f"/bridge/{run.session_id}",
+                    bridge_path=bridge_context_path(run.session_id, run.workflow_name),
                 )
                 for run in page
             ],

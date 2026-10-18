@@ -129,6 +129,42 @@ supplied annotation coverage as escaped text, validating unknown dictionary fiel
 Native acceptance, external assessment and owner disposition confer no browser execution or
 promotion authority. An explicit reload uses current read authority; disclosure appends no feedback.
 
+### Scavenger finite observation application
+
+`/scavenger` is an application working view within the Altar, separate from the five
+operator instruments. Its optional `observation` query contains only a retained admission UUID.
+Opening or refreshing it reads protected application state; it never acquires a source.
+The selected Scavenger 3 / observe_market 2 configuration owns the finite Bazoš PC RSS profile;
+omission is visibly unconfigured, not ready or silently routed to chat.
+
+Explicit submission supplies every CampaignSeed fact and a literal initial filter. Freeze the
+request UUID and complete body before sending. An uncertain response remains unconfirmed;
+only an explicit Check or identical replay may reconcile it, never an automatic retry or new UUID.
+Request bodies and private drafts remain document-local, without URL, storage or Bridge history
+copies. Leaving/reloading warns about unresolved actions and cannot imply cancellation.
+
+The canonical seed document is also supplied as protected text for exact display: JSON number
+parsing in a JavaScript client must not round retained 64-bit budget or preference facts. It is
+rendered as escaped text and is subject to the same custody, clearing and deletion boundary.
+Scavenger routes opt out of generic request/response body capture, including operator-enabled
+body diagnostics, and their responses forbid HTTP storage. SQL parameter diagnostics are hidden; SQL engine result-row diagnostics are disabled even at a
+requested DEBUG level. Application transaction/decoder failures expose closed reasons without
+payload-bearing exception chains.
+
+The protected field presents source/time/coverage/omissions, all occurrences and local filtered
+counts, duplicates, missing titles and unassessed facts. Item locators are inert displayed text,
+with no prefetch or preview. Re-filtering uses the server's versioned literal projection over the
+same retained digest; changing the filter does not acquire. Current pending, consent, unavailable,
+unknown and deleted states remain distinct, including empty field versus zero matches.
+
+The existing native consent card and Core verdict endpoint retain review-binding and current
+caller authority; the application adds no decision authority. Run cancellation remains an explicit
+Run action. Deletion is a separate confirmed exact-digest action and is offered only for a supplied
+terminal disposition. Unknown custody cannot be cleared by deletion or by a new request. Current
+refusal clears protected content, and changed selection/teardown fences late reads. No browser
+connection, refresh, rendering, configuration observation or Run completion substitutes for native
+consumer commitment. State owns delivery, including any unqualified browser or restart boundary.
+
 ### User-specific working interfaces
 
 The [Ward account and profile contract](38-iam.md#profiles-and-working-interfaces) permits different

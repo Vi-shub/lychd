@@ -12,27 +12,28 @@ import time
 from dataclasses import dataclass, field
 from hashlib import sha256
 from http import HTTPStatus
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 from urllib.parse import urljoin
 
 from lychd.domain.scout.destination import DestinationCandidate, DestinationError, preflight_destination
 from lychd.domain.scout.transport import FetchCode, FetchError, NetworkTarget
 from lychd.system.services.scout_dns import resolve_destination
 from lychd.system.services.scout_extraction import extract_static_text
-from lychd.system.services.scout_http import HttpResponseParser, serialize_get
+from lychd.system.services.scout_http import HttpResponseParser, RssResponseParser, serialize_get, serialize_rss_get
 from lychd.system.services.scout_socket import open_pinned_tls
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from lychd.domain.scout.extraction import ExtractedText, ExtractionMedia
+    from lychd.domain.scout.extraction import ExtractedText, ExtractionMedia, RssMedia
     from lychd.domain.scout.transport import NetworkGate
     from lychd.system.services.scout_dns import ResolverEndpoint
     from lychd.system.services.scout_extraction import ScoutExtractionRuntime
-    from lychd.system.services.scout_http import HttpResponse
+    from lychd.system.services.scout_http import HttpResponse, RssResponse
 
 _MAX_WIRE_BODY = 2 * 1024 * 1024
 _MAX_DECODED_BODY = 4 * 1024 * 1024
+_MAX_RSS_DECODED_BODY = 1024 * 1024
 _MAX_REDIRECTS = 3
 _MAX_SECONDS = 30.0
 _MAX_LOCATION = 4096
@@ -58,6 +59,15 @@ class FetchedPage:
     """Ephemeral decoded bytes; no custody or trust is conferred by acquisition."""
 
     media_type: ExtractionMedia
+    body: bytes = field(repr=False)
+    observations: tuple[FetchObservation, ...] = field(repr=False)
+
+
+@dataclass(frozen=True, slots=True)
+class FetchedFeed:
+    """Ephemeral RSS/XML bytes awaiting separately authorized extraction."""
+
+    media_type: RssMedia
     body: bytes = field(repr=False)
     observations: tuple[FetchObservation, ...] = field(repr=False)
 
@@ -122,8 +132,33 @@ async def _response(
     remaining_wire: int,
     remaining_decoded: int,
 ) -> tuple[HttpResponse, FetchObservation]:
-    request = serialize_get(candidate)
-    parser = HttpResponseParser(remaining_wire_bytes=remaining_wire, remaining_decoded_bytes=remaining_decoded)
+    return await _read_response(
+        candidate,
+        resolver=resolver,
+        gate=gate,
+        ca_file=ca_file,
+        deadline=deadline,
+        request=serialize_get(candidate),
+        parser=HttpResponseParser(remaining_wire_bytes=remaining_wire, remaining_decoded_bytes=remaining_decoded),
+    )
+
+
+class _ResponseReader[Response](Protocol):
+    def feed(self, data: bytes) -> None: ...
+
+    def finish(self) -> Response: ...
+
+
+async def _read_response[Response: (HttpResponse, RssResponse)](
+    candidate: DestinationCandidate,
+    *,
+    resolver: ResolverEndpoint,
+    gate: NetworkGate,
+    ca_file: Path,
+    deadline: float,
+    request: bytes,
+    parser: _ResponseReader[Response],
+) -> tuple[Response, FetchObservation]:
     digest = sha256()
     addresses = await resolve_destination(candidate, resolver=resolver, gate=gate, deadline=deadline)
     # There is one selected address, never a retry or happy-eyeballs race.
@@ -202,6 +237,35 @@ async def fetch_static_page(
     except TimeoutError:
         raise FetchError(FetchCode.TIMEOUT) from None
     raise FetchError(FetchCode.PROTOCOL)
+
+
+async def fetch_rss_feed(
+    candidate: DestinationCandidate,
+    *,
+    resolver: ResolverEndpoint,
+    gate: NetworkGate,
+    ca_file: Path,
+    deadline: float,
+) -> FetchedFeed:
+    """Acquire one bounded feed passage without redirects, retries or extraction."""
+    current = _candidate(candidate)
+    end = _deadline(deadline)
+    try:
+        async with asyncio.timeout(end - time.monotonic()):
+            response, observation = await _read_response(
+                current,
+                resolver=resolver,
+                gate=gate,
+                ca_file=ca_file,
+                deadline=end,
+                request=serialize_rss_get(current),
+                parser=RssResponseParser(remaining_decoded_bytes=_MAX_RSS_DECODED_BODY),
+            )
+            if response.status != HTTPStatus.OK or response.media_type is None:
+                raise FetchError(FetchCode.REDIRECT)
+            return FetchedFeed(response.media_type, response.body, (observation,))
+    except TimeoutError:
+        raise FetchError(FetchCode.TIMEOUT) from None
 
 
 async def acquire_static_text(

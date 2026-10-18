@@ -16,7 +16,7 @@
   import AnimatorRail from "./AnimatorRail.svelte";
   import { projectOrb, orbEvidenceNodeId, matchesOrbPattern, mergeOrbEvidence } from "$lib/graph/orb";
   import { listenToOrb, type OrbConnection } from "$lib/orb/live";
-  import { bridgeRunHref, loomOriginHref } from "$lib/navigation/instruments";
+  import { bridgeRunHref, loomOriginHref, scavengerRunHref } from "$lib/navigation/instruments";
 
   type Evidence = OrbRunSnapshot["evidence"][number];
   type TimelineItem =
@@ -79,6 +79,7 @@
   let evidenceHeading: HTMLElement | undefined;
   let consumedJobRequest: { runId: string; jobId: string | null } | undefined;
   let bridgeHref = $derived(snapshot ? bridgeRunHref(snapshot.run.bridge_path, snapshot.run.run_id) : null);
+  let applicationHref = $derived(scavengerRunHref(snapshot?.run.application_path));
   let loomHref = $derived(snapshot?.pattern.loom_path ? loomOriginHref(snapshot.pattern.loom_path, snapshot.run.run_id, page.url.search) : null);
   let requestedEventId = $derived(page.url.searchParams.get("event"));
   let requestedJobId = $derived(page.url.searchParams.get("job"));
@@ -421,7 +422,8 @@
             <p class="run-id"><span>Run</span> {snapshot.run.run_id}</p>
             <nav class="context-links" aria-label="Related instruments">
               <a href={resolve("/orb")}>All Runs</a>
-              {#if bridgeHref}<a href={resolve(bridgeHref)}>Bridge</a>{:else}<span>Bridge context unavailable</span>{/if}
+              {#if applicationHref}<a href={applicationHref}>Scavenger market</a>
+              {:else if bridgeHref}<a href={resolve(bridgeHref)}>Bridge</a>{:else}<span>Bridge context unavailable</span>{/if}
               <span>{snapshot.pattern.pattern_id}@{snapshot.pattern.revision}</span>
               {#if loomHref}
                 <a href={resolve(loomHref)}>Exact Pattern →</a>

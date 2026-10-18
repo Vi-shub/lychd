@@ -118,12 +118,12 @@ def test_maintained_local_bridge_receipt_keeps_its_exact_boundary() -> None:
     }
     assert receipt["schema"] == "local-bridge-vllm-runtime@1"
     assert receipt["record_kind"] == "sanitized_public_local_bridge_qualification"
-    assert receipt["qualification_date"] == "2026-10-17"
+    assert receipt["qualification_date"] == "2026-10-18"
     assert receipt["status"] == "passed"
     assert "The optional thinking policy was omitted" in receipt["identity_boundary"]
     assert "Creation investigation was omitted." in receipt["identity_boundary"]
     assert receipt["source_identity"] == {
-        "base_revision_declared": "1777cbfb32e1a6fe9718d95e3dfa3ba6e59fdf71",
+        "base_revision_declared": "ba4b949008ecab9de62c9144bbd164d0f3f8cd3e",
         "clean_checkout_attested": False,
         "atomic_transitive_closure_attested": False,
         "scope": "bounded-critical-source-and-test-fingerprints",
@@ -250,7 +250,7 @@ def test_maintained_local_bridge_receipt_matches_critical_sources() -> None:
         evidence["joined_test_sha256_before_trial"]
         == receipt["source_fingerprints"]["tests/integration/test_local_bridge_runtime.py"]
     )
-    assert evidence["coordinator_source_sha256"] == "d20434ceb8af578f5a8c7bfd52095b04a204349c8ea675897d7f462911cb74fc"
+    assert evidence["coordinator_source_sha256"] == "90a11e47b7a58437d0c277223f3e24f0987d6b5f3bdbeebb3ea44fbf28001712"
     assert (
         evidence["resource_launcher_source_sha256"]
         == "ceeaf5a8f1ee500b870fe1818540256e8a78dd19077abd1622781d4548032702"

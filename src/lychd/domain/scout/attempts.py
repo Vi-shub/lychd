@@ -6,7 +6,7 @@ import json
 from dataclasses import dataclass, field
 from datetime import datetime
 from hashlib import sha256
-from typing import TYPE_CHECKING, Annotated, Literal, Protocol, Self
+from typing import TYPE_CHECKING, Annotated, Literal, Protocol, Self, cast
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -21,6 +21,8 @@ Digest = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
 Identity = Annotated[str, Field(min_length=1, max_length=200)]
 Counter = Annotated[int, Field(strict=True, ge=0, le=2**63 - 1)]
 AttemptStatus = Literal["prepared", "claimed", "unknown_after_crash", "succeeded", "refused"]
+SCOUT_FEED_PURPOSE = "scavenger:observe-market"
+SCOUT_FEED_URL = "https://www.bazos.sk/rss.php?rub=pc"
 
 
 def document_digest(value: object) -> str:
@@ -177,6 +179,123 @@ class ScoutPreparation(_Frozen):
         return sha256(self.canonical_bytes()).hexdigest()
 
 
+class ScoutFeedConsumer(_Frozen):
+    """Exact first receiving contract and opaque application request references."""
+
+    composition: Literal["scavenger"] = "scavenger"
+    composition_revision: Literal["3"] = "3"
+    pattern: Literal["scavenger.observe_market"] = "scavenger.observe_market"
+    pattern_revision: Literal["2"] = "2"
+    observation_profile: Literal["bazos-pc-title-link@1"] = "bazos-pc-title-link@1"
+    projection: Literal["title-link-field@1"] = "title-link-field@1"
+    retention: Literal["until-owner-delete@1"] = "until-owner-delete@1"
+    filter_revision: Literal["literal-casefold@1"] = "literal-casefold@1"
+    application_admission_id: UUID
+    application_request_digest: Digest = Field(repr=False)
+    seed_digest: Digest = Field(repr=False)
+    initial_filter_digest: Digest = Field(repr=False)
+
+    @property
+    def digest(self) -> str:
+        return document_digest(self.model_dump(mode="json"))
+
+
+class ScoutFeedPreparation(_Frozen):
+    """Distinct versioned model-free custody; the legacy page encoding stays unchanged."""
+
+    schema_version: Literal["scout.feed-preparation@1"] = "scout.feed-preparation@1"
+    consumer: ScoutFeedConsumer = Field(repr=False)
+
+    request_id: UUID
+    attempt_id: UUID
+    run_id: UUID
+    enqueue_seq: Counter
+    workflow_name: Literal["scavenger.observe_market"] = "scavenger.observe_market"
+    sigil_name: Identity
+    capability_key: None = None
+    pattern_digest: Digest = Field(repr=False)
+    intent_digest: Digest = Field(repr=False)
+    subject: Identity = Field(repr=False)
+    authentication_generation: UUID = Field(repr=False)
+    declaration: PublicLocatorDeclaration = Field(repr=False)
+    url: str = Field(min_length=1, max_length=4096, repr=False)
+    provider_id: Literal["native-static@1"] = "native-static@1"
+    profile: Literal["rss-public-feed@1"] = "rss-public-feed@1"
+    binding_digest: Digest = Field(repr=False)
+    configuration_digest: Digest = Field(repr=False)
+    resolver_address: str = Field(min_length=1, max_length=39, repr=False)
+    resolver_port: int = Field(strict=True, ge=1, le=65535)
+    resolver_custody_digest: Digest = Field(repr=False)
+    resolver_custody_statement: str = Field(min_length=1, max_length=4000, repr=False)
+    purpose: Literal["scavenger:observe-market"] = SCOUT_FEED_PURPOSE
+    policy_revision: Counter
+    revocation_generation: Counter
+    expires_at: datetime
+    allowance: ScoutAllowance
+
+    @model_validator(mode="after")
+    def exact_declaration(self) -> Self:
+        """Keep declaration, prepared URL and current host identity inseparable."""
+        declaration = self.declaration
+        if (
+            (
+                declaration.url,
+                declaration.subject,
+                declaration.authentication_generation,
+                declaration.purpose,
+                declaration.policy_revision,
+            )
+            != (self.url, self.subject, self.authentication_generation, self.purpose, self.policy_revision)
+            or not self.resolver_custody_statement.strip()
+            or document_digest(self.resolver_custody_statement) != self.resolver_custody_digest
+            or self.url != SCOUT_FEED_URL
+            or self.expires_at.utcoffset() is None
+            or declaration.declared_at >= self.expires_at
+        ):
+            message = "Scout feed preparation declaration differs."
+            raise ValueError(message)
+        return self
+
+    def canonical_bytes(self) -> bytes:
+        """Serialize restricted immutable preparation custody."""
+        return json.dumps(
+            self.model_dump(mode="json"), sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False
+        ).encode()
+
+    @property
+    def digest(self) -> str:
+        """Bind the complete retained preparation."""
+        return sha256(self.canonical_bytes()).hexdigest()
+
+
+type ScoutAnyPreparation = ScoutPreparation | ScoutFeedPreparation
+
+
+def _preparation_encoding_error() -> ValueError:
+    return ValueError("Scout preparation encoding differs.")
+
+
+def decode_scout_preparation(encoded: bytes) -> ScoutAnyPreparation:
+    """Dispatch only explicit closed encodings and preserve canonical retained bytes."""
+    try:
+        value = json.loads(encoded)
+        if type(value) is not dict:
+            raise _preparation_encoding_error()
+        document = cast("dict[str, object]", value)
+        if "schema_version" not in document:
+            preparation = ScoutPreparation.model_validate(document)
+        elif document["schema_version"] == "scout.feed-preparation@1":
+            preparation = ScoutFeedPreparation.model_validate(document)
+        else:
+            raise _preparation_encoding_error()
+        if preparation.canonical_bytes() != encoded:
+            raise _preparation_encoding_error()
+    except (UnicodeError, TypeError, ValueError, RecursionError):
+        raise _preparation_encoding_error() from None
+    else:
+        return preparation
+
+
 @dataclass(frozen=True, kw_only=True)
 class ScoutRunBinding:
     """Read-only actual Run facts; prepare and claim still re-read under lock."""
@@ -193,7 +312,7 @@ class ScoutRunBinding:
 class ScoutAttemptSnapshot:
     """Retained status without recovered transient material or an execution permit."""
 
-    preparation: ScoutPreparation = field(repr=False)
+    preparation: ScoutAnyPreparation = field(repr=False)
     consent_id: UUID
     native_binding: NativeConsentBinding = field(repr=False)
     status: AttemptStatus
@@ -207,7 +326,7 @@ class ScoutAttemptSnapshot:
 class NewScoutClaim:
     """Acknowledged fresh claim; only the issuing host may activate it once."""
 
-    preparation: ScoutPreparation = field(repr=False)
+    preparation: ScoutAnyPreparation = field(repr=False)
     consent_id: UUID
     enqueue_seq: int
     claim_id: UUID
@@ -217,7 +336,7 @@ class NewScoutClaim:
 class ScoutStoreAuthorizer(Protocol):
     """Mandatory current host authority consulted under the transaction boundary."""
 
-    def authorize(self, action: ScoutAction, preparation: ScoutPreparation) -> ScoutAuthorizationDecision:
+    def authorize(self, action: ScoutAction, preparation: ScoutAnyPreparation) -> ScoutAuthorizationDecision:
         """Refuse or return the exact decision from authenticated host state."""
         ...
 

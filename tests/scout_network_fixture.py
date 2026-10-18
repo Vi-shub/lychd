@@ -99,7 +99,10 @@ def certificate(directory: Path, stem: str, hostname: str, *, include_ip: bool) 
 
 
 class ScoutNetworkFixture:
-    def __init__(self, context: ssl.SSLContext, wrong_context: ssl.SSLContext) -> None:
+    def __init__(self, context: ssl.SSLContext, wrong_context: ssl.SSLContext, *, hostname: str = HOSTNAME) -> None:
+        self.hostname = hostname
+        self.zone = hostname.partition(".")[2] + "."
+        assert self.zone != "."
         self.context = context
         self.wrong_context = wrong_context
         self.wrong_name = False
@@ -169,21 +172,21 @@ class ScoutNetworkFixture:
                     assert len(query.question) == 1
                     question = query.question[0]
                     self.queries.append((question.name.to_text(), question.rdtype))
-                    assert question.name.to_text() == HOSTNAME + "."
+                    assert question.name.to_text() == self.hostname + "."
                     response = dns.message.make_response(query)
                     response.flags |= dns.flags.RA
                     if question.rdtype == dns.rdatatype.A:
                         addresses = (ADDRESS, "127.0.0.1") if self.mixed_dns else (ADDRESS,)
-                        response.answer.append(dns.rrset.from_text(HOSTNAME + ".", 60, "IN", "A", *addresses))
+                        response.answer.append(dns.rrset.from_text(self.hostname + ".", 60, "IN", "A", *addresses))
                     else:
                         assert question.rdtype == dns.rdatatype.AAAA
                         response.authority.append(
                             dns.rrset.from_text(
-                                "example.com.",
+                                self.zone,
                                 60,
                                 "IN",
                                 "SOA",
-                                "ns.example.com. hostmaster.example.com. 1 3600 600 86400 60",
+                                f"ns.{self.zone} hostmaster.{self.zone} 1 3600 600 86400 60",
                             )
                         )
                     wire = response.to_wire()

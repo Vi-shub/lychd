@@ -23,7 +23,14 @@ from typing import TYPE_CHECKING, Literal
 
 from lychd.domain.codex.local_access import LocalOperatorAccess
 from lychd.domain.cortex.cancellation import RunEffectFence
-from lychd.domain.scout.attempts import NewScoutClaim, PublicLocatorDeclaration, ScoutAllowance, ScoutPreparation
+from lychd.domain.scout.attempts import (
+    NewScoutClaim,
+    PublicLocatorDeclaration,
+    ScoutAllowance,
+    ScoutAnyPreparation,
+    ScoutFeedPreparation,
+    ScoutPreparation,
+)
 from lychd.domain.scout.destination import DestinationError, classify_destination_addresses, preflight_destination
 from lychd.domain.scout.transport import FetchCode, FetchError, NetworkHandoff, NetworkTarget
 
@@ -114,10 +121,10 @@ class ScoutHostAuthorizer:
             raise FetchError(FetchCode.CONFIG)
         self._policy = policy
 
-    def authorize(self, action: ScoutAction, preparation: ScoutPreparation) -> ScoutAuthorizationDecision:
+    def authorize(self, action: ScoutAction, preparation: ScoutAnyPreparation) -> ScoutAuthorizationDecision:
         """Judge one exact retained public declaration under current host policy."""
         self._require_loop()
-        if type(action) is not ScoutAction or type(preparation) is not ScoutPreparation:
+        if type(action) is not ScoutAction or type(preparation) not in (ScoutPreparation, ScoutFeedPreparation):
             raise FetchError(FetchCode.EGRESS)
         policy = self._policy
         allowed = (
@@ -176,7 +183,7 @@ class ScoutHostAuthorizer:
         ):
             raise FetchError(FetchCode.EGRESS)
 
-    def require_current(self, action: ScoutAction, preparation: ScoutPreparation) -> ScoutAuthorizationDecision:
+    def require_current(self, action: ScoutAction, preparation: ScoutAnyPreparation) -> ScoutAuthorizationDecision:
         """Refuse without echoing a locator, subject, policy selector or source."""
         decision = self.authorize(action, preparation)
         if not decision.allowed:
@@ -299,6 +306,18 @@ def _http_request(candidate: DestinationCandidate) -> bytes:
     ).encode("ascii")
 
 
+def _rss_http_request(candidate: DestinationCandidate) -> bytes:
+    """Compile the distinct fixed RSS GET from the host-selected preparation."""
+    authority = f"[{candidate.hostname}]" if ":" in candidate.hostname else candidate.hostname
+    target = candidate.normalized_url[len("https://") + len(authority) :]
+    if not target.startswith("/"):
+        target = "/" + target
+    return (
+        f"GET {target} HTTP/1.1\r\nHost: {authority}\r\nAccept: application/rss+xml,application/xml,text/xml\r\n"
+        "Accept-Encoding: gzip, identity\r\nConnection: close\r\n\r\n"
+    ).encode("ascii")
+
+
 class CurrentNetworkGate:
     """One exact URL's finite contact sequence under a fresh retained claim.
 
@@ -325,7 +344,11 @@ class CurrentNetworkGate:
                 raise FetchError(FetchCode.CONFIG)
         except ValueError:
             raise FetchError(FetchCode.CONFIG) from None
-        self._http = _http_request(self._candidate)
+        self._http = (
+            _rss_http_request(self._candidate)
+            if type(claim.preparation) is ScoutFeedPreparation
+            else _http_request(self._candidate)
+        )
         if claim.committed_at.tzinfo is None:
             raise FetchError(FetchCode.EGRESS)
         expiry = min(claim.preparation.expires_at, claim.committed_at + timedelta(seconds=30))

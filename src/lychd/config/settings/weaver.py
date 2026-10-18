@@ -10,6 +10,7 @@ from lychd.config.settings.section import SettingsSection
 from lychd.domain.archive import ArchiveProfile
 from lychd.domain.cortex.bridge_preference import BridgePreference
 from lychd.domain.delegation.routing import DelegatedRuntimeBinding
+from lychd.domain.scout.feed import ScoutFeedProfile
 from lychd.domain.scout.profile import ScoutProfile
 
 
@@ -73,8 +74,18 @@ class CreationCastingSettings(SettingsSection):
     capability_key: str = Field(min_length=1)
 
 
+class ScavengerCastingSettings(SettingsSection):
+    """Opt into one exact model-free finite observation and native feed binding."""
+
+    revision: Literal["3"]
+    scout: ScoutFeedProfile
+
+
 class WeaverSettings(SettingsSection):
     """Opt-in casting configuration; omission preserves each legacy route."""
+
+    scavenger: ScavengerCastingSettings | None = None
+    """Select scavenger.observe_market@2; omission disables new observation admission."""
 
     creation: CreationCastingSettings | None = None
     """Select creation.investigate@2; omission disables investigation admission."""
@@ -84,3 +95,10 @@ class WeaverSettings(SettingsSection):
 
     bridge: BridgeCastingSettings | None = None
     """Select an exact Bridge revision; omission keeps bridge_chat@1 active."""
+
+    @model_validator(mode="after")
+    def _one_scout_binding(self) -> WeaverSettings:
+        if self.scavenger is not None and self.bridge is not None and self.bridge.scout is not None:
+            message = "The first native profile permits one active Scout binding, not page/feed coexistence."
+            raise ValueError(message)
+        return self

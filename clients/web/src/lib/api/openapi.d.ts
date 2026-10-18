@@ -822,6 +822,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/scavenger": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Current */
+        get: operations["getScavengerState"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/scavenger/observations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit */
+        post: operations["submitMarketObservation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/scavenger/observations/{admission_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read */
+        get: operations["readMarketObservation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/scavenger/observations/{admission_id}/consent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Consent */
+        get: operations["getMarketObservationConsent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/scavenger/observations/{admission_id}/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Delete */
+        post: operations["deleteMarketObservation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/scavenger/observations/{admission_id}/view": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** View */
+        post: operations["filterMarketObservation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1033,6 +1135,36 @@ export interface components {
             /** @default settled */
             state: string;
         };
+        /** CampaignSeed */
+        CampaignSeed: {
+            budget_minor: number | null;
+            /** @constant */
+            currency: "EUR";
+            /** Format: date-time */
+            deadline: string;
+            /** @constant */
+            disclosure_policy: "none";
+            evidence_standard: string;
+            hard_criteria: string[];
+            inventory: string[];
+            /** @constant */
+            learning_mode: "none";
+            need: string;
+            /** @constant */
+            operating_mode: "Watch";
+            preferences: components["schemas"]["Preference"][];
+            region: string | null;
+            /**
+             * @default CampaignSeed@1
+             * @constant
+             */
+            schema_version: "CampaignSeed@1";
+            /** @constant */
+            source_policy: "admitted-public-feed-only@1";
+            /** @enum {string} */
+            subject_profile: "Bazaar@1" | "Technology@1";
+            travel_delivery: string;
+        };
         /** CaseView */
         CaseView: {
             admissions: {
@@ -1158,6 +1290,11 @@ export interface components {
             runtime_id: string;
             transport: string;
         };
+        /** DeleteObservationRequest */
+        DeleteObservationRequest: {
+            observation_digest: string | null;
+            request_digest: string;
+        };
         /** DerivationRequest */
         DerivationRequest: {
             generation: components["schemas"]["GenerationRef"];
@@ -1222,13 +1359,13 @@ export interface components {
             assessment_id: string;
             /** @enum {string} */
             disposition: "accepted" | "rejected" | "partial" | "incomplete" | "not_assessed";
-            exposure: (string | unknown)[];
-            limitations: (string | unknown)[];
+            exposure: string[];
+            limitations: string[];
             report: string;
             reviewer_label: string;
             reviewer_revision: string;
             /** @default [] */
-            submitter_annotations: (components["schemas"]["Finding"] | unknown)[];
+            submitter_annotations: components["schemas"]["Finding"][];
             target: components["schemas"]["FeedbackTarget"];
         };
         /** FeedbackEntry */
@@ -1276,7 +1413,7 @@ export interface components {
         };
         /** Finding */
         Finding: {
-            citations: (components["schemas"]["Citation"] | unknown)[];
+            citations: components["schemas"]["Citation"][];
             claim: string;
             criterion: string;
             unknown: string;
@@ -1315,16 +1452,16 @@ export interface components {
         /** InvestigationRequest */
         InvestigationRequest: {
             base_revision: string;
-            criteria: (components["schemas"]["Criterion"] | unknown)[];
-            non_goals: (string | unknown)[];
-            omissions: (string | unknown)[];
+            criteria: components["schemas"]["Criterion"][];
+            non_goals: string[];
+            omissions: string[];
             /** @constant */
             public_material: true;
             question: string;
             repository: string;
             /** Format: uuid */
             request_id: string;
-            sources: (components["schemas"]["Source"] | unknown)[];
+            sources: components["schemas"]["Source"][];
             tree_or_patch_digest: string;
         };
         /**
@@ -1351,6 +1488,15 @@ export interface components {
             case_id: string;
             incoming: components["schemas"]["LineageEntry"] | null;
             outgoing: components["schemas"]["LineageEntry"] | null;
+        };
+        /** LiteralFilter */
+        LiteralFilter: {
+            query: string;
+            /**
+             * @default literal-casefold@1
+             * @constant
+             */
+            revision: "literal-casefold@1";
         };
         /** LoomEdgeView */
         LoomEdgeView: {
@@ -1397,6 +1543,54 @@ export interface components {
             schema_version: number;
             title: string;
             trigger_hint: string;
+        };
+        /** MarketObservation */
+        MarketObservation: {
+            /** Format: date-time */
+            acquired_at: string;
+            acquisition_binding_digest: string;
+            /**
+             * @default rss-public-feed@1
+             * @constant
+             */
+            acquisition_profile: "rss-public-feed@1";
+            /** Format: uuid */
+            admission_id: string;
+            contacted_url: string;
+            /**
+             * @default bounded-feed-response-only
+             * @constant
+             */
+            coverage: "bounded-feed-response-only";
+            /**
+             * @default scout-rss-extract@1
+             * @constant
+             */
+            extractor: "scout-rss-extract@1";
+            items: components["schemas"]["ObservationItem"][];
+            /** Format: uuid */
+            observation_id: string;
+            omitted_elements: number;
+            pattern_digest: string;
+            /**
+             * @default bazos-pc-title-link@1
+             * @constant
+             */
+            profile: "bazos-pc-title-link@1";
+            record_digest: string;
+            requested_url: string;
+            /** Format: uuid */
+            run_id: string;
+            /**
+             * @default MarketObservation@1
+             * @constant
+             */
+            schema_version: "MarketObservation@1";
+            scout_receipt_digest: string;
+            /** Format: uuid */
+            scout_receipt_id: string;
+            seed_digest: string;
+            source_digest: string;
         };
         /** MessageAccepted */
         MessageAccepted: {
@@ -1488,6 +1682,75 @@ export interface components {
             source_digest: string;
             source_key: string;
             source_revision: string;
+        };
+        /** ObservationAdmission */
+        ObservationAdmission: {
+            /** Format: uuid */
+            admission_id: string;
+            /** Format: uuid */
+            run_id: string;
+            run_status: components["schemas"]["RunStatus"];
+        };
+        /** ObservationDeleted */
+        ObservationDeleted: {
+            /** Format: uuid */
+            admission_id: string;
+            observation_digest: string | null;
+            request_digest: string;
+            /**
+             * @default deleted
+             * @constant
+             */
+            status: "deleted";
+        };
+        /** ObservationDocument */
+        ObservationDocument: {
+            /** @enum {null|string} */
+            acquisition_status: "prepared" | "claimed" | "unknown_after_crash" | "succeeded" | "refused" | null;
+            /** Format: uuid */
+            admission_id: string;
+            initial_filter: components["schemas"]["LiteralFilter"] | null;
+            observation: components["schemas"]["MarketObservation"] | null;
+            observation_digest: string | null;
+            request_digest: string;
+            run_id: string | null;
+            run_status: components["schemas"]["RunStatus"] | null;
+            seed: components["schemas"]["CampaignSeed"] | null;
+            seed_document: string | null;
+            /** @enum {string} */
+            status: "reserved" | "pending" | "awaiting_consent" | "observed" | "unavailable" | "unknown" | "deleted";
+            /** @enum {string} */
+            terminal_disposition: "pending" | "unknown" | "terminal";
+            view: components["schemas"]["ObservationView"] | null;
+        };
+        /** ObservationItem */
+        ObservationItem: {
+            duplicate_of: number | null;
+            link: string;
+            ordinal: number;
+            title: string | null;
+        };
+        /** ObservationView */
+        ObservationView: {
+            casefold_unicode_version: string;
+            duplicate_count: number;
+            field_digest: string;
+            filter: components["schemas"]["LiteralFilter"];
+            missing_title_count: number;
+            observation_digest: string;
+            /** Format: uuid */
+            observation_id: string;
+            total_count: number;
+            unmatched_count: number;
+            visible_count: number;
+            visible_ordinals: number[];
+        };
+        /** ObserveMarketRequest */
+        ObserveMarketRequest: {
+            initial_filter: components["schemas"]["LiteralFilter"];
+            /** Format: uuid */
+            request_id: string;
+            seed: components["schemas"]["CampaignSeed"];
         };
         /** OrbBridgePreferenceRoute */
         OrbBridgePreferenceRoute: {
@@ -1602,7 +1865,8 @@ export interface components {
         };
         /** OrbRunSummary */
         OrbRunSummary: {
-            bridge_path: string;
+            application_path?: string | null;
+            bridge_path: string | null;
             /** Format: date-time */
             created_at: string;
             error_present: boolean;
@@ -1634,6 +1898,11 @@ export interface components {
             pattern_id: string;
             revision: string;
         };
+        /** Preference */
+        Preference: {
+            criterion: string;
+            weight: number;
+        };
         /** RecallItem */
         RecallItem: {
             selection: components["schemas"]["RecallSelection"];
@@ -1641,7 +1910,7 @@ export interface components {
         };
         /** RecallProjection */
         RecallProjection: {
-            items: (components["schemas"]["RecallItem"] | unknown)[];
+            items: components["schemas"]["RecallItem"][];
             receipt: components["schemas"]["RecallReceipt"];
         };
         /** RecallReceipt */
@@ -1679,7 +1948,7 @@ export interface components {
              * @constant
              */
             schema_version: 1;
-            selected: (components["schemas"]["RecallSelection"] | unknown)[];
+            selected: components["schemas"]["RecallSelection"][];
             subject: components["schemas"]["ArchiveSubject"];
         };
         /** RecallRequest */
@@ -1772,6 +2041,19 @@ export interface components {
             transition_occurrence_id: string | null;
             transition_phase: string | null;
             transition_request_id: string | null;
+        };
+        /**
+         * RunStatus
+         * @description The canonical run lifecycle state machine.
+         * @enum {string}
+         */
+        RunStatus: "queued" | "running" | "awaiting_hardware" | "awaiting_consent" | "awaiting_delegate" | "cancelling" | "done" | "failed" | "cancelled";
+        /** ScavengerState */
+        ScavengerState: {
+            configured: boolean;
+            current: components["schemas"]["ObservationDocument"] | null;
+            /** @enum {null|string} */
+            profile: "bazos-pc-title-link@1" | null;
         };
         /** SessionCreated */
         SessionCreated: {
@@ -4003,6 +4285,530 @@ export interface operations {
             };
             /** @description Additional response */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+        };
+    };
+    getScavengerState: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Request fulfilled, document follows */
+            200: {
+                headers: {
+                    "cache-control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScavengerState"];
+                };
+            };
+            /** @description Additional response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+        };
+    };
+    submitMarketObservation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ObserveMarketRequest"];
+            };
+        };
+        responses: {
+            /** @description Request fulfilled, document follows */
+            200: {
+                headers: {
+                    "cache-control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObservationAdmission"];
+                };
+            };
+            /** @description Additional response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+        };
+    };
+    readMarketObservation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                admission_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Request fulfilled, document follows */
+            200: {
+                headers: {
+                    "cache-control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObservationDocument"];
+                };
+            };
+            /** @description Additional response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+        };
+    };
+    getMarketObservationConsent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                admission_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Request fulfilled, document follows */
+            200: {
+                headers: {
+                    "cache-control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsentCard"] | null;
+                };
+            };
+            /** @description Additional response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+        };
+    };
+    deleteMarketObservation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                admission_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeleteObservationRequest"];
+            };
+        };
+        responses: {
+            /** @description Request fulfilled, document follows */
+            200: {
+                headers: {
+                    "cache-control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObservationDeleted"];
+                };
+            };
+            /** @description Additional response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+        };
+    };
+    filterMarketObservation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                admission_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiteralFilter"];
+            };
+        };
+        responses: {
+            /** @description Request fulfilled, document follows */
+            200: {
+                headers: {
+                    "cache-control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObservationView"];
+                };
+            };
+            /** @description Additional response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+            /** @description Additional response */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

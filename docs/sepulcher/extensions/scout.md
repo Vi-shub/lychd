@@ -134,11 +134,11 @@ mechanism policy belongs to [ADR 30](../../adr/30-webcrawler.md#first-party-mech
 
 For a known source, first compare its existing static page or advertised feed with the cost of
 a search service or browser. The [source acquisition study](scout-web-research.md) traces the
-Bazoš page/RSS premise and separates the existing HTML passage from the missing XML profile.
-It also records the next useful feed digest and its qualification boundary. The separate
-`scout-rss-extract@1` mechanism now projects strict RSS 2.0 in the qualified fixed child;
-[State](../../state-of-the-work.md#scout-web-acquisition) records its exact proof. Native XML Fetch,
-the model-free feed workflow, its Altar instrument and listing watching remain subsequent work.
+Bazoš page/RSS premise and the separate qualification needed for each source profile.
+It also records the feed premise and its qualification boundary. The separate
+`scout-rss-extract@1` mechanism projects strict RSS 2.0 in the fixed child;
+[State](../../state-of-the-work.md#scout-web-acquisition) owns its evidence boundary. The native
+feed source contract below does not establish installed operation or recurring listing watching.
 
 The [first Search profile](../../adr/30-webcrawler.md#searxng-search-contract) is deliberately
 bounded to one qualified engine and one page. Self-hosting does not keep the query local: the
@@ -246,6 +246,82 @@ the selector restores the default for new admissions; retained Runs keep their o
 Restart replaces the authentication generation, so prior prepared work cannot acquire fresh
 authority merely by restoring its records. Loom displays the registered score and its activation;
 it does not edit this casting or activate Search, Crawl or Render.
+
+## Finite Scavenger feed observation
+
+The source contract selects Scavenger revision `3`, `scavenger.observe_market@2` and
+`bazos-pc-title-link@1`: one model-free observation of
+`https://www.bazos.sk/rss.php?rub=pc`. The [application contract](../../compositions/scavenger/market.md#finite-feed-observation)
+owns the complete seed, retained field and recovery semantics. This operation description is not
+a delivery receipt; [State](../../state-of-the-work.md#scout-web-acquisition) owns qualification.
+
+Opt in through `lychd.toml` with `[weaver.scavenger]` and `revision = "3"`. Its required
+`[weaver.scavenger.scout]` value is an exact `ScoutFeedProfile`: `provider_id = "native-static@1"`,
+`profile = "rss-public-feed@1"`, `binding_id`, `policy_revision`, `revocation_generation`,
+`resolver_address`, `resolver_port`, `resolver_custody_statement`, `ca_file`, `bwrap`,
+`python_root`, `libraries`, `allowance`, `budget_limits` and `review_ttl_seconds`.
+Use the reviewed absolute runtime/library paths, numeric resolver and nested host/binding budget
+shapes illustrated in the public-page example above. This feed profile has no `capability_key`
+or `max_context_chars`. Configuration syntax does not establish runtime readiness.
+
+Only one Scout binding may be selected: `weaver.bridge.scout` at Bridge revision 4 cannot coexist
+with `weaver.scavenger`. The initial profile requires a fresh profile database; existing page
+budget rows refuse a page/feed switch without mutation. Omitting `weaver.scavenger` disables new
+observation admission. Removing configuration grants no migration, cleanup or accounting reset.
+
+Use the Altar's `/scavenger` application view with the authenticated same-host operator.
+Supply the complete bounded `CampaignSeed@1` through its seed form/API, including explicit empty
+arrays and explicit unknown budget/region where needed. The application owns the complete seed
+and request body; Run/Graph facts and generic history carry references, never a copied seed.
+Neither seed nor feed field enters a model, Bridge history or a model prompt. The `Watch` seed
+ceiling grants no cadence, ranking, seller contact, item fetch or purchase.
+
+For direct API operation, the exact request is `ObserveMarketRequest` with `request_id`, `seed`
+and `initial_filter`; the filter is `{"revision":"literal-casefold@1","query":""}` for all rows.
+Retain that request identity: identical replay resolves the same admission; changed content under
+that identity refuses. The source fixes the locator and execution profile; neither comes from
+request text. The protected application routes are:
+
+| Method | Path | Operation |
+| --- | --- | --- |
+| GET | `/api/v1/scavenger` | Current configured state and retained field |
+| POST | `/api/v1/scavenger/observations` | Reserve and admit the complete request |
+| GET | `/api/v1/scavenger/observations/{admission_id}` | Read the application document |
+| GET | `/api/v1/scavenger/observations/{admission_id}/consent` | Project its exact current Core consent |
+| POST | `/api/v1/scavenger/observations/{admission_id}/view` | Apply a local `LiteralFilter` |
+| POST | `/api/v1/scavenger/observations/{admission_id}/delete` | Delete terminal controlled payload |
+
+Admission requires `runs:submit`; reads and local filtering require `altar:read`; deletion
+requires `runs:cancel`. Each also rechecks the current application owner and credential authority.
+Use the normal authentication and CSRF boundary for mutations; UUIDs and digests are not grants.
+Review the exact Core consent before contact. Use its `consent_id` in
+`POST /api/v1/bridge/consents/{consent_id}/decision`; submit `verdict` and the presented
+`review_binding_digest`, requiring
+`runs:approve` and current review authority. The digest must match for approval or denial.
+The review binds the fixed source, disclosures, consumer, ceilings and expiry; consent is not a
+reusable Fetch grant. Current network, CONSUME and application-adoption authority still apply.
+
+The retained whole field includes every returned title/link occurrence, in source order,
+including unmatched, duplicate and missing-title rows. Inspect source/time/coverage, omissions
+and total/visible/unmatched/duplicate/missing counts. Item links remain inert displayed data.
+The application field retains only admitted titles, links and necessary attribution; raw feed,
+channel and summary content are excluded from that retained field. A case-folded literal substring filter derives visible ordinals over the same
+field digest. An empty query shows all rows. Filtering performs no source contact and changes no field.
+
+Cancel pending work explicitly through `POST /api/v1/bridge/runs/{run_id}/cancel` and inspect its
+settlement. Cancellation and deletion are separate operations. Terminal deletion submits the
+exact `request_digest` and `observation_digest` (explicit `null` when absent) to the delete route.
+It removes application seed and field payload atomically and retains a content-free tombstone
+plus necessary execution/Scout receipts. It does not erase independent contact metadata or
+backups. A deleted observation is distinct from an observed empty field; replay cannot restore it.
+
+Unknown custody/disposition stays unknown and blocks terminal-only deletion. A lost transient
+field cannot be rebuilt from receipt digests or silently refetched. A confirmed committed field
+may be read and re-filtered under fresh authority; ambiguous acknowledgement reconciles only the
+same identity. Deleting a terminal field reopens the application slot without resetting spent
+budgets, unknown reservations or an issued claim. A replacement needs a visible delete, fresh
+request and fresh consent. No automatic retry, restart recovery acquisition or budget reset is
+promised by this source contract.
 
 ## The laws of the road
 

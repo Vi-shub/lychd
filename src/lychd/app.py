@@ -143,6 +143,7 @@ class AppInit(InitPluginProtocol):
         from lychd.config.constants import PATH_ALTAR_ASSET_DIR
         from lychd.interface.api.creation import CreationController
         from lychd.interface.api.orchestrator import OrchestratorController
+        from lychd.interface.api.scavenger import ScavengerController
         from lychd.interface.web import (
             AltarController,
             ArchiveController,
@@ -169,6 +170,7 @@ class AppInit(InitPluginProtocol):
                 ArchiveDerivationController,
                 BridgeController,
                 CreationController,
+                ScavengerController,
                 NexusController,
                 LoomController,
                 OrbController,

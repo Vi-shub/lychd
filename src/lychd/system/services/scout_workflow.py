@@ -9,11 +9,12 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import time
 import weakref
-from dataclasses import asdict
+from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime, timedelta
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Literal, overload
 from uuid import UUID, uuid4, uuid5
 
 from lychd.domain.cortex.cancellation import RunEffectFence
@@ -21,13 +22,15 @@ from lychd.domain.cortex.runs import RunStatus
 from lychd.domain.scout.attempts import (
     NewScoutClaim,
     ScoutAttemptSnapshot,
+    ScoutFeedPreparation,
     ScoutPreparation,
     ScoutSettlement,
     ScoutStoreError,
 )
 from lychd.domain.scout.authority import NetworkGateSnapshot, ScoutAction, ScoutHostAuthorizer, ScoutNetworkAuthority
 from lychd.domain.scout.destination import preflight_destination
-from lychd.domain.scout.extraction import ExtractionCode, ExtractionError
+from lychd.domain.scout.extraction import ExtractedFeed, ExtractedText, ExtractionCode, ExtractionError
+from lychd.domain.scout.feed import ScoutFeedBinding, ScoutFeedMaterial, ScoutFeedProfile
 from lychd.domain.scout.profile import (
     ScoutBinding,
     ScoutMaterial,
@@ -36,17 +39,101 @@ from lychd.domain.scout.profile import (
     ScoutWorkflowCode,
     ScoutWorkflowError,
 )
-from lychd.domain.scout.review import page_review
+from lychd.domain.scout.review import scout_review
 from lychd.domain.scout.transport import FetchCode, FetchError
+from lychd.system.scout_worker import (
+    RSS_MAX_ELEMENTS,
+    RSS_MAX_ITEMS,
+    RSS_MEDIA,
+    RSS_PROFILE,
+    RSS_STRATEGY,
+    RSS_TRANSFORMATIONS,
+)
 from lychd.system.services.scout_dns import ResolverEndpoint
-from lychd.system.services.scout_extraction import ExtractionLifecycle, ScoutExtractionRuntime, extract_static_text
-from lychd.system.services.scout_fetch import AcquiredText, fetch_static_page
+from lychd.system.services.scout_extraction import (
+    ExtractionLifecycle,
+    ScoutExtractionRuntime,
+    extract_rss_feed,
+    extract_static_text,
+)
+from lychd.system.services.scout_fetch import AcquiredText, FetchObservation, fetch_rss_feed, fetch_static_page
 
 if TYPE_CHECKING:
     from lychd.db.scout import DbScoutAttemptStore
     from lychd.domain.codex.ledger import ConsentLedger
     from lychd.domain.cortex.ledger import RunLedger
     from lychd.domain.scout.authority import CurrentNetworkGate
+
+
+def extraction_metadata(extraction: ExtractedText | ExtractedFeed) -> dict[str, object]:
+    """Positively select mechanism metadata, never source content or future fields.
+
+    The legacy text values keep their exact existing metadata encoding. Their
+    extraction owner, not this projection, validates the worker return. The new
+    feed branch additionally closes its first profile before any durable use.
+    Neither a shaped extraction nor these facts confer actual material custody.
+    """
+    if type(extraction) is ExtractedText:
+        return {
+            "media_type": extraction.media_type,
+            "source_digest": extraction.source_digest,
+            "record_digest": extraction.record_digest,
+            "text_digest": extraction.text_digest,
+            "strategy": extraction.strategy,
+            "transformations": extraction.transformations,
+            "extractor": extraction.extractor,
+        }
+    if type(extraction) is not ExtractedFeed:
+        raise ExtractionError(ExtractionCode.PROTOCOL)
+    if (
+        extraction.extractor != RSS_PROFILE
+        or type(extraction.media_type) is not str
+        or extraction.media_type not in RSS_MEDIA
+        or extraction.strategy != RSS_STRATEGY
+        or extraction.transformations != RSS_TRANSFORMATIONS
+        or type(extraction.items) is not tuple
+        or len(extraction.items) > RSS_MAX_ITEMS
+        or type(extraction.omitted_elements) is not int
+        or not 0 <= extraction.omitted_elements <= RSS_MAX_ELEMENTS
+        or any(
+            type(value) is not str or re.fullmatch(r"[0-9a-f]{64}", value) is None
+            for value in (extraction.source_digest, extraction.record_digest)
+        )
+    ):
+        raise ExtractionError(ExtractionCode.PROTOCOL)
+    return {
+        "media_type": extraction.media_type,
+        "source_digest": extraction.source_digest,
+        "record_digest": extraction.record_digest,
+        "strategy": extraction.strategy,
+        "transformations": extraction.transformations,
+        "extractor": extraction.extractor,
+        "item_count": len(extraction.items),
+        "omitted_elements": extraction.omitted_elements,
+    }
+
+
+@dataclass(frozen=True, slots=True)
+class _AcquiredFeed:
+    """Host-owned transient feed result before application custody admission."""
+
+    extraction: ExtractedFeed = field(repr=False)
+    observations: tuple[FetchObservation, ...] = field(repr=False)
+
+
+def _validate_acquired_profile(
+    binding: ScoutBinding | ScoutFeedBinding, acquired: AcquiredText | _AcquiredFeed
+) -> None:
+    """Refuse a mismatched mechanism result before success metadata can be retained."""
+    if (
+        type(binding) is ScoutFeedBinding
+        and (type(acquired) is not _AcquiredFeed or type(acquired.extraction) is not ExtractedFeed)
+    ) or (
+        type(binding) is ScoutBinding
+        and (type(acquired) is not AcquiredText or type(acquired.extraction) is not ExtractedText)
+    ):
+        raise ExtractionError(ExtractionCode.PROTOCOL)
+    extraction_metadata(acquired.extraction)
 
 
 class ScoutCompletions:
@@ -85,39 +172,60 @@ class ScoutWorkflowService:
         completions: ScoutCompletions,
         ledger: RunLedger,
         consents: ConsentLedger,
-        profile: ScoutProfile,
-        capability_key: str,
+        profile: ScoutProfile | ScoutFeedProfile,
+        capability_key: str | None,
         authorizer: ScoutHostAuthorizer,
         fence: RunEffectFence,
     ) -> None:
         """Bind one host-owned provider/profile on the actual control loop."""
+        if (
+            (type(profile) is ScoutProfile and (type(capability_key) is not str or not capability_key.strip()))
+            or (type(profile) is ScoutFeedProfile and capability_key is not None)
+            or type(profile) not in (ScoutProfile, ScoutFeedProfile)
+        ):
+            raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
         self._loop = asyncio.get_running_loop()
         self._store, self._completions = store, completions
         self._ledger, self._consents = ledger, consents
         self._profile, self._capability_key = profile, capability_key
         self._authorizer, self._fence = authorizer, fence
         self._network = ScoutNetworkAuthority(authorizer=authorizer, fence=fence)
-        self._active: dict[UUID, tuple[str, asyncio.Task[AcquiredText]]] = {}
+        self._active: dict[UUID, tuple[str, asyncio.Task[AcquiredText | _AcquiredFeed]]] = {}
         self._uncertain_runs: set[str] = set()
-        self._materials: dict[UUID, tuple[weakref.ReferenceType[ScoutMaterial], NewScoutClaim]] = {}
+        self._materials: dict[UUID, tuple[weakref.ReferenceType[ScoutMaterial | ScoutFeedMaterial], NewScoutClaim]] = {}
 
     def _require_loop(self) -> None:
         if asyncio.get_running_loop() is not self._loop:
             msg = "Scout workflow belongs to another control loop."
             raise RuntimeError(msg)
 
-    async def _run(self, run_id: str, binding: ScoutBinding) -> int:
+    async def _run(self, run_id: str, binding: ScoutBinding | ScoutFeedBinding) -> int:
         self._require_loop()
         run = await self._ledger.get(run_id)
         if (
             run is None
-            or run.workflow_name != "bridge_chat"
-            or run.pattern_manifest.get("revision") != "4"
             or run.admitted_scout != binding
             or binding.profile != self._profile
             or run.admitted_capability_key != self._capability_key
             or run.status is not RunStatus.RUNNING
             or self._fence.reason(run_id, run.enqueue_seq) is not None
+        ):
+            raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
+        if type(binding) is ScoutFeedBinding:
+            consumer = binding.consumer
+            if (
+                run.source != "scavenger"
+                or run.workflow_name != consumer.pattern
+                or run.pattern_manifest.get("key") != consumer.pattern
+                or run.pattern_manifest.get("revision") != consumer.pattern_revision
+                or run.prompt != str(consumer.application_admission_id)
+                or self._capability_key is not None
+            ):
+                raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
+        elif (
+            type(binding) is not ScoutBinding
+            or run.workflow_name != "bridge_chat"
+            or run.pattern_manifest.get("revision") != "4"
         ):
             raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
         return run.enqueue_seq
@@ -131,8 +239,17 @@ class ScoutWorkflowService:
             native_binding_digest=snapshot.native_binding.digest,
         )
 
-    def _bound(self, snapshot: ScoutAttemptSnapshot, run_id: str, binding: ScoutBinding) -> None:
+    def _bound(self, snapshot: ScoutAttemptSnapshot, run_id: str, binding: ScoutBinding | ScoutFeedBinding) -> None:
         p = snapshot.preparation
+        if type(binding) is ScoutFeedBinding:
+            if (
+                type(p) is not ScoutFeedPreparation
+                or p.consumer != binding.consumer
+                or p.expires_at != binding.expires_at
+            ):
+                raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
+        elif type(binding) is not ScoutBinding or type(p) is not ScoutPreparation:
+            raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
         if (
             str(p.run_id) != run_id
             or p.request_id != binding.request_id
@@ -142,45 +259,52 @@ class ScoutWorkflowService:
         ):
             raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
 
-    async def prepare(self, *, run_id: str, binding: ScoutBinding) -> ScoutReviewRef:
+    async def prepare(self, *, run_id: str, binding: ScoutBinding | ScoutFeedBinding) -> ScoutReviewRef:
         """Prepare once; a duplicate reads the original immutable review and expiry."""
-        await self._run(run_id, binding)
+        enqueue_seq = await self._run(run_id, binding)
         previous = await self._store.read_request(binding.request_id)
+        self._require_unfenced(run_id, enqueue_seq)
         if previous is not None:
             self._bound(previous, run_id, binding)
             self._authorizer.require_current(ScoutAction.REVIEW, previous.preparation)
             return self._reference(previous)
         retained = await self._store.read_run_binding(UUID(run_id))
+        self._require_unfenced(run_id, enqueue_seq)
         p, d = self._profile, binding.declaration
-        preparation = ScoutPreparation(
-            request_id=binding.request_id,
-            attempt_id=uuid5(binding.request_id, f"scout:{run_id}"),
-            run_id=UUID(run_id),
-            enqueue_seq=retained.enqueue_seq,
-            workflow_name=retained.workflow_name,
-            sigil_name=retained.sigil_name,
-            capability_key=self._capability_key,
-            pattern_digest=retained.pattern_digest,
-            intent_digest=retained.intent_digest,
-            subject=d.subject,
-            authentication_generation=d.authentication_generation,
-            declaration=d,
-            url=d.url,
-            provider_id=p.provider_id,
-            profile=p.profile,
-            binding_digest=p.binding_digest,
-            configuration_digest=p.configuration_digest,
-            resolver_address=p.resolver_address,
-            resolver_port=p.resolver_port,
-            resolver_custody_statement=p.resolver_custody_statement,
-            resolver_custody_digest=p.resolver_custody_digest,
-            purpose=d.purpose,
-            policy_revision=p.policy_revision,
-            revocation_generation=p.revocation_generation,
-            expires_at=d.declared_at + timedelta(seconds=p.review_ttl_seconds),
-            allowance=p.allowance,
-        )
-        native, document = page_review(preparation)
+        fields: dict[str, Any] = {
+            "request_id": binding.request_id,
+            "attempt_id": uuid5(binding.request_id, f"scout:{run_id}"),
+            "run_id": UUID(run_id),
+            "enqueue_seq": retained.enqueue_seq,
+            "workflow_name": retained.workflow_name,
+            "sigil_name": retained.sigil_name,
+            "capability_key": self._capability_key,
+            "pattern_digest": retained.pattern_digest,
+            "intent_digest": retained.intent_digest,
+            "subject": d.subject,
+            "authentication_generation": d.authentication_generation,
+            "declaration": d,
+            "url": d.url,
+            "provider_id": p.provider_id,
+            "profile": p.profile,
+            "binding_digest": p.binding_digest,
+            "configuration_digest": p.configuration_digest,
+            "resolver_address": p.resolver_address,
+            "resolver_port": p.resolver_port,
+            "resolver_custody_statement": p.resolver_custody_statement,
+            "resolver_custody_digest": p.resolver_custody_digest,
+            "purpose": d.purpose,
+            "policy_revision": p.policy_revision,
+            "revocation_generation": p.revocation_generation,
+            "expires_at": d.declared_at + timedelta(seconds=p.review_ttl_seconds),
+            "allowance": p.allowance,
+        }
+        if type(binding) is ScoutFeedBinding:
+            fields["expires_at"] = binding.expires_at
+            preparation = ScoutFeedPreparation(**fields, consumer=binding.consumer)
+        else:
+            preparation = ScoutPreparation(**fields)
+        native, document = scout_review(preparation)
         return self._reference(await self._store.prepare(preparation, native, document.canonical_bytes()))
 
     def _require_unfenced(self, run_id: str, enqueue_seq: int) -> None:
@@ -188,7 +312,7 @@ class ScoutWorkflowService:
             raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
 
     async def _review(
-        self, run_id: str, binding: ScoutBinding, review: ScoutReviewRef
+        self, run_id: str, binding: ScoutBinding | ScoutFeedBinding, review: ScoutReviewRef
     ) -> tuple[ScoutAttemptSnapshot, int]:
         enqueue_seq = await self._run(run_id, binding)
         snapshot = await self._store.read(review.attempt_id)
@@ -200,7 +324,7 @@ class ScoutWorkflowService:
         return snapshot, enqueue_seq
 
     async def consent(
-        self, *, run_id: str, binding: ScoutBinding, review: ScoutReviewRef
+        self, *, run_id: str, binding: ScoutBinding | ScoutFeedBinding, review: ScoutReviewRef
     ) -> Literal["pending", "granted", "refused"]:
         """Read exact native judgment; only the store may claim its effect."""
         snapshot, enqueue_seq = await self._review(run_id, binding, review)
@@ -215,7 +339,7 @@ class ScoutWorkflowService:
 
     async def _acquire(
         self, claim: NewScoutClaim, gate: CurrentNetworkGate, progress: ExtractionLifecycle
-    ) -> AcquiredText:
+    ) -> AcquiredText | _AcquiredFeed:
         remaining = min(30.0, (claim.preparation.expires_at - datetime.now(UTC)).total_seconds())
         remaining = min(remaining, 30.0 - (datetime.now(UTC) - claim.committed_at).total_seconds())
         if remaining <= 0:
@@ -224,21 +348,32 @@ class ScoutWorkflowService:
         try:
             async with asyncio.timeout(remaining):
                 p = self._profile
+                candidate = preflight_destination(claim.preparation.url)
+                resolver = ResolverEndpoint(p.resolver_address, p.resolver_port)
+                runtime = ScoutExtractionRuntime(p.bwrap, p.python_root, p.libraries)
+                if type(claim.preparation) is ScoutFeedPreparation:
+                    if type(p) is not ScoutFeedProfile:
+                        raise FetchError(FetchCode.CONFIG)
+                    feed = await fetch_rss_feed(
+                        candidate, resolver=resolver, gate=gate, ca_file=p.ca_file, deadline=deadline
+                    )
+                    self._authorizer.require_current(ScoutAction.EXTRACT, claim.preparation)
+                    if self._fence.reason(str(claim.preparation.run_id), claim.enqueue_seq) is not None:
+                        raise FetchError(FetchCode.EGRESS)
+                    extracted_feed = await extract_rss_feed(
+                        feed.body, media_type=feed.media_type, runtime=runtime, lifecycle=progress
+                    )
+                    return _AcquiredFeed(extracted_feed, feed.observations)
+                if type(p) is not ScoutProfile:
+                    raise FetchError(FetchCode.CONFIG)
                 page = await fetch_static_page(
-                    preflight_destination(claim.preparation.url),
-                    resolver=ResolverEndpoint(p.resolver_address, p.resolver_port),
-                    gate=gate,
-                    ca_file=p.ca_file,
-                    deadline=deadline,
+                    candidate, resolver=resolver, gate=gate, ca_file=p.ca_file, deadline=deadline
                 )
                 self._authorizer.require_current(ScoutAction.EXTRACT, claim.preparation)
                 if self._fence.reason(str(claim.preparation.run_id), claim.enqueue_seq) is not None:
                     raise FetchError(FetchCode.EGRESS)
                 extraction = await extract_static_text(
-                    page.body,
-                    media_type=page.media_type,
-                    runtime=ScoutExtractionRuntime(p.bwrap, p.python_root, p.libraries),
-                    lifecycle=progress,
+                    page.body, media_type=page.media_type, runtime=runtime, lifecycle=progress
                 )
                 return AcquiredText(extraction, page.observations)
         except TimeoutError:
@@ -248,7 +383,7 @@ class ScoutWorkflowService:
         self,
         claim: NewScoutClaim,
         gate: NetworkGateSnapshot,
-        acquired: AcquiredText | None,
+        acquired: AcquiredText | _AcquiredFeed | None,
         progress: ExtractionLifecycle,
     ) -> ScoutAttemptSnapshot:
         child = progress.child
@@ -257,7 +392,7 @@ class ScoutWorkflowService:
         evidence = json.loads(gate.evidence_bytes)
         if acquired is not None:
             evidence["observations"] = [asdict(item) for item in acquired.observations]
-            evidence["extraction"] = {key: value for key, value in asdict(acquired.extraction).items() if key != "text"}
+            evidence["extraction"] = extraction_metadata(acquired.extraction)
         settlement = ScoutSettlement(
             receipt_id=uuid4(),
             outcome="succeeded" if acquired is not None else "refused",
@@ -272,7 +407,15 @@ class ScoutWorkflowService:
         finally:
             self._completions.forget(claim)
 
-    async def acquire(self, *, run_id: str, binding: ScoutBinding, review: ScoutReviewRef) -> ScoutMaterial:
+    @overload
+    async def acquire(self, *, run_id: str, binding: ScoutBinding, review: ScoutReviewRef) -> ScoutMaterial: ...
+
+    @overload
+    async def acquire(self, *, run_id: str, binding: ScoutFeedBinding, review: ScoutReviewRef) -> ScoutFeedMaterial: ...
+
+    async def acquire(
+        self, *, run_id: str, binding: ScoutBinding | ScoutFeedBinding, review: ScoutReviewRef
+    ) -> ScoutMaterial | ScoutFeedMaterial:
         """Issue one durable claim; completed or lost material is never reacquired."""
         snapshot, _ = await self._review(run_id, binding, review)
         enqueue_seq = await self._run(run_id, binding)
@@ -289,9 +432,10 @@ class ScoutWorkflowService:
         progress = ExtractionLifecycle()
         task = asyncio.create_task(self._acquire(claim, gate, progress))
         self._active[claim.claim_id] = run_id, task
-        acquired: AcquiredText | None = None
+        acquired: AcquiredText | _AcquiredFeed | None = None
         try:
             acquired = await task
+            _validate_acquired_profile(binding, acquired)
         except BaseException as exc:
             sealed = gate.seal()
             if (
@@ -309,15 +453,20 @@ class ScoutWorkflowService:
         settled = await self._settle(claim, gate.seal(), acquired, progress)
         if settled.receipt_id is None or settled.receipt_digest is None:
             raise ScoutWorkflowError(ScoutWorkflowCode.SETTLEMENT)
-        material = ScoutMaterial(
-            attempt_id=snapshot.preparation.attempt_id,
-            receipt_id=settled.receipt_id,
-            receipt_digest=settled.receipt_digest,
-            requested_url=snapshot.preparation.url,
-            contacted_url=acquired.observations[-1].candidate.normalized_url,
-            acquired_at=datetime.now(UTC),
-            extraction=acquired.extraction,
-        )
+        material: ScoutMaterial | ScoutFeedMaterial
+        fields: dict[str, Any] = {
+            "attempt_id": snapshot.preparation.attempt_id,
+            "receipt_id": settled.receipt_id,
+            "receipt_digest": settled.receipt_digest,
+            "requested_url": snapshot.preparation.url,
+            "contacted_url": acquired.observations[-1].candidate.normalized_url,
+            "acquired_at": datetime.now(UTC),
+            "extraction": acquired.extraction,
+        }
+        if type(binding) is ScoutFeedBinding:
+            material = ScoutFeedMaterial(**fields, consumer=binding.consumer)
+        else:
+            material = ScoutMaterial(**fields)
         self._materials[material.receipt_id] = weakref.ref(material), claim
         return material
 
@@ -332,6 +481,14 @@ class ScoutWorkflowService:
     ) -> None:
         """Check actual transient identity and current authority immediately before use."""
         self._require_loop()
+        if (
+            type(binding) is not ScoutBinding
+            or type(material) is not ScoutMaterial
+            or type(self._profile) is not ScoutProfile
+            or type(capability_key) is not str
+            or not capability_key.strip()
+        ):
+            raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
         retained = self._materials.get(material.receipt_id)
         if retained is None or retained[0]() is not material:
             raise ScoutWorkflowError(ScoutWorkflowCode.MATERIAL_UNAVAILABLE)
@@ -350,10 +507,46 @@ class ScoutWorkflowService:
             raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
         self._authorizer.require_current(ScoutAction.CONSUME, p)
 
+    def authorize_feed_consume(
+        self, *, run_id: str, binding: ScoutFeedBinding, review: ScoutReviewRef, material: ScoutFeedMaterial
+    ) -> None:
+        """Require actual issued feed identity and current use authority, not a model key."""
+        self._require_loop()
+        if type(binding) is not ScoutFeedBinding or type(material) is not ScoutFeedMaterial:
+            raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
+        retained = self._materials.get(material.receipt_id)
+        if retained is None or retained[0]() is not material:
+            raise ScoutWorkflowError(ScoutWorkflowCode.MATERIAL_UNAVAILABLE)
+        claim = retained[1]
+        p = claim.preparation
+        if (
+            type(p) is not ScoutFeedPreparation
+            or str(p.run_id) != run_id
+            or p.request_id != binding.request_id
+            or p.declaration != binding.declaration
+            or binding.profile != self._profile
+            or p.configuration_digest != binding.profile.configuration_digest
+            or p.consumer != binding.consumer
+            or material.consumer != binding.consumer
+            or p.expires_at != binding.expires_at
+            or p.capability_key is not None
+            or self._capability_key is not None
+            or p.digest != review.preparation_digest
+            or review.attempt_id != p.attempt_id
+            or review.consent_id != claim.consent_id
+            or review.native_binding_digest != scout_review(p)[0].digest
+            or p.attempt_id != material.attempt_id
+            or self._fence.reason(run_id, claim.enqueue_seq) is not None
+        ):
+            raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
+        self._authorizer.require_current(ScoutAction.CONSUME, p)
+
     async def authorize_settle(
         self, *, run_id: str, binding: ScoutBinding, review: ScoutReviewRef, receipt_id: UUID | None
     ) -> None:
-        """Authorize retained answer projection without reconstructing source material."""
+        """Authorize retained page-answer projection, never a feed application's result."""
+        if type(binding) is not ScoutBinding or type(self._profile) is not ScoutProfile:
+            raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
         snapshot, _ = await self._review(run_id, binding, review)
         if receipt_id is not None and (snapshot.status != "succeeded" or snapshot.receipt_id != receipt_id):
             raise ScoutWorkflowError(ScoutWorkflowCode.SETTLEMENT)

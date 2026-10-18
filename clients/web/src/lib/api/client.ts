@@ -84,6 +84,38 @@ export async function readCreationFeedback(
   }));
 }
 
+export async function getScavengerState(signal?: AbortSignal): Promise<components["schemas"]["ScavengerState"]> {
+  return unwrap(await client.GET("/api/v1/scavenger", { signal }));
+}
+
+export async function submitMarketObservation(body: components["schemas"]["ObserveMarketRequest"]): Promise<components["schemas"]["ObservationAdmission"]> {
+  return unwrap(await client.POST("/api/v1/scavenger/observations", { body, headers: await csrfHeaders() }));
+}
+
+export async function readMarketObservation(admissionId: string, signal?: AbortSignal): Promise<components["schemas"]["ObservationDocument"]> {
+  return unwrap(await client.GET("/api/v1/scavenger/observations/{admission_id}", {
+    signal, params: { path: { admission_id: admissionId } }
+  }));
+}
+
+export async function getMarketObservationConsent(admissionId: string, signal?: AbortSignal): Promise<components["schemas"]["ConsentCard"] | null> {
+  return unwrap(await client.GET("/api/v1/scavenger/observations/{admission_id}/consent", {
+    signal, params: { path: { admission_id: admissionId } }
+  }));
+}
+
+export async function filterMarketObservation(admissionId: string, body: components["schemas"]["LiteralFilter"], signal?: AbortSignal): Promise<components["schemas"]["ObservationView"]> {
+  return unwrap(await client.POST("/api/v1/scavenger/observations/{admission_id}/view", {
+    signal, params: { path: { admission_id: admissionId } }, body, headers: await csrfHeaders()
+  }));
+}
+
+export async function deleteMarketObservation(admissionId: string, body: components["schemas"]["DeleteObservationRequest"]): Promise<components["schemas"]["ObservationDeleted"]> {
+  return unwrap(await client.POST("/api/v1/scavenger/observations/{admission_id}/delete", {
+    params: { path: { admission_id: admissionId } }, body, headers: await csrfHeaders()
+  }));
+}
+
 export async function getAltarStatus(): Promise<AltarStatus> {
   const status = unwrap(await client.GET("/api/v1/altar/status")) as AltarStatus;
   csrfContract = status.csrf;

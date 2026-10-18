@@ -34,7 +34,7 @@ const creationSummarySchema = z.object({
   feedback_status: z.enum(["unassessed", "review_required", "hold", "rejected"]),
   current_assessment_id: z.uuid().nullable(), current_decision_id: z.uuid().nullable()
 });
-const runSummarySchema = z.object({ run_id: z.string(), session_id: z.string(), workflow_name: z.string(), status: z.string(), created_at: z.string(), started_at: z.string().nullable(), finished_at: z.string().nullable(), error_present: z.boolean(), bridge_path: z.string() });
+const runSummarySchema = z.object({ run_id: z.string(), session_id: z.string(), workflow_name: z.string(), status: z.string(), created_at: z.string(), started_at: z.string().nullable(), finished_at: z.string().nullable(), error_present: z.boolean(), bridge_path: z.string().nullable(), application_path: z.string().nullable().optional() });
 const bridgePreferenceSchema = z.object({
   policy_schema_version: z.literal(1), policy_digest: z.string().regex(/^[0-9a-f]{64}$/),
   batch_started_at: z.iso.datetime({ offset: true }), batch_finished_at: z.iso.datetime({ offset: true }),

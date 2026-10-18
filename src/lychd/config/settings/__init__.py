@@ -19,7 +19,12 @@ from lychd.config.settings.server import (
     ServerSettings,
     WebSettings,
 )
-from lychd.config.settings.weaver import BridgeCastingSettings, DelegationCastingSettings, WeaverSettings
+from lychd.config.settings.weaver import (
+    BridgeCastingSettings,
+    DelegationCastingSettings,
+    ScavengerCastingSettings,
+    WeaverSettings,
+)
 
 __all__ = (
     "ArchiveDerivationSettings",
@@ -31,6 +36,7 @@ __all__ = (
     "LoggingSettings",
     "OrchestrationSettings",
     "RoutingRule",
+    "ScavengerCastingSettings",
     "ServerJobsSettings",
     "ServerSettings",
     "Settings",

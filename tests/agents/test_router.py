@@ -13,6 +13,7 @@ from lychd.agents.workflows import (
     BRIDGE_CHAT,
     BRIDGE_CHAT_BOUND,
     DELEGATED_RITE,
+    OBSERVE_MARKET,
     BuiltinWorkflowRegistry,
     builtin_workflow_registry,
     resolve_pinned_workflow,
@@ -53,7 +54,11 @@ def test_builtin_registry_has_the_exact_ordered_boot_inventory() -> None:
         ("bridge_chat", "4"),
         ("delegated_rite", "1"),
         ("delegated_rite", "2"),
+        ("scavenger.observe_market", "2"),
     ]
+    assert registry.get(OBSERVE_MARKET.name) is None
+    assert registry.get_revision(OBSERVE_MARKET.name, "2") is OBSERVE_MARKET
+    assert registry.is_active(OBSERVE_MARKET.name, "2") is False
 
 
 def test_registry_keeps_old_revision_while_new_admissions_use_active_revision() -> None:

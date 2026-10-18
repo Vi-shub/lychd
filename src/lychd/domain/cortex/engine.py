@@ -36,7 +36,14 @@ from lychd.domain.cortex.bridge_preference import (
 from lychd.domain.cortex.cancellation import RunCancellationCoordinator
 from lychd.domain.cortex.priority import saq_wire_priority, validate_priority
 from lychd.domain.cortex.runs import TERMINAL_STATUSES, RunDeliveryState, RunHandle, RunStatus
-from lychd.domain.scout.profile import ScoutBinding, ScoutWorkflowCode, ScoutWorkflowError, parse_page_question
+from lychd.domain.scout.feed import ScoutFeedBinding, ScoutFeedDeclarationProof
+from lychd.domain.scout.profile import (
+    ScoutBinding,
+    ScoutDeclarationProof,
+    ScoutWorkflowCode,
+    ScoutWorkflowError,
+    parse_page_question,
+)
 from lychd.lib.asyncio import complete_under_cancellation
 
 if TYPE_CHECKING:
@@ -50,7 +57,8 @@ if TYPE_CHECKING:
     from lychd.domain.delegation.models import DelegatedAgentJob
     from lychd.domain.delegation.ports import DelegatedAgentCoordinatorPort
     from lychd.domain.delegation.routing import DelegatedRuntimeBinding
-    from lychd.domain.scout.profile import ScoutAdmission, ScoutDeclarationProof, ScoutProfile
+    from lychd.domain.scout.feed import ScoutFeedAdmission, ScoutFeedProfile
+    from lychd.domain.scout.profile import ScoutAdmission, ScoutProfile
 
 __all__ = [
     "QueueRouter",
@@ -421,6 +429,8 @@ class RunEngine:
         "delegates",
         "delegation_binding",
         "effects",
+        "feed_scout",
+        "feed_scout_admission",
         "ledger",
         "queue_router",
         "queues",
@@ -450,9 +460,13 @@ class RunEngine:
         bridge_archive: ArchiveProfile | None = None,
         bridge_scout: ScoutProfile | None = None,
         scout_admission: ScoutAdmission | None = None,
+        feed_scout: ScoutFeedProfile | None = None,
+        feed_scout_admission: ScoutFeedAdmission | None = None,
         delegation_binding: DelegatedRuntimeBinding | None = None,
     ) -> None:
         """Bind the already-constructed run collaborators."""
+        if bridge_scout is not None and feed_scout is not None:
+            raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
         self.ledger = ledger
         self.bus = bus
         self.workflows = workflows
@@ -466,6 +480,7 @@ class RunEngine:
         self.bridge_archive = bridge_archive
         self.bridge_scout = bridge_scout
         self.scout_admission = scout_admission
+        self.feed_scout, self.feed_scout_admission = feed_scout, feed_scout_admission
         self.delegation_binding = delegation_binding
         self.queue_router = queue_router
         self.queues = queues
@@ -490,6 +505,7 @@ class RunEngine:
         idempotency_key: str | None = None,
         exclusive_session: bool = False,
         scout_declaration: ScoutDeclarationProof | None = None,
+        feed_declaration: ScoutFeedDeclarationProof | None = None,
     ) -> RunHandle:
         """Admit work, optionally allowing only one nonterminal Run per session.
 
@@ -499,6 +515,8 @@ class RunEngine:
         the same session. Terminal ledger truth releases the fence naturally; no
         process-local active marker becomes recovery authority.
         """
+        if scout_declaration is not None and feed_declaration is not None:
+            raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
         if (
             intent.admitted_capability_key is not None
             or intent.admitted_bridge_preference is not None
@@ -521,6 +539,7 @@ class RunEngine:
                             retain_before_publish=retain_before_publish,
                             idempotency_key=idempotency_key,
                             scout_declaration=scout_declaration,
+                            feed_declaration=feed_declaration,
                         )
                 active = await self.ledger.get_nonterminal_for_session(intent.session_id)
                 if active is not None:
@@ -533,6 +552,7 @@ class RunEngine:
                     retain_before_publish=retain_before_publish,
                     idempotency_key=idempotency_key,
                     scout_declaration=scout_declaration,
+                    feed_declaration=feed_declaration,
                 )
             finally:
                 self.admissions.finish(session_key)
@@ -541,6 +561,7 @@ class RunEngine:
             retain_before_publish=retain_before_publish,
             idempotency_key=idempotency_key,
             scout_declaration=scout_declaration,
+            feed_declaration=feed_declaration,
         )
 
     async def _submit_singleflight(
@@ -550,6 +571,7 @@ class RunEngine:
         retain_before_publish: Callable[[str], Awaitable[None]] | None,
         idempotency_key: str | None,
         scout_declaration: ScoutDeclarationProof | None,
+        feed_declaration: ScoutFeedDeclarationProof | None,
     ) -> RunHandle:
         """Single-flight one optional durable admission identity."""
         if idempotency_key is None:
@@ -558,6 +580,7 @@ class RunEngine:
                 retain_before_publish=retain_before_publish,
                 idempotency_key=None,
                 scout_declaration=scout_declaration,
+                feed_declaration=feed_declaration,
             )
         admission_key = ("idempotency", idempotency_key)
         while not self.admissions.begin(admission_key):
@@ -568,6 +591,7 @@ class RunEngine:
                 retain_before_publish=retain_before_publish,
                 idempotency_key=idempotency_key,
                 scout_declaration=scout_declaration,
+                feed_declaration=feed_declaration,
             )
         finally:
             self.admissions.finish(admission_key)
@@ -579,6 +603,7 @@ class RunEngine:
         retain_before_publish: Callable[[str], Awaitable[None]] | None,
         idempotency_key: str | None,
         scout_declaration: ScoutDeclarationProof | None,
+        feed_declaration: ScoutFeedDeclarationProof | None,
     ) -> RunHandle:
         """Route once, persist QUEUED, retain admission context, then publish work.
 
@@ -598,15 +623,23 @@ class RunEngine:
         if idempotency_key is not None:
             existing = await self.ledger.get_idempotent(intent, idempotency_key=idempotency_key)
             if existing is not None:
-                self._validate_scout_replay(intent, existing, scout_declaration)
-                validate = partial(self._validate_scout_replay, intent, existing, scout_declaration)
+                self._validate_scout_replay(intent, existing, scout_declaration, feed_declaration)
+                validate = partial(self._validate_scout_replay, intent, existing, scout_declaration, feed_declaration)
                 if await self._repair_replayed_admission(existing, retain_before_publish, validate=validate):
                     validate()
                     return await self._publish_admission(existing)
                 return await self._replayed_run_handle(existing)
 
         workflow = self.workflows.route(intent)
-        intent = await self._bind_workflow_intent(intent, workflow, scout_declaration)
+        if intent.source == "scavenger" and workflow.name != "scavenger.observe_market":
+            raise ScoutWorkflowError(ScoutWorkflowCode.ADMISSION)
+        if (
+            workflow.manifest.key == "scavenger.observe_market"
+            and workflow.manifest.revision == "2"
+            and retain_before_publish is None
+        ):
+            raise ScoutWorkflowError(ScoutWorkflowCode.ADMISSION)
+        intent = await self._bind_workflow_intent(intent, workflow, scout_declaration, feed_declaration)
         queue_name, priority = self.queue_router.resolve(intent)
         if queue_name not in self.queues:
             msg = f"Run queue {queue_name!r} is not configured."
@@ -632,7 +665,12 @@ class RunEngine:
                 await complete_under_cancellation(self._refuse_admission(run, exc))
             raise
         return await self._finish_admission(
-            intent, run, created=created, retain=retain_before_publish, proof=scout_declaration
+            intent,
+            run,
+            created=created,
+            retain=retain_before_publish,
+            proof=scout_declaration,
+            feed_proof=feed_declaration,
         )
 
     async def _finish_admission(
@@ -643,9 +681,10 @@ class RunEngine:
         created: bool,
         retain: Callable[[str], Awaitable[None]] | None,
         proof: ScoutDeclarationProof | None,
+        feed_proof: ScoutFeedDeclarationProof | None,
     ) -> RunHandle:
         """Recheck authenticated admission after commit and around turn retention."""
-        validate = partial(self._validate_scout_replay, intent, run, proof)
+        validate = partial(self._validate_scout_replay, intent, run, proof, feed_proof)
         try:
             validate()
         except ScoutWorkflowError as exc:
@@ -662,7 +701,7 @@ class RunEngine:
 
     def _bind_scout(self, intent: Intent, proof: ScoutDeclarationProof | None) -> ScoutBinding:
         """Validate live handler proof after waits and bind exact command operands."""
-        if proof is None or self.bridge_scout is None or self.scout_admission is None:
+        if type(proof) is not ScoutDeclarationProof or self.bridge_scout is None or self.scout_admission is None:
             raise ScoutWorkflowError(ScoutWorkflowCode.ADMISSION)
         if not self.bridge_capability_key or not self.bridge_capability_key.strip():
             raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
@@ -677,12 +716,46 @@ class RunEngine:
             raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
         return binding
 
-    def _validate_scout_replay(self, intent: Intent, run: RunRecord, proof: ScoutDeclarationProof | None) -> None:
-        """Fresh authentication cannot replace a replay's original declaration time."""
+    def _bind_feed_scout(self, intent: Intent, proof: ScoutFeedDeclarationProof | None) -> ScoutFeedBinding:
+        """Bind the exact authenticated receiving request without any model demand."""
+        if type(proof) is not ScoutFeedDeclarationProof or self.feed_scout is None or self.feed_scout_admission is None:
+            raise ScoutWorkflowError(ScoutWorkflowCode.ADMISSION)
+        binding = self.feed_scout_admission(intent, proof, self.feed_scout)
+        if (
+            type(binding) is not ScoutFeedBinding
+            or binding.profile != self.feed_scout
+            or binding.request_id != proof.request_id
+            or binding.consumer != proof.consumer
+            or binding.expires_at != proof.expires_at
+            or binding.declaration != proof.declaration
+        ):
+            raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
+        return binding
+
+    def _validate_scout_replay(
+        self,
+        intent: Intent,
+        run: RunRecord,
+        proof: ScoutDeclarationProof | None,
+        feed_proof: ScoutFeedDeclarationProof | None = None,
+    ) -> None:
+        """Fresh possession cannot refresh an existing declaration or effect expiry."""
+        if type(run.admitted_scout) is ScoutFeedBinding:
+            if proof is not None or run.admitted_capability_key is not None:
+                raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
+            binding = self._bind_feed_scout(intent, feed_proof)
+            exclude: dict[str, Any] = {"declaration": {"declared_at"}, "expires_at": True}
+            if binding.model_dump(exclude=exclude) != run.admitted_scout.model_dump(exclude=exclude):
+                raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
+            return
+        if feed_proof is not None:
+            raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
         if run.admitted_scout is None:
             if proof is not None:
                 raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
             return
+        if type(run.admitted_scout) is not ScoutBinding:
+            raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
         binding = self._bind_scout(intent, proof)
         exclude = {"declaration": {"declared_at"}}
         if run.admitted_capability_key != self.bridge_capability_key or binding.model_dump(
@@ -691,9 +764,24 @@ class RunEngine:
             raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
 
     async def _bind_workflow_intent(
-        self, intent: Intent, workflow: Workflow, scout_declaration: ScoutDeclarationProof | None = None
+        self,
+        intent: Intent,
+        workflow: Workflow,
+        scout_declaration: ScoutDeclarationProof | None = None,
+        feed_declaration: ScoutFeedDeclarationProof | None = None,
     ) -> Intent:
         """Stamp selected bindings only for a fresh explicitly configured admission."""
+        if workflow.manifest.key == "scavenger.observe_market" and workflow.manifest.revision == "2":
+            if scout_declaration is not None:
+                raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
+            return intent.model_copy(
+                update={
+                    "admitted_capability_key": None,
+                    "admitted_scout": self._bind_feed_scout(intent, feed_declaration),
+                }
+            )
+        if feed_declaration is not None:
+            raise ScoutWorkflowError(ScoutWorkflowCode.BINDING)
         if workflow.manifest.key == "bridge_chat" and workflow.manifest.revision == "4":
             return intent.model_copy(
                 update={
@@ -710,6 +798,10 @@ class RunEngine:
             return intent.model_copy(update={"admitted_delegation": self.delegation_binding})
         if workflow.manifest.key != "bridge_chat" or workflow.manifest.revision not in {"2", "3"}:
             return intent
+        return await self._bind_configured_bridge_intent(intent, workflow)
+
+    async def _bind_configured_bridge_intent(self, intent: Intent, workflow: Workflow) -> Intent:
+        """Bind model demand only for the configured Bridge2/3 branch."""
         if workflow.manifest.revision == "2" and self.bridge_preference is not None:
             decision = await self._select_bridge_preference()
             return intent.model_copy(
@@ -785,6 +877,8 @@ class RunEngine:
             return True
         if delivery.state is not RunDeliveryState.HELD:
             return False
+        if type(run.admitted_scout) is ScoutFeedBinding and retain is None:
+            raise ScoutWorkflowError(ScoutWorkflowCode.ADMISSION)
         if retain is None and run.admitted_scout is None:
             msg = f"Run {run.run_id!r} idempotent admission remains held without a retention owner."
             raise RuntimeError(msg)

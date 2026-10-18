@@ -1267,7 +1267,8 @@ forced-collection qualification and complete production-browser acceptance remai
 **Proved now:** The Portfolio publishes Native Reference Composition contracts and examples; the
 default boot catalogue contains the Core `bridge_chat` lineage (revisions 1, 2 and 3) and
 `delegated_rite` lineage (revisions 1 and 2). An explicit application selector additionally registers
-the bounded `creation.investigate@2` Pattern.
+the bounded `creation.investigate@2` Pattern. The exact `scavenger.observe_market@2` Pattern
+is registered for historical resolution and receives new admissions only under its explicit selector.
 The accepted designs include [Health](./compositions/health/index.md) for attributable personal
 clinical records and bounded diagnostic and care proposals,
 [Keeper](./compositions/keeper/index.md) for animal and colony care,
@@ -1286,8 +1287,13 @@ value contracts validate the bounded seed and source-order field, group exact-lo
 occurrences without dropping them, and derive a literal local filter over the unchanged field.
 Their tests cover explicit unknowns, UTF-8/total byte bounds, excluded-content projection and
 literal filtering. These values confer no acquisition, consumption, retention or retrieval authority.
-The native Pattern, admission, consent, application store, deletion and Altar instrument remain
-unfinished; no new Run or application capability is registered by this slice.
+An explicit PostgreSQL selector now enables the model-free `scavenger.observe_market@2`
+Pattern and its protected application admission/read/filter/delete API. The serial Graph retains
+only references, uses native Core consent and commits the whole field under application custody.
+The Altar's `/scavenger` application view supplies the complete seed, displays source/coverage and
+all occurrences, and separates local filtering, Run cancellation and terminal payload deletion.
+[Scout's evidence boundary](#scout-web-acquisition) owns the assembled development proof and its
+remaining installed, public-network and process limits.
 
 Blockworld has an explicitly assembled, inactive one-block placement Pattern. Portable tests drive
 real Run admission, the worker, serial Graph, native Consent review, HTTP decision, and resume with
@@ -1644,8 +1650,8 @@ current static confinement proof to 43 actual RSS/probe launches, ordinary and h
 parent locator validation, pipe flooding, timeout and cancellation with observed cleanup.
 Its maintained receipt fingerprints the worker, parent, domain, destination syntax and both proof
 harnesses; ordinary CI checks source freshness and agreement with the maintained static runtime.
-This proves RSS extraction only. Native XML Fetch, a model-free feed Pattern, retained digest,
-Altar feed instrument and recurring watching remain unfinished.
+That receipt proves the RSS extraction mechanism. The separately selected finite-feed application
+below joins it to native admission and receiving custody; recurring watching remains unfinished.
 
 The native acquisition mechanisms now use explicit A/AAAA DNS-over-TCP observations, a pinned
 hostname-verified TLS connection, a gate at every network write, bounded HTTP/gzip decoding and
@@ -1706,14 +1712,31 @@ while retaining a refused settlement. Container, anonymous volume and socket-dir
 are observed before the receipt passes. Nodes and services are invoked explicitly; queue,
 dispatcher, events and model remain controlled adapters.
 
+A separate opt-in Scavenger3 / `scavenger.observe_market@2` application now fixes one Bazoš PC
+RSS locator and a model-free title/link projection. Its selected PostgreSQL/ASGI/native-worker test
+parks and resumes the actual Graph through Core consent, then crosses real isolated DNS/TLS and
+the fixed RSS child to a committed whole field. Read, literal filtering and identical admission
+replay cause no further source request; no Bridge Session or model lease is created. Other
+PostgreSQL cases cover exact terminal deletion/tombstones, lost commit acknowledgement, current
+access changes, unknown claim custody, private driver failures, delayed exact retention replay
+and cancellation withdrawing pending review. Queue publication uses a controlled port; unknown
+custody is injected through the real store. This proves a synthetic development combination,
+not public Bazoš contact, a SAQ worker process, whole-process restart or installed operation.
+
+The generated Altar application uses current protected reads and the existing native consent
+card. It preserves uncertain action identities, freezes identical admission replay bodies, fences
+stale selection responses and clears protected state on access refusal. Escaped item locators
+remain inert. Component/transport tests and a desktop synthetic-browser inspection cover these
+controls and keyboard access to the table; no Android or cross-engine qualification follows.
+
 **Boundary — Not yet:** No SearXNG or Crawl4AI Rune/adapter, general Scout provider store,
 effect-scoped Agent tool, download quarantine, website authentication/session custody, or Smith
 ingestion path ships. No Search engine has passed qualification. The transport/extraction proof
 uses a synthetic audit gate; the additional current-authority network proof uses fixture admission
 data. The composed receipt adds real PostgreSQL and extraction but does not exercise HTTP routing,
-a SAQ worker process, durable Graph checkpoint/resume or model inference. The separate worker test
-proves durable Graph continuation with substituted effects; no receipt joins that execution to the
-real network, extractor and inference service. These receipts do not prove a deployed combination
+a SAQ worker process, durable Graph checkpoint/resume or model inference. The separate page worker test proves durable Graph continuation with substituted effects.
+The model-free feed test joins its own selected HTTP/Graph execution to real isolated network and
+extraction; no receipt joins page execution to the real inference service. These receipts do not prove a deployed combination
 or arbitrary host compatibility. The first workflow accepts only its explicit public-page command, follows no
 redirects, and requires a qualified local extractor and exact local model. Budget reset and
 unknown-attempt reconciliation have no automatic operational path. Rendering remains separately
@@ -1722,6 +1745,9 @@ unimplemented outside the shared Pod.
 **Evidence**
 
 - **Topic:** [Scout](./sepulcher/extensions/scout.md)
+- **Source:** [Feed admission and protected API](https://github.com/hexanomicon/lychd/blob/main/src/lychd/interface/api/scavenger.py), [model-free Graph](https://github.com/hexanomicon/lychd/blob/main/src/lychd/agents/workflows/observe_market.py), [application custody](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/scavenger.py), and [Altar application](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/ScavengerView.svelte)
+- **Verification:** [Selected PostgreSQL and physical feed proof](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_scavenger_feed_pg.py), [protected HTTP and logging tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_scavenger.py), [driver privacy tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/db/test_scavenger_privacy.py), and [Altar lifecycle tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/scavenger/observation.test.ts)
+
 - **Law:** [Webcrawler](./adr/30-webcrawler.md)
 - **Source:** [Pure destination preflight](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/scout/destination.py), [fixed extraction worker](https://github.com/hexanomicon/lychd/blob/main/src/lychd/system/scout_worker.py), and [Linux supervisor](https://github.com/hexanomicon/lychd/blob/main/src/lychd/system/services/scout_extraction.py)
 - **Verification:** [Destination boundary tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/scout/test_destination.py), [worker tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/test_scout_worker.py), [supervision and receipt-freshness tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_scout_extraction.py), [live host proof](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_scout_extraction_runtime.py), and [maintained qualification receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/scout/linux-extraction-runtime.json)

@@ -64,9 +64,16 @@ export function loomOriginHref(path: string, runId: string, search = ""): `/loom
   return `/loom/${encodeURIComponent(pattern)}/${encodeURIComponent(revision)}?${query}`;
 }
 
-export function bridgeRunHref(path: string, runId: string): `/bridge/${string}` | null {
+export function bridgeRunHref(path: string | null, runId: string): `/bridge/${string}` | null {
+  if (path === null) return null;
   const ids = pathIds(path, "/bridge", 1);
   const run = navigationId(runId);
   const session = ids?.[0];
   return session && run ? `/bridge/${encodeURIComponent(session)}?run=${encodeURIComponent(run)}` : null;
+}
+
+/** Closed application navigation hint; the destination still performs a protected read. */
+export function scavengerRunHref(path: string | null | undefined): `/scavenger?observation=${string}` | null {
+  return path && /^\/scavenger\?observation=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(path)
+    ? path as `/scavenger?observation=${string}` : null;
 }

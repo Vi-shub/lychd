@@ -23,7 +23,7 @@ from pydantic_ai.models.openai import OpenAIChatModel, OpenAIResponsesModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
 from lychd.agents.router import Intent
-from lychd.agents.workflows import builtin_workflow_registry
+from lychd.agents.workflows import OBSERVE_MARKET, builtin_workflow_registry
 from lychd.config.runes.loader import ConfigLoader
 from lychd.config.runes.registry import RuneRegistry
 from lychd.config.settings import Settings
@@ -39,6 +39,7 @@ from lychd.extensions.host import AssembledExtensions, assemble_extensions
 from lychd.ghouls.runs import perform_run
 from lychd.interface.web.altar_services import build_altar_services
 from tests.runtime_guards import InertSoftActivationGuard
+from tests.scout_feed_fixtures import scenario as feed_scenario
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -461,7 +462,8 @@ def test_multiple_engine_endpoints_preserve_one_port_and_model_generation(
         configured.registry.load()
 
 
-def test_workflow_selection_and_multimodal_input_are_not_delivered_configuration(
+@pytest.mark.asyncio
+async def test_scavenger_selection_is_opt_in_while_generic_workflow_and_artifact_inputs_refuse(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr("lychd.config.settings.root.PATH_LYCHD_TOML", tmp_path / "lychd.toml")
@@ -470,7 +472,15 @@ def test_workflow_selection_and_multimodal_input_are_not_delivered_configuration
     with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
         Intent.model_validate({"session_id": "one", "prompt": "describe this", "artifacts": []})
     registry = builtin_workflow_registry()
-    assert {workflow.name for workflow in registry.all()} == {"bridge_chat", "delegated_rite"}
+    assert {workflow.name for workflow in registry.all()} == {"bridge_chat", "delegated_rite", OBSERVE_MARKET.name}
+    assert registry.get(OBSERVE_MARKET.name) is None
+    source = await feed_scenario()
+    settings = Settings.model_validate({"weaver": {"scavenger": {"revision": "3", "scout": source.binding.profile}}})
+    selected = builtin_workflow_registry(weaver=settings.weaver)
+    assert selected.get(OBSERVE_MARKET.name) is OBSERVE_MARKET
+    assert selected.is_active(OBSERVE_MARKET.name, "2")
+    assert selected.route(source.run.to_intent()) is OBSERVE_MARKET
+    assert selected.default is registry.default
 
 
 class _Queue:

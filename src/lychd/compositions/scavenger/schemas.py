@@ -7,10 +7,13 @@ import re
 from datetime import datetime
 from hashlib import sha256
 from typing import Annotated, Any, Literal, NoReturn, Self
+from unicodedata import unidata_version
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from lychd.domain.cortex.runs import RunStatus
+from lychd.domain.scout.attempts import AttemptStatus
 from lychd.domain.scout.destination import DestinationError, preflight_destination
 from lychd.domain.scout.extraction import ExtractedFeed
 
@@ -25,6 +28,7 @@ MAX_ITEMS = 100
 TITLE_BYTES = 1024
 LINK_BYTES = 4096
 FILTER_BYTES = 256
+REQUEST_BYTES = SEED_BYTES + 2048
 _CONTROLS = re.compile("[\x00-\x08\x0b-\x1f\x7f-\x9f]")
 type Digest = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
 type Nonnegative = Annotated[int, Field(strict=True, ge=0, le=2**63 - 1)]
@@ -212,12 +216,71 @@ class ObservationView(Record):
     observation_digest: Digest = Field(repr=False)
     field_digest: Digest = Field(repr=False)
     filter: LiteralFilter = Field(repr=False)
+    casefold_unicode_version: str
     visible_ordinals: tuple[int, ...]
     total_count: Nonnegative
     visible_count: Nonnegative
     unmatched_count: Nonnegative
     duplicate_count: Nonnegative
     missing_title_count: Nonnegative
+
+
+class ObserveMarketRequest(Record):
+    """One semantic request; source and execution profiles remain host-selected."""
+
+    request_id: UUID
+    seed: CampaignSeed = Field(repr=False)
+    initial_filter: LiteralFilter = Field(repr=False)
+
+
+class DeleteObservationRequest(Record):
+    """Exact retained request/result identity, never permission to erase it."""
+
+    request_digest: Digest
+    observation_digest: Digest | None
+
+
+class ObservationAdmission(Record):
+    """Confirmed Run reference; reading its private field is a separate application act."""
+
+    admission_id: UUID
+    run_id: UUID
+    run_status: RunStatus
+
+
+class ObservationDocument(Record):
+    """Current protected application projection, including explicit non-result states."""
+
+    admission_id: UUID
+    request_digest: Digest
+    status: Literal["reserved", "pending", "awaiting_consent", "observed", "unavailable", "unknown", "deleted"]
+    run_id: UUID | None
+    run_status: RunStatus | None
+    acquisition_status: AttemptStatus | None
+    terminal_disposition: Literal["pending", "unknown", "terminal"]
+    seed: CampaignSeed | None = Field(repr=False)
+    seed_document: str | None = Field(repr=False)
+    initial_filter: LiteralFilter | None = Field(repr=False)
+    observation: MarketObservation | None = Field(repr=False)
+    observation_digest: Digest | None
+    view: ObservationView | None = Field(repr=False)
+
+
+class ScavengerState(Record):
+    """Selected configuration and one current field; configuration is not readiness."""
+
+    configured: bool
+    profile: Literal["bazos-pc-title-link@1"] | None
+    current: ObservationDocument | None = Field(repr=False)
+
+
+class ObservationDeleted(Record):
+    """Confirmed controlled-payload deletion, without new retrieval authority."""
+
+    admission_id: UUID
+    request_digest: Digest
+    observation_digest: Digest | None
+    status: Literal["deleted"] = "deleted"
 
 
 def local_view(observation: MarketObservation, selection: LiteralFilter) -> ObservationView:
@@ -233,6 +296,7 @@ def local_view(observation: MarketObservation, selection: LiteralFilter) -> Obse
         observation_digest=observation.digest,
         field_digest=observation.field_digest,
         filter=selection,
+        casefold_unicode_version=unidata_version,
         visible_ordinals=visible,
         total_count=len(observation.items),
         visible_count=len(visible),
@@ -258,9 +322,8 @@ def title_link_field(feed: ExtractedFeed) -> tuple[ObservationItem, ...]:
     return tuple(result)
 
 
-def decode(value: bytes, *, observation: bool = False) -> CampaignSeed | MarketObservation:
-    """Bound stored local JSON and refuse ambiguous keys before model validation."""
-    limit = OBSERVATION_BYTES if observation else SEED_BYTES
+def _document(value: bytes, *, limit: int) -> Any:
+    """Refuse ambiguous or unbounded local JSON before a typed consumer sees it."""
     if type(value) is not bytes or len(value) > limit:
         _refuse("record_bytes")
 
@@ -281,4 +344,15 @@ def decode(value: bytes, *, observation: bool = False) -> CampaignSeed | MarketO
         )
     except (UnicodeError, ValueError, RecursionError):
         _refuse("invalid_json")
+    return data
+
+
+def decode(value: bytes, *, observation: bool = False) -> CampaignSeed | MarketObservation:
+    """Bound stored local JSON and refuse ambiguous keys before model validation."""
+    data = _document(value, limit=OBSERVATION_BYTES if observation else SEED_BYTES)
     return MarketObservation.model_validate(data) if observation else CampaignSeed.model_validate(data)
+
+
+def decode_request[T: Record](value: bytes, kind: type[T]) -> T:
+    """Decode a bounded transport body without dropping duplicate keys or nonconstants."""
+    return kind.model_validate(_document(value, limit=REQUEST_BYTES))

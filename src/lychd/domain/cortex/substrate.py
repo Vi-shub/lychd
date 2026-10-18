@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from lychd.agents.factory import AgentForge
     from lychd.agents.services import GrantPort, WorkflowServices
     from lychd.agents.workflows import WorkflowRegistry
+    from lychd.compositions.scavenger.ports import ScavengerWorkflowPort
     from lychd.domain.archive import ArchiveService, ArchiveSubject
     from lychd.domain.cortex.cancellation import RunEffectLifecycle
     from lychd.domain.cortex.context import ContextOrchestrator
@@ -31,6 +32,7 @@ if TYPE_CHECKING:
     from lychd.domain.cortex.ledger import RunLedger
     from lychd.domain.cortex.stasis import StasisStore
     from lychd.domain.delegation.ports import DelegatedAgentCoordinatorPort
+    from lychd.domain.scout.feed import ScoutFeedWorkflowPort
     from lychd.domain.scout.profile import ScoutWorkflowPort
     from lychd.domain.web.fragments import FragmentRegistry
 
@@ -90,6 +92,8 @@ class RunSubstrate:
     archive: ArchiveService | None = None
     archive_subject_resolver: Callable[[Sigil], ArchiveSubject] | None = None
     scout: ScoutWorkflowPort | None = None
+    feed_scout: ScoutFeedWorkflowPort | None = None
+    scavenger: ScavengerWorkflowPort | None = None
 
     def build_services(self, *, sigil: Sigil | None = None) -> WorkflowServices:
         """Assemble run services with the persisted caller identity.
@@ -116,6 +120,8 @@ class RunSubstrate:
             delegates=self.delegates,
             archive=self.archive,
             scout=self.scout,
+            feed_scout=self.feed_scout,
+            scavenger=self.scavenger,
             archive_subject_provider=(
                 (lambda: subject_resolver(sigil_provider())) if subject_resolver is not None else None
             ),

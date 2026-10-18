@@ -299,7 +299,8 @@ class OrbRunSummary(ClientContract):
     started_at: datetime | None
     finished_at: datetime | None
     error_present: bool
-    bridge_path: str
+    bridge_path: str | None
+    application_path: str | None = None
 
 
 class OrbRunPage(ClientContract):

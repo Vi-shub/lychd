@@ -417,6 +417,29 @@ cleanup. Inspect the generated `receipt.json`; its [sanitized maintained copy](t
 and freshness test bind the critical source and dependency identities. This does not repeat the
 extractor's separate adversarial qualification or establish general host compatibility.
 
+Scavenger's separate PostgreSQL observation proof targets the native application store and
+reference-only Run/Graph handoff. Use the already available disposable PostgreSQL fixture, not
+an installed profile database, with a fresh basetemp. This fixture also requires the observed
+loopback-only qualification namespace described above, including the host launcher's
+`LYCHD_SCOUT_HOST_NETNS` identity; run the whole command inside that namespace:
+
+```bash
+LYCHD_REQUIRE_SCAVENGER_PG_PROOF=1 make test M=container N=0 \
+  PYTEST_TARGETS=tests/integration/test_scavenger_feed_pg.py \
+  PYTEST_BASETEMP=/tmp/lychd-scavenger-feed-proof
+```
+
+The real acquisition case in that same file additionally requires
+`LYCHD_REQUIRE_SCOUT_COMPOSED_PROOF=1` and the reviewed
+`LYCHD_SCOUT_EXTRACTION_PROFILE=/absolute/path/runtime.json`. Run it inside the observed isolated
+DNS/TLS namespace described above, with the composed proof's cached PostgreSQL/image/socket
+prerequisites and a new basetemp. The namespace and PostgreSQL fixture must be observed; flags
+alone supply no evidence. Inspect terminal proof and cleanup results before accepting a receipt.
+The procedure does not assert a successful maintained receipt or installed cutover. Public
+Internet acquisition, a real SAQ worker process, process restart, model operation, recurring
+cadence, Search and mobile remain outside this qualification claim. Platform-agent construction
+of candidate source does not establish native LychD containment.
+
 The optional offline music engineering profile runs without the Vessel or a native Composition:
 
 ```bash

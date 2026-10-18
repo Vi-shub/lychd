@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Literal, cast
 from urllib.parse import quote
 
 from lychd.agents.workflows.base import pattern_snapshot_is_valid
+from lychd.domain.scout.feed import ScoutFeedBinding
 from lychd.domain.web.contracts import (
     DelegatedJobEventView,
     DelegatedJobSummary,
@@ -35,6 +36,22 @@ _CAPTURES = {"process_local", "durable_best_effort"}
 _MAX_DELEGATED_JOBS = 32
 _MAX_DELEGATED_EVENTS_PER_JOB = 64
 type CaptureClass = Literal["process_local", "durable_best_effort"]
+
+
+def bridge_context_path(session_id: str, workflow_name: str) -> str | None:
+    """Do not invent a Bridge Session for the application-only observation Pattern."""
+    return None if workflow_name == "scavenger.observe_market" else f"/bridge/{session_id}"
+
+
+def _application_path(run: RunRecord) -> str | None:
+    binding = run.admitted_scout
+    if (
+        run.source == "scavenger"
+        and run.workflow_name == "scavenger.observe_market"
+        and type(binding) is ScoutFeedBinding
+    ):
+        return f"/scavenger?observation={binding.consumer.application_admission_id}"
+    return None
 
 
 def _bridge_preference_view(run: RunRecord) -> OrbBridgePreferenceSummary | None:
@@ -115,7 +132,8 @@ async def build_orb_snapshot(
             started_at=run.started_at,
             finished_at=run.finished_at,
             error_present=run.error is not None,
-            bridge_path=f"/bridge/{run.session_id}",
+            bridge_path=bridge_context_path(run.session_id, run.workflow_name),
+            application_path=_application_path(run),
         ),
         pattern=PatternReference(
             pattern_id=pattern_id,

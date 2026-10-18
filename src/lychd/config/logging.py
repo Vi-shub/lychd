@@ -23,6 +23,9 @@ if TYPE_CHECKING:
     from lychd.config.settings.server import LoggingSettings
 
 
+PRIVATE_CONTENT_LOG_OPT = "lychd_private_content"
+
+
 @lru_cache
 def _is_tty() -> bool:
     """Return True if stdout or stderr is attached to a terminal."""
@@ -103,7 +106,8 @@ def _build_log_config(
             },
             "sqlalchemy.engine": {
                 "propagate": False,
-                "level": settings.sqlalchemy_level,
+                # DEBUG renders result rows even when hide_parameters is true.
+                "level": max(logging.INFO, settings.sqlalchemy_level),
                 "handlers": ["console"],
             },
             "sqlalchemy.pool": {
@@ -126,6 +130,7 @@ def _build_log_config(
 
     return StructlogConfig(
         middleware_logging_config=LoggingMiddlewareConfig(
+            exclude_opt_key=PRIVATE_CONTENT_LOG_OPT,
             request_log_fields=settings.request_fields,
             response_log_fields=settings.response_fields,
         ),

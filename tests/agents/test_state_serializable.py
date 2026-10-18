@@ -32,6 +32,7 @@ from lychd.agents.workflows import (
     BRIDGE_CHAT_SCOUT,
     DELEGATED_RITE,
     DELEGATED_RITE_BOUND,
+    OBSERVE_MARKET,
     builtin_workflow_registry,
 )
 from lychd.agents.workflows.base import (
@@ -50,7 +51,9 @@ from lychd.domain.cortex.graph import build_serial_graph
 from lychd.domain.cortex.runs import RunRecord, RunStatus
 from lychd.domain.cortex.stasis import DurableStasisPhylactery, InMemoryStasisStore, LiveStasisPhylactery
 from lychd.domain.delegation.routing import DelegatedRuntimeBinding
+from lychd.domain.scout.profile import ScoutWorkflowCode, ScoutWorkflowError
 from lychd.ghouls.runs import _phylactery_for
+from tests.scout_feed_fixtures import scenario as feed_scenario
 from tests.scout_fixtures import PROMPT, scout_binding
 
 pydantic_ai.models.ALLOW_MODEL_REQUESTS = False
@@ -60,7 +63,8 @@ def _intent() -> Intent:
     return Intent(session_id="s1", run_id="r1", prompt="hello", source="bridge")
 
 
-def test_every_workflow_state_round_trips() -> None:
+@pytest.mark.asyncio
+async def test_every_workflow_state_round_trips() -> None:
     for workflow in builtin_workflow_registry().all():
         intent = _intent()
         if workflow is DELEGATED_RITE_BOUND:
@@ -82,6 +86,12 @@ def test_every_workflow_state_round_trips() -> None:
             intent = intent.model_copy(
                 update={"prompt": PROMPT, "admitted_capability_key": "chat:offline", "admitted_scout": scout_binding()}
             )
+        if workflow is OBSERVE_MARKET:
+            with pytest.raises(ScoutWorkflowError) as refused:
+                workflow.make_state(intent)
+            assert refused.value.code is ScoutWorkflowCode.ADMISSION
+            source = await feed_scenario()
+            intent = source.run.to_intent()
         state = workflow.make_state(intent)
         # A live handle typed into State would break schema generation.
         state.model_json_schema()

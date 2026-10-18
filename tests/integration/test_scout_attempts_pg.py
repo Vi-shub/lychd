@@ -20,6 +20,7 @@ from lychd.db.scout import DbScoutAttemptStore
 from lychd.domain.scout.attempts import (
     NewScoutClaim,
     ScoutAllowance,
+    ScoutAnyPreparation,
     ScoutAttemptSnapshot,
     ScoutBudgetLimits,
     ScoutCommitUnknownError,
@@ -74,7 +75,8 @@ class _Authority:
 
     allow = True
 
-    def authorize(self, action: ScoutAction, preparation: ScoutPreparation) -> ScoutAuthorizationDecision:
+    def authorize(self, action: ScoutAction, preparation: ScoutAnyPreparation) -> ScoutAuthorizationDecision:
+        assert type(preparation) is ScoutPreparation
         return ScoutAuthorizationDecision(action=action, preparation_digest=preparation.digest, allowed=self.allow)
 
 
@@ -90,7 +92,8 @@ class _Completions:
             raise ScoutStoreError(message)
 
 
-def _limits(preparation: ScoutPreparation) -> ScoutBudgetLimits:
+def _limits(preparation: ScoutAnyPreparation) -> ScoutBudgetLimits:
+    assert type(preparation) is ScoutPreparation
     limit = preparation.allowance.add(preparation.allowance)
     return ScoutBudgetLimits(host=limit, binding=limit)
 

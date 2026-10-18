@@ -115,6 +115,31 @@ Settings carries neither source/prompt material nor a credential or authority gr
 application rechecks current credential-backed object/action policy at use. This typed selection
 does not introduce a general SDLC coordinator or portable Resolution Lock.
 
+### Exact finite Scavenger selection
+
+Optional `[weaver.scavenger]` selects Composition `revision = "3"` and one explicit `scout`
+configuration with `rss-public-feed@1` for the source-built `scavenger.observe_market@2` Pattern.
+Omission disables new Scavenger admission while retaining its exact registered Pattern for
+historical resolution. The selection requires PostgreSQL and the actual same-host startup
+credential owner; settings loading and assembly perform no acquisition, model readiness,
+reservation or migration. It accepts no capability key, model, arbitrary source locator,
+implementation name or fallback. A separately configured ordinary Bridge remains independent.
+
+The first native profile permits one active Scout binding in a fresh profile database. It cannot
+coexist with Bridge revision4's page binding. Existing page/RSS budget rows reject a changed
+binding without mutation; changing the selector never resets spent counters or unknown claims.
+The profile pins its exact native resolver/custody assertion, CA/extractor runtime, current policy,
+finite allowance/host ceilings and review expiry. These are declarations, not containment or
+source-publicness evidence. The exact advertised Bazoš PC feed and consumer projection remain
+owned by [Scout](30-webcrawler.md) and [Scavenger](../compositions/scavenger/market.md#finite-feed-observation).
+
+The complete supplied campaign seed and initial filter enter Scavenger's protected application
+admission, never Settings or a model prompt. Their immutable consumer/digests bind the held Run
+before publication. Current application read/filter/delete policy is distinct from acquisition
+consent and expiry; configuration cannot refresh a retained grant, refetch lost material, rewrite
+a committed field or resurrect a tombstone. Selected assembly, API/UI and deployed evidence remain
+owned by [State of Work](../state-of-the-work.md).
+
 ### Independent public Archive selection
 
 Optional `[archive]` selects `profile` independently of Bridge. Its profile retains the exact

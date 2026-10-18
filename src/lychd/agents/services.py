@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from contextlib import AbstractAsyncContextManager
 
     from lychd.agents.factory import AgentForge
+    from lychd.compositions.scavenger.ports import ScavengerWorkflowPort
     from lychd.domain.animation.capabilities import CapabilityGrant
     from lychd.domain.animation.schemas.capability_family import CapabilityFamily
     from lychd.domain.archive import ArchiveService, ArchiveSubject
@@ -27,6 +28,7 @@ if TYPE_CHECKING:
     from lychd.domain.cortex.priority import Priority
     from lychd.domain.delegation.ports import DelegatedAgentCoordinatorPort
     from lychd.domain.orchestration.schema import TransitionPlan
+    from lychd.domain.scout.feed import ScoutFeedWorkflowPort
     from lychd.domain.scout.profile import ScoutWorkflowPort
     from lychd.domain.web.fragments import FragmentRegistry
 
@@ -110,6 +112,8 @@ class WorkflowServices:
     archive: ArchiveService | None = None
     archive_subject_provider: Callable[[], ArchiveSubject] | None = None
     scout: ScoutWorkflowPort | None = None
+    feed_scout: ScoutFeedWorkflowPort | None = None
+    scavenger: ScavengerWorkflowPort | None = None
 
 
 def default_sigil() -> Sigil:

@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from lychd.domain.archive import ArchiveProfile  # runtime annotation for retained RunRecord serialization
 from lychd.domain.cortex.bridge_preference import BridgePreferenceDecision
 from lychd.domain.delegation.routing import DelegatedRuntimeBinding
+from lychd.domain.scout.feed import ScoutFeedBinding
 from lychd.domain.scout.profile import ScoutBinding
 
 if TYPE_CHECKING:
@@ -179,7 +180,7 @@ class RunRecord:
     admitted_bridge_preference: BridgePreferenceDecision | None = None
     admitted_archive: ArchiveProfile | None = None
     admitted_delegation: DelegatedRuntimeBinding | None = None
-    admitted_scout: ScoutBinding | None = None
+    admitted_scout: ScoutBinding | ScoutFeedBinding | None = None
     attempt: int = 0
     enqueue_seq: int = 0
     error: str | None = None

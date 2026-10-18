@@ -178,6 +178,13 @@
     {/each}
   </nav>
 
+  <details class="application-menu" {@attach manageAboutDisclosure}>
+    <summary>Applications</summary>
+    <nav aria-label="Applications">
+      <a href={resolve("/scavenger")} aria-current={page.url.pathname === "/scavenger" ? "page" : undefined}>Scavenger market</a>
+    </nav>
+  </details>
+
   <div class="spacer"></div>
   <a
     class="sigil"
@@ -203,3 +210,11 @@
     </div>
   {/each}
 </div>
+
+<style>
+  .application-menu { position: relative; flex-shrink: 0; }
+  summary { cursor: pointer; padding-block: .75rem; }
+  .application-menu nav { position: absolute; inset-block-start: 100%; inset-inline-start: 0; z-index: 20; min-width: 13rem; padding: .75rem; background: var(--color-obsidian); border: 1px solid var(--color-engraving); }
+  .application-menu a { display: block; padding: .5rem; }
+  :focus-visible { outline: 2px solid var(--color-rune); outline-offset: 3px; }
+</style>

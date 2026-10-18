@@ -16,15 +16,15 @@
   "source_fingerprints": {
     "src/lychd/domain/codex/local_access.py": "4617db35469740582fb947ff96a98d6c5b7c90a85af027c4b8f115c715d68de3",
     "src/lychd/domain/cortex/cancellation.py": "e98663a9cd73aa256842429b039c9ca554905255bd24b786ba70db56b910b2e6",
-    "src/lychd/domain/scout/attempts.py": "b446ad02a0ffed58648a92bfa3bbfa3c8cb9033a5e38786e9529e8a99e819a99",
-    "src/lychd/domain/scout/authority.py": "8c804d9f78c26dd7460738d09ce8e1b083497c8a88767204de5ed0513e70f3c7",
+    "src/lychd/domain/scout/attempts.py": "72f0db6d03a636438c2440bd8ee652516b1d79a0483efe5389c39582f294cc9d",
+    "src/lychd/domain/scout/authority.py": "866ff2674f2b16a3fe7fd2ffb46fe1542bea0a6726f32ff3df697193e310e40a",
     "src/lychd/domain/scout/destination.py": "5cd67b1be68397673b86982afe5b36f2d3fbf26ef8c64da4397dc15d0edf683f",
     "src/lychd/domain/scout/transport.py": "301869408a134330354419508d789de5a561d3d31f08564876a66714d4b3517e",
     "src/lychd/system/services/scout_dns.py": "9bb3842fd92f35c99331aa14bb46f1250be700de599679454c061e9fba40acc9",
     "src/lychd/system/services/scout_socket.py": "aa1e0cfefc62fb58368251ce479d3f1219f9ff3d5c976e72fe070689f2d88672",
-    "src/lychd/system/services/scout_http.py": "91ef0647841b5c9f35c7aa02e85ec3a2c06c5c86a9563e0e1f6a6f89f65dcefe",
-    "src/lychd/system/services/scout_fetch.py": "7b4102ecf198a796a88e8cedba74025f54937015385c11f34ba5a10ee336c14e",
-    "tests/scout_network_fixture.py": "07ef869bfc257e10b4a09b4d59ac0a5bcf9d0845ea8d7cf88de8994036c03868",
+    "src/lychd/system/services/scout_http.py": "1f88211dfa04ba0451c43ae592f0294213072246ad7f60228ff3bce016cc4df1",
+    "src/lychd/system/services/scout_fetch.py": "8e042bb9ac69a2446993d7debe0306f9fad18f12aee2077ba2e2092081280d08",
+    "tests/scout_network_fixture.py": "c33849a41d20c764874371161856af660de97db5f40878ee9054332aba4fd46a",
     "tests/integration/test_scout_authority_runtime.py": "f5323a8767813c4b812eaa412868cde9d9934d0e64f5ada15f95ac80fdc52278"
   },
   "checks": [

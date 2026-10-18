@@ -24,6 +24,7 @@ from lychd.db.models.karma import Karma
 from lychd.db.models.nexus import NexusSwapRequest
 from lychd.db.models.run import Run
 from lychd.db.models.run_delivery import RunDelivery
+from lychd.db.models.scavenger import ScavengerObservation
 from lychd.db.models.scout import ScoutAttempt, ScoutBudget
 from lychd.db.models.session import Session
 from lychd.db.models.soulstone import SoulstoneRecord
@@ -55,6 +56,7 @@ __all__ = [
     "Run",
     "RunCheckpoint",
     "RunDelivery",
+    "ScavengerObservation",
     "ScoutAttempt",
     "ScoutBudget",
     "Session",

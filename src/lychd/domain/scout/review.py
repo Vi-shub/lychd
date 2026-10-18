@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from lychd.domain.codex.schemas import NativeConsentBinding
-from lychd.domain.scout.attempts import ScoutPreparation, document_digest
+from lychd.domain.scout.attempts import ScoutAnyPreparation, ScoutFeedPreparation, ScoutPreparation, document_digest
+from lychd.domain.scout.feed_review import feed_review
 from lychd.domain.web.consent_reviews import NativeReviewDocument, ReviewFact
 
 
@@ -79,3 +80,13 @@ def page_review(preparation: ScoutPreparation) -> tuple[NativeConsentBinding, Na
         review_digest=document.digest,
     )
     return binding, document
+
+
+def scout_review(preparation: ScoutAnyPreparation) -> tuple[NativeConsentBinding, NativeReviewDocument]:
+    """Select by the decoded preparation class; never regenerate an old page as feed."""
+    if type(preparation) is ScoutPreparation:
+        return page_review(preparation)
+    if type(preparation) is ScoutFeedPreparation:
+        return feed_review(preparation)
+    message = "Scout review preparation differs."
+    raise ValueError(message)

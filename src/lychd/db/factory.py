@@ -53,10 +53,11 @@ def database_saq_dsn(settings: DatabaseSettings, *, runtime: bool = False) -> st
 
 
 def create_db_engine(settings: DatabaseSettings, *, runtime: bool = False) -> AsyncEngine:
-    """Create the shared SQLAlchemy engine with the configured PostgreSQL pool."""
+    """Create the configured pool with private SQL parameter diagnostics suppressed."""
     engine = create_async_engine(
         url=database_url(settings, runtime=runtime),
         echo=settings.echo,
+        hide_parameters=True,
         echo_pool=settings.echo_pool,
         max_overflow=settings.max_overflow,
         pool_size=settings.pool_size,

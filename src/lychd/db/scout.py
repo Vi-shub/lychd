@@ -29,21 +29,24 @@ from lychd.domain.scout.attempts import (
     AttemptStatus,
     NewScoutClaim,
     ScoutAllowance,
+    ScoutAnyPreparation,
     ScoutAttemptSnapshot,
     ScoutBudgetLimits,
     ScoutCommitUnknownError,
     ScoutConflictError,
-    ScoutPreparation,
+    ScoutFeedPreparation,
     ScoutRunBinding,
     ScoutSettlement,
     ScoutSettlementVerifier,
     ScoutStoreAuthorizer,
     ScoutStoreError,
+    decode_scout_preparation,
     document_digest,
 )
 from lychd.domain.scout.authority import ScoutAction, ScoutAuthorizationDecision
+from lychd.domain.scout.feed import ScoutFeedBinding
 from lychd.domain.scout.profile import ScoutBinding
-from lychd.domain.scout.review import page_review
+from lychd.domain.scout.review import scout_review
 from lychd.domain.web.consent_reviews import NativeReviewDocument
 
 _TOOL = "scout.fetch_extract"
@@ -76,9 +79,9 @@ def _review_digest(encoded: bytes) -> str:
 
 def _snapshot(row: ScoutAttempt) -> ScoutAttemptSnapshot:
     try:
-        preparation = ScoutPreparation.model_validate_json(row.preparation_bytes)
+        preparation = decode_scout_preparation(row.preparation_bytes)
         binding = decode_native_binding(row.native_binding)
-        expected_binding, expected_review = page_review(preparation)
+        expected_binding, expected_review = scout_review(preparation)
         if (
             preparation.canonical_bytes() != row.preparation_bytes
             or preparation.digest != row.preparation_digest
@@ -128,7 +131,7 @@ def _set_counters(row: ScoutBudget, suffix: str, value: ScoutAllowance) -> None:
         setattr(row, name + suffix, getattr(value, name))
 
 
-def _validate_run(run: Run | None, preparation: ScoutPreparation) -> None:
+def _validate_run(run: Run | None, preparation: ScoutAnyPreparation) -> None:
     if (
         run is None
         or run.id != preparation.run_id
@@ -140,7 +143,19 @@ def _validate_run(run: Run | None, preparation: ScoutPreparation) -> None:
     ):
         raise _conflict()
     try:
-        admitted = ScoutBinding.model_validate(run.intent.get("admitted_scout"))
+        if type(preparation) is ScoutFeedPreparation:
+            admitted = ScoutFeedBinding.model_validate(run.intent.get("admitted_scout"))
+            if (
+                run.capability_key is not None
+                or run.source != "scavenger"
+                or run.pattern_manifest.get("key") != preparation.consumer.pattern
+                or run.pattern_manifest.get("revision") != preparation.consumer.pattern_revision
+                or admitted.consumer != preparation.consumer
+                or admitted.expires_at != preparation.expires_at
+            ):
+                raise _conflict()
+        else:
+            admitted = ScoutBinding.model_validate(run.intent.get("admitted_scout"))
         profile = admitted.profile
         if (
             admitted.request_id != preparation.request_id
@@ -177,7 +192,7 @@ class DbScoutAttemptStore:
         self._limits = budget_limits
         self._settlement_verifier = settlement_verifier
 
-    def _authorize(self, preparation: ScoutPreparation, *actions: ScoutAction) -> None:
+    def _authorize(self, preparation: ScoutAnyPreparation, *actions: ScoutAction) -> None:
         for action in actions:
             decision = self._authorizer.authorize(action, preparation)
             if (
@@ -189,7 +204,9 @@ class DbScoutAttemptStore:
                 message = "Scout current authority refused."
                 raise ScoutStoreError(message)
 
-    async def _budgets(self, session: AsyncSession, preparation: ScoutPreparation) -> tuple[ScoutBudget, ScoutBudget]:
+    async def _budgets(
+        self, session: AsyncSession, preparation: ScoutAnyPreparation
+    ) -> tuple[ScoutBudget, ScoutBudget]:
         configuration = document_digest(
             {
                 "limits": self._limits.digest,
@@ -212,7 +229,7 @@ class DbScoutAttemptStore:
             rows.append(row)
         return rows[0], rows[1]
 
-    async def _delivery(self, session: AsyncSession, preparation: ScoutPreparation, enqueue_seq: int) -> None:
+    async def _delivery(self, session: AsyncSession, preparation: ScoutAnyPreparation, enqueue_seq: int) -> None:
         run = await session.scalar(select(Run).where(Run.id == preparation.run_id).with_for_update())
         _validate_run(run, preparation)
         if run is None or run.status != "running" or run.enqueue_seq != enqueue_seq:
@@ -265,10 +282,10 @@ class DbScoutAttemptStore:
             return _snapshot(row)
 
     async def prepare(
-        self, preparation: ScoutPreparation, native_binding: NativeConsentBinding, review_bytes: bytes
+        self, preparation: ScoutAnyPreparation, native_binding: NativeConsentBinding, review_bytes: bytes
     ) -> ScoutAttemptSnapshot:
         """Atomically retain one exact preparation and native review Consent."""
-        expected_binding, expected_review = page_review(preparation)
+        expected_binding, expected_review = scout_review(preparation)
         if (
             native_binding != expected_binding
             or review_bytes != expected_review.canonical_bytes()
