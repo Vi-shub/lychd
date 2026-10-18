@@ -105,9 +105,10 @@ admission; an idle loop cannot manufacture a new allowance. Retaining prior entr
 needs the ordinary custody owner, not a private cache hidden in an Agent's history.
 
 The selected Altar presents source/time, coverage, whole-field counts, local filters and distinct
-new-observation/deletion actions. State records its actual synthetic-browser and native API
-evidence separately; an ordinary authenticated retained-field browser journey remains open. A
-new fetch and a local re-filter must remain distinguishable.
+new-observation/deletion actions. State records the separate synthetic-browser, native API and
+[dated authenticated retained-field browser evidence](../../state-of-the-work.md#scout-web-acquisition).
+That finite functional observation does not establish a persistent deployment or hostile-browser
+safety. A new fetch and a local re-filter must remain distinguishable.
 
 
 ## SearXNG transport cut — 18 October 2026 {#searxng-transport-cut}
@@ -150,3 +151,30 @@ qualify one exact engine and response wrapper, and retain query-bearing diagnost
 evidence. The [accepted Search contract](../../adr/30-webcrawler.md#searxng-search-contract)
 already owns these requirements. A working JSON endpoint or this offline prototype is not Search
 delivery and cannot reset the retained feed's spent budget.
+
+
+## Full service fixture: context must cross the dispatcher
+
+A separate [dated local observation](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/scout/searxng-service-fixture-2026-10-18.json)
+now exercises the complete pinned upstream web application, not just its processor. Every case
+actually checks authentication and invalid method/input refusals before accepting one fixed query.
+The original dispatcher loses the host-exchange context: the baseline refuses before exchange or
+parser invocation. A narrow `copy_context` prototype crosses the real dispatch thread and asyncio
+loop, sends one host-sealed POST through pinned TLS to an isolated fixture, and returns two exact
+ordered title/snippet/locator observations through the real DuckDuckGo parser and JSON encoder.
+A separately admitted HTTP 303 response refuses before parsing and causes no follow-up request.
+
+Bootstrap requires the complete pinned defaults, removal of every default engine before adding
+the sole selected engine, explicit empty plugin replacement and an actual Preferences check
+before readiness. Earlier unsupported-CLI and incomplete-default attempts remain failed.
+All three later cases have independent process/thread, unit, cgroup, socket and key closure.
+Actual stderr still reports favicon, limiter and Unix-socket/IP diagnostics; no source IP is
+invented. The narrow entropy-device bind permits read and write, although the experiment writes
+no device bytes. IPv6 and persistent service reuse remain unqualified.
+
+This privately isolated prototype is not shipped Core code, a live-engine receipt or native
+Search. Production still needs Search-specific preparation and current disclosure/final-byte
+admission, a receiving normalizer, admitted lifecycle and a permanent allowance transition that
+preserves old counters and unknown reservations. A fresh database cannot manufacture a reset
+for an already admitted host. The existing finite RSS route remains independently useful for
+Bazoš; it does not need this service.

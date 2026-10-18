@@ -1,0 +1,156 @@
+{
+  "schema": "lychd.scout.searxng-service-fixture-observation.v1",
+  "upstream_revision": "1c10abe2d3e4ab7ddcc4e9da1a7d07dc7ca7f8f4",
+  "source_base_revision": "3bf598d9189831994d4c057927b2588ed53127e0",
+  "profile": {
+    "runtime": "CPython 3.13.12 / Linux x86-64 / Bubblewrap 0.12.0",
+    "one_use_per_service_child": true,
+    "actual_upstream_webapp_dispatch_asyncio_processor_and_DuckDuckGo_parser": true,
+    "authentication": "fresh bounded bearer on owned AF_UNIX HTTP listener; no token retained",
+    "direct_service_egress": "Network namespace denies direct service contact; the host cut supplies the pinned fixture TLS exchange.",
+    "query_output": "fixed one-engine fixture only; no native normalizer",
+    "full_upstream_defaults_merged": true,
+    "all_default_engines_removed_before_adding_sole_profile": true,
+    "default_plugins_replaced_with_empty_set": true,
+    "actual_preferences_and_effective_profile_checked_before_readiness": true,
+    "single_entropy_device": "explicit /dev/urandom bind permits read/write; experiment writes no bytes to it",
+    "IPv6_qualified": false
+  },
+  "observations": [
+    {
+      "case": "baseline",
+      "observed_at": "2026-10-18T10:23:12.547035+00:00",
+      "outer_elapsed_seconds": 1.9325715000741184,
+      "ingress": {
+        "accepted_status": 502,
+        "body": {
+          "error": "refused"
+        },
+        "control_statuses": [
+          401,
+          401,
+          405,
+          400,
+          400
+        ]
+      },
+      "terminal": {
+        "accepted": 1,
+        "code": "missing_exchange",
+        "dispatch_threads_count": 1,
+        "exchanges": 0,
+        "parser_calls": 0
+      },
+      "fixture_HTTP_bytes": 0,
+      "captured_PID_TID_start_identities_independently_absent": 4,
+      "owned_unit_cgroup_entry_socket_and_key_closed": true,
+      "provenance_sha256": {
+        "inner_result": "d840f8b31fe1507e5ee3d90a81fa0548dae7be9de34324b8b143ec2ed58bfbbc",
+        "outer_result": "5f465e259bf9fcf6c13b8876aa1f91fd8648719c55c8ecc44741540411c20463",
+        "Root_adoption": "18697ba4f1a8b5d37137e55eee2da0f2212c62d9b7383384b8a15f7b0ba30ab8"
+      }
+    },
+    {
+      "case": "positive",
+      "observed_at": "2026-10-18T10:24:24.291907+00:00",
+      "outer_elapsed_seconds": 1.9156066440045834,
+      "ingress": {
+        "accepted_status": 200,
+        "body": {
+          "coverage": "no_reported_failure",
+          "native_normalizer": false,
+          "observations": [
+            {
+              "engine_claim": "duckduckgo",
+              "normalized_locator": null,
+              "original_locator": "https://example.test/docs/alpha?keep=1",
+              "rank": 1,
+              "snippet": "First operator summary.",
+              "title": "Alpha operator guide"
+            },
+            {
+              "engine_claim": "duckduckgo",
+              "normalized_locator": null,
+              "original_locator": "https://example.test/docs/beta",
+              "rank": 2,
+              "snippet": "Second summary.",
+              "title": "Beta reference"
+            }
+          ],
+          "omissions": [
+            "answers",
+            "corrections",
+            "infoboxes",
+            "suggestions",
+            "extra_links"
+          ],
+          "omitted_answers": 1
+        },
+        "control_statuses": [
+          401,
+          401,
+          405,
+          400,
+          400
+        ]
+      },
+      "terminal": {
+        "accepted": 1,
+        "code": "ok",
+        "dispatch_threads_count": 1,
+        "exchanges": 1,
+        "parser_calls": 1
+      },
+      "fixture_HTTP_bytes": 439,
+      "captured_PID_TID_start_identities_independently_absent": 5,
+      "owned_unit_cgroup_entry_socket_and_key_closed": true,
+      "provenance_sha256": {
+        "inner_result": "aafbce2d9fdc6e3de7f2dff54261d0a710fe37a17edd7826b903d6cdf9396ed1",
+        "outer_result": "38826b31a131dd4079e8b06865cd9ef73308922620a74f050ee3baeefc040f1e",
+        "Root_adoption": "3bd5ae55dcc650f34f4798def3805b3d5cd3ba3fc8965484363cbfd0260fbe86"
+      }
+    },
+    {
+      "case": "redirect",
+      "observed_at": "2026-10-18T10:25:30.793210+00:00",
+      "outer_elapsed_seconds": 1.890526492963545,
+      "ingress": {
+        "accepted_status": 502,
+        "body": {
+          "error": "refused"
+        },
+        "control_statuses": [
+          401,
+          401,
+          405,
+          400,
+          400
+        ]
+      },
+      "terminal": {
+        "accepted": 1,
+        "code": "redirect",
+        "dispatch_threads_count": 1,
+        "exchanges": 1,
+        "parser_calls": 0
+      },
+      "fixture_HTTP_bytes": 429,
+      "captured_PID_TID_start_identities_independently_absent": 5,
+      "owned_unit_cgroup_entry_socket_and_key_closed": true,
+      "provenance_sha256": {
+        "inner_result": "2c24b4bfbce6b6ab10217003bb7a4ec3a80160c488764918e6dbf642bbb25772",
+        "outer_result": "9167f24a170ec992b191736a81e52b8b98fef6918d087001194c23a1b05390ba",
+        "Root_adoption": "91d7bff5b1b4e1b0f3c66e888fee05c2b3ed371228caf429b5b3aed813b65b78"
+      }
+    }
+  ],
+  "controls": "Each occurrence observes HTTP 401, 401, 405, 400 and 400 before exactly one accepted request. The positive HTTP body canonically equals validated terminal output; redirect refuses before the parser, with no follow-up. Baseline proves uncarried context fails before exchange. No automatic retry or persistent-reuse qualification.",
+  "diagnostics": "Full actual stderr read: favicon-memory, absent limiter.toml and AF_UNIX-is-not-an-IP botdetection diagnostics remain. No invented sourceIP or clean-production-log claim.",
+  "provenance_sha256": {
+    "service_manifest": "0b68a7b580e691018dfdf0d6c24d260adca605c9cd5c0a65039999be442ce22f",
+    "worker": "048cac8a840ef7b58b93b2d1c17ce09f069082342ba19ccdd50706316cc178c1",
+    "host": "4c73ab075945d96221138fd716f6aa0dfa780d9d1a554b5a1afda5d596b05e5e",
+    "settings": "586fdd3c5df5065aa1a80351310399023737bbd4b61813446c468e796a02e4ed"
+  },
+  "boundary": "Dated private one-use local fixture experiments, not shipped SearXNG service, live engine qualification, repeated service use, native SEARCH preparation/disclosure/final-byte authority, native normalization, production containment, model/database integration, installed cutover or allowance reset. Prior failed unsupported-CLI and incomplete-default attempts remain failed. No AGPL source, query secrets, credentials, private paths or host identities incorporated."
+}

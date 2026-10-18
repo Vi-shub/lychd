@@ -1,0 +1,163 @@
+{
+  "schema": "lychd.scavenger.native-altar-readback.v1",
+  "observed_at": "2026-10-18T11:18:34.186376+00:00",
+  "source_identity": {
+    "revision": "3bf598d9189831994d4c057927b2588ed53127e0",
+    "tree": "72edf3ec562c20d4b20cd07ffda83d88e31a5987",
+    "clean_snapshot": true,
+    "dirty_candidate": false,
+    "source_files": 1477,
+    "candidate_manifest_sha256": "0df9fcead7aced1357b5ed49a36dfe55125e85c995876112127aa45e37462ddd"
+  },
+  "profile": {
+    "application": "scavenger@3",
+    "native_entry": "ordinary CLI and in-process runs/rites SAQ workers",
+    "browser": "trusted-functional-operator-ui@1",
+    "node": "24.18.1",
+    "playwright": "1.62.1",
+    "chrome": "153.0.8010.52",
+    "chromium_sandbox": true,
+    "fresh_basic_authentication": true,
+    "HTTP_methods": [
+      "GET"
+    ],
+    "hard_time_seconds": 90,
+    "hard_stop_seconds": 5,
+    "hard_pids_max": 256,
+    "kill_mode": "control-group",
+    "restart": "no",
+    "no_new_privileges": true,
+    "cpu_memory_hard_limits_enforced": false
+  },
+  "observation": {
+    "outer_elapsed_seconds": 7.758691024966538,
+    "native_processes": 1,
+    "field_occurrences": 50,
+    "canonical_whole_live_documents_equal": true,
+    "rendered_rows_sha256": "f4910d6eb6ccfd62a81a3a208fafa6d3745aa81cb1d835a84c3c3b1d0d15c520",
+    "observation_digest": "18cea2112d80182b2e769ac48d8a378f4abd7b31c2572f06f1117d93ef4974ff",
+    "assertions": [
+      "protected_navigation_200",
+      "full_canonical_document_equal",
+      "50_whole_fields_source_order",
+      "inert_locators",
+      "acquired_time",
+      "coverage",
+      "counts",
+      "attribution",
+      "compiled_asset_hashes"
+    ],
+    "browser_GET_responses": 24,
+    "browser_denied_requests": 0,
+    "browser_errors": [],
+    "context_and_browser_closed": true,
+    "permanent_accounting_equal_at": [
+      "before-native",
+      "after-get",
+      "after-browser",
+      "after-native-close"
+    ],
+    "accounting": {
+      "attempts": 1,
+      "successful": 1,
+      "budgets": [
+        {
+          "scope": "binding",
+          "active_claims": 0,
+          "connects_used": 3,
+          "transmissions_used": 5,
+          "wire_bytes_used": 1876,
+          "connects_reserved": 0,
+          "transmissions_reserved": 0,
+          "wire_bytes_reserved": 0
+        },
+        {
+          "scope": "host",
+          "active_claims": 0,
+          "connects_used": 3,
+          "transmissions_used": 5,
+          "wire_bytes_used": 1876,
+          "connects_reserved": 0,
+          "transmissions_reserved": 0,
+          "wire_bytes_reserved": 0
+        }
+      ]
+    },
+    "submits": 0,
+    "consent_decisions": 0,
+    "filter_mutations": 0,
+    "new_acquisitions": 0,
+    "model_calls": 0,
+    "budget_reset": false
+  },
+  "log_observation": {
+    "complete_uncensored_bytes": 19915,
+    "captures": {
+      "readback-app-01.stdout": {
+        "bytes": 250,
+        "sha256": "315bcf9d7a0211cb12c2d8f80155745e16754a6e39df51c5723c28fbb81083d6",
+        "complete_uncensored_bytes_read": true,
+        "heartbeat_manager_crash_messages": 0,
+        "stopped_loop_before_future_completed_messages": 0,
+        "traceback_headers": 0,
+        "error_level_messages": 0,
+        "shutdown_grace_warnings": 0,
+        "stuck_cancellation_warnings": 0
+      },
+      "readback-app-01.stderr": {
+        "bytes": 15548,
+        "sha256": "433cfee703c7e9068cb45712f4dd44209d1aa60ec7b792b1fd46255025926901",
+        "complete_uncensored_bytes_read": true,
+        "heartbeat_manager_crash_messages": 0,
+        "stopped_loop_before_future_completed_messages": 0,
+        "traceback_headers": 1,
+        "error_level_messages": 1,
+        "shutdown_grace_warnings": 2,
+        "stuck_cancellation_warnings": 0
+      },
+      "browser-readback-04.stdout": {
+        "bytes": 4117,
+        "sha256": "ae02d479e5b95964d4f0b9da7e89a31a74221972024e7c097670ec91f182aa29",
+        "complete_uncensored_bytes_read": true,
+        "heartbeat_manager_crash_messages": 0,
+        "stopped_loop_before_future_completed_messages": 0,
+        "traceback_headers": 0,
+        "error_level_messages": 0,
+        "shutdown_grace_warnings": 0,
+        "stuck_cancellation_warnings": 0
+      },
+      "browser-readback-04.stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "complete_uncensored_bytes_read": true,
+        "heartbeat_manager_crash_messages": 0,
+        "stopped_loop_before_future_completed_messages": 0,
+        "traceback_headers": 0,
+        "error_level_messages": 0,
+        "shutdown_grace_warnings": 0,
+        "stuck_cancellation_warnings": 0
+      }
+    },
+    "interpretation": "One native error/traceback is the initial HTTP 401 local-operator Basic challenge followed by authenticated HTTP 200. Two SAQ zero-grace shutdown cancellation warnings and the embedded-server experimental warning remain. No heartbeat-thread crash or stuck-cancellation message occurs. This is not a no-error-log claim or broad clean-shutdown qualification."
+  },
+  "settlement": {
+    "independently_reconciled": true,
+    "captured_process_start_identities_absent": 17,
+    "owned_units_cgroups_process_groups_ports_container_absent": true,
+    "same_retained_volume_unattached": true,
+    "source_SDK_runtime_credential_metadata_installed_and_prior_resources_unchanged": true
+  },
+  "provenance_sha256": {
+    "coordinator": "02bee2077a5523549c17e3120cf131fd6543df7bca7b59b7f269358fc555743a",
+    "browser_harness": "8c0493f9a547fd914c8296a7101134614b71761eecf112dcca4cd847d41ff9b4",
+    "compiled_asset_manifest": "4f7e8873169c86d342220d2286ca139ac8c877eae73f37fc9e5fc833a7f56561",
+    "browser_terminal_receipt": "f75f1557c8109778c722fd8b11f4171045eb0e19e5d0346a0a5df7ad0055b547",
+    "external_settlement": "e7fb81e218d4469b7eb5cf9639016fbc9413e88f07bbfbbce53d450e5e1b2c8a",
+    "complete_log_assessment": "1aaf7b60bd45265975ff2e3332b6a128900220000f784a8184af3a3d9e31102c",
+    "Root_log_judgment": "eea36f2814eb7bc06b6b3779e03ad885884fd5b37806b5f82f8a530811e9ca91",
+    "private_adoption": "174c3f40893283926d3c2d8997a0f7a64e03a60068f13eae125dfe0ceaae722b",
+    "independent_outcome_review": "01324371a0f7f993cb7fa5ff800a247ba6c79d73e8b40f7743157ca9df360eca",
+    "scratch_cleanup": "3a1110f74e049bf5c6f7f6e0ea671a1fbdd00cb0b688a71c21ed63cc43a92416"
+  },
+  "boundary": "Dated functional temporary same-host operator UI observation only; no new acquisition, inference, filter mutation, installed cutover, persistent operating profile, active-work shutdown, Android/cross-engine/hostile-browser safety, Coffin/foreign-runtime containment, hard CPU/memory ceiling or autonomous improvement qualification. Historical failed acquisition and browser attempts remain failed. Private field bodies, credentials, paths and host identifiers omitted."
+}

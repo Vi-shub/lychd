@@ -1735,6 +1735,26 @@ stale selection responses and clears protected state on access refusal. Escaped 
 remain inert. Component/transport tests and a desktop synthetic-browser inspection cover these
 controls and keyboard access to the table; no Android or cross-engine qualification follows.
 
+A [dated authenticated native Altar readback](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/scout/native-altar-readback-2026-10-18.json)
+on clean source `3bf598d9` now joins the ordinary CLI, retained PostgreSQL field and compiled
+Altar in actual sandboxed Chrome. In approximately 7.76 seconds it verifies all 50 whole rows in
+source order, acquired time, coverage, counts, disclosed attribution and inert locators. Actual
+protected documents match the retained canonical baseline; four SQL accounting boundaries remain
+identical, with no submission, acquisition, filter mutation, inference or reset. Independent
+process/resource closure and complete log assessment pass. One error/traceback is the normal
+initial Basic-authentication 401 challenge; two SAQ zero-grace cancellation warnings remain.
+The explicitly trusted functional UI profile enforces time, stop and PID controls but qualifies
+no hard CPU/memory ceiling, hostile-browser safety, installed lifetime or broad clean shutdown.
+Earlier failed pilots remain failed.
+
+Separate [pinned SearXNG service fixtures](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/scout/searxng-service-fixture-2026-10-18.json)
+now cross actual authenticated local HTTP, the upstream web application, dispatch thread,
+asyncio processor, host-sealed fixture TLS and engine parser. The unmodified dispatch baseline
+refuses before exchange; a narrow context-propagation prototype returns two exact observations,
+while a separate 303 case refuses before parsing or a follow-up request. All three independently
+settle their owned resources. These are private one-use fixture experiments, not a shipped
+service, live-engine qualification, repeated-use profile or native Search authority.
+
 **Boundary — Not yet:** No SearXNG or Crawl4AI Rune/adapter, general Scout provider store,
 effect-scoped Agent tool, download quarantine, website authentication/session custody, or Smith
 ingestion path ships. No Search engine has passed qualification. The transport/extraction proof
@@ -1751,7 +1771,7 @@ unimplemented outside the shared Pod.
 **Evidence**
 
 - **Topic:** [Scout](./sepulcher/extensions/scout.md)
-- **Verification:** [Pinned SearXNG transport study](./sepulcher/extensions/scout-web-research.md#searxng-transport-cut) and its [dated offline observation](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/scout/searxng-transport-cut-2026-10-18.json) establish controlled upstream retry and private one-use transport-cut behavior only. No SearXNG service, engine, channel, physical egress boundary or native Search is qualified.
+- **Verification:** [Pinned SearXNG transport study](./sepulcher/extensions/scout-web-research.md#searxng-transport-cut) and its [dated offline observation](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/scout/searxng-transport-cut-2026-10-18.json) establish controlled upstream retry and private one-use transport-cut behavior only. The separate [local service-fixture observation](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/scout/searxng-service-fixture-2026-10-18.json) adds actual one-use authenticated service/parser evidence; no live engine, repeated service use, production egress boundary or native Search is qualified.
 - **Source:** [Feed admission and protected API](https://github.com/hexanomicon/lychd/blob/main/src/lychd/interface/api/scavenger.py), [model-free Graph](https://github.com/hexanomicon/lychd/blob/main/src/lychd/agents/workflows/observe_market.py), [application custody](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/scavenger.py), and [Altar application](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/ScavengerView.svelte)
 - **Verification:** [Dated ordinary native public feed and retained readback observation](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/scout/native-finite-feed-observation-2026-10-18.json) records successful finite custody, the failed original restart guard, separate fresh-process GET readback and unchanged permanent accounting; clean application shutdown remains unqualified.
 - **Verification:** [After-fix ordinary native retained readback](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/scout/native-queue-shutdown-readback-2026-10-18.json) binds the exact dirty source candidate, full captured log assessment, unchanged retained data/accounting and independent resource settlement. [Queue-plugin regressions](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_runtime_queue_plugin.py) exercise actual installed workers, sole retirement ownership and partial-startup/failed-stop containment with inert transports.
