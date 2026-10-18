@@ -171,6 +171,20 @@ license, release cadence, and process boundary. Small useful patterns may enter 
 [Assimilation](35-assimilation.md) with provenance and independent expression; entire engine
 catalogues and service internals do not.
 
+### Advertised feeds
+
+A known public feed may serve a purpose through one explicitly admitted Fetch and Extract
+passage before a search service or browser is needed. Publication of a feed proposes a locator;
+it grants no contact, parsing, custody or recurring polling authority. A feed needs its own
+qualified media and extraction profile: the current native HTML/plain-text profile does not
+admit XML. Bounded item locators are returned data, never permission to fetch each item. Local
+filtering and suitability belong to the consuming application; repeat watching needs current
+admission and finite standing policy.
+
+The [Scout source study](../sepulcher/extensions/scout-web-research.md) records a Bazoš RSS
+premise and the next qualification obligations. It is a candidate study, not an admitted feed
+profile or delivery evidence.
+
 ## SearXNG Search contract
 
 The designed `searxng-search@1` profile supports one query, one qualified engine, one result page,

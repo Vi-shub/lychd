@@ -132,6 +132,12 @@ normalization, and conformance tests around a separate service. It does not mean
 SearXNG engine catalogue or a crawler/browser implementation into Core. The full provider and
 mechanism policy belongs to [ADR 30](../../adr/30-webcrawler.md#first-party-mechanism-policy).
 
+For a known source, first compare its existing static page or advertised feed with the cost of
+a search service or browser. The [source acquisition study](scout-web-research.md) traces the
+Bazoš page/RSS premise and separates the existing HTML passage from the missing XML profile.
+It also records the next useful feed digest and its qualification boundary; no listing watcher
+ships through that research alone.
+
 The [first Search profile](../../adr/30-webcrawler.md#searxng-search-contract) is deliberately
 bounded to one qualified engine and one page. Self-hosting does not keep the query local: the
 engine receives an external disclosure. Scout must mediate those requests before transmission,
