@@ -272,6 +272,27 @@ Inspect all three case receipts and cleanup beneath basetemp. Confirm the exact 
 and its cgroup is absent or empty. Requested CPU or memory properties do not establish effective
 limits; inspect the actual cgroup files when those limits are required.
 
+A separate retained-only case selects
+`tests/integration/test_native_stop_systemd.py::test_retained_scavenger_native_vessel_stop_restart`.
+Keep `LYCHD_REQUIRE_SYSTEMD_PROOF=1`; additionally pass
+`LYCHD_REQUIRE_NATIVE_SCAVENGER_PROOF=1` and an absolute `LYCHD_NATIVE_SCAVENGER_PROFILE` through
+the delegated unit environment, with a fresh external basetemp and sufficient bounded runtime.
+Invoke the selected node directly with the already locked interpreter's `python -B -m pytest -n 0`;
+perform no environment synchronization during the occurrence. Pin the delegated working directory
+to the reviewed checkout and pass `PYTHONPATH="$PWD/src:$PWD"`, `PYTHONDONTWRITEBYTECODE=1` and
+`PYTHONNOUSERSITE=1` through the unit environment so parent imports use that exact source too.
+Admit exclusive external database/profile custody and zero acquisition/inference before launch.
+Read the closed twelve-string input contract in
+[the retained-input helper](tests/fixtures/web/native_scavenger_app.py) before preparing its private
+0600 JSON profile, 0600 credential/configuration/canonical files and real owner-only 0700
+application HOME/XDG roots. The operator owns database/schema/role readiness, the exact retained
+50-item terminal observation and complete five-table baseline, with no active work or reservations.
+The helper validates prerequisites; it does not initialize or repair them. PostgreSQL stays live
+and external throughout both native stops and must be settled separately while preserving its
+volume. Review complete native/manager logs and both stop/restart receipts, then reconcile owned
+processes and resources independently. Do not publish the profile, credentials or raw logs, or
+interpret an idle readback as dependency shutdown, installed lifetime or worker-execution proof.
+
 The separate Linux target-switch proof requires the installed Quadlet generator, an ordinary
 rootless Podman cache containing the exact Python image pinned in its test, and a responding user
 session bus. It exports that image without network access, then uses a private image store and

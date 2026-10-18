@@ -1,0 +1,144 @@
+{
+  "schema": "lychd.scavenger.native-owned-stop-restart.v1",
+  "observed_at": "2026-10-18T12:49:01.122476+00:00",
+  "source_identity": {
+    "base_revision": "b4f9e4053f58ae85e7010aae29b8c7f53bdb981b",
+    "base_tree": "2950d1315c771193671c9e5595dd1aee078edffd",
+    "dirty_candidate": true,
+    "source_files": 1480,
+    "manifest_sha256": "f1a66554b43e2556e937a6ab4e2fb9665bf54847d80f9e506bd653d5792cea48",
+    "candidate_files_sha256": {
+      "tests/integration/test_native_stop_systemd.py": "359f94c70210ea758c7fe265db9babe2fbb946ad72b005df7c34af08610872cf",
+      "tests/fixtures/web/native_scavenger_app.py": "a0f4cccbc8a6d9522642844bea4a793cc6bb5114cbf70e541d76954961942e7b"
+    },
+    "production_source_changed": false
+  },
+  "profile": {
+    "application": "scavenger@3",
+    "assembly": "unchanged production serve CLI/settings/factory/SAQ/lifespan",
+    "application_substitution": false,
+    "manager": "exclusive delegated private user manager and full user bus",
+    "native_catalog": "Vessel only; PostgreSQL externally owned and live through both stops",
+    "stop_protocol": "native-owned-lifespan@1",
+    "application_HOME_XDG_roots_explicit_and_pinned": true,
+    "private_bus_authority_preserved": true,
+    "bytecode_disabled_and_logs_unbuffered": true,
+    "hard_time_seconds": 330,
+    "hard_stop_seconds": 15,
+    "hard_pids_max": 128,
+    "kill_mode": "control-group",
+    "restart": "no",
+    "no_new_privileges": true,
+    "cpu_memory_hard_limits_enforced": false
+  },
+  "observation": {
+    "outer_elapsed_seconds": 9.527278941008262,
+    "pytest_seconds": 8.01,
+    "pytest": "1 passed; retained-only selection",
+    "distinct_production_boots": 2,
+    "successful_signed_stop_admissions": 2,
+    "owned_vessel_stops": 2,
+    "same_binding_generation_and_startup_bytes": true,
+    "exact_worktree_source_origins_verified_each_boot": true,
+    "RefUnit_held_during_stop_and_terminal_capture": true,
+    "terminal_fields_each_stop": {
+      "ExecMainCode": "1",
+      "ExecMainStatus": "0",
+      "Result": "success",
+      "ActiveState": "inactive",
+      "SubState": "dead",
+      "MainPID": "0",
+      "ControlPID": "0"
+    },
+    "controller_calls": 20,
+    "controller_failures_or_stderr": 0,
+    "whole_canonical_document_reads": 2,
+    "documents_equal_including_JSON_scalar_types": true,
+    "field_occurrences_each_boot": 50,
+    "accounting": {
+      "comparison": "all fields of all rows; finite canonical JSON without scalar-type coercion",
+      "boundaries": [
+        "before-test",
+        "before-start",
+        "first-start",
+        "first-stop",
+        "restart",
+        "final-stop",
+        "after-test"
+      ],
+      "row_counts": {
+        "run": 1,
+        "run_delivery": 2,
+        "scavenger_observation": 1,
+        "scout_attempt": 1,
+        "scout_budget": 2
+      },
+      "all_rows_equal": true,
+      "each_host_and_binding_budget": {
+        "connects_used": 3,
+        "transmissions_used": 5,
+        "outbound_payload_bytes_used": 1876,
+        "active_claims": 0,
+        "reserved_counters": 0
+      },
+      "interpretation": "hierarchical counters for the same passage; do not add them"
+    },
+    "submits": 0,
+    "consent_decisions": 0,
+    "filter_mutations": 0,
+    "new_acquisitions": 0,
+    "model_calls": 0,
+    "budget_reset": false,
+    "inert_controls": "three existing cases passed in earlier failed occurrence; not replayed after helper-only repair"
+  },
+  "log_observation": {
+    "independent_uncensored_logs_read": 3,
+    "complete_bytes_read": 14708,
+    "complete_lines_read": 151,
+    "native_bytes": 7692,
+    "native_lines": 36,
+    "native_sha256": "98fbe2ca0fccc8571c8f2a95b9a4430c417bfb2e720c6523f49b6ae23a4d8fda",
+    "native_boot_segment_bytes": [
+      3846,
+      3846
+    ],
+    "capture_saturated": false,
+    "native_tracebacks": 0,
+    "runtime_guard_errors": 0,
+    "embedded_server_experimental_warnings": 2,
+    "shutdown_task_cancellation_warnings": 4,
+    "private_manager_bus_reset_lines": 111,
+    "private_manager_system_bus_absent_lines": 1,
+    "private_manager_exit_target_absent_lines": 1,
+    "private_manager_exit": -9,
+    "clean_manager_exit_claim": false,
+    "interpretation": "held clean native exits do not imply warning-free shutdown or clean private-manager exit; individual warning causes not diagnosed"
+  },
+  "settlement": {
+    "independent_outcome_review": "bounded PASS",
+    "Root_external_closure_separate_from_outcome_review": true,
+    "captured_native_bus_manager_PID_start_identities_absent": 5,
+    "owned_process_groups_absent": 4,
+    "outer_unit_cgroup_application_listener_absent": true,
+    "external_PostgreSQL_exit": 0,
+    "captured_database_PID_start_identities_absent": 9,
+    "own_database_container_cgroup_listener_absent": true,
+    "same_retained_volume_unattached": true,
+    "source_selected_SDK_original_dirty_work_installed_services_prior_resource_custody_unchanged": true
+  },
+  "provenance_sha256": {
+    "native_receipt": "46e22137be656c9b73bf1ce21cebc40c9218a4bfe3e94c41c8d1d6a62ebe09c7",
+    "independent_outcome_review": "e7f4c1d44617ce49e007db346c91b62e19e0dbb62500936ce396bec50442e821",
+    "independent_outcome_evidence": "00d28a0b42b1338fa293b03807274f8e8b2b1d42a87f275f74a4af05267f8aba",
+    "Root_process_closure": "374cd5680ef36220d91721e3bde7a30cf964fdf0cbb8d8017b0ab861cf04f498",
+    "Root_database_settlement": "7108308e7eb0a05c009310854e16983b33b5c8ddef9bcd5bac0e899eb6fe045f",
+    "Root_final_custody": "9b55d8be196c44a9e7138d779753fa4cbb4879b1f77e8614d84245b3a5777412"
+  },
+  "limits": [
+    "production idle retained readback and native Vessel stop/restart only",
+    "external PostgreSQL is not a Scribe-owned dependency-stop proof",
+    "no public-start, installed-lifetime, active-work shutdown, worker-execution or autonomous-selection qualification",
+    "no GPU job, foreign-runtime containment or hard CPU/memory qualification",
+    "earlier failed occurrence and original acquisition pilot remain FAILED"
+  ]
+}

@@ -4,6 +4,9 @@ One finite proof runs required-close failure, clean closure, and reference loss.
 the actual generated native unit, CLI, owned lifespan, signed HTTP admission,
 Scribe ownership, inventory and controller. The explicit inert factory and local
 installation shim do not qualify an installed production graph or model body.
+The separate retained Scavenger case keeps Root-owned PostgreSQL external and
+qualifies only idle production publication and native Vessel stop/restart. It
+does not qualify public start, installed lifetime, or real dependency shutdown.
 No host user-manager fallback, installed units, or inherited environment is used.
 Receipts and credentials belong to an explicit basetemp outside the checkout.
 """
@@ -54,6 +57,7 @@ from lychd.system.services.lifecycle.lock import LifecycleLock
 from lychd.system.services.lifecycle.receipt import LifecycleReceiptStore
 from lychd.system.services.local_access import LocalAccess
 from lychd.system.services.scribe import ScribeService
+from tests.fixtures.web.native_scavenger_app import RetainedScavenger
 from tests.support.native_stop_bus import NativeStopBus, broker_binaries, prepare_bus
 from tests.support.systemd_transaction import (
     manager_environment,
@@ -72,10 +76,13 @@ pytestmark = pytest.mark.integration
 _VESSEL = "lychd-uncaged-vessel.service"
 _REPOSITORY = Path(__file__).resolve().parents[2]
 _FIXTURE = _REPOSITORY / "tests/fixtures/web/systemd_server_app.py"
+_SCAVENGER_FIXTURE = _REPOSITORY / "tests/fixtures/web/native_scavenger_app.py"
 _CONTROL_OUTER_SECONDS = 45.0
 _LISTENER_SECONDS = 10.0
 _OBSERVATION_SECONDS = 5.0
 _OUTPUT_BYTES = 65536
+_NATIVE_LOG_BYTES = 2 * 1024 * 1024
+_NATIVE_LOG_PREFIX = b"LYCHD_NATIVE_PROOF "
 _SOURCES = (
     "pyproject.toml",
     "uv.lock",
@@ -99,6 +106,7 @@ _SOURCES = (
     "tests/support/systemd_transaction.py",
     "tests/support/native_stop_bus.py",
     "tests/fixtures/web/systemd_server_app.py",
+    "tests/fixtures/web/native_scavenger_app.py",
     "tests/integration/test_native_stop_systemd.py",
 )
 _CLEAN_EXIT = {
@@ -368,7 +376,14 @@ def _inventory(scribe: ScribeService, manager: _Manager) -> OperatorInventorySer
 
 
 def _prepare(
-    root: Path, case: str, token: str, port: int, binaries: Mapping[str, Path], monkeypatch: pytest.MonkeyPatch
+    root: Path,
+    case: str,
+    token: str,
+    port: int,
+    binaries: Mapping[str, Path],
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    scavenger_profile: Path | None = None,
 ) -> tuple[ScribeService, dict[str, str], tuple[str, ...], dict[str, object], NativeStopBus]:
     generated, quadlet, harness = (root / name for name in ("generated", "quadlet", "harness"))
     installation = root / "installation"
@@ -391,9 +406,57 @@ def _prepare(
             "events_path": str(events),
         },
     )
+    if scavenger_profile is not None:
+        _write_json(config, {"profile_path": str(scavenger_profile), "port": port})
+    fixture = _SCAVENGER_FIXTURE if scavenger_profile is not None else _FIXTURE
     shim = installation / "bin/lychd"
     shim.write_text(
-        f"#!{sys.executable}\nimport runpy\nrunpy.run_path({_FIXTURE.as_posix()!r}, run_name='__main__', init_globals={{'CONFIG_PATH': {str(config)!r}}})\n",
+        "\n".join(
+            (
+                f"#!{sys.executable} -B",
+                "import importlib.util, json, os, resource, runpy, stat, sys",
+                "from pathlib import Path",
+                "sys.dont_write_bytecode = True",
+                "os.environ['PYTHONDONTWRITEBYTECODE'] = '1'",
+                f"source = Path({str(_REPOSITORY / 'src')!r}).resolve(strict=True)",
+                "assert 'lychd' not in sys.modules",
+                "sys.path.insert(0, str(source))",
+                "spec = importlib.util.find_spec('lychd')",
+                "assert spec is not None and spec.origin is not None",
+                "assert Path(spec.origin).resolve(strict=True) == source / 'lychd/__init__.py'",
+                "assert tuple(spec.submodule_search_locations or ()) == (str(source / 'lychd'),)",
+                "log_path = os.environ.get('LYCHD_NATIVE_PROOF_LOG')",
+                "if log_path:",
+                "    metadata = os.lstat(log_path)",
+                "    assert stat.S_ISREG(metadata.st_mode) and metadata.st_uid == os.getuid()",
+                "    assert stat.S_IMODE(metadata.st_mode) == 0o600",
+                "    fd = os.open(log_path, os.O_WRONLY | os.O_APPEND | os.O_NOFOLLOW)",
+                "    actual = os.fstat(fd)",
+                "    assert (actual.st_dev, actual.st_ino) == (metadata.st_dev, metadata.st_ino)",
+                "    os.dup2(fd, 1)",
+                "    os.dup2(fd, 2)",
+                "    os.close(fd)",
+                f"    resource.setrlimit(resource.RLIMIT_FSIZE, ({_NATIVE_LOG_BYTES}, {_NATIVE_LOG_BYTES}))",
+                "def event(name):",
+                "    if log_path:",
+                "        value = {'event': name, 'pid': os.getpid(), 'invocation_id': os.environ['INVOCATION_ID'], 'source_root': str(source), 'package_origin': str(Path(spec.origin).resolve(strict=True)), 'dont_write_bytecode': sys.dont_write_bytecode, 'bytecode_flag': bool(sys.flags.dont_write_bytecode), 'unbuffered': bool(getattr(sys.stdout, 'write_through', False))}",
+                "        payload = b'LYCHD_NATIVE_PROOF ' + json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False).encode() + b'\\n'",
+                "        assert os.write(1, payload) == len(payload)",
+                "event('boot-start')",
+                "try:",
+                f"    runpy.run_path({fixture.as_posix()!r}, run_name='__main__', init_globals={{'CONFIG_PATH': {str(config)!r}, 'SOURCE_ROOT': str(source)}})",
+                "finally:",
+                "    primary = sys.exc_info()[0]",
+                "    try:",
+                "        sys.stdout.flush()",
+                "        sys.stderr.flush()",
+                "        event('boot-end')",
+                "    except BaseException:",
+                "        if primary is None:",
+                "            raise",
+                "",
+            )
+        ),
         encoding="utf-8",
     )
     shim.chmod(0o700)
@@ -409,9 +472,33 @@ def _prepare(
         # Substitute the compiler's installation, never the process-global sys.prefix.
         patch.setattr(bind_compilation, "sys", SimpleNamespace(prefix=str(installation)))
         native = bind_compilation._compile_uncaged_vessel_unit(settings=settings)  # pyright: ignore[reportPrivateUsage]
+    native = native.model_copy(
+        update={
+            "environment": {
+                **native.environment,
+                "PYTHONDONTWRITEBYTECODE": "1",
+                "PYTHONUNBUFFERED": "1",
+            }
+        }
+    )
+    if scavenger_profile is not None:
+        log_path = root / "native-output.log"
+        log_path.touch(mode=0o600, exist_ok=False)
+        native = native.model_copy(
+            update={
+                "environment": {
+                    **native.environment,
+                    "LYCHD_NATIVE_PROOF_LOG": str(log_path),
+                }
+            }
+        )
     assert native.filename == _VESSEL
     assert native.exec_start == f"{systemd_executable_token(shim)} serve --host 127.0.0.1 --port {port}"
-    dependencies = tuple(f"lychd-proof-{token}-dependency-{name}.service" for name in ("a", "b"))
+    dependencies = (
+        ()
+        if scavenger_profile is not None
+        else tuple(f"lychd-proof-{token}-dependency-{name}.service" for name in ("a", "b"))
+    )
     plain_units = {_VESSEL: native.render()}
     for unit in dependencies:
         marker = root / f"{unit}.stopped"
@@ -657,11 +744,218 @@ def _assert_outcome(
         assert "fixture-close-complete" in names
 
 
-def _case(root: Path, case: str, binaries: Mapping[str, Path], monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: PLR0915, C901 - finite orchestration and cleanup stay explicit
+def _native_inputs(scribe: ScribeService, root: Path) -> dict[str, object]:
+    generation = scribe.inspect_owned_bindings().generation
+    assert generation
+    paths = (root / "generated" / _VESSEL, root / "installation/bin/lychd", root / "fixture.json")
+    return {
+        "generation": generation,
+        "startup_sha256": {str(path): _digest(path) for path in paths},
+        "source_sha256": {name: _digest(_REPOSITORY / name) for name in _SOURCES},
+    }
+
+
+def _require_native_inputs(scribe: ScribeService, root: Path, pinned: dict[str, object]) -> None:
+    assert _native_inputs(scribe, root) == pinned, "native binding/startup/source inputs changed"
+
+
+def _retain_native_log(root: Path, receipt: dict[str, Any]) -> bytes:
+    path = root / "native-output.log"
+    record: dict[str, object] = {"path": str(path), "limit_bytes": _NATIVE_LOG_BYTES, "complete": False}
+    receipt["native_log"] = record
+    try:
+        metadata = path.lstat()
+        record.update(
+            bytes=metadata.st_size,
+            device=metadata.st_dev,
+            inode=metadata.st_ino,
+            mode=oct(stat.S_IMODE(metadata.st_mode)),
+        )
+        assert stat.S_ISREG(metadata.st_mode)
+        assert metadata.st_uid == os.getuid()
+        assert stat.S_IMODE(metadata.st_mode) == 0o600
+        with path.open("rb") as stream:
+            content = stream.read(_NATIVE_LOG_BYTES + 1)
+        record["saturated"] = len(content) >= _NATIVE_LOG_BYTES
+        record["complete"] = len(content) == metadata.st_size and len(content) < _NATIVE_LOG_BYTES
+        assert record["complete"] is True, "native output capture saturated or changed; complete output unproved"
+        record["sha256"] = hashlib.sha256(content).hexdigest()
+    except BaseException as exc:
+        record["capture_error"] = type(exc).__name__
+        receipt["proof_success"] = False
+        raise
+    else:
+        return content
+
+
+def _record_native_boot(
+    root: Path,
+    receipt: dict[str, Any],
+    native: _Process,
+    invocation_id: str,
+) -> None:
+    content = _retain_native_log(root, receipt)
+    records = [
+        cast("dict[str, Any]", json.loads(line.removeprefix(_NATIVE_LOG_PREFIX)))
+        for line in content.splitlines()
+        if line.startswith(_NATIVE_LOG_PREFIX)
+    ]
+    boots = cast("list[dict[str, Any]]", receipt.setdefault("native_boots", []))
+    assert len(records) == (len(boots) + 1) * 3
+    current = records[-3:]
+    assert [record["event"] for record in current] == ["boot-start", "source-loaded", "boot-end"]
+    for record in current:
+        assert type(record["pid"]) is int
+        assert record["pid"] == native.pid
+        assert record["invocation_id"] == invocation_id
+        assert record["source_root"] == str((_REPOSITORY / "src").resolve(strict=True))
+        assert record["package_origin"] == str((_REPOSITORY / "src/lychd/__init__.py").resolve(strict=True))
+        assert record["dont_write_bytecode"] is True
+        assert record["bytecode_flag"] is True
+        assert record["unbuffered"] is True
+    assert current[1]["entrypoint_origin"] == str((_REPOSITORY / "src/lychd/__main__.py").resolve(strict=True))
+    previous_end = 0
+    if boots:
+        previous_end = cast("int", boots[-1]["log_end_offset"])
+        assert hashlib.sha256(content[:previous_end]).hexdigest() == boots[-1]["log_prefix_sha256"]
+        assert receipt["native_log"]["inode"] == boots[-1]["log_inode"]
+        assert receipt["native_log"]["device"] == boots[-1]["log_device"]
+    boots.append(
+        {
+            "process": asdict(native),
+            "InvocationID": invocation_id,
+            "source_events": current,
+            "log_start_offset": previous_end,
+            "log_end_offset": len(content),
+            "log_prefix_sha256": hashlib.sha256(content).hexdigest(),
+            "log_inode": receipt["native_log"]["inode"],
+            "log_device": receipt["native_log"]["device"],
+        }
+    )
+
+
+def _stop_native(
+    manager: _Manager,
+    scribe: ScribeService,
+    access: LocalAccess,
+    monkeypatch: pytest.MonkeyPatch,
+    receipt: dict[str, Any],
+    *,
+    expected_generation: str | None = None,
+) -> OperatorError | None:
+    """Reuse one signed owned stop, retaining exact exit evidence through settlement."""
+    assert all(not bus.connected for bus in manager.reference_buses)
+    manager.reference_buses.clear()
+    manager.calls = []
+    root, binaries, bus = manager.root, manager.binaries, manager.bus
+    inventory = _inventory(scribe, manager)
+    client = StopAdmissionClient(access_loader=lambda: access)
+    admissions: list[str] = []
+
+    def admit(generation: str) -> None:
+        assert expected_generation is None or generation == expected_generation
+        client.admit(generation)
+        admissions.append(generation)
+
+    reference_events: list[dict[str, object]] = []
+
+    @contextmanager
+    def hold_reference() -> Generator[stop_evidence.ExitReference]:
+        with stop_evidence.hold_native_exit(runtime_dir=bus.runtime) as reference:
+            manager.reference_held = True
+            reference_events.append({"event": "reference-held", "monotonic_ns": time.monotonic_ns()})
+            try:
+                yield reference
+            finally:
+                manager.reference_held = False
+                reference_events.append({"event": "reference-scope-exit", "monotonic_ns": time.monotonic_ns()})
+
+    new_bus = stop_evidence._new_bus  # pyright: ignore[reportPrivateUsage]
+
+    def capture_reference_bus(address: str) -> Any:
+        reference_bus = new_bus(address)
+        manager.reference_buses.append(reference_bus)
+        return reference_bus
+
+    control = OperatorControlService(
+        inventory=inventory,
+        targets=OperatorTargetResolver(inventory),
+        runner=manager,
+        systemctl_bin=str(binaries["systemctl"]),
+        lock_factory=lambda: LifecycleLock(root / "lifecycle.lock"),
+        stop_admission=admit,
+        exit_reference_factory=hold_reference,
+    )
+    error: OperatorError | None = None
+    manager.deadline = time.monotonic() + _CONTROL_OUTER_SECONDS
+    with monkeypatch.context() as patch, _control_deadline():
+        patch.setattr(stop_evidence, "_new_bus", capture_reference_bus)
+        try:
+            result = control.execute(OperatorAction.STOP, OperatorTarget.SYSTEM)
+            assert result.authority is VesselAuthority.VESSEL
+        except OperatorError as exc:
+            error = exc
+    manager.deadline = None
+    receipt["controller_calls"] = manager.calls
+    receipt["admissions"] = admissions
+    receipt["controller_error"] = str(error) if error else None
+    receipt["reference_events"] = reference_events
+    receipt["reference_loss"] = manager.loss_event
+    assert len(manager.reference_buses) == 1
+    reference_bus = manager.reference_buses[0]
+    assert not reference_bus.connected
+    reference_socket = reference_bus._sock  # pyright: ignore[reportPrivateUsage]
+    assert reference_socket is None or reference_socket.fileno() == -1
+    assert len(admissions) == 1
+    assert admissions[0] == scribe.inspect_owned_bindings().generation
+    return error
+
+
+def _ready_retained(manager: _Manager, retained: RetainedScavenger) -> None:
+    deadline = time.monotonic() + _LISTENER_SECONDS
+    with httpx.Client(trust_env=False, follow_redirects=False, timeout=0.5) as client:
+        while time.monotonic() < deadline:
+            manager.attest()
+            try:
+                document = retained.document(client)
+            except httpx.TransportError:
+                time.sleep(0.05)
+                continue
+            _write_json(manager.root / f"canonical-{time.monotonic_ns()}.json", document)
+            return
+    pytest.fail("production retained Scavenger did not publish in the existing listener window")
+
+
+def _assert_retained_stop(manager: _Manager, error: OperatorError | None) -> None:
+    assert error is None
+    stops = [
+        tuple(cast("tuple[str, ...]", call["argv"])[4:])
+        for call in manager.calls
+        if cast("tuple[str, ...]", call["argv"])[2] == "stop"
+    ]
+    assert stops == [(_VESSEL,)]
+    captured = [call for call in manager.calls if "terminal_fields" in call]
+    assert len(captured) == 1
+    assert captured[0]["terminal_fields"] == _CLEAN_EXIT
+    assert captured[0]["reference_held"] is True
+
+
+def _case(  # noqa: PLR0915, PLR0912, C901 - finite proof and cleanup stay explicit
+    root: Path,
+    case: str,
+    binaries: Mapping[str, Path],
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    scavenger_profile: Path | None = None,
+) -> None:
     root.mkdir(mode=0o700)
     token, port = uuid.uuid4().hex, _free_port()
-    scribe, environment, dependencies, metadata, bus = _prepare(root, case, token, port, binaries, monkeypatch)
+    scribe, environment, dependencies, metadata, bus = _prepare(
+        root, case, token, port, binaries, monkeypatch, scavenger_profile=scavenger_profile
+    )
     units = (_VESSEL, *dependencies)
+    pinned_inputs = _native_inputs(scribe, root) if scavenger_profile is not None else None
+    pinned_generation = cast("str", pinned_inputs["generation"]) if pinned_inputs is not None else None
     receipt: dict[str, Any] = {
         "case": case,
         "token": token,
@@ -690,12 +984,14 @@ def _case(root: Path, case: str, binaries: Mapping[str, Path], monkeypatch: pyte
         },
         **metadata,
         "proof_success": False,
+        "pinned_native_inputs": pinned_inputs,
     }
     manager: _Manager | None = None
     child: subprocess.Popen[str] | None = None
     native: _Process | None = None
     owned: dict[int, _Process] = {}
     control_group = ""
+    retained: RetainedScavenger | None = None
     with (root / "manager.log").open("w", encoding="utf-8") as log:
         try:
             outer = require_delegated_manager_cgroup(binaries["systemctl"])
@@ -759,15 +1055,32 @@ def _case(root: Path, case: str, binaries: Mapping[str, Path], monkeypatch: pyte
                 environment=environment,
             )
             receipt["full_bus"] = bus_snapshot
+            if scavenger_profile is not None:
+                # This is the first access to the external profile or any credential/DB.
+                manager.attest()
+                retained = RetainedScavenger.load(scavenger_profile, port=port)
+                _write_json(root / "accounting-before-start.json", retained.accounting())
+                receipt["qualification"] = {
+                    "production_idle_publication_and_native_vessel_stop_restart": True,
+                    "postgres_external_preserved": True,
+                    "full_native_log_review": "required trusted Root acceptance; not performed by this test",
+                    "public_start_installed_lifetime_and_dependency_shutdown": False,
+                }
             for pid in bus_snapshot["process_pids"]:
                 process = _process(pid)
                 assert process is not None
                 owned[pid] = process
+            if pinned_inputs is not None:
+                _require_native_inputs(scribe, root, pinned_inputs)
             started = run_systemctl(
                 binaries["systemctl"], environment, "start", "--job-mode=fail", *dependencies, _VESSEL, timeout=5.0
             )
             assert started.returncode == 0, started.stderr
-            _ready(manager, port, token)
+            if retained is None:
+                _ready(manager, port, token)
+            else:
+                _ready_retained(manager, retained)
+                _write_json(root / "accounting-first-start.json", retained.accounting())
             before = read_properties(systemctl=binaries["systemctl"], environment=environment, units=units)
             receipt["before"] = before
             assert all(snapshot["ActiveState"] == "active" for snapshot in before.values())
@@ -793,68 +1106,19 @@ def _case(root: Path, case: str, binaries: Mapping[str, Path], monkeypatch: pyte
                 name: before[_VESSEL][name]
                 for name in ("TimeoutStopUSec", "KillMode", "KillSignal", "SendSIGKILL", "SuccessExitStatus", "Restart")
             }
-            inventory = _inventory(scribe, manager)
-            access = LocalAccess(
-                url=f"http://127.0.0.1:{port}/", password=SecretStr((root / "credential").read_text(encoding="ascii"))
+            access = (
+                retained.access()
+                if retained is not None
+                else LocalAccess(
+                    url=f"http://127.0.0.1:{port}/",
+                    password=SecretStr((root / "credential").read_text(encoding="ascii")),
+                )
             )
-            client = StopAdmissionClient(access_loader=lambda: access)
-            admissions: list[str] = []
-
-            def admit(generation: str) -> None:
-                client.admit(generation)
-                admissions.append(generation)
-
-            reference_events: list[dict[str, object]] = []
-
-            @contextmanager
-            def hold_reference() -> Generator[stop_evidence.ExitReference]:
-                with stop_evidence.hold_native_exit(runtime_dir=bus.runtime) as reference:
-                    manager.reference_held = True
-                    reference_events.append({"event": "reference-held", "monotonic_ns": time.monotonic_ns()})
-                    try:
-                        yield reference
-                    finally:
-                        manager.reference_held = False
-                        reference_events.append({"event": "reference-scope-exit", "monotonic_ns": time.monotonic_ns()})
-
-            new_bus = stop_evidence._new_bus  # pyright: ignore[reportPrivateUsage]
-
-            def capture_reference_bus(address: str) -> Any:
-                reference_bus = new_bus(address)
-                manager.reference_buses.append(reference_bus)
-                return reference_bus
-
-            control = OperatorControlService(
-                inventory=inventory,
-                targets=OperatorTargetResolver(inventory),
-                runner=manager,
-                systemctl_bin=str(binaries["systemctl"]),
-                lock_factory=lambda: LifecycleLock(root / "lifecycle.lock"),
-                stop_admission=admit,
-                exit_reference_factory=hold_reference,
-            )
-            error: OperatorError | None = None
-            manager.deadline = time.monotonic() + _CONTROL_OUTER_SECONDS
-            with monkeypatch.context() as patch, _control_deadline():
-                patch.setattr(stop_evidence, "_new_bus", capture_reference_bus)
-                try:
-                    result = control.execute(OperatorAction.STOP, OperatorTarget.SYSTEM)
-                    assert result.authority is VesselAuthority.VESSEL
-                except OperatorError as exc:
-                    error = exc
-            manager.deadline = None
-            receipt["controller_calls"] = manager.calls
-            receipt["admissions"] = admissions
-            receipt["controller_error"] = str(error) if error else None
-            receipt["reference_events"] = reference_events
-            receipt["reference_loss"] = manager.loss_event
-            assert len(manager.reference_buses) == 1
-            reference_bus = manager.reference_buses[0]
-            assert not reference_bus.connected
-            reference_socket = reference_bus._sock  # pyright: ignore[reportPrivateUsage]
-            assert reference_socket is None or reference_socket.fileno() == -1
-            assert len(admissions) == 1
-            assert admissions[0] == scribe.inspect_owned_bindings().generation
+            if pinned_inputs is not None:
+                _require_native_inputs(scribe, root, pinned_inputs)
+            error = _stop_native(manager, scribe, access, monkeypatch, receipt, expected_generation=pinned_generation)
+            if pinned_inputs is not None:
+                _require_native_inputs(scribe, root, pinned_inputs)
             assert not wait_for_jobs(
                 systemctl=binaries["systemctl"],
                 environment=environment,
@@ -863,15 +1127,51 @@ def _case(root: Path, case: str, binaries: Mapping[str, Path], monkeypatch: pyte
             )
             after = read_properties(systemctl=binaries["systemctl"], environment=environment, units=units)
             receipt["after"] = after
-            _assert_outcome(
-                manager=manager,
-                root=root,
-                case=case,
-                dependencies=dependencies,
-                after=after,
-                error=error,
-                receipt=receipt,
-            )
+            if retained is None:
+                _assert_outcome(
+                    manager=manager,
+                    root=root,
+                    case=case,
+                    dependencies=dependencies,
+                    after=after,
+                    error=error,
+                    receipt=receipt,
+                )
+            else:
+                _assert_retained_stop(manager, error)
+                _record_native_boot(root, receipt, native, before[_VESSEL]["InvocationID"])
+                _write_json(root / "accounting-first-stop.json", retained.accounting())
+                first_native = native
+                assert not _same_process(first_native)
+                assert not _group(first_native.pgid)
+                assert _cgroup_members(control_group) == ()
+                receipt["first_stop"] = {
+                    key: receipt[key] for key in ("controller_calls", "admissions", "reference_events", "after")
+                }
+                assert pinned_inputs is not None
+                _require_native_inputs(scribe, root, pinned_inputs)
+                restarted = run_systemctl(
+                    binaries["systemctl"], environment, "start", "--job-mode=fail", _VESSEL, timeout=5.0
+                )
+                assert restarted.returncode == 0, restarted.stderr
+                _ready_retained(manager, retained)
+                restarted_units = read_properties(systemctl=binaries["systemctl"], environment=environment, units=units)
+                assert restarted_units[_VESSEL]["InvocationID"] != before[_VESSEL]["InvocationID"]
+                native = _capture_native(restarted_units[_VESSEL], owned, outer["ControlGroup"])
+                assert native.starttime != first_native.starttime or native.pid != first_native.pid
+                control_group = restarted_units[_VESSEL]["ControlGroup"]
+                _write_json(root / "accounting-restart.json", retained.accounting())
+                second: dict[str, Any] = {}
+                _require_native_inputs(scribe, root, pinned_inputs)
+                error = _stop_native(
+                    manager, scribe, access, monkeypatch, second, expected_generation=pinned_generation
+                )
+                _require_native_inputs(scribe, root, pinned_inputs)
+                _assert_retained_stop(manager, error)
+                _record_native_boot(root, receipt, native, restarted_units[_VESSEL]["InvocationID"])
+                assert receipt["admissions"] == second["admissions"] == [pinned_generation]
+                _write_json(root / "accounting-final-stop.json", retained.accounting())
+                receipt["second_stop"] = second
             time.sleep(0.3)
             stable = read_properties(systemctl=binaries["systemctl"], environment=environment, units=units)
             receipt["after_restart_observation"] = stable
@@ -883,6 +1183,9 @@ def _case(root: Path, case: str, binaries: Mapping[str, Path], monkeypatch: pyte
             assert _cgroup_members(control_group) == (), "native cgroup survived normal retirement"
             assert set(_outer_descendants(manager)) == {manager.process.pid, *bus_snapshot["process_pids"]}
             receipt["proof_success"] = True
+        except BaseException as exc:
+            receipt["primary_failure"] = {"type": type(exc).__name__}
+            raise
         finally:
             try:
                 if manager is not None:
@@ -894,10 +1197,16 @@ def _case(root: Path, case: str, binaries: Mapping[str, Path], monkeypatch: pyte
             finally:
                 # Keep diagnostics, generated bytes and receipts for review;
                 # destroy only the synthetic credential after process cleanup.
-                if receipt.get("cleanup", {}).get("success") is True:
-                    (root / "credential").unlink(missing_ok=True)
-                    shutil.rmtree(Path(environment["XDG_RUNTIME_DIR"]).parent.parent)
-                _write_json(root / "receipt.json", receipt)
+                try:
+                    if receipt.get("cleanup", {}).get("success") is True:
+                        (root / "credential").unlink(missing_ok=True)
+                        shutil.rmtree(Path(environment["XDG_RUNTIME_DIR"]).parent.parent)
+                finally:
+                    try:
+                        if scavenger_profile is not None:
+                            _retain_native_log(root, receipt)
+                    finally:
+                        _write_json(root / "receipt.json", receipt)
 
 
 def test_native_failed_clean_and_lost_reference_stop_under_private_systemd(
@@ -914,3 +1223,24 @@ def test_native_failed_clean_and_lost_reference_stop_under_private_systemd(
     _case(tmp_path / "01-close-failure", "close-failure", binaries, monkeypatch)
     _case(tmp_path / "02-clean", "clean", binaries, monkeypatch)
     _case(tmp_path / "03-reference-loss", "reference-loss", binaries, monkeypatch)
+
+
+def test_retained_scavenger_native_vessel_stop_restart(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Qualify idle production publication and native Vessel lifetime only.
+
+    Root independently admits exclusive external PostgreSQL/profile custody and
+    the no-acquisition/no-model effect boundary. PostgreSQL stays live/preserved;
+    existing inert cases separately own dependent-unit ordering/failure evidence.
+    """
+    if os.environ.get("LYCHD_REQUIRE_NATIVE_SCAVENGER_PROOF") != "1":
+        pytest.skip("retained native Scavenger requires explicit proof opt-in")
+    assert os.environ.get("LYCHD_REQUIRE_SYSTEMD_PROOF") == "1"
+    assert sys.platform == "linux"
+    assert not tmp_path.resolve().is_relative_to(_REPOSITORY)
+    assert tmp_path.resolve().is_relative_to(Path("/tmp"))  # noqa: S108 - admitted private proof workspace
+    profile = Path(os.environ["LYCHD_NATIVE_SCAVENGER_PROFILE"])
+    assert profile.is_absolute()
+    _case(tmp_path / "retained-scavenger", "clean", required_binaries(), monkeypatch, scavenger_profile=profile)

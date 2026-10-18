@@ -159,12 +159,22 @@ tests exercise the admission and reference ports without importing the applicati
 These manager cases use an explicit inert application and synthetic dependencies. The image
 entrypoint shares the runner, but no rebuilt image or caged TCP receipt is claimed.
 
+A separate [production retained Scavenger case](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/scout/native-owned-stop-restart-2026-10-18.json)
+now uses unchanged CLI assembly in that private manager: two distinct native boots, two real signed
+stops and held clean Vessel exit records within one pinned binding/startup generation. Both whole
+50-item documents and all seven rows across five tables remain identical at seven SQL boundaries.
+The retained-only occurrence passes in approximately 9.53 seconds; independent full-log review and
+external process/database settlement pass. PostgreSQL remains externally owned and live through
+both native stops. Four task-cancellation warnings remain; the private manager is finally killed
+(exit -9), so this does not establish clean manager exit. Earlier failed occurrences remain failed.
+
 **Boundary — Not yet:** Status omits full readiness and durable-run health; no run-operation command
 or authenticated Run submission route is delivered; active caged or mixed `stop` still refuses;
 deletion preserves objects whose creation provenance is not owned.
-Unknown unit or mount truth blocks instead of guessing. Native manager mechanism evidence does
-not qualify useful composed application work under that launcher. No maintained installed
-systemd/Podman lifecycle or GPU receipt exists.
+Unknown unit or mount truth blocks instead of guessing. The dated production case qualifies idle
+retained readback and native Vessel stop/restart only; active-work shutdown, execution of new work
+and installed operation remain unqualified. No maintained installed systemd/Podman lifecycle or
+GPU receipt exists.
 
 **Evidence**
 
@@ -1728,6 +1738,10 @@ An [ordinary native public-feed observation](https://github.com/hexanomicon/lych
 A later, separately admitted native process authenticated afresh and read the exact whole document from that same volume. Canonical JSON equality and accounting checks before startup, after GET and after process closure show no new acquisition or budget reset. Its owned resources were independently reconciled and the volume remains retained and unattached. Source577 still logged two heartbeat-manager shutdown failures: OS process closure therefore does not qualify clean application shutdown or retroactively pass the first pilot. This dated observation establishes finite acquisition and retained readback; installed Scavenger, recurring watching and autonomous work selection remain unfinished.
 
 A separate [after-fix ordinary native readback](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/scout/native-queue-shutdown-readback-2026-10-18.json) used an exact frozen dirty candidate based on `577105de`, with the application-owned queue plugin and no batched heartbeat manager. It preserved the same 50 occurrences and permanent accounting in approximately 4.45 seconds, without submission, acquisition or inference. Complete ordinary CLI logs contain zero heartbeat crashes, tracebacks or error messages; two SAQ zero-grace cancellation warnings remain recorded. Independent outer settlement passed. This closes the observed heartbeat-thread regression for an idle readback, while active-work shutdown and the original pilot restart remain unqualified.
+
+The separate [native owned-stop/restart case](#core-cli-rites) preserves the same field across
+two production boots and signed stops, with full-row accounting equality. It adds idle lifecycle
+evidence; it does not add another acquisition, recurring watching or automatic work selection.
 
 The generated Altar application uses current protected reads and the existing native consent
 card. It preserves uncertain action identities, freezes identical admission replay bodies, fences
