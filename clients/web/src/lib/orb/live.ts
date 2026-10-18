@@ -8,7 +8,8 @@ const evidenceSchema = z.object({
   subject_key: z.string().nullish(), phase: z.string().nullish(), occurrence_id: z.string().nullish(),
   transition_request_id: z.string().nullish(), nexus_path: z.string().nullish(),
   animator_name: z.string().nullish(), capability_family: z.string().nullish(),
-  model_id: z.string().nullish(), grant_id: z.string().nullish()
+  model_id: z.string().nullish(), grant_id: z.string().nullish(),
+  consent_id: z.string().max(128).regex(/^[A-Za-z0-9][A-Za-z0-9._~-]*$/).refine((id) => id.trim() === id).nullish()
 });
 const gapSchema = z.object({
   start_seq: z.number().int().nonnegative(), end_seq: z.number().int().nonnegative(),

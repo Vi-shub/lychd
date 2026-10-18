@@ -1339,6 +1339,8 @@ export interface components {
             capability_family?: string | null;
             /** @enum {string} */
             capture: "process_local" | "durable_best_effort";
+            /** @description Syntactic historical reference only; no current status, review, or authority. */
+            consent_id?: string | null;
             event_id: string;
             grant_id?: string | null;
             kind: string;

@@ -108,6 +108,58 @@ def test_selected_run_projects_exact_pattern_and_honest_gap(
     assert "Token deltas" in body["known_omissions"][0]
 
 
+@pytest.mark.parametrize(
+    ("data", "kind", "expected"),
+    [
+        (
+            json.dumps({"consent_id": "consent-a", "tool_name": "private tool", "args": {"secret": "private body"}}),
+            RunEventKind.CONSENT,
+            "consent-a",
+        ),
+        ("consent-legacy", RunEventKind.CONSENT, "consent-legacy"),
+        (json.dumps({"consent_id": "a" * 128}), RunEventKind.CONSENT, "a" * 128),
+        (json.dumps({"consent_id": "a" * 129}), RunEventKind.CONSENT, None),
+        (json.dumps({"consent_id": 123}), RunEventKind.CONSENT, None),
+        (json.dumps({"consent_id": None}), RunEventKind.CONSENT, None),
+        (json.dumps({"consent_id": []}), RunEventKind.CONSENT, None),
+        (json.dumps({"consent_id": ""}), RunEventKind.CONSENT, None),
+        (json.dumps({"consent_id": "../foreign?secret=private"}), RunEventKind.CONSENT, None),
+        ('{"consent_id": "consent-a"', RunEventKind.CONSENT, None),
+        ('["consent-a"]', RunEventKind.CONSENT, None),
+        ('"consent-a"', RunEventKind.CONSENT, None),
+        ("null", RunEventKind.CONSENT, None),
+        ("123", RunEventKind.CONSENT, None),
+        (json.dumps({"consent_id": "consent-a", "tool_name": "private" * 1000}), RunEventKind.CONSENT, None),
+        (json.dumps({"consent_id": "consent-a"}), RunEventKind.LOG, None),
+    ],
+)
+def test_historical_consent_reference_is_bounded_and_inert(
+    altar_client: TestClient[Litestar],
+    fake_services: SimpleNamespace,
+    data: str,
+    kind: RunEventKind,
+    expected: str | None,
+) -> None:
+    _seed(fake_services, "run-consent-reference")
+    asyncio.run(
+        fake_services.ledger.append_event(RunEvent(run_id="run-consent-reference", seq=4, kind=kind, data=data))
+    )
+    fake_services.consents.get = AsyncMock(side_effect=AssertionError("Orb must not resolve Consent owners"))
+
+    response = altar_client.get("/api/v1/orb/runs/run-consent-reference")
+
+    assert response.status_code == 200
+    record = response.json()["evidence"][-1]
+    assert record["consent_id"] == expected
+    assert record["summary"] == (
+        "Consent wait recorded." if kind is RunEventKind.CONSENT else "Log record captured (info)."
+    )
+    assert "private" not in response.text
+    assert "tool_name" not in record
+    assert "args" not in record
+    fake_services.consents.get.assert_not_called()
+
+
 def test_selected_run_uses_boot_catalogue_for_exactness(
     altar_client: TestClient[Litestar],
     fake_services: SimpleNamespace,

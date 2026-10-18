@@ -1689,6 +1689,19 @@
             ],
             "type": "string"
           },
+          "consent_id": {
+            "description": "Syntactic historical reference only; no current status, review, or authority.",
+            "maxLength": 128,
+            "minLength": 1,
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "event_id": {
             "type": "string"
           },

@@ -83,6 +83,8 @@
   data-fragment="bridge.consent"
   data-state={consent.state}
   data-run-id={consent.run_id}
+  data-consent-id={consent.id}
+  tabindex="-1"
   role="group"
   aria-label={consentLabel}
 >
@@ -164,6 +166,8 @@
 </section>
 
 <style>
+  .consent-card:focus-visible { outline: 2px solid var(--color-rune); outline-offset: 3px; }
+
   .native-review {
     min-width: 0;
     padding: 12px 16px;

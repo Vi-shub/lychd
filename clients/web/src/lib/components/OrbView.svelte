@@ -16,7 +16,7 @@
   import AnimatorRail from "./AnimatorRail.svelte";
   import { projectOrb, orbEvidenceNodeId, matchesOrbPattern, mergeOrbEvidence } from "$lib/graph/orb";
   import { listenToOrb, type OrbConnection } from "$lib/orb/live";
-  import { bridgeRunHref, loomOriginHref, scavengerRunHref } from "$lib/navigation/instruments";
+  import { bridgeConsentHref, bridgeRunHref, loomOriginHref, scavengerRunHref } from "$lib/navigation/instruments";
 
   type Evidence = OrbRunSnapshot["evidence"][number];
   type TimelineItem =
@@ -85,6 +85,9 @@
   let requestedJobId = $derived(page.url.searchParams.get("job"));
   let selectedEventId = $derived(requestedEventId);
   let selected = $derived(snapshot?.evidence.find((event) => event.event_id === selectedEventId) ?? null);
+  let selectedConsentHref = $derived(snapshot && selected?.kind === "consent" && selected.consent_id
+    ? bridgeConsentHref(snapshot.run.bridge_path, snapshot.run.run_id, selected.consent_id, selected.event_id)
+    : null);
   let selectionNote = $derived(snapshot && selectedEventId && !selected
     ? snapshot.has_more
       ? "The linked event is outside this loaded page. Load more to continue the search."
@@ -661,6 +664,10 @@
             <dt>station attempt (occurrence_id)</dt><dd class="glyph">{selected.occurrence_id ?? "No recorded attempt"}</dd>
             <dt>capture</dt><dd>{selected.capture.replaceAll("_", " ")}</dd>
           </dl>
+          {#if selectedConsentHref}
+            <a class="inspector-link" href={resolve(selectedConsentHref)}>Open exact consent in Bridge →</a>
+            <p class="inspector-copy">Historical reference; current availability is checked in Bridge.</p>
+          {/if}
           {#if selected.nexus_path}
             <a
               class="inspector-link"

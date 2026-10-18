@@ -120,6 +120,12 @@ manifest validates and equals the entire registered revision. The graph uses tha
 declared score when available. Its Run and selected-event query preserves the return destination; neither
 changes Pattern identity.
 
+A selected consent record with a retained reference offers **Open exact consent in Bridge**.
+The reference records the historical wait; it does not establish that the request is still pending
+or that you may judge it. Bridge focuses only the exact request for that Run in its current
+conversation snapshot. A missing, settled, or unavailable request stays explicit; another request
+is never substituted. **Return to Orb event** returns to the same Run and selected record.
+
 A selected event with exact transition correlation offers **Open transition in Nexus** and
 carries the selected event id. The link supplies a relation worth inspecting; viewing it requests
 no mutation. [Nexus](nexus.md) keeps any lifecycle decision separate.

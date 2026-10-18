@@ -1450,7 +1450,11 @@ cursor, reports resets, and closes after the currently retained terminal account
 connection state does not settle Run status. Its delegated-job projection applies newest-job and
 per-job event limits at the store query boundary before rendering the public 32/64 suffixes. The shell
 Orb tab opens the parallel field. Exact Run/event links and the Loom round trip preserve selection, and Bridge return focuses the exact Run's turn or reports its
-absence.
+absence. A historical consent record carries only a bounded syntactic Consent reference and an
+exact Bridge destination. Bridge checks the requested id and Run against its authorized session
+snapshot, reports unavailable requests without replacement, and focuses once per navigation.
+The return link preserves the originating Orb Run and event; drafts and uncertain verdicts remain
+in the existing shell workspace. This adds no current Consent status or review disclosure to Orb.
 Capture limits and coverage precede the evidence list. Rows expose supplied subjects and dated
 local timestamps; selecting one focuses its inspector, and closing it returns focus to the row.
 Delegated jobs unfold after the evidence, with verified linked-job focus preserved.

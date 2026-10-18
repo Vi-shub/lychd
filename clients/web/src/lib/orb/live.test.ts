@@ -171,3 +171,35 @@ it("retains nullable Bridge and an explicit application return in validated live
   expect(cb.onFault).not.toHaveBeenCalled();
   expect(vi.mocked(cb.onFrame).mock.calls[0]?.[0].snapshot.run.application_path).toBe(value.snapshot.run.application_path);
 });
+
+
+describe("Historical consent reference transport", () => {
+  it.each(["consent-a", "a".repeat(128), null, undefined])("preserves the bounded optional historical reference %s", (consentId) => {
+    const cb = callbacks(); listenToOrb("run-a", 0, cb);
+    const event = frame();
+    Object.assign(event.snapshot.evidence[0]!, { kind: "consent", consent_id: consentId,
+      tool_name: "private tool", native_review: { private_body: "must not enter history" } });
+    Source.instances[0]!.emit("evidence", event);
+    const received = vi.mocked(cb.onFrame).mock.calls[0]?.[0].snapshot.evidence[0];
+    expect(received).toBeDefined();
+    expect(received?.consent_id).toBe(consentId);
+    expect(received).not.toHaveProperty("tool_name");
+    expect(received).not.toHaveProperty("native_review");
+    expect(cb.onFault).not.toHaveBeenCalled();
+    expect(Source.instances[0]!.close).not.toHaveBeenCalled();
+  });
+
+  it.each([123, true, {}, [], "", "a".repeat(129), "../foreign", "bad id", "consent-a\n"])("closes on malformed consent reference %j before publishing data", (consentId) => {
+    const cb = callbacks(); listenToOrb("run-a", 0, cb);
+    const event = frame();
+    Object.assign(event.snapshot.evidence[0]!, { kind: "consent", consent_id: consentId });
+    const source = Source.instances[0]!;
+    source.emit("evidence", event);
+    expect(cb.onFrame).not.toHaveBeenCalled();
+    expect(cb.onFault).toHaveBeenCalledOnce();
+    expect(cb.onConnection).toHaveBeenLastCalledWith("closed");
+    expect(source.close).toHaveBeenCalledOnce();
+    source.emit("evidence", frame());
+    expect(cb.onFrame).not.toHaveBeenCalled();
+  });
+});

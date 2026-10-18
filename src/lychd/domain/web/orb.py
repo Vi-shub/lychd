@@ -7,6 +7,8 @@ account; a projection does not infer missing history or execute work.
 
 from __future__ import annotations
 
+import json
+import re
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Literal, cast
 from urllib.parse import quote
@@ -35,6 +37,8 @@ if TYPE_CHECKING:
 _CAPTURES = {"process_local", "durable_best_effort"}
 _MAX_DELEGATED_JOBS = 32
 _MAX_DELEGATED_EVENTS_PER_JOB = 64
+_MAX_CONSENT_EVENT_LENGTH = 4096
+_CONSENT_REFERENCE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._~-]{0,127}")
 type CaptureClass = Literal["process_local", "durable_best_effort"]
 
 
@@ -195,6 +199,20 @@ def _gaps(events: list[RunEvent], *, after_seq: int) -> list[EvidenceGap]:
     return gaps
 
 
+def _historical_consent_id(event: RunEvent) -> str | None:
+    """Read a bounded historical reference without resolving a current Consent owner."""
+    if event.kind.value != "consent" or len(event.data) > _MAX_CONSENT_EVENT_LENGTH:
+        return None
+    try:
+        parsed: object = json.loads(event.data)
+    except (json.JSONDecodeError, RecursionError):
+        # Legacy events retained the plain id instead of the emitter's JSON object.
+        candidate = event.data
+    else:
+        candidate = cast("dict[str, object]", parsed).get("consent_id") if isinstance(parsed, dict) else None
+    return candidate if isinstance(candidate, str) and _CONSENT_REFERENCE.fullmatch(candidate) else None
+
+
 def _item(event: RunEvent, *, capture: CaptureClass) -> EvidenceItem:
     """Project only allowlisted structural detail; raw prompts/logs never leak here."""
     phase = (
@@ -231,5 +249,6 @@ def _item(event: RunEvent, *, capture: CaptureClass) -> EvidenceItem:
         capability_family=event.meta.get("family") if event.kind.value == "dispatch" else None,
         model_id=event.meta.get("model_id") if event.kind.value == "dispatch" else None,
         grant_id=event.meta.get("grant_id") if event.kind.value == "dispatch" else None,
+        consent_id=_historical_consent_id(event),
         capture=capture,
     )

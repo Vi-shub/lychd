@@ -338,6 +338,13 @@ class EvidenceItem(ClientContract):
     capability_family: str | None = None
     model_id: str | None = None
     grant_id: str | None = None
+    consent_id: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=128,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._~-]{0,127}$",
+        description="Syntactic historical reference only; no current status, review, or authority.",
+    )
     capture: Literal["process_local", "durable_best_effort"]
 
 

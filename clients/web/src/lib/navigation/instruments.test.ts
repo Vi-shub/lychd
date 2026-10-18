@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bridgeRunHref, loomOriginHref, orbReturnHref, selectedBridgeHref, selectedOrbHref, scavengerRunHref } from "./instruments";
+import { bridgeConsentHref, bridgeRunHref, loomOriginHref, orbReturnHref, selectedBridgeHref, selectedOrbHref, scavengerRunHref } from "./instruments";
 
 describe("instrument navigation hints", () => {
   it("normalizes an explicit Bridge session beneath the configured base", () => {
@@ -16,6 +16,20 @@ describe("instrument navigation hints", () => {
       expect(selectedOrbHref(path, "?event=event-a")).toBeNull();
     }
     expect(selectedOrbHref("/orb/run-a", `?event=${"a".repeat(129)}`)).toBe("/orb/run-a");
+  });
+
+  it("carries an exact historical consent and bounded event only through a local session", () => {
+    const href = bridgeConsentHref("/bridge/session%2Da", "run-a", "consent-a", "event-a");
+    expect(href).toBe("/bridge/session-a?run=run-a&consent=consent-a&event=event-a");
+    expect(orbReturnHref("run-a", new URL(href!, "http://localhost").search)).toBe("/orb/run-a?event=event-a");
+    expect(bridgeConsentHref("/bridge/session-a", "run-a", "consent-a", "../unsafe")).toBe("/bridge/session-a?run=run-a&consent=consent-a");
+    for (const id of ["", "../foreign", "a&run=other", "a".repeat(129), "https://foreign.test", "consent-a\n", "consent-a\r", "a".repeat(128) + "\n"]) {
+      expect(bridgeConsentHref("/bridge/session-a", "run-a", id)).toBeNull();
+      expect(bridgeConsentHref("/bridge/session-a", id, "consent-a")).toBeNull();
+    }
+    for (const path of [null, "https://foreign.test/bridge/session-a", "//foreign/bridge/session-a", "/bridge/%2Fsession-a", "/bridge/session-a/extra"]) {
+      expect(bridgeConsentHref(path, "run-a", "consent-a")).toBeNull();
+    }
   });
 
   it("carries one Run and event through an exact Pattern and back", () => {

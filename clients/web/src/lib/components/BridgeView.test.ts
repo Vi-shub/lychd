@@ -1,5 +1,5 @@
 import { SvelteURL } from "svelte/reactivity";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/svelte";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type {
@@ -1555,6 +1555,112 @@ describe("Bridge reader preservation during refresh", () => {
     expect(screen.queryByText("Late session A error")).toBeNull();
     expect(document.activeElement).toBe(composer);
     expect(composer.value).toBe("session B draft");
+    view.unmount();
+  });
+});
+
+
+describe("Bridge historical consent navigation", () => {
+  function consentSnapshot(): BridgeSnapshot {
+    return { ...snapshot("session-a", [projection(), projection("session-a", "run-b")]), pending_consents: [
+      { ...pendingConsent, id: "consent-other", run_id: "run-b", tool_name: "other request" },
+      { ...pendingConsent }
+    ] };
+  }
+
+  it("focuses the exact current request once, preserves draft and uncertain choice, and returns to the exact Orb event", async () => {
+    mockPage.url = new SvelteURL("http://localhost/bridge/session-a?run=run-a&consent=consent-a&event=event-old");
+    const current = consentSnapshot();
+    getSnapshotMock.mockResolvedValue(current);
+    const work = createBridgeWorkspace();
+    work.setDraft("session-a", "later session draft");
+    work.consentDecisions.set("consent-a", { sessionId: "session-a", verdict: "approve", sending: false, error: "Outcome unknown" });
+    const view = render(BridgeView, { props: { sessionId: "session-a" }, context: new Map([[bridgeWorkspaceKey, work]]) });
+    const composer = await screen.findByLabelText<HTMLTextAreaElement>("Message");
+    const exact = document.querySelector('[data-consent-id="consent-a"]');
+    await waitFor(() => expect(document.activeElement).toBe(exact));
+    expect(exact).not.toBeNull();
+    expect(within(exact as HTMLElement).getByRole<HTMLButtonElement>("button", { name: "Refuse" }).disabled).toBe(true);
+    expect(composer.value).toBe("later session draft");
+    expect(screen.getByRole("link", { name: "Return to Orb event →" }).getAttribute("href")).toBe("/orb/run-a?event=event-old");
+    composer.focus();
+    await act(() => latestRunListener()(event("run-a", 18, "consent", {})));
+    await waitFor(() => expect(getSnapshotMock).toHaveBeenCalledTimes(2));
+    expect(document.activeElement).toBe(composer);
+    expect(work.consentDecisions.get("consent-a")?.verdict).toBe("approve");
+    expect(composer.value).toBe("later session draft");
+    expect(decideConsentMock).not.toHaveBeenCalled();
+    view.unmount();
+  });
+
+  it.each(["missing", "settled", "cancelled", "foreign-run", "no-run", "foreign-session", "unbound-run", "newer-round", "invalid-id"])(
+    "reports an unavailable %s reference without choosing another card or Run", async (scenario) => {
+      mockPage.url = new SvelteURL(`http://localhost/bridge/session-a?${scenario === "no-run" ? "" : "run=run-a&"}consent=${scenario === "invalid-id" ? "%2Fforeign" : "consent-a"}&event=event-old`);
+      const current = consentSnapshot();
+      if (scenario === "missing") current.pending_consents = [current.pending_consents[0]!];
+      if (scenario === "settled") current.pending_consents[1]!.state = "consented";
+      if (scenario === "cancelled") current.pending_consents[1]!.state = "cancelled";
+      if (scenario === "foreign-run") current.pending_consents[1]!.run_id = "run-b";
+      if (scenario === "foreign-session") current.active_runs = [projection("session-b")];
+      if (scenario === "unbound-run") current.active_runs = [];
+      if (scenario === "newer-round") current.pending_consents[1]!.id = "consent-new";
+      getSnapshotMock.mockResolvedValueOnce(current);
+      const view = render(BridgeView, { sessionId: "session-a" });
+      expect(await screen.findByText("The requested consent is unavailable in this conversation at this read.")).toBeTruthy();
+      await act(() => Promise.resolve());
+      expect(document.activeElement?.closest("[data-consent-id], [data-run-id]")).toBeNull();
+      expect(decideConsentMock).not.toHaveBeenCalled();
+      expect(sendMock).not.toHaveBeenCalled();
+      view.unmount();
+    }
+  );
+
+  it("does not steal later focus when an unavailable request appears on stream refresh", async () => {
+    mockPage.url = new SvelteURL("http://localhost/bridge/session-a?run=run-a&consent=consent-a&event=event-old");
+    const unavailable = consentSnapshot();
+    unavailable.pending_consents = [unavailable.pending_consents[0]!];
+    getSnapshotMock.mockResolvedValueOnce(unavailable).mockResolvedValueOnce(consentSnapshot());
+    const view = render(BridgeView, { sessionId: "session-a" });
+    await screen.findByText("The requested consent is unavailable in this conversation at this read.");
+    const composer = screen.getByLabelText<HTMLTextAreaElement>("Message");
+    composer.focus();
+    await act(() => latestRunListener()(event("run-a", 18, "consent", {})));
+    await waitFor(() => expect(document.querySelector('[data-consent-id="consent-a"]')).not.toBeNull());
+    expect(screen.queryByText("The requested consent is unavailable in this conversation at this read.")).toBeNull();
+    expect(document.activeElement).toBe(composer);
+    expect(decideConsentMock).not.toHaveBeenCalled();
+    view.unmount();
+  });
+
+  it("focuses an exact read-only native card without gaining review or judgment authority", async () => {
+    mockPage.url = new SvelteURL("http://localhost/bridge/session-a?run=run-a&consent=consent-a");
+    const current = consentSnapshot();
+    current.pending_consents[1] = { ...pendingConsent, can_decide: false, native_review_status: "unavailable" };
+    getSnapshotMock.mockResolvedValueOnce(current);
+    const view = render(BridgeView, { sessionId: "session-a" });
+    await screen.findByLabelText("Message");
+    const card = document.querySelector<HTMLElement>('[data-consent-id="consent-a"]')!;
+    await waitFor(() => expect(document.activeElement).toBe(card));
+    expect(within(card).getByText("The required review is unavailable or incomplete. Refresh before deciding.")).toBeTruthy();
+    const approve = within(card).getByRole<HTMLButtonElement>("button", { name: "Consecrate" });
+    const deny = within(card).getByRole<HTMLButtonElement>("button", { name: "Refuse" });
+    expect(approve.disabled).toBe(true);
+    expect(deny.disabled).toBe(true);
+    await fireEvent.click(approve);
+    await fireEvent.click(deny);
+    expect(decideConsentMock).not.toHaveBeenCalled();
+    view.unmount();
+  });
+
+  it("applies a deliberate same-session request change without refetching or choosing the first card", async () => {
+    mockPage.url = new SvelteURL("http://localhost/bridge/session-a?run=run-a&consent=consent-a");
+    getSnapshotMock.mockResolvedValueOnce(consentSnapshot());
+    const view = render(BridgeView, { sessionId: "session-a" });
+    await screen.findByLabelText("Message");
+    await waitFor(() => expect(document.activeElement).toBe(document.querySelector('[data-consent-id="consent-a"]')));
+    await act(() => { mockPage.url.search = "?run=run-b&consent=consent-other"; });
+    await waitFor(() => expect(document.activeElement).toBe(document.querySelector('[data-consent-id="consent-other"]')));
+    expect(getSnapshotMock).toHaveBeenCalledOnce();
     view.unmount();
   });
 });

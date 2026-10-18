@@ -93,6 +93,28 @@ afterEach(() => {
 });
 
 describe("Orb evidence focus", () => {
+  it("links only a selected consent record to its exact Bridge request and origin event", async () => {
+    page.url.search = "?event=event-consent";
+    const record = { ...snapshot.evidence[0]!, event_id: "event-consent", kind: "consent", consent_id: "consent-old", summary: "Consent wait recorded." };
+    vi.mocked(getOrbRun).mockResolvedValueOnce({ ...snapshot, evidence: [record] });
+    const view = render(OrbView, { runId: "run-a" });
+    const link = await screen.findByRole("link", { name: "Open exact consent in Bridge →" });
+    expect(link.getAttribute("href")).toBe("/bridge/session-a?run=run-a&consent=consent-old&event=event-consent");
+    expect(screen.getByText("Historical reference; current availability is checked in Bridge.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Consecrate" })).toBeNull();
+    view.unmount();
+  });
+
+  it.each(["node", "consent"])("offers no consent destination for an unbound %s record", async (kind) => {
+    page.url.search = "?event=event-a";
+    vi.mocked(getOrbRun).mockResolvedValueOnce({ ...snapshot, evidence: [{ ...snapshot.evidence[0]!, kind,
+      consent_id: kind === "node" ? "consent-forged" : null }] });
+    const view = render(OrbView, { runId: "run-a" });
+    await screen.findByRole("heading", { name: "Selected event" });
+    expect(screen.queryByRole("link", { name: "Open exact consent in Bridge →" })).toBeNull();
+    view.unmount();
+  });
+
   it("discloses a linked job without hiding the Run coverage and ordered evidence", async () => {
     page.url.href = "http://localhost/orb/run-a?job=job-linked";
     const linked: OrbRunSnapshot = {

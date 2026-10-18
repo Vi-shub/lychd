@@ -10,7 +10,7 @@ export const altarNavigationContext = Symbol("altar-navigation");
 
 /** Navigation hints are bounded identities, never admission or evidence authority. */
 export function navigationId(value?: string | null): string | null {
-  return value && /^[A-Za-z0-9][A-Za-z0-9._~-]{0,127}$/.test(value) ? value : null;
+  return value && value.trim() === value && /^[A-Za-z0-9][A-Za-z0-9._~-]{0,127}$/.test(value) ? value : null;
 }
 
 function pathIds(path: string, prefix: string, count: number): string[] | null {
@@ -70,6 +70,17 @@ export function bridgeRunHref(path: string | null, runId: string): `/bridge/${st
   const run = navigationId(runId);
   const session = ids?.[0];
   return session && run ? `/bridge/${encodeURIComponent(session)}?run=${encodeURIComponent(run)}` : null;
+}
+
+/** Historical reference only; Bridge must resolve the exact current session/Run/card. */
+export function bridgeConsentHref(
+  path: string | null, runId: string, consentId: string, eventId?: string | null
+): `/bridge/${string}` | null {
+  const destination = bridgeRunHref(path, runId);
+  const consent = navigationId(consentId);
+  if (!destination || !consent) return null;
+  const event = navigationId(eventId);
+  return `${destination}&consent=${encodeURIComponent(consent)}${event ? `&event=${encodeURIComponent(event)}` : ""}`;
 }
 
 /** Closed application navigation hint; the destination still performs a protected read. */

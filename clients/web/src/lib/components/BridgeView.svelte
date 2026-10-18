@@ -1,6 +1,8 @@
 <script lang="ts">
   import { goto, replaceState } from "$app/navigation";
   import { page } from "$app/state";
+  import { resolve } from "$app/paths";
+  import { navigationId, orbReturnHref } from "$lib/navigation/instruments";
   import { getContext, onDestroy, tick, untrack } from "svelte";
   import { SvelteMap, SvelteSet } from "svelte/reactivity";
 
@@ -43,13 +45,15 @@
   let choosing = $derived(!sessionId && (attentionOnly || page.url.searchParams.get("choose") === "conversation" || !!projectHint));
   let hintedProject = $state<{ id: string; title: string } | null>(null);
   let projectError = $state("");
-  let focusRun = $derived.by(() => {
-    const id = page.url.searchParams.get("run");
-    return id && /^[a-zA-Z0-9_-]{1,128}$/.test(id) ? id : null;
-  });
+  let focusRun = $derived(navigationId(page.url.searchParams.get("run")));
+  let focusConsent = $derived(page.url.searchParams.has("consent")
+    ? navigationId(page.url.searchParams.get("consent")) : undefined);
+  let consentReturnHref = $derived(focusConsent !== undefined && focusRun
+    ? orbReturnHref(focusRun, page.url.search) : null);
   let focusNavigation: {
     sessionId: string | undefined;
     run: string | null;
+    consent: string | null | undefined;
     handled: boolean;
   } | undefined;
 
@@ -99,6 +103,11 @@
   }
 
   let selected = $derived(choosing ? null : snapshot?.session ?? null);
+  let focusedConsent = $derived(selected && sessionId === selected.id && focusRun && focusConsent && (
+    (selected.turns ?? []).some((turn) => turn.run_id === focusRun) ||
+    snapshot?.active_runs.some((run) => run.run_id === focusRun && run.session_id === selected.id)
+  ) ? snapshot?.pending_consents.find((card) => card.id === focusConsent && card.run_id === focusRun &&
+    card.state === "pending_consent") : undefined);
   let prompt = $derived(selected ? work.drafts.get(selected.id) ?? "" : "");
   let refusedOfferings = $derived(selected ? work.refused.get(selected.id) ?? [] : []);
   let pendingOffering = $derived(selected ? work.pending.get(selected.id) : undefined);
@@ -293,20 +302,26 @@
     const id = selected?.id;
     const routeSessionId = sessionId;
     const run = focusRun;
+    const consent = focusConsent;
+    const consentTarget = focusedConsent?.id;
     const ready = !loading;
     renderVersion;
-    if (!focusNavigation || focusNavigation.sessionId !== routeSessionId || focusNavigation.run !== run) {
-      focusNavigation = { sessionId: routeSessionId, run, handled: false };
+    if (!focusNavigation || focusNavigation.sessionId !== routeSessionId || focusNavigation.run !== run ||
+        focusNavigation.consent !== consent) {
+      focusNavigation = { sessionId: routeSessionId, run, consent, handled: false };
       if (!run) stickToTail = true;
     }
     const navigation = focusNavigation;
     if (!id || !run || !ready || navigation.handled) return;
     void tick().then(() => {
       if (destroyed || selected?.id !== id || sessionId !== routeSessionId || focusRun !== run ||
-          loading || focusNavigation !== navigation || navigation.handled) return;
-      // A Run hint belongs to this navigation, even when its turn is unavailable.
+          focusConsent !== consent || loading || focusNavigation !== navigation || navigation.handled) return;
+      // Selection belongs to this navigation, including an unavailable historical request.
       navigation.handled = true;
-      const target = thread?.querySelector<HTMLElement>(`[data-run-id="${run}"]`);
+      const target = consent !== undefined
+        ? consentTarget && focusedConsent?.id === consentTarget
+          ? thread?.querySelector<HTMLElement>(`[data-consent-id="${consentTarget}"]`) : null
+        : thread?.querySelector<HTMLElement>(`[data-run-id="${run}"]`);
       if (!target) return;
       stickToTail = false;
       target.focus({ preventScroll: true });
@@ -843,6 +858,14 @@
         <summary>Project links</summary>
         <AtlasLinks kind="session" targetId={selected.id} suggestedProject={hintedProject} />
       </details>
+    {/if}
+    {#if focusConsent !== undefined && !loading && !focusedConsent}
+      <p class="turn__fault" role="status">The requested consent is unavailable in this conversation at this read.</p>
+    {/if}
+    {#if consentReturnHref}
+      <nav class="atlas-links" aria-label="Historical consent origin">
+        <a href={resolve(consentReturnHref)}>Return to Orb event →</a>
+      </nav>
     {/if}
     {#if focusRun && !loading && selected && !(selected.turns ?? []).some((turn) => turn.role === "agent" && turn.run_id === focusRun) && !selectedLiveTurns.some((turn) => turn.runId === focusRun)}
       <p class="turn__fault" role="status">The requested Run is not available in this conversation.</p>

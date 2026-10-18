@@ -86,7 +86,14 @@ path is selected, its global link stays at `/bridge`;
 the server's default session does not establish browser navigation memory. This is recoverable
 navigation state, not a durable dossier or execution truth. Cross-instrument links preserve an
 explicit Run and selected event where supported; Orb's contextual Bridge return focuses that
-Run's turn. A stale or unavailable selection is reported, never silently replaced with another Run.
+Run's turn. A selected historical consent event may also carry a bounded Consent reference to
+that exact session and Run. Orb retains only the syntactic historical reference, without resolving
+current status, review, or decision authority. Bridge resolves the exact Consent and requested Run
+against its currently authorized session snapshot; a missing, settled, foreign, or unbound request
+is visibly unavailable and never falls back to another request. Request focus belongs to that
+navigation and does not recur on stream refresh. An event return preserves the originating Run
+and selected record. A stale or unavailable selection is reported, never silently replaced with
+another Run.
 
 [Circle](../divination/altar/circle.md) is likewise not a separate instrument or route in the present
 contract. One Bridge séance may contain many Invocation/Run projections; a future Circle focus may
