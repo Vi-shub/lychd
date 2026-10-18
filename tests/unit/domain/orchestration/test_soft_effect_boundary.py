@@ -7,6 +7,7 @@ observations. Device names are declared conflict domains, not measured placement
 from __future__ import annotations
 
 import asyncio
+import gc
 from typing import Literal
 
 import pytest
@@ -76,6 +77,8 @@ async def _expect_no_effect(scenario: CapabilityScenario, kind: FailureKind, ent
 @pytest.mark.parametrize("domains", [2, 4])
 @pytest.mark.parametrize("kind", ["error", "timeout", "cancelled"])
 async def test_initial_soft_observation_failure_reopens_independent_domains(domains: int, kind: FailureKind) -> None:
+    # Collect inherited garbage before creating the scenario's real-time deadlines.
+    gc.collect()
     scenario = _scenario(domains)
     entered, settled = asyncio.Event(), asyncio.Event()
 
