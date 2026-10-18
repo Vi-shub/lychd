@@ -464,7 +464,12 @@ def _configured_castings(
     workflows: WorkflowRegistry | None,
     delegated_runtime_adapters: Sequence[DelegatedAgentRuntime],
 ) -> tuple[BridgeCastingSettings | None, ScavengerCastingSettings | None, DelegatedRuntimeBinding | None, str]:
-    """Validate selected native castings before constructing any process-owned services."""
+    """Validate persistence and native castings before constructing any process-owned services."""
+    if profile is None:
+        profile = settings.server.database.profile
+    if profile not in ("memory", "postgres"):
+        msg = "Unsupported persistence profile."
+        raise ValueError(msg)
     bridge_casting = settings.weaver.bridge
     scavenger_casting = settings.weaver.scavenger
     if scavenger_casting is not None and workflows is not None:
@@ -474,8 +479,6 @@ def _configured_castings(
     if workflows is not None and (bridge_casting is not None or settings.weaver.creation is not None):
         msg = "Explicit workflow registry injection cannot be combined with [weaver.bridge] configuration."
         raise ValueError(msg)
-    if profile is None:
-        profile = settings.server.database.profile
     if scavenger_casting is not None and (profile != "postgres" or operator_access is None):
         msg = "Scavenger requires PostgreSQL and the actual local credential owner."
         raise ValueError(msg)
@@ -506,7 +509,8 @@ def build_altar_services(
     The run ledger is chosen by the persistence ``profile`` (defaults to
     ``settings.server.database.profile`` — ``postgres`` in production, ``memory`` in DB-free
     tests and the isolated developer fixture). The bus tees non-TOKEN events into whichever ledger is selected, so the
-    choice happens here, before the bus is built.
+    choice happens here, before the bus is built. Unsupported profiles are refused before
+    constructing any process-owned services.
     """
     if settings is None:
         settings = get_settings()
