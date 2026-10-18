@@ -7,6 +7,12 @@ icon: material/compass-outline
 
 Before opening a listing, decide what an acquisition would accomplish and how far this campaign may go. `scavenger.plan_campaign@1` pins the desired result, existing inventory, hard criteria, weighted preferences, budget, deadline, region, evidence tier, travel/delivery semantics, disclosure policy, and operating mode.
 
+The revision-3 [finite feed observation](market.md#finite-feed-observation) also accepts a
+complete immutable campaign seed directly. Its admission retains and validates those facts before
+publishing the held Run; it neither invokes `plan_campaign` nor fabricates a completed planning
+Run. Missing budget, deadline, region or policy is not inferred. Explicit empty or not-assessed
+values are permitted only by the seed schema and establish no suitability or eligibility.
+
 ## Subject profiles
 
 | Profile | Evidence and judgment | Revision-one consequence |

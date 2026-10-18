@@ -7,7 +7,111 @@ icon: material/storefront-outline
 
 Each morning brings a changed market: new, removed, relisted, repriced, reworded, and rephotographed candidates. The useful view shows the whole field, including the reasons some listings cannot qualify. A shortlist alone would hide the evidence needed to correct it.
 
-`scavenger.observe_market@1` admits finite snapshots, normalizes and deduplicates listings, and preserves retrieval time and source claims. Scheduled observations coalesce rather than accumulate an endless backlog. The Scout profile fixes origins/paths, user agent, pacing, concurrency, bytes/pages, expiry, robots decision, selectors, sessions, CAPTCHA handling, fixtures, and kill switch. A `bazos.sk` adapter observes a source; the campaign decides what it means.
+`scavenger.observe_market@2` admits finite snapshots, normalizes and deduplicates listings, and preserves retrieval time and source claims. Scheduled observations coalesce rather than accumulate an endless backlog. The Scout profile fixes origins/paths, user agent, pacing, concurrency, bytes/pages, expiry, robots decision, selectors, sessions, CAPTCHA handling, fixtures, and kill switch. A `bazos.sk` adapter observes a source; the campaign decides what it means.
+
+## Finite feed observation {#finite-feed-observation}
+
+Scavenger revision 3 selects `scavenger.observe_market@2` with the explicit
+`bazos-pc-title-link@1` profile. It accepts one complete immutable `CampaignSeed@1` and one exact
+public feed declaration. The seed pins subject/profile revision, concrete need, inventory, hard
+criteria, weighted preferences, budget, deadline, region, evidence standard, travel/delivery
+semantics, source/disclosure policy, learning mode and a `Watch` autonomy ceiling. Admission
+retains the seed before held Run publication; it does not execute `plan_campaign`.
+
+This profile permits one bounded RSS Fetch/Extract and a local title/link projection. It admits
+no model call, qualification, ranking, item acquisition, seller contact, purchase, polling or
+preference learning. The source profile fixes the exact advertised Bazoš PC feed, the native RSS
+media/extraction profile and finite effect ceilings. A public declaration remains an authenticated
+operator assertion, not a technical proof of publicness or a reusable contact grant.
+
+### Initial seed encoding
+
+`CampaignSeed@1` requires every fact explicitly, including empty inventory, hard-criteria and
+preference arrays. `subject_profile` is `Bazaar@1` or `Technology@1`; `need` is nonblank bounded
+text. Inventory, hard criteria and preferences each permit at most 16 entries. A preference
+carries nonblank `criterion` text and a nonnegative integer `weight`; this profile does not
+normalize, rank or learn from it. `budget_minor` is a nonnegative integer number of EUR cents or
+explicit `null` (not assessed), with `currency: EUR`. `region` is bounded nonblank text or explicit
+`null`; neither unknown establishes eligibility. `deadline` carries a timezone; admission checks
+its current validity without making historical seed decoding depend on wall time.
+
+`evidence_standard` and `travel_delivery` are required nonblank descriptions, never grants.
+`source_policy: admitted-public-feed-only@1`, `disclosure_policy: none`, `learning_mode: none`
+and `operating_mode: Watch` close this initial profile. Need text permits 2048 UTF-8 bytes;
+individual inventory/criterion/preference/evidence/travel values permit 1024 bytes and region 256.
+The complete 16 KiB bound still applies. No complete seed is copied into Run or consent facts.
+
+### Whole field and local views
+
+Scavenger owns immutable `MarketObservation@1` records. The exact subject/request binds the
+canonical seed digest, Run and selected Composition/Pattern/manifest, source and acquisition
+profiles, purpose, retention profile and initial filter revision. Exact replay resolves the same
+admission/result; changed bindings refuse. The first profile permits one pending or retained
+observation per selected profile database. It does not create another Scout allowance store.
+
+The whole field contains every item returned by the admitted bounded extraction, in source order,
+including unmatched, duplicate and unjudged occurrences. Each occurrence retains an internal
+identity, source ordinal, duplicate grouping, optional original plain title, inert original item
+link and source-record identity. Deduplication groups exact item locators without erasing their
+occurrences or query/path spelling. Missing values and unresolved facts remain visible; no
+eligibility or seller judgment is inferred. This field is the finite response, not the source's
+entire market.
+
+Retain at most 100 observations, with titles at most 1024 UTF-8 bytes and links at most 4096 bytes,
+matching the qualified RSS mechanism. The complete seed is at most 16 KiB and the canonical
+application observation at most 256 KiB. Overflow refuses the complete result rather than hiding
+items or shortening fields. Preserve requested/contacted locator, retrieval time, Scout receipt,
+source/record/field digests, selected profiles, omissions, duplicate/missing counts and declared
+coverage. Source dates/GUIDs do not establish identity or freshness.
+
+Only the admitted title/link field and necessary attribution survive in application custody.
+Feed bodies, channel text, summaries, images, publisher dates/identifiers and separate contact
+fields are discarded after transient consumption. Titles and links are deliberately retained
+source claims; the profile does not promise that source text contains no personal information.
+Run/Graph state, generic events/logs and Bridge history carry opaque references, safe counts/status
+and closed reasons, never item values or a copied campaign seed. Scout retains its independently
+owned contact attribution and positively selected extraction metadata, not this field.
+
+An authorized read returns the complete field. A bounded literal, versioned case-folded substring
+filter over retained title/link values derives a local view of that same field digest. It is not
+regex, semantic ranking or qualification. The view reports total, visible, unmatched, duplicate
+and missing counts and keeps an all-observations view available. A new filter changes no field
+and performs no acquisition. Read and re-filter require current application retrieval authority;
+a receipt or opaque UUID supplies neither.
+
+### Retention, deletion and recovery
+
+Retain this one field until its owner explicitly deletes it. Deletion is a distinct current-authority
+operation over the exact observation identity/digest, available only after acquisition and result
+disposition are proved terminal. Pending work must be cancelled through the Run owner first;
+unknown acquisition cannot be declared settled by deletion. The first profile supplies no
+automatic unknown-attempt reconciliation.
+
+Deletion atomically removes the application seed, item payload and content projections. It keeps
+only a content-free tombstone and necessary immutable execution/Scout receipts; contact metadata
+in those receipts is not erased. A tombstone fences late writes and exact replay, so neither can
+recreate payload. Deleted is distinct from an empty market. Backup erasure is not implied.
+Reopening the application slot does not reset spent counters, unknown reservations or an issued
+claim. Replacing an observation is a visible delete followed by a fresh request and consent.
+
+Before acquisition claim, the exact retained consent may resume under current authority and
+expiry. After claim or uncertain acknowledgement, lost transient material cannot be reconstructed
+or refetched. Commit the entire consumer field once, atomically under its request/claim identity,
+after current CONSUME and result-adoption checks. Settlement without a confirmed consumer commit
+returns material unavailable unless the same key proves a committed result. Lost commit
+acknowledgement reconciles that same key/digest; ambiguity stays unknown and creates no acquisition.
+A committed field supports fresh authorized reads/re-filters after restart; deletion remains final
+for that identity.
+
+The first native profile uses one active Scout binding in a fresh profile database. Existing page
+budget rows refuse a page/RSS switch or coexistence without mutation. This is an explicit initial
+compatibility boundary, not a reset, migration or second budget store.
+
+The Altar presents source/time/coverage, omissions, total/filtered counts, complete title/link rows,
+unknown/refused/deleted states and distinct new-fetch, local-filter and terminal-delete actions.
+Item links remain displayed data, with no automatic preview/contact. The native source and
+[State](../../state-of-the-work.md#composition-portfolio-delivery) must prove these operations before
+the interface can claim they are available.
 
 ## Evidence before preference
 

@@ -1280,6 +1280,15 @@ PostgreSQL application, protected local submit/read/cancel/continue API and seri
 claims, complete provider bytes, a candidate and a fresh attributed verdict. The
 [Creation delivery boundary](#smith-forge-promotion) keeps its focused evidence and remaining gaps.
 
+Scavenger revision 3 now defines one model-free finite-feed observation contract with a complete
+supplied campaign seed, whole title/link field, explicit deletion and recovery law. Pure immutable
+value contracts validate the bounded seed and source-order field, group exact-locator duplicate
+occurrences without dropping them, and derive a literal local filter over the unchanged field.
+Their tests cover explicit unknowns, UTF-8/total byte bounds, excluded-content projection and
+literal filtering. These values confer no acquisition, consumption, retention or retrieval authority.
+The native Pattern, admission, consent, application store, deletion and Altar instrument remain
+unfinished; no new Run or application capability is registered by this slice.
+
 Blockworld has an explicitly assembled, inactive one-block placement Pattern. Portable tests drive
 real Run admission, the worker, serial Graph, native Consent review, HTTP decision, and resume with
 a composite memory store and an inert effect port. They reconstruct serialized fixture state into
@@ -1341,6 +1350,8 @@ physical devices or every Android version allowed by the declared minimum SDK.
 
 - **Source:** [Blockworld workflow](https://github.com/hexanomicon/lychd/blob/main/src/lychd/compositions/blockworld/workflow.py), [placement custody](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/blockworld.py), [placement migration](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/migrations/versions/0011_blockworld_placement.py), [Workflow registry](https://github.com/hexanomicon/lychd/blob/main/src/lychd/agents/workflows/__init__.py), [client interaction model](https://github.com/hexanomicon/lychd/blob/main/clients/android/interaction/src/main/kotlin/org/lychd/companion/interaction/Interaction.kt), [Android screen](https://github.com/hexanomicon/lychd/blob/main/clients/android/offline/src/main/kotlin/org/lychd/companion/CompanionScreen.kt), and [Activity state](https://github.com/hexanomicon/lychd/blob/main/clients/android/offline/src/main/kotlin/org/lychd/companion/OfflineDraftViewModel.kt)
 - **Verification:** [Portable placement workflow tests](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_blockworld_placement_vertical.py), [PostgreSQL placement tests](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_db_blockworld_pg.py), [PostgreSQL worker and review vertical](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_blockworld_postgres_vertical.py), [Workflow routing tests](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_router.py), [client interaction tests](https://github.com/hexanomicon/lychd/blob/main/clients/android/interaction/src/test/kotlin/org/lychd/companion/interaction/InteractionTest.kt), [ViewModel tests](https://github.com/hexanomicon/lychd/blob/main/clients/android/offline/src/test/kotlin/org/lychd/companion/OfflineDraftViewModelTest.kt), [Activity tests](https://github.com/hexanomicon/lychd/blob/main/clients/android/offline/src/androidTest/kotlin/org/lychd/companion/CompanionScreenTest.kt), [production-lifecycle tests](https://github.com/hexanomicon/lychd/blob/main/clients/android/offline/src/androidTest/kotlin/org/lychd/companion/CompanionLifecycleTest.kt), and [client check commands](https://github.com/hexanomicon/lychd/blob/main/clients/android/README.md)
+- **Source:** [Scavenger finite values](https://github.com/hexanomicon/lychd/blob/main/src/lychd/compositions/scavenger/schemas.py)
+- **Verification:** [Scavenger value and projection tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/compositions/test_scavenger_values.py)
 - **Topic:** [Composition Portfolio](./compositions/index.md)
 - **Law:** [Workflow](./adr/28-workflow.md)
 

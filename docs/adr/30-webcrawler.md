@@ -185,6 +185,37 @@ The [Scout source study](../sepulcher/extensions/scout-web-research.md) records 
 premise and the next qualification obligations. It is a candidate study, not an admitted feed
 profile or delivery evidence.
 
+### Model-free native feed handoff
+
+The selected native `rss-public-feed@1` binding uses `native-static@1` and the qualified
+`scout-rss-extract@1` worker. Its HTTP profile sends only the fixed RSS/XML Accept set and accepts
+only `text/xml`, `application/xml` or `application/rss+xml`, with strict UTF-8 and at most 1 MiB
+decoded representation, 2 MiB response wire body and the existing bounded HTTP/gzip/framing
+rules. The profile is selected by the host-owned binding before contact, never inferred from a
+response header. The old static serializer/parser and page binding retain their exact media and
+byte contracts. This first feed follows no redirect, retry, item link, script or subresource.
+
+A model-free consumer binds its exact admitted Pattern, purpose, application request and
+projection/custody profile independently of any later model capability. It gets no placeholder
+capability, Dispatcher lease or ServiceJobAttempt. The unversioned page preparation/review encoding
+remains frozen; a distinct closed feed encoding retains the consumer binding and explicitly no
+model grant. Unknown or mixed encodings refuse. Run, consent, claim, profile and budget identity
+remain in the existing Scout store; the first profile preserves the one-active-binding/fresh-profile
+database boundary and refuses retained incompatible budgets without rewriting them.
+
+The consuming Composition owns its retained result. Scout's transient feed material is consumed
+only by that exact admitted consumer under current CONSUME authority, including after waits and
+before result adoption. It does not acquire storage authority from Fetch or Extract. Extraction
+settlement uses a positive type-specific metadata projection: profile/media, source/record/text
+digests where applicable, strategy, transformations and bounded counts. It never serializes feed
+channel/items, titles, links, summaries or publisher claims by removing only a `text` key.
+Contact attribution remains separately owned restricted network evidence.
+
+The [Scavenger finite observation](../compositions/scavenger/market.md#finite-feed-observation)
+selects the concrete native consumer and its whole-field custody/deletion/recovery contract.
+A retained receipt cannot reconstruct missing material or authorize refetch. Network/native/consumer
+qualification remains separate from the RSS extraction mechanism.
+
 ## SearXNG Search contract
 
 The designed `searxng-search@1` profile supports one query, one qualified engine, one result page,

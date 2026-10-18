@@ -181,6 +181,12 @@ and disclosure basis; [Scout](30-webcrawler.md#attempt-layers-and-crash-semantic
 and reservations. Raw acquired material remains transient, and this profile admits no remote
 model inference.
 
+A model-free feed consumer binds the exact admitted Composition/Pattern, application request,
+projection and custody profile in place of a model demand. CONSUME is required for deterministic
+filtering too; no placeholder capability makes it a chat action. Consumer result adoption, read,
+re-filter and deletion require their own current application authority. Fetch/Extract grants or a
+historical consent cannot supply those decisions. The old page binding/review remains unchanged.
+
 After awaited preparation, a mandatory synchronous gate checks current authority, consumes the
 finite reserved counters and hands off each actual socket connect/send without yielding between
 check and handoff. DNS and TLS output cross this gate too. Policy updates and revocation serialize
