@@ -214,18 +214,18 @@ class AppInit(InitPluginProtocol):
             return self.fixture.settings, self.fixture.extensions, self.fixture.runes
 
         from advanced_alchemy.extensions.litestar import SQLAlchemyPlugin
-        from litestar_saq import SAQPlugin
 
         from lychd.config.components import build_db_config, build_saq_config
         from lychd.config.runes.registry import load_rune_registry
         from lychd.extensions.host import get_extensions
         from lychd.interface.web.lifespan import altar_services_lifespan
+        from lychd.system.services.queues import RuntimeQueuePlugin
 
         settings = get_settings()
         extensions = get_extensions()
         runes = load_rune_registry(extensions)
         app_config.plugins.extend(
-            [SQLAlchemyPlugin(config=build_db_config(settings)), SAQPlugin(config=build_saq_config(settings))]
+            [SQLAlchemyPlugin(config=build_db_config(settings)), RuntimeQueuePlugin(config=build_saq_config(settings))]
         )
         app_config.lifespan.append(altar_services_lifespan)  # pyright: ignore[reportUnknownMemberType]
         return settings, extensions, runes

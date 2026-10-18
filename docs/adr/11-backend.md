@@ -91,7 +91,10 @@ weaken durable startup. [Workers (14)](14-workers.md) owns exact recovery order 
 
 Any failed startup follows the same reverse order as shutdown: stop in-process workers, withdraw
 the run substrate, close services, then disconnect queues. A collaborator therefore cannot outlive
-what it reads. There is no hot-reload contract.
+what it reads. The application-owned queue plugin constructs both workers without the unused
+batched heartbeat thread; Run invocations retain their own broker heartbeat. The required Altar
+lifespan is the sole worker retirement owner; the queue plugin registers startup only.
+There is no hot-reload contract.
 
 ### Isolated developer fixture (Designed)
 

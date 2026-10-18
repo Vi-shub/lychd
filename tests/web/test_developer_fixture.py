@@ -73,6 +73,7 @@ async def test_fixture_real_lifespan_never_reaches_ambient_or_effectful_seams(mo
     from lychd.extensions import host
     from lychd.interface.web import altar_services, lifespan
     from lychd.system.services import runtime
+    from lychd.system.services.queues import RuntimeQueuePlugin
 
     def forbidden(*_args: Any, **_kwargs: Any) -> Any:
         pytest.fail("The developer fixture reached an ambient/effectful owner")
@@ -90,6 +91,7 @@ async def test_fixture_real_lifespan_never_reaches_ambient_or_effectful_seams(mo
         (engine, "get_session_factory"),
         (SQLAlchemyPlugin, "__init__"),
         (SAQPlugin, "__init__"),
+        (RuntimeQueuePlugin, "__init__"),
         (runtime, "wait_for_host_reactor_idle"),
         (altar_services, "build_runtime_actuator"),
         (lifespan, "connect_run_queues"),

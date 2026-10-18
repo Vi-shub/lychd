@@ -17,6 +17,7 @@ import structlog
 from lychd.interface.web.altar_services import build_altar_services
 from lychd.system.services.queues import (
     ManagedRunQueue,
+    RuntimeQueuePlugin,
     connect_run_queues,
     disconnect_run_queues,
     protect_run_queues,
@@ -43,10 +44,8 @@ _WORKER_SHUTDOWN_TIMEOUT_S = 30.0
 
 
 def _collect_run_queues(app: Litestar) -> dict[str, RunQueue]:
-    """Resolve every Run queue; a missing SAQ plugin or queue is a startup error."""
-    from litestar_saq import SAQPlugin
-
-    plugin = app.plugins.get(SAQPlugin)
+    """Resolve every Run queue from the application-owned fixed worker profile."""
+    plugin = app.plugins.get(RuntimeQueuePlugin)
     return {name: cast("RunQueue", plugin.get_queue(name)) for name in _RUN_QUEUE_NAMES}
 
 
@@ -246,10 +245,8 @@ async def _stop_in_process_workers(
 
 
 def _in_process_workers(app: Litestar) -> list[Any]:
-    """Resolve the process-owned workers from the required SAQ plugin."""
-    from litestar_saq import SAQPlugin
-
-    plugin = app.plugins.get(SAQPlugin)
+    """Resolve the process-owned workers from the required runtime queue plugin."""
+    plugin = app.plugins.get(RuntimeQueuePlugin)
     return [worker for worker in plugin.get_workers().values() if not worker.separate_process]
 
 

@@ -204,19 +204,19 @@
   },
   "qualification_date": "2026-10-18",
   "qualification_evidence": {
-    "application_receipt_sha256": "0c8e2d18c71b20e22115e12728ea25789b469b209c74e4d4486a1dd579f92c70",
-    "candidate_manifest_sha256": "dcc6c2f0863aff75c2619a7f48f2dff328c4f4d62357c01d23e2896fb188a1aa",
-    "coordinator_receipt_sha256": "cf2edfa5a00e5efa704d8547894de01ac8818dd40eebc3ef1f408c4471569cf4",
-    "coordinator_source_sha256": "90a11e47b7a58437d0c277223f3e24f0987d6b5f3bdbeebb3ea44fbf28001712",
-    "model_profile_sha256": "ddac33b15e703350e0cbc732ccf1a1921308af1ca2ca1c62d9adcb7e8b458cde",
+    "application_receipt_sha256": "734c4292b534d195d1d15dce6e7b4b86391416230beda934204cbb859df4c52d",
+    "candidate_manifest_sha256": "a55b2189eff2ca96b30b118b06c8fb60055ab36c3043b3f0eee36125012329e9",
+    "coordinator_receipt_sha256": "cf132e265dbdbbd1af1af2aec9a5cf15500c1b9cefa2be8ff0f18142ce06c41e",
+    "coordinator_source_sha256": "59d88f35f16e8dd35d569fae80902307beeae4448c077a314e87ba6fefdb487e",
+    "model_profile_sha256": "e2d236980a7771fb8e2baf4d4107455d5463b6188141f122f3761d23891112be",
     "native_test_sha256_before_trial": "7cc36a27ccc473f5cd374655c2ee6aedf002d85ddf676e297c585b2de11a9454",
-    "pytest_log_sha256": "21641b626376510eaaa0f643cbf525c6283ce711517ed070f6354bcdb6d059be",
-    "resource_launcher_source_sha256": "ceeaf5a8f1ee500b870fe1818540256e8a78dd19077abd1622781d4548032702",
-    "resource_receipt_sha256": "b69e1f63af3407af4ac1ef42e17cb5781c7ff4bb0cef7d32ef553f20b3c3ecce"
+    "pytest_log_sha256": "e02bb05e27ff74f1be9dc89b3c9671e8b2a84f532e5aa40efb6fac65910212e5",
+    "resource_launcher_source_sha256": "78cd5ed438d3d01cf0e28ac6933ff1dd9181979ee8d41f01a10ef0f5b5021bf7",
+    "resource_receipt_sha256": "9fbacc4a943ec9206365f279cce109b10d4e9299d081c8d2a664c04152c7c85c"
   },
   "record_kind": "sanitized_public_local_bridge_native_tcp_qualification",
-  "retained_history_sha256": "2c078e9bbcdba92bd54410cda469ae82d0f4eda75a235fea6da3fb4b797ebfa1",
-  "retained_turns_sha256": "a8ab6f4b4053a50eff77eef357899016fd34ed253052fbf56100998da47ec907",
+  "retained_history_sha256": "44c5eac2995c4e2c5f8c817006d3c8ed68d8b85edec945a67067262aadb2629f",
+  "retained_turns_sha256": "7035412550c84df25b9e9630920dde97dce25465233b9caeef53e6b543f3144b",
   "runner": {
     "cleanup_verified": true,
     "coordinator_cleanup_reserve_seconds": 30,
@@ -250,7 +250,7 @@
     "src/lychd/agents/the_first_one.py": "18ff57c6305edd1a1bdd7c2a9eb096a91ec28e9699bd2e8f3d4e099fc82e9b98",
     "src/lychd/agents/workflows/bridge_chat.py": "40d720afee98c0abd046d676e62ed1c154736fd9df7d48913ab02013a9c9ab85",
     "src/lychd/agents/workflows/nodes.py": "7b8bb849280495e295300cef7cffff7f351966004d7c0f1d016b8217bfc68b92",
-    "src/lychd/app.py": "38b3fe503ab337cfb28210e4b1e856b6889288d54880ed5b078fea9049938172",
+    "src/lychd/app.py": "f3725dadffc6a2321680167b41712c979099ef5b0bd48b4233ae12f4c1ac2b8d",
     "src/lychd/cli/base.py": "de2287c2bdafd87d0642bea1c83c1abf8f56cd38b64fc03029eca3585edbe10f",
     "src/lychd/cli/commands.py": "088b1fb9feeb285436c599dd494284de2c3ac5075c334e402e91eb1ac2cea026",
     "src/lychd/cli/operator.py": "af6a16996eeaf701aa2b81368e1ba71d239d6137750711d602cc3b7fe75f47e7",
@@ -301,14 +301,14 @@
     "src/lychd/interface/web/altar.py": "71b8684ac995b8a218edca3283a53d4c955074c4410bacedb95528c62cad88ee",
     "src/lychd/interface/web/altar_services.py": "4ed3f87695690b095c0f2c0c2a798063d49355ef8c54ee63a4b4c6bd3611e919",
     "src/lychd/interface/web/bridge.py": "347fe54d38f656c0e3c8a84f7df2402d9f04fe229f50efbc617cdbb0007532aa",
-    "src/lychd/interface/web/lifespan.py": "8208f336e8ad9a508941ebf69ded1aedbe59da8b57c13bf29df9d56db0087001",
+    "src/lychd/interface/web/lifespan.py": "4312a3a93adecc3013cebe2cf95ec271905137d2990b839e2e8c7ff5b071e190",
     "src/lychd/interface/web/orb.py": "06dc25a9bfcf53e570f8fe431e4939383893731e217d67128779b42dbdcb3c76",
     "src/lychd/system/operator/__init__.py": "b4df3abb6a07d0d1c2fa480e3443e86a671ed07c4d2551ba8e210cc1f345a427",
     "src/lychd/system/operator/admission.py": "8312e98209e267ed7bcbeeb990416cbafd36b1127c6436ef0db701d94b0c1f3b",
     "src/lychd/system/operator/composition.py": "93b13c0aedeaccbaa98d5b040c655166d4c1b6bd771bebb632a9e42313ee0bdd",
     "src/lychd/system/operator/control.py": "f12c9fe19fff2a142ec9130e4c837e1fcb3494ba40c0da075c6e23b0be66cda2",
     "src/lychd/system/operator/models.py": "202ee54fc6d4770ae49f4d08f4b5063f85e95ce33ace9426a7aa9045a2f99565",
-    "src/lychd/system/services/queues.py": "8b199765f523a67e7e135ae7254f34f3289bffa15068854db9966f42806d6600",
+    "src/lychd/system/services/queues.py": "cf87c902cb93be042b9c30417a70fe85158966435eb0566cd627422344d46b76",
     "tests/conftest.py": "ee6a7991363a5681b647635b7ff3a8ffa0cefb8a3c2a771ae1994d6381da5dc7",
     "tests/integration/test_local_bridge_native_tcp.py": "7cc36a27ccc473f5cd374655c2ee6aedf002d85ddf676e297c585b2de11a9454",
     "tests/integration/test_local_bridge_process_restart.py": "9621a9209499c7f552b024e18a1621f132964b87e9d7f0f9d38bbb780515eaa9",
@@ -320,13 +320,13 @@
   "source_identity": {
     "atomic_transitive_closure_attested": false,
     "clean_checkout_observed": false,
-    "revision_observed": "ba4b949008ecab9de62c9144bbd164d0f3f8cd3e",
+    "revision_observed": "577105de125470fbd8b45eaf89246be50dbfe803",
     "scope": "bounded-critical-source-and-test-fingerprints"
   },
   "status": "passed",
   "timings_seconds": {
-    "command": 22.7852,
-    "pytest": 20.38
+    "command": 23.7532,
+    "pytest": 21.31
   },
   "unexercised": [
     "installed-command-or-caged-Vessel",

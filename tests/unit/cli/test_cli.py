@@ -340,7 +340,7 @@ def test_root_help_does_not_construct_asgi_app(runner: CliRunner, mocker: Mocker
         for command in ("init", "bind", "start", "stop", "status", "logs", "access", "del")
     ]
     assert positions == sorted(positions)
-    for internal in ("destroy", "doctor", "animators", "runs", "reactor", "serve", "database"):
+    for internal in ("destroy", "doctor", "animators", "runs", "workers", "reactor", "serve", "database"):
         assert internal not in result.output
     create_app.assert_not_called()
 

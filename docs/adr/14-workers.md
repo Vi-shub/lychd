@@ -12,7 +12,10 @@ icon: material/excavator
 ## Topology and limits
 
 The Vessel runs two fixed PostgreSQL SAQ workers, `runs` and `rites`, in its single process and
-event loop (`separate_process=False`, no SAQ server lifespan). Both use SAQ's separate autocommit
+event loop (`separate_process=False`, no SAQ server lifespan). The application constructs these
+workers explicitly and does not register the raw Litestar `workers run` process launcher.
+The unused optional batched heartbeat manager is disabled at construction; the live Run
+heartbeat below remains invocation-owned. Both use SAQ's separate autocommit
 pool and tables; Run, Step, checkpoint, consent, and delegated-job records remain LychD data.
 Lifespan connects queues before publishing the run substrate and disconnects them in reverse order
 after workers stop. Per-queue concurrency is bounded, but it is not an admission quota, CPU cap,

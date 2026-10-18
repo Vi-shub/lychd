@@ -1,0 +1,90 @@
+{
+  "schema": "lychd.scavenger.native-finite-feed-observation.v1",
+  "source_revision": "577105de125470fbd8b45eaf89246be50dbfe803",
+  "observed_at": "2026-10-18T07:23:10.135753+00:00",
+  "profile": {
+    "application": "scavenger@3",
+    "pattern": "scavenger.observe_market@2",
+    "native_entry": "ordinary CLI serve and in-process SAQ workers",
+    "source": "Bazoš PC RSS, fixed public feed",
+    "seed": "Qualification-only complete seed; no operator buying preference inferred.",
+    "consent": "One current Core card checked and exact approval delegated by campaign owner; no interactive human card review claimed."
+  },
+  "observation": {
+    "field_occurrences": 50,
+    "projection": [
+      "title",
+      "link"
+    ],
+    "observation_digest": "18cea2112d80182b2e769ac48d8a378f4abd7b31c2572f06f1117d93ef4974ff",
+    "run_status": "done",
+    "acquisition_status": "succeeded",
+    "submit_calls": 1,
+    "consent_decisions": 1,
+    "local_literal_filter": "RTX",
+    "model_calls": 0,
+    "second_acquisition": false
+  },
+  "first_pilot": {
+    "coordinator_passed": false,
+    "failure": "native_descendant_closure_before_restart",
+    "first_application_exit": 0,
+    "adopted_child_count": 1,
+    "adopted_child_historical_state_start_and_wait": "unrecorded; unknown",
+    "second_process_started": false,
+    "clean_restart_qualified": false,
+    "later_external_settlement_passed": true
+  },
+  "accounting": {
+    "attempts": 1,
+    "succeeded": 1,
+    "host_and_binding_each": {
+      "connects_used": 3,
+      "transmissions_used": 5,
+      "wire_bytes_used": 1876,
+      "active_claims": 0,
+      "all_reservations": 0
+    },
+    "interpretation": "Hierarchical scopes of the same passage; do not sum. wire_bytes_used counts outbound payload, not received RSS size."
+  },
+  "separate_retained_readback": {
+    "passed": true,
+    "source_revision": "577105de125470fbd8b45eaf89246be50dbfe803",
+    "native_processes": 1,
+    "fresh_authenticated_client": true,
+    "protected_HTTP_methods": [
+      "GET"
+    ],
+    "whole_document_canonical_type_equality": true,
+    "field_occurrences": 50,
+    "permanent_accounting_equal_before_boot_after_GET_and_after_close": true,
+    "submits_decisions_filter_mutations_new_acquisitions": 0,
+    "budget_reset": false,
+    "model_calls": 0,
+    "outer_elapsed_seconds": 4.760867174947634,
+    "native_process_closure_observed": true,
+    "application_shutdown_qualified": false,
+    "original_failure_reclassified": false,
+    "shutdown_diagnostics": {
+      "heartbeat_manager_crash_messages": 2,
+      "shutdown_grace_warnings": 2,
+      "interpretation": "Known source577 heartbeat-thread shutdown errors; zero process exit and OS closure do not qualify clean application shutdown."
+    }
+  },
+  "settlement": {
+    "both_occurrences_independently_reconciled": true,
+    "task_units_cgroups_recorded_PIDs_groups_listeners_and_containers_absent": true,
+    "same_exact_volume_retained_and_unattached": true,
+    "source_files_unchanged_during_each_occurrence": 1473,
+    "SDK_files_unchanged_during_each_occurrence": 152,
+    "runtime_and_credential_metadata_and_installed_bindings_unchanged": true
+  },
+  "provenance_sha256": {
+    "first_coordinator": "42e13b3d8026d80a8cf9a7ea9445b866bb0b74e2f70fb547a8781d5c7a88b921",
+    "first_external_settlement": "d1e001e25c6bbf9ded8d0289e7cb89ef0d89df4fb7005c329193ddecb302dd9c",
+    "first_accounting": "61d7e9db9baf3fe3b632eb065f1f6b330ef2970c579a65fe30691e936e5fe3db",
+    "readback_coordinator": "725495c657c2ee0b8ef20e414b749c47accdf633933c83ef076d6bd3b86ba412",
+    "readback_external_settlement": "4f1503084bcbeb00dbf89528f8e07550f59cba58ef07915072d18bb992df242d"
+  },
+  "boundary": "Historical finite public-network native observation and separate retained-field readback, not a maintained mechanism freshness qualification. The first pilot failed; later settlement/readback does not retroactively pass it. Clean application shutdown, installed Scavenger, recurring watching, Search/general crawling and autonomous improvement remain unqualified. Seed, listing titles/links, HTTP bodies, private paths, credentials and host identifiers are omitted."
+}

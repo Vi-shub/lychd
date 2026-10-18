@@ -1,0 +1,95 @@
+{
+  "schema": "lychd.scavenger.native-queue-shutdown-readback.v1",
+  "observed_at": "2026-10-18T07:55:35.625041+00:00",
+  "source_identity": {
+    "base_revision": "577105de125470fbd8b45eaf89246be50dbfe803",
+    "base_tree": "9374a9fea446a745c502c45171e87a1b9a43eb61",
+    "dirty_candidate": true,
+    "clean_snapshot": false,
+    "source_files": 1475,
+    "deleted_files": 0,
+    "candidate_manifest_sha256": "eca3a1ebd8d4b1b27bbf5cdbeb6cc7b2576c2c70736f35aa4a58b943c0a8db68",
+    "scope": "Exact source closure frozen throughout this occurrence; not an installed-candidate or clean-base attestation."
+  },
+  "profile": {
+    "application": "scavenger@3",
+    "entry": "ordinary CLI, in-process runs/rites SAQ workers",
+    "readback_only": true,
+    "native_processes": 1,
+    "HTTP_methods": [
+      "GET"
+    ],
+    "existing_retained_field": true,
+    "fresh_authenticated_client": true
+  },
+  "observation": {
+    "retained_readback_passed": true,
+    "field_occurrences": 50,
+    "canonical_whole_document_equal": true,
+    "observation_digest": "18cea2112d80182b2e769ac48d8a378f4abd7b31c2572f06f1117d93ef4974ff",
+    "permanent_accounting_equal_before_boot_after_GET_and_after_close": true,
+    "accounting": {
+      "attempts": 1,
+      "successful": 1,
+      "budgets": [
+        {
+          "scope": "binding",
+          "active_claims": 0,
+          "connects_used": 3,
+          "transmissions_used": 5,
+          "wire_bytes_used": 1876,
+          "connects_reserved": 0,
+          "transmissions_reserved": 0,
+          "wire_bytes_reserved": 0
+        },
+        {
+          "scope": "host",
+          "active_claims": 0,
+          "connects_used": 3,
+          "transmissions_used": 5,
+          "wire_bytes_used": 1876,
+          "connects_reserved": 0,
+          "transmissions_reserved": 0,
+          "wire_bytes_reserved": 0
+        }
+      ]
+    },
+    "submits": 0,
+    "consent_decisions": 0,
+    "filter_mutations": 0,
+    "new_acquisitions": 0,
+    "model_calls": 0,
+    "budget_reset": false,
+    "outer_elapsed_seconds": 4.446994089055806
+  },
+  "shutdown_observation": {
+    "heartbeat_shutdown_regression_passed": true,
+    "heartbeat_manager_crash_messages": 0,
+    "stopped_loop_before_future_completed_messages": 0,
+    "traceback_headers": 0,
+    "error_level_messages": 0,
+    "shutdown_grace_warnings": 2,
+    "stuck_cancellation_warnings": 0,
+    "capture": "All2225bytes of separate ordinary CLI stdout/stderr inspected after terminal exit; no harness suppression.",
+    "log_sha256": {
+      "stdout": "aec362c678f54bbb2b98ff06f5ac128ef09220ca2cac674b51657a7da8332360",
+      "stderr": "78afc896cf5341e9060cc4032b428ec84ad14d6b6d78089c0d0aa3041d0d3c1d"
+    },
+    "interpretation": "Default SAQ zero-grace stop requests bounded cancellation. Both warnings remain recorded. No heartbeat-thread crash, stuck-cancellation warning or traceback is present. This idle readback does not qualify active-work shutdown or retroactively pass the first pilot.",
+    "broad_application_shutdown_qualified": false
+  },
+  "settlement": {
+    "independently_reconciled": true,
+    "owned_unit_cgroup_processes_groups_ports_container_absent": true,
+    "exact_retained_volume_unattached": true,
+    "source_SDK_runtime_and_five_credential_metadata_unchanged": true,
+    "installed_bindings_and_prior_retained_resources_unchanged": true
+  },
+  "provenance_sha256": {
+    "coordinator": "e9bbde83bbb73074da3a8c7d35e920318206273d57ba74cc3c1e26c6d01fd934",
+    "external_settlement": "05b8017b09aa0e053955bf20802c3d57a4a7dd89b98ea54b3d7250b4fa29ae18",
+    "complete_log_assessment": "cfab4de70fe90d8ae94fb49f3c7b162e788345ae9d11abebeecc515d8637db3b",
+    "reviewed_helper": "a23f88e9d1e1b3d35d3dc1e72847a1c8bd31ff58b48f728b7e8e43ed6d867841"
+  },
+  "boundary": "Dated after-fix GET-only observation. Historical acquisition pilot failed and old-source readback logged two heartbeat crashes. No second acquisition, installed cutover, recurring watching, Search/general crawling, active-work shutdown or autonomous improvement is qualified. Private field bodies, credentials, paths and host identifiers omitted."
+}

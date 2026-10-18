@@ -1,25 +1,119 @@
-"""Explicit lifecycle owner for SAQ queues used outside request dependency scopes."""
+"""Explicit lifecycle owner for in-process SAQ workers and their queues."""
 
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Mapping, Sequence
-from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+from collections.abc import Callable, Collection, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 
 import structlog
+from litestar.plugins import InitPlugin
 
 logger = structlog.get_logger()
 
 if TYPE_CHECKING:
+    from litestar.config.app import AppConfig
+    from litestar_saq import SAQConfig, Worker
+    from saq.queue.base import Queue
+    from saq.types import Context, Function, ReceivesContext
+
     from lychd.domain.cortex.engine import RunQueue
 
 __all__ = [
     "CancellationSafePostgresRunQueue",
     "ManagedRunQueue",
+    "RuntimeQueuePlugin",
     "connect_run_queues",
     "disconnect_run_queues",
     "protect_run_queues",
 ]
+
+
+class RuntimeQueuePlugin(InitPlugin):
+    """Assemble only the two in-process workers whose lifetime the application owns.
+
+    Run invocations own broker heartbeats. The optional batched heartbeat manager
+    has no consumer here and must never create a thread outside that drain proof.
+    """
+
+    __slots__ = ("_workers", "config")
+
+    def __init__(self, config: SAQConfig) -> None:
+        """Refuse unsupported profiles before constructing transports or workers."""
+        queues = tuple(config.queue_configs)
+        names = {queue.name for queue in queues}
+        invalid_queues = names != {"runs", "rites"} or len(queues) != len(names)
+        unsupported_runtime = (
+            config.web_enabled
+            or config.use_server_lifespan
+            or config.worker_processes != 1
+            or any(queue.separate_process for queue in queues)
+        )
+        foreign_instances = config.queue_instances is not None and set(config.queue_instances) != names
+        if invalid_queues or unsupported_runtime or foreign_instances:
+            msg = "Runtime queues require the fixed runs/rites in-process profile without raw SAQ UI or worker CLI."
+            raise ValueError(msg)
+        self.config = config
+        self._workers: dict[str, Worker] | None = None
+
+    def get_queue(self, name: str) -> Queue:
+        """Return the same configured transport used by workers and the lifespan."""
+        return self.config.get_queues().get(name)
+
+    def get_workers(self) -> dict[str, Worker]:
+        """Construct real workers without the unused thread-based heartbeat helper."""
+        if self._workers is None:
+            from litestar_saq import Worker
+
+            enable_otel = self.config.should_enable_otel()
+            tracer: object | None = None
+            if enable_otel:
+                from litestar_saq import instrumentation
+
+                # The optional dependency export is opaque; only its identity is forwarded.
+                get_tracer = cast(
+                    "Callable[[str], object]",
+                    getattr(instrumentation, "get_tracer"),  # noqa: B009 - opaque optional dependency export
+                )
+                tracer = get_tracer(self.config.otel_tracer_name)
+            self._workers = {
+                queue.name: Worker(
+                    queue=self.get_queue(queue.name),
+                    id=queue.id,
+                    functions=cast("Collection[Function[Context]]", queue.tasks),
+                    cron_jobs=queue.scheduled_tasks,
+                    cron_tz=queue.cron_tz,
+                    concurrency=queue.concurrency,
+                    startup=cast("Collection[ReceivesContext[Context]]", queue.startup),
+                    shutdown=cast("Collection[ReceivesContext[Context]]", queue.shutdown),
+                    before_process=cast("Collection[ReceivesContext[Context]]", queue.before_process),
+                    after_process=cast("Collection[ReceivesContext[Context]]", queue.after_process),
+                    timers=queue.timers,
+                    dequeue_timeout=queue.dequeue_timeout,
+                    separate_process=queue.separate_process,
+                    burst=queue.burst,
+                    max_burst_jobs=queue.max_burst_jobs,
+                    metadata=queue.metadata,
+                    shutdown_grace_period_s=queue.shutdown_grace_period_s,
+                    cancellation_hard_deadline_s=queue.cancellation_hard_deadline_s,
+                    poll_interval=queue.poll_interval,
+                    enable_otel=enable_otel,
+                    otel_tracer=tracer,
+                    enable_heartbeat_manager=False,
+                )
+                for queue in self.config.queue_configs
+            }
+        return self._workers
+
+    def on_app_init(self, app_config: AppConfig) -> AppConfig:
+        """Register startup; the required Altar lifespan alone owns worker retirement."""
+        from litestar.di import Provide
+
+        app_config.dependencies[self.config.queues_dependency_key] = Provide(self.config.provide_queues)
+        app_config.signature_namespace.update(self.config.signature_namespace)
+        for worker in self.get_workers().values():
+            app_config.on_startup.append(worker.on_app_startup)
+        return app_config
 
 
 class CancellationSafePostgresRunQueue:
