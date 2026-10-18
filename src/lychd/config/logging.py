@@ -65,6 +65,7 @@ def _build_log_config(
     structlog_processors: list[Processor] = default_structlog_processors(as_json=render_as_json)
     stdlib_processors: list[Processor] = default_structlog_standard_lib_processors(as_json=render_as_json)
     if render_as_json:
+        stdlib_processors.insert(-1, structlog.processors.format_exc_info)
         # Rename immediately before the renderer. Human consoles retain `event`
         # as the primary line instead of degrading it into a `message=` field.
         structlog_processors.insert(-1, structlog.processors.EventRenamer("message"))

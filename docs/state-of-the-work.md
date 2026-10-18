@@ -1474,7 +1474,9 @@ The shared renderer's cross-engine forced-collection qualification remains under
 
 **Proved now:** One tested builder configures human and JSON stdlib/Structlog output for CLI and
 Litestar while preserving stdout/stderr semantics, recovery-command fallback, and thread-stable
-repeated bootstrap without an unused logging queue.
+repeated bootstrap without an unused logging queue. Worker-thread stdlib exception records and
+direct Structlog exceptions retain usable diagnostics as valid JSON on stderr; human console
+exceptions remain readable.
 
 **Boundary:** Shared configuration does not prove complete semantic audit coverage, trace storage,
 OpenTelemetry export, redaction, retention, resource correlation, or Oculus.
@@ -1482,7 +1484,7 @@ OpenTelemetry export, redaction, retention, resource correlation, or Oculus.
 **Evidence**
 
 - **Source:** [Logging configuration](https://github.com/hexanomicon/lychd/blob/main/src/lychd/config/logging.py)
-- **Verification:** [Logging tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/config/test_logging.py)
+- **Verification:** [Logging tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/config/test_logging.py) and [exception regression tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/config/test_logging_exceptions.py)
 - **Law:** [Observability](./adr/29-observability.md)
 
 ### Native Oculus {#native-oculus}
