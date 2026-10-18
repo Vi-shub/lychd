@@ -16,7 +16,7 @@ monitoring and standing authority remain outside this study.
 | Need | Smallest useful path | Current boundary |
 | --- | --- | --- |
 | Understand one known public page | Existing static HTTPS Fetch and isolated HTML/text Extract | Opt-in public-page workflow; actual host/profile qualification remains necessary |
-| Observe recent Bazoš listings | One advertised category RSS feed, then local extraction/filtering | Separate RSS extraction is qualified; native XML Fetch and the feed workflow remain candidates |
+| Observe recent Bazoš listings | One advertised category RSS feed, then local extraction/filtering | The selected finite Scavenger application and its dated public-native observations are recorded in State; recurring watching remains unfinished |
 | Discover sources across the web | SearXNG, one qualified engine and one result page | No admitted engine, Rune or adapter ships; upstream-request mediation remains a prerequisite |
 | Read a page whose useful content requires JavaScript | Separately admitted Fetch + Render + Extract | Crawl4AI remains a later isolated candidate, not an automatic fallback |
 
@@ -67,22 +67,26 @@ external engines. LychD's selected design therefore needs more than an HTTP JSON
 one qualified engine, a restricted query dialect, immutable configuration and the exact
 pre-transmission transport gate in ADR 30. Do not count installing a stock container as that proof.
 
-## Next vertical slice: one feed, one attributed digest
+## Feed experiment: one feed, one attributed digest {#next-vertical-slice-one-feed-one-attributed-digest}
 
-Start with the advertised PC RSS 2.0 feed and one explicit public purpose. Reuse Scout's durable
-attempts, current-authority checks, destination transport and reservations. The separate
-versioned RSS extraction contract is now qualified; native XML Fetch/admission remains next; do not silently widen `static-public-page@1` or
-`scout-static-extract@1`. The existing media refusal remains a required negative control.
+The advertised PC RSS feed supplied the finite experiment below. The selected Scavenger
+application and dated ordinary-native observations now have their evidence in
+[State](../../state-of-the-work.md#scout-web-acquisition). Its title/link-only consumer contract
+belongs to [Market](../../compositions/scavenger/market.md#finite-feed-observation), including
+permanent allowance, custody and deletion. The baseline below explains the experiment; it does
+not widen the old static profiles or replace that selected consumer contract.
 
-The candidate must prove:
+The experiment's acceptance baseline is:
 
 - One exact host-admitted locator and finite Fetch/Extract ceilings, no pagination, subresource,
   redirect discovery, retry, browser, paid service or publisher contact.
 - Parsing in the existing kind of isolated child, with construction-time element/depth limits,
   bounded item/field/output counts and existing hard time/resource ceilings. DTDs, external
   entities, entity expansion, malformed XML, over-limit and truncated input must refuse.
-- Plain title/summary plus original item locator, publisher identifier/date as claims, source
-  attribution, observation time and declared omissions. No source-authored markup or instructions
+- Extractor-level plain title/summary plus original item locator, publisher identifier/date as
+  claims, source attribution, observation time and declared omissions. The selected Scavenger
+  consumer discards summaries and publisher identifiers/dates, retaining title/link and necessary
+  attribution only. No source-authored markup or instructions
   gain authority. Returned links are data; contacting one needs a fresh destination/effect decision.
 - Independent ordinary and hostile fixtures sealed before a constructor candidate. Then qualify
   the actual transport/child combination and current native admission path, retaining refusals and
@@ -100,7 +104,49 @@ contact/retention budget, revocation and uncertain-attempt reconciliation. Each 
 admission; an idle loop cannot manufacture a new allowance. Retaining prior entries or bodies
 needs the ordinary custody owner, not a private cache hidden in an Agent's history.
 
-Altar should expose the source, last observation, coverage, applied local filters, refused/pending
-state and the action that requests a new admitted observation. A new fetch and a local re-filter
-must be distinguishable. Add that instrument after the first native receipt, so the UI describes
-real operation rather than an empty provider catalogue.
+The selected Altar presents source/time, coverage, whole-field counts, local filters and distinct
+new-observation/deletion actions. State records its actual synthetic-browser and native API
+evidence separately; an ordinary authenticated retained-field browser journey remains open. A
+new fetch and a local re-filter must remain distinguishable.
+
+
+## SearXNG transport cut — 18 October 2026 {#searxng-transport-cut}
+
+The reviewed upstream source is pinned to
+[`1c10abe2d`](https://github.com/searxng/searxng/commit/1c10abe2d3e4ab7ddcc4e9da1a7d07dc7ca7f8f4).
+Its online processor separates engine request preparation, network exchange and response parsing.
+The lower [`Network.call_client`](https://github.com/searxng/searxng/blob/1c10abe2d3e4ab7ddcc4e9da1a7d07dc7ca7f8f4/searx/network/network.py#L271)
+still retries the first connection error without decrementing its retry counter. In a dated
+offline reproduction of that exact method, `retries=0` plus a controlled disconnect followed by
+success causes two client acquisitions and two request calls. Separate controls cover repeated
+connection errors, immediate success and a different request exception. No network occurred.
+
+A private, separately licensed service prototype replaces that direct path before client
+acquisition and refuses `get_client` itself. Its actual patched method ASTs and coroutine hook
+pass six offline cases: absent context, streaming refusal, one-use success, terminal failure,
+consumption before a suspended/cancelled call, and direct-client refusal. A narrow independent
+static review found no P1/P2 defect within that declared scope. The
+[dated observation](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/scout/searxng-transport-cut-2026-10-18.json)
+records exact source, patch, script and result hashes. The prototype is outside Core and is not
+an installed service, authenticated channel, host grant or containment boundary.
+
+Engine eligibility also needs source inspection. At this same pin,
+[`mojeek.request`](https://github.com/searxng/searxng/blob/1c10abe2d3e4ab7ddcc4e9da1a7d07dc7ca7f8f4/searx/engines/mojeek.py#L102)
+obtains a CAPTCHA-derived cookie through auxiliary challenge/verification calls when uncached.
+That flow is outside the first proposed public-search passage; no challenge was executed.
+The [`DuckDuckGo HTML module`](https://github.com/searxng/searxng/blob/1c10abe2d3e4ab7ddcc4e9da1a7d07dc7ca7f8f4/searx/engines/duckduckgo.py#L362)
+is only a candidate: first-page preparation uses a form POST, and its response parser raises on
+a CAPTCHA but returns empty results for HTTP303. The trusted bridge must therefore reject a
+redirect before parser invocation rather than record a clean miss. Regional/time filters can
+add cookies, and debug diagnostics include query-bearing data. No live engine or parser
+qualification follows from reading those functions.
+
+The next implementation must preserve this transport cut while supplying a typed, authenticated
+request/response channel, host-authored final bytes, Search-specific preparation and current
+disclosure admission, and independent denial of direct service egress. Existing native Scout
+authority accepts only fixed page/RSS FETCH claims; relabelling one cannot authorize Search.
+Use the pinned SearXNG parser to refuse engine/language/category/timeout/bang/lucky directives,
+qualify one exact engine and response wrapper, and retain query-bearing diagnostics as restricted
+evidence. The [accepted Search contract](../../adr/30-webcrawler.md#searxng-search-contract)
+already owns these requirements. A working JSON endpoint or this offline prototype is not Search
+delivery and cannot reset the retained feed's spent budget.

@@ -1,0 +1,199 @@
+{
+  "schema": "lychd.scout.searxng-transport-cut-study.v1",
+  "record_kind": "dated_offline_upstream_method_observation_not_provider_qualification",
+  "upstream": {
+    "repository": "https://github.com/searxng/searxng",
+    "revision": "1c10abe2d3e4ab7ddcc4e9da1a7d07dc7ca7f8f4",
+    "license_header": "AGPL-3.0-or-later",
+    "path": "searx/network/network.py",
+    "sha256": "565e6d852ff317827aac82bf5c22b2e74949e056579e40e30666fd135972e1ad",
+    "source_unchanged_after": "565e6d852ff317827aac82bf5c22b2e74949e056579e40e30666fd135972e1ad",
+    "extracted_methods": [
+      {
+        "name": "extract_kwargs_clients",
+        "def_line": 239,
+        "end_line": 240,
+        "exact_source_segment_sha256": "8b1643cfe9bc9c0ab80c3f181773a038149d245c875cb4caddb9055a7d46373c"
+      },
+      {
+        "name": "extract_do_raise_for_httperror",
+        "def_line": 243,
+        "end_line": 248,
+        "exact_source_segment_sha256": "7fc70ba10514b4c4f4f628d0d76a473a6ab558e3a272d6c97bcda2ef06f74dc7"
+      },
+      {
+        "name": "call_client",
+        "def_line": 271,
+        "end_line": 302,
+        "exact_source_segment_sha256": "7f51c99365c143b1de2543684c27463108465eb7df8229e04bdce72dce9844e9"
+      }
+    ]
+  },
+  "unmodified_upstream": {
+    "controlled_method_behavior_only": true,
+    "cases": [
+      {
+        "all_assertions_passed": true,
+        "case": "retries_zero_connection_error_then_success",
+        "client_close_counts": [
+          1,
+          0
+        ],
+        "configured_retries": 0,
+        "controlled_client_request_calls": 2,
+        "exception_type": null,
+        "get_client_calls": 2,
+        "raised_exact_scripted_exception": null,
+        "returned_scripted_response": true,
+        "warning_count": 1
+      },
+      {
+        "all_assertions_passed": true,
+        "case": "retries_zero_two_connection_errors",
+        "client_close_counts": [
+          1,
+          0
+        ],
+        "configured_retries": 0,
+        "controlled_client_request_calls": 2,
+        "exception_type": "CurlConnectionError",
+        "get_client_calls": 2,
+        "raised_exact_scripted_exception": true,
+        "returned_scripted_response": false,
+        "warning_count": 1
+      },
+      {
+        "all_assertions_passed": true,
+        "case": "retries_zero_immediate_success",
+        "client_close_counts": [
+          0
+        ],
+        "configured_retries": 0,
+        "controlled_client_request_calls": 1,
+        "exception_type": null,
+        "get_client_calls": 1,
+        "raised_exact_scripted_exception": null,
+        "returned_scripted_response": true,
+        "warning_count": 0
+      },
+      {
+        "all_assertions_passed": true,
+        "case": "retries_zero_other_request_exception",
+        "client_close_counts": [
+          0
+        ],
+        "configured_retries": 0,
+        "controlled_client_request_calls": 1,
+        "exception_type": "RequestException",
+        "get_client_calls": 1,
+        "raised_exact_scripted_exception": true,
+        "returned_scripted_response": false,
+        "warning_count": 0
+      }
+    ]
+  },
+  "private_separate_service_prototype": {
+    "patch_sha256": "bb1beac8b134ee9ec5f24fe6a7542d1b2aef443d37b3af29a5be3a8a5cac3530",
+    "hook_sha256": "ee837a17253acf5ea83bae06cdeff483ba00f5073f287a89cfe0cd2e38d74b32",
+    "conformance_sha256": "8a5781130dd7f0a6523f34c48238beb23be1ade5252d74fd94d0799966240da4",
+    "patched_upstream_network_sha256": "55ef03d7c0a188c9e2063f2bb9d7dc156cec9e349c5ab5257e2a299d1b106163",
+    "actual_patched_method_AST_and_real_hook_executed": true,
+    "cases": [
+      {
+        "case": "missing_context",
+        "passed": true,
+        "port_calls": 0
+      },
+      {
+        "case": "streaming_refused",
+        "passed": true,
+        "port_calls": 0
+      },
+      {
+        "case": "positive_identity_then_second_refused",
+        "passed": true,
+        "port_calls": 1
+      },
+      {
+        "case": "terminal_failure_then_second_refused",
+        "passed": true,
+        "port_calls": 1
+      },
+      {
+        "case": "consumed_before_await_and_cancelled_no_retry",
+        "passed": true,
+        "port_calls": 1
+      },
+      {
+        "case": "actual_patched_get_client_fails_before_self_access",
+        "passed": true,
+        "port_calls": 0
+      }
+    ],
+    "call_client_curl_acquisition_attempts": 0,
+    "direct_patched_get_client_refused": true,
+    "independent_static_review": {
+      "P1": 0,
+      "P2": 0,
+      "candidate_reexecuted": false,
+      "settlement_sha256": "4cfc3eb52a5afca0effff847ae38551d6543ac9c7dcadaf5269219daff657de2"
+    }
+  },
+  "process_observations": {
+    "retry-reproduction-01": {
+      "returncode": 0,
+      "elapsed_seconds": 0.04346099600661546,
+      "child_user_cpu_seconds": 0.036981,
+      "child_system_cpu_seconds": 0.005996,
+      "stderr_bytes": 0,
+      "deadline_seconds": 10,
+      "rlimit_cpu_seconds": 2,
+      "rlimit_as_bytes": 134217728,
+      "rlimit_fsize_bytes": 131072,
+      "rlimit_nofile": 16,
+      "isolated_python": true,
+      "bytecode_writes_disabled": true
+    },
+    "bridge-cut-candidate-01": {
+      "returncode": 0,
+      "elapsed_seconds": 0.06108029803726822,
+      "child_user_cpu_seconds": 0.049284999999999995,
+      "child_system_cpu_seconds": 0.011294,
+      "stderr_bytes": 0,
+      "deadline_seconds": 10,
+      "rlimit_cpu_seconds": 2,
+      "rlimit_as_bytes": 134217728,
+      "rlimit_fsize_bytes": 131072,
+      "rlimit_nofile": 16,
+      "isolated_python": true,
+      "bytecode_writes_disabled": true
+    }
+  },
+  "provenance_sha256": {
+    "upstream_pin": "db5f0577768beb3c857ab1a509655d7dd0512d99232915a0eebe156c6a9bdaea",
+    "unmodified_reproduction": "416607f9717197ace346957b500704d73ad859b5a2010a3364a9ce463738fa07",
+    "unmodified_result": "8e33c5860765f7d1a8ce3a85120ee2c679511dc231023d4deaec8ab745283df1",
+    "unmodified_process": "c3d31f8bb37f25e5ea45c7d5c15248f1497d995eebaba17df0868c35630721a3",
+    "prototype_result": "2af2b59f7dae56315d096669e631b6175d526653a82d99c6475e6334983095cb",
+    "prototype_process": "f7a9b5779ae3d2c15a2c3664551492ffc23ba8cf6592e25e6d5503d447ab3b41"
+  },
+  "network_operations": 0,
+  "physical_transmissions": 0,
+  "provider_queries": 0,
+  "full_upstream_module_imported": false,
+  "installed_dependencies": false,
+  "core_upstream_code_vendored": false,
+  "Search_qualified": false,
+  "unbuilt": [
+    "typed host compiler and Search-specific authority",
+    "final-byte admission gate",
+    "admitted query and engine/parser profiles",
+    "real response construction and parser compatibility",
+    "authenticated serialized cross-process channel",
+    "physical-transmission admission accounting",
+    "enforced deny-all physical egress for upstream worker and bypasses"
+  ],
+  "boundary": "Exact upstream methods ran with controlled client/error collaborators; the separate prototype ran patched method ASTs and its actual coroutine hook. These are offline invocation and one-use control-flow observations, not curl transport, SearXNG service/image, query/engine/parser, native Search, physical containment or public provider evidence. The upstream code and AGPL service prototype remain outside the MPL core; this record publishes facts and hashes only.",
+  "recorded_at": "2026-10-18T08:29:11.412597+00:00",
+  "execution_time_boundary": "The retained offline results carry measured elapsed time; this projection records its own creation time, not a reconstructed per-case UTC timestamp."
+}
