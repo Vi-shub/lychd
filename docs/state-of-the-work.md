@@ -431,9 +431,11 @@ after configuration changes or removal, including idempotent retries. Dispatcher
 key together with family, modalities, tools, readiness, and drain constraints; duplicate model
 aliases cannot redirect the turn. Missing or mismatched checkpoint bindings refuse execution before
 a node runs. Revision 1 keeps its original manifest and remains executable after activation changes.
-The same selector also admits the bounded [public-note](#karma-semantic-memory) and
-[Scout public-page](#scout-web-acquisition) revisions; their authority and evidence boundaries
-remain with those records.
+The same selector also admits the bounded [public-note and semantic-source-answer](#karma-semantic-memory)
+and [Scout public-page](#scout-web-acquisition) revisions; their authority and evidence boundaries
+remain with those records. The explicitly boot-selected `bridge_chat@5` retains its complete exact
+Archive generation manifest/reference, threshold and finite recall bounds with the local Chat key.
+Omitting configuration still selects revision 1 for new admissions.
 
 Revision 2 also accepts a bounded two-route local Chat preference instead of an exact configured
 key. Strict integer weights rank only freshly observed warm routes with unchanged declarations
@@ -447,19 +449,21 @@ Real PostgreSQL concurrent sessions retain one winning policy and exact key; a r
 adapter and idempotent lookup return that decision, while changed JSONB digests, selected keys
 or admitted bindings refuse reconstruction.
 
-**Boundary — Not yet:** This pins capability identity, not a model artifact or runtime declaration
-generation for future execution. The preference batch reserves no future readiness; existing exact-key
+**Boundary — Not yet:** The Chat key pins capability identity, not a chat model artifact or runtime
+declaration generation for future execution. The preference batch reserves no future readiness; existing exact-key
 execution, tools, consent and retry rules still apply. There is no execution fallback, adaptive or
 multimodal route policy, portable Resolution Lock, or general Pattern/AgentSpec/Context selector.
-Settings loading does not contact an engine. The exact-key configuration checks declaration at
-execution; the preference mode checks both declarations at admission, including disabled routes.
+Settings loading does not contact an engine. Revision 2's exact-key configuration checks declaration
+at execution; revision 5 also validates exact local Chat and embedding declaration metadata at boot
+without readiness or model work. The preference mode checks both declarations at admission,
+including disabled routes.
 Live two-route preference remains unqualified; existing default-Bridge receipts do not establish
 it. The synthetic PostgreSQL controls use ORM metadata and do not claim migrations or a server restart.
 
 **Evidence**
 
 - **Source:** [Weaver settings](https://github.com/hexanomicon/lychd/blob/main/src/lychd/config/settings/weaver.py), [Bridge workflow](https://github.com/hexanomicon/lychd/blob/main/src/lychd/agents/workflows/bridge_chat.py), and [Dispatcher](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/cortex/dispatcher.py)
-- **Verification:** [Configuration tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/config/test_weaver_settings.py), [configured registry tests](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_configured_registry.py), [casting workflows](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_bridge_casting_workflow.py), and [exact selection tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_dispatcher_exact_selection.py)
+- **Verification:** [Configuration tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/config/test_weaver_settings.py), [configured registry tests](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_configured_registry.py), [casting workflows](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_bridge_casting_workflow.py), [exact selection tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_dispatcher_exact_selection.py), and [semantic selection, admission and metadata-only composition](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_semantic_answer_admission.py)
 - **Source:** [Preference admission](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/cortex/bridge_preference.py), [Run admission](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/cortex/engine.py), and [retained decisions](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/cortex/ledger.py)
 - **Verification:** [Preference controls](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_bridge_preference.py), [Run admission and replay](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_engine.py), and [safe HTTP refusals](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_bridge_preference.py)
 - **Verification:** [PostgreSQL retained winner and corruption controls](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_db_run_ledger_pg.py)
@@ -2024,7 +2028,29 @@ timeouts and the existing restricted runtime role. Authenticated ASGI plus actua
 exercise the configured factories, real Core HTTP driver and shared leases with intercepted model
 responses. HTTP numeric-coercion negatives use the production schema plugin. These tests do not
 qualify real-model Archive composition, general retrieval quality, a browser semantic instrument
-or a semantic Bridge Pattern.
+or semantic Bridge execution.
+
+The separately boot-selected `bridge_chat@5` composes that semantic generation with one exact local
+Soulstone Chat capability. Admission retains the complete manifest/reference, explicit threshold
+and finite recall bounds; each node resolves the Archive subject from the persisted caller.
+Component controls cover exact admission and checkpoint bindings, changed-service/receipt refusal,
+current authority before chat, each outbound model count/request and settlement, and query cleanup
+before chat acquisition. The transient `archive_semantic_recall` envelope carries the schema2
+receipt, generation, coverage and source attribution. It supplies no instructions or tools, and
+this casting excludes prior conversation history. The injected source envelope stays out of retained state and
+model history; generated answers may quote source text and persist. Execution uses the existing shared
+hardware lease path, without automatic generation registration, preparation or lexical fallback.
+
+Actual PostgreSQL source-answer controls passed five cases in each of two bounded runs, with zero
+failures, errors or skips and independently confirmed physical settlement. A fresh fixture drives
+HTTP admission, retained idempotent binding and the actual worker through ordinary answer settlement.
+Four separate cases explicitly persist and reconstruct the typed PostgreSQL snapshot: unchanged
+state proceeds; revoked source, retired generation and changed composed service refuse before a
+Chat grant, outbound request or settled agent turn. Ordinary revision 5 uses Live Stasis; these
+manual reconstruction controls do not establish automatic worker-death recovery. Component
+embedding substitutes, FunctionModel and a local Chat substitute replace native inference, and
+the broker is captured. Both runs made zero real-model calls; they establish SQL custody and
+settlement, not grounding, abstention, model usefulness or installed startup.
 
 A separate [native composition test](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_semantic_native_runtime.py)
 and [maintained observation](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/archive/native-semantic-runtime-2026-10-19.json)
@@ -2044,7 +2070,9 @@ the Orchestrator or exercise normal Settings database socket configuration.
 
 **Boundary — Not yet:** Ordinary Bridge3 remains lexical RAG for explicit same-host public notes.
 The separate semantic API has only the fixed native lifecycle qualification above; general retrieval
-quality remains unqualified. General `CandidateArchivePort`, automatic conversation retention, extraction, Curator,
+quality remains unqualified. Revision 5 has component and actual-PostgreSQL custody evidence only;
+its native answer usefulness, grounding, installed startup and automatic crash recovery remain
+unqualified. General `CandidateArchivePort`, automatic conversation retention, extraction, Curator,
 GraphRAG, shared namespaces, remote IAM, private-material egress and training remain unqualified.
 Public-note management controls
 have no source-body preview or prefilled editing; real-browser keyboard/reflow/reload acceptance and
@@ -2067,6 +2095,8 @@ Generated answers can quote sources; later revocation does not erase earlier out
 - **Verification:** [Derivation races](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_derivation_pg.py), [configured HTTP and lease integration](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_derivation_http_pg.py), [migration rollback](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_derivation_migrations_pg.py), and [derivation runtime role](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_derivation_runtime_pg.py)
 - **Source:** [Exact semantic values and service](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/archive/semantic_service.py), [filtered PostgreSQL store](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/archive_semantic.py), and [separate authenticated API](https://github.com/hexanomicon/lychd/blob/main/src/lychd/interface/web/archive_semantic.py)
 - **Verification:** [Semantic protocol and numeric identity](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/test_archive_semantic.py), [retained schema and safe storage failures](https://github.com/hexanomicon/lychd/blob/main/tests/unit/db/test_archive_semantic.py), [actual PostgreSQL fences and runtime role](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_semantic_pg.py), [composed HTTP with intercepted model responses](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_semantic_http_pg.py), [transport denials](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_archive_semantic.py), and [exported contract](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_archive_semantic_openapi.py)
+- **Source:** [Semantic source-answer workflow](https://github.com/hexanomicon/lychd/blob/main/src/lychd/agents/workflows/semantic_chat.py) and [immutable semantic admission binding](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/cortex/semantic_answer.py)
+- **Verification:** [Component graph, current-authority and transient-source controls](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_semantic_chat.py), [semantic admission and effect-free composition](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_semantic_answer_admission.py), and [actual PostgreSQL worker custody and explicit typed reconstruction](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_semantic_answer_pg.py)
 - **Verification:** [Native semantic composition](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_semantic_native_runtime.py), [owned runtime helper](https://github.com/hexanomicon/lychd/blob/main/tests/support/archive_semantic_runtime.py), [maintained native receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/archive/native-semantic-runtime-2026-10-19.json), and [inert admission/source freshness](https://github.com/hexanomicon/lychd/blob/main/tests/unit/support/test_archive_semantic_runtime.py)
 - **Verification:** [Metadata authority, cursor and column-selection tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/db/test_archive_failures.py) and [guarded metadata HTTP tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_archive_metadata.py); the PostgreSQL lifecycle and vertical tests above include retained metadata recovery and no-write reads.
 - **Source:** [Public-note focus](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/PublicNotes.svelte) and [framework-neutral recovery controller](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/archive/notes.ts)
@@ -2077,7 +2107,7 @@ Generated answers can quote sources; later revocation does not erase earlier out
 - **Verification:** [Latest-state and frozen-reference recovery](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/archive/preparation.test.ts), [preparation controls](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/PublicNotePreparation.test.ts), and the public-note management/transport tests above.
 - **Source:** [Exact-Run Archive inspector](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/ArchiveRecallPanel.svelte); [inspector tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/ArchiveRecallPanel.test.ts) cover protected display and lifetime.
 - **Verification:** [Exact-Run recall binding, preseed and current-authority HTTP tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_archive_run_recall.py); the PostgreSQL lifecycle and vertical tests above cover terminal and historical metadata reads.
-- **Topic:** [Public-note answers](./divination/altar/bridge.md#public-note-answers), [explicit semantic sources](./divination/altar/bridge.md#recall-semantic-sources), and [matching Archive selection](./divination/altar/orb.md#inspect-a-matching-archive-selection)
+- **Topic:** [Public-note answers](./divination/altar/bridge.md#public-note-answers), [explicit semantic sources](./divination/altar/bridge.md#recall-semantic-sources), [semantic generation answers](./divination/altar/bridge.md#answer-from-a-semantic-generation), and [matching Archive selection](./divination/altar/orb.md#inspect-a-matching-archive-selection)
 - **Law:** [Memory](./adr/27-memory.md)
 
 ### Mirror identity {#mirror-identity}

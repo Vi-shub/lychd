@@ -56,6 +56,9 @@ RecallNotes → AnswerNotes → SettleNoteAnswer → End
 bridge_chat@4 (configured Scout and exact local capability)
 PreparePageReview → AwaitPageConsent → AcquireAndAnswerPage → SettlePageAnswer → End
 
+bridge_chat@5 (configured semantic generation and exact local capability)
+RecallSemanticNotes → AnswerSemanticNotes → SettleSemanticAnswer → End
+
 delegated_rite@1 (default) / delegated_rite@2 (configured exact runtime)
 DispatchDelegate ⇢ ProjectDelegatedReply → End
 ```
@@ -101,6 +104,12 @@ Revision 4 adds one explicitly declared public page, native consent and transien
 Context. Its [Scout configuration](../scout.md#public-page-answers) selects a qualified static
 runtime and finite budgets. Neither profile turns a Scroll or source-authored text into tool authority.
 
+Revision 5 adds read-only answers from the independently enabled Archive semantic generation,
+without tools or earlier conversation history. Its [semantic generation configuration](../../../divination/altar/bridge.md#answer-from-a-semantic-generation)
+binds the exact generation, explicit threshold and finite recall bounds to one exact local Chat
+capability at boot. The selected Run retains that binding; opening the sources-only recall focus
+does not change the configured casting.
+
 ### Prefer a ready route at admission
 
 Revision 2 may instead rank exactly two declared local Chat routes:
@@ -120,7 +129,7 @@ routes = [
 Replace both keys with literal identities from the declared inventory. Omit `capability_key`
 from `[weaver.bridge]` when using `preference`; revision 2 accepts exactly one of them. Both
 routes, including a disabled one, must declare local Soulstone Chat with tool support. Revisions
-3 and 4 retain their exact-key configuration and reject `preference`.
+3, 4 and 5 retain their exact-key configuration and reject `preference`.
 
 Weights are integer preferences from 0 through 1,000,000, with a positive total; they are not
 traffic percentages, measured quality, or additional authority. Zero disables eligibility and

@@ -14,6 +14,7 @@ from pydantic_ai.messages import ModelRequest, UserPromptPart
 from pydantic_ai.models.wrapper import WrapperModel
 
 from lychd.domain.archive import ArchiveRefused, RecallProjection
+from lychd.domain.archive.semantic import SemanticRecallProjection
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
@@ -34,6 +35,10 @@ class ArchiveModel(WrapperModel):
     a reference or digest grants no authority. ContextWindowModel belongs outside
     this wrapper so its usage checks include the projection.
 
+    Schema2 adds its own explicit generation, coverage and selection bounds; the
+    lexical envelope stays unchanged. Neither score nor a nonempty projection
+    establishes that a question is answerable.
+
     Only a detached outbound list receives the additional request. The Agent's
     source messages, instructions and durable history never receive that request.
     A model's response can still quote its inputs; this is not an output censor.
@@ -43,7 +48,7 @@ class ArchiveModel(WrapperModel):
         self,
         wrapped: Model,
         *,
-        resolver: Callable[[], Awaitable[RecallProjection]],
+        resolver: Callable[[], Awaitable[RecallProjection | SemanticRecallProjection]],
         max_chars: int,
     ) -> None:
         """Bind an exact-receipt resolver and a reserved final-envelope budget."""
@@ -78,7 +83,7 @@ class ArchiveModel(WrapperModel):
     async def _wire(self) -> str:
         projection = await self._resolver()
         receipt = projection.receipt
-        envelope = {
+        envelope: dict[str, Any] = {
             "kind": "archive_recall",
             "instruction_authority": "none",
             "receipt": {
@@ -92,6 +97,17 @@ class ArchiveModel(WrapperModel):
             },
             "items": [item.model_dump(mode="json") for item in projection.items],
         }
+        if isinstance(projection, SemanticRecallProjection):
+            envelope["kind"] = "archive_semantic_recall"
+            envelope["receipt"].update(
+                schema_version=projection.receipt.schema_version,
+                generation=projection.receipt.generation.model_dump(mode="json"),
+                generation_version=projection.receipt.generation_version,
+                coverage=projection.receipt.coverage.model_dump(mode="json"),
+                min_cosine=projection.receipt.min_cosine,
+                max_results=projection.receipt.max_results,
+                char_budget=projection.receipt.char_budget,
+            )
         wire = json.dumps(envelope, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
         if len(wire) > self.max_chars:
             code = "projection_budget_exceeded"

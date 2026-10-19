@@ -21,10 +21,12 @@ from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
 from typing import TYPE_CHECKING, Any, Literal, Protocol, cast
+from uuid import UUID
 
 import structlog
 
 from lychd.domain.archive.contracts import MAX_QUERY_CHARS
+from lychd.domain.archive.semantic import SemanticRecallRequest
 from lychd.domain.cortex.admission import RunAdmissionCoordinator
 from lychd.domain.cortex.bridge_preference import (
     BridgePreference,
@@ -36,6 +38,7 @@ from lychd.domain.cortex.bridge_preference import (
 from lychd.domain.cortex.cancellation import RunCancellationCoordinator
 from lychd.domain.cortex.priority import saq_wire_priority, validate_priority
 from lychd.domain.cortex.runs import TERMINAL_STATUSES, RunDeliveryState, RunHandle, RunStatus
+from lychd.domain.cortex.semantic_answer import SemanticAnswerBinding
 from lychd.domain.scout.feed import ScoutFeedBinding, ScoutFeedDeclarationProof
 from lychd.domain.scout.profile import (
     ScoutBinding,
@@ -423,6 +426,7 @@ class RunEngine:
         "bridge_preference",
         "bridge_preference_selector",
         "bridge_scout",
+        "bridge_semantic",
         "bus",
         "cancellations",
         "consents",
@@ -458,6 +462,7 @@ class RunEngine:
         bridge_preference: BridgePreference | None = None,
         bridge_preference_selector: Callable[[BridgePreference], Awaitable[BridgePreferenceDecision]] | None = None,
         bridge_archive: ArchiveProfile | None = None,
+        bridge_semantic: SemanticAnswerBinding | None = None,
         bridge_scout: ScoutProfile | None = None,
         scout_admission: ScoutAdmission | None = None,
         feed_scout: ScoutFeedProfile | None = None,
@@ -478,6 +483,11 @@ class RunEngine:
         )
         self.bridge_preference_selector = bridge_preference_selector
         self.bridge_archive = bridge_archive
+        self.bridge_semantic = (
+            SemanticAnswerBinding.model_validate(bridge_semantic.model_dump(mode="python"))
+            if bridge_semantic is not None
+            else None
+        )
         self.bridge_scout = bridge_scout
         self.scout_admission = scout_admission
         self.feed_scout, self.feed_scout_admission = feed_scout, feed_scout_admission
@@ -521,10 +531,11 @@ class RunEngine:
             intent.admitted_capability_key is not None
             or intent.admitted_bridge_preference is not None
             or intent.admitted_archive is not None
+            or intent.admitted_semantic is not None
             or intent.admitted_delegation is not None
             or intent.admitted_scout is not None
         ):
-            msg = "Capability, Archive, Scout and delegation bindings are server-owned admission metadata, not caller Intent."
+            msg = "Capability, Archive, semantic, Scout and delegation bindings are server-owned admission metadata, not caller Intent."
             raise ValueError(msg)
         if exclusive_session:
             session_key = ("exclusive_session", intent.session_id)
@@ -796,6 +807,8 @@ class RunEngine:
                 msg = "delegated_rite@2 requires its configured runtime binding before admission."
                 raise ValueError(msg)
             return intent.model_copy(update={"admitted_delegation": self.delegation_binding})
+        if workflow.manifest.key == "bridge_chat" and workflow.manifest.revision == "5":
+            return self._bind_semantic(intent)
         if workflow.manifest.key != "bridge_chat" or workflow.manifest.revision not in {"2", "3"}:
             return intent
         return await self._bind_configured_bridge_intent(intent, workflow)
@@ -821,6 +834,32 @@ class RunEngine:
                 "admitted_capability_key": self.bridge_capability_key,
                 "admitted_archive": archive,
             }
+        )
+
+    def _bind_semantic(self, intent: Intent) -> Intent:
+        """Validate the exact raw query and immutable policy before any Run or queue effect."""
+        binding = self.bridge_semantic
+        if (
+            binding is None
+            or not self.bridge_capability_key
+            or not self.bridge_capability_key.strip()
+            or self.bridge_preference is not None
+            or self.bridge_archive is not None
+            or self.bridge_scout is not None
+        ):
+            msg = "bridge_chat@5 requires its configured semantic binding and exact local chat key."
+            raise ValueError(msg)
+        SemanticRecallRequest(
+            namespace_id=binding.manifest.archive.namespace_id,
+            request_id=UUID(int=0),  # Shape validation only; the workflow derives identity from the canonical Run.
+            generation=binding.generation,
+            query=intent.prompt,
+            min_cosine=binding.min_cosine,
+            max_results=binding.max_results,
+            char_budget=binding.char_budget,
+        )
+        return intent.model_copy(
+            update={"admitted_capability_key": self.bridge_capability_key, "admitted_semantic": binding}
         )
 
     def _bind_archive(self, intent: Intent) -> ArchiveProfile:

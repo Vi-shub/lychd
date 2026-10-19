@@ -239,6 +239,35 @@ than silently parsing it as schema1.
 This section governs a separately selected consumer; it does not establish delivery. State owns
 executable and native-composition acceptance.
 
+### Native semantic source-answer consumer
+
+An explicitly selected native source-answer casting may consume the existing semantic service.
+Admission retains the complete configured generation manifest/reference and explicit threshold,
+result and character bounds together with the exact local chat capability, caller and Run. No
+client supplies server admission metadata. Restore compares that binding with the retained Run
+and the current composed service; changed configuration cannot silently replace the admitted
+profile or generation. Each node obtains its Archive subject through the persisted caller's
+mandatory local subject mapping. Configuration and historical selection do not confer current
+source authority.
+
+The casting derives one semantic-specific request identity from its canonical Run, recalls before
+chat admission, and retains only receipt references and observed text-free query execution metadata.
+The embedding driver and counted lease must close before chat acquisition. A dedicated cold
+capability may use the existing bounded Graph hardware wait and re-enter the same recall node
+before query inference; shared unmanaged cold and failed convergence refuse. Re-entry rechecks
+current authority and request identity. Completed replay performs no query inference. Interrupted
+or duplicate pre-checkpoint work is not zero-cost or exactly-once execution; winning receipt usage
+and this caller's observed execution remain distinct from total attempt accounting.
+
+Before chat/hardware work, every outbound count/request/stream, and settlement, resolve the exact
+schema2 receipt under current generation/source/derivation and caller fences. No rerank, replacement,
+lexical fallback, automatic preparation or unknown-outcome inference retry is implied. Context
+preserves coverage and source attribution under [ADR21](21-context.md#explicit-archive-projection).
+A generated answer can quote sources and persist; revocation blocks later use without erasing that
+prior influence. Retrieval conformance or a synthetic ranking trial cannot establish grounded
+answers, abstention, actual native execution or broad quality. State records those acceptances
+separately.
+
 ## Framework boundary and Memori
 
 [Memori](https://github.com/MemoriLabs/Memori) is a maintained comparison source, not an installed

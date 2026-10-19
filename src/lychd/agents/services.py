@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from lychd.domain.animation.capabilities import CapabilityGrant
     from lychd.domain.animation.schemas.capability_family import CapabilityFamily
     from lychd.domain.archive import ArchiveService, ArchiveSubject
+    from lychd.domain.archive.semantic_service import ArchiveSemanticService
     from lychd.domain.codex.schemas import ConsentDecision
     from lychd.domain.cortex.context import ContextOrchestrator
     from lychd.domain.cortex.events import RunEventBus
@@ -110,6 +111,7 @@ class WorkflowServices:
     sigil_provider: Callable[[], Sigil]
     delegates: DelegatedAgentCoordinatorPort | None = None
     archive: ArchiveService | None = None
+    archive_semantic: ArchiveSemanticService | None = None
     archive_subject_provider: Callable[[], ArchiveSubject] | None = None
     scout: ScoutWorkflowPort | None = None
     feed_scout: ScoutFeedWorkflowPort | None = None

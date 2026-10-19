@@ -34,6 +34,7 @@ def test_catalogue_lists_registered_workflow(
         ("bridge_chat", "2", False, False, None),
         ("bridge_chat", "3", False, False, None),
         ("bridge_chat", "4", False, False, None),
+        ("bridge_chat", "5", False, False, None),
         ("delegated_rite", "1", True, False, 1),
         ("delegated_rite", "2", False, False, None),
         ("scavenger.observe_market", "2", False, False, None),
@@ -206,3 +207,24 @@ def test_source_namespace_preserves_a_revision_named_source(
 def test_view_unknown_workflow_404(altar_client: TestClient[Litestar]) -> None:
     assert altar_client.get("/api/v1/loom/nope").status_code == 404
     assert altar_client.get(f"/api/v1/loom/{_NAME}/nope").status_code == 404
+
+
+def test_semantic_revision_exposes_its_own_score_without_changing_the_default(
+    altar_client: TestClient[Litestar],
+) -> None:
+    response = altar_client.get("/api/v1/loom/bridge_chat/5")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["revision"] == "5"
+    catalogue = altar_client.get("/api/v1/loom").json()
+    entry = next(item for item in catalogue if item["pattern_id"] == "bridge_chat" and item["revision"] == "5")
+    assert entry["active"] is False
+    assert entry["default"] is False
+    assert body["entry_node"] == "recall_semantic_notes"
+    assert {node["key"] for node in body["nodes"]} == {
+        "recall_semantic_notes",
+        "answer_semantic_notes",
+        "settle_semantic_answer",
+        "end",
+    }
+    assert "(bridge_chat@5)" in body["mermaid_source"]

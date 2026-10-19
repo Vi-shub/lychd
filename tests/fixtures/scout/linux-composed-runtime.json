@@ -30,9 +30,9 @@
     "src/lychd/domain/codex/ledger.py": "9deb0e385b96a7b6ab9f6a844564c1ae1edd2feced68794de361b08868d00d17",
     "src/lychd/domain/cortex/bridge_preference.py": "0f8754465af54823e82ce76cb24977bb6334852b134991e51341bcf1a74da75b",
     "src/lychd/domain/cortex/cancellation.py": "e98663a9cd73aa256842429b039c9ca554905255bd24b786ba70db56b910b2e6",
-    "src/lychd/domain/cortex/engine.py": "ce7131c4ba3943d67331d041d4467e22d87fd823bf909f0e6f5b5ab6523ec478",
-    "src/lychd/domain/cortex/ledger.py": "382e0fb120043454da20adba06742fe437089062a7c6c8785785c63e6d73ea1c",
-    "src/lychd/domain/cortex/runs.py": "ea894ada7e1256a653086dbe74376a5fa4ad846f39d8718f00be99702535ee3c",
+    "src/lychd/domain/cortex/engine.py": "92ff4d9cd09f2874a12585f814630e4f86de8c86d77dbb7f660be24a7ab5b823",
+    "src/lychd/domain/cortex/ledger.py": "8a20a5827713ba4be001401b96992c554df6d095ac7bd5e6574d2f6a564dcfb1",
+    "src/lychd/domain/cortex/runs.py": "382f46128fc129b00a683f8c3b19b9dc596a3c2d0aac03f46ab752b424362fc5",
     "src/lychd/domain/scout/attempts.py": "72f0db6d03a636438c2440bd8ee652516b1d79a0483efe5389c39582f294cc9d",
     "src/lychd/domain/scout/authority.py": "866ff2674f2b16a3fe7fd2ffb46fe1542bea0a6726f32ff3df697193e310e40a",
     "src/lychd/domain/scout/destination.py": "5cd67b1be68397673b86982afe5b36f2d3fbf26ef8c64da4397dc15d0edf683f",
@@ -47,7 +47,7 @@
     "src/lychd/interface/web/scout_review.py": "c2205b7e85e95014c4db84e7a39878b0f10a461fa68c0f1a5c2a7d86267fa0de",
     "src/lychd/agents/workflows/scout_chat.py": "350e356d588641660427d34654f87ddec2b836ab0a942d2e68323099be15c00f",
     "src/lychd/agents/scout_context.py": "28ac0738e34463565957959180539a5734e659065dc615974db36ba68730733f",
-    "src/lychd/agents/router.py": "a60563223c88a58f829ceb18ac1d7f7df905de48d814dbbe2cbb51e5eb593c23",
+    "src/lychd/agents/router.py": "70d7542efae89c6200d4d2afc9d4052b234098931b04565f011570b99638aa2e",
     "src/lychd/system/scout_worker.py": "01a187f62f8da632c344394d0c1bc8c7f7365eed8c21e530ef6257fef0f1ce7f",
     "src/lychd/system/services/scout_workflow.py": "2711789397ec81d1d5df517496caf184ff13cf0293a9208c69e097af56bf4f0c",
     "src/lychd/system/services/scout_dns.py": "9bb3842fd92f35c99331aa14bb46f1250be700de599679454c061e9fba40acc9",
@@ -132,5 +132,5 @@
     "anonymous_volume_count": 1
   },
   "record_kind": "sanitized_public_composed_qualification",
-  "observed_on": "2026-10-18"
+  "observed_on": "2026-10-19"
 }

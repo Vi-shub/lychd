@@ -120,8 +120,8 @@ This revision has no model tools, consent continuation, or settled-history repla
 answer and normal turn messages remain retained and may quote or reflect sources; revoking a
 source prevents future recall but cannot erase that prior influence. Missing, changed, archived,
 superseded, or revoked receipt material refuses the casting rather than silently searching again.
-An empty successful receipt remains a visible miss, distinct from service failure. Other Bridge
-revisions do not receive this projection. This narrow local profile does not implement the
+An empty successful receipt remains a visible miss, distinct from service failure. Revisions 1, 2 and 4 do not receive this Archive
+projection. This narrow local profile does not implement the
 general Privacy Cut or remote disclosure admission below.
 
 Archive's durable text-free receipt can explain a selection matching an exact admitted Run after
@@ -129,6 +129,16 @@ Context-cache release. This separate authorized metadata view does not reconstru
 Floor, total assembly budget, history, actual wire input or provider attention. A matching retained
 request is not proof of workflow consumption or transmission; omitted capture stays unknown.
 Current source eligibility is a separate check, not a revision of that historical selection.
+
+The separately selected semantic source-answer casting follows the same outbound-only boundary,
+with its own schema2 envelope. It preserves the generation/reference, threshold, result/character
+bounds, coverage and omissions alongside exact attributed source revisions. Schema2 never appears
+as a lexical receipt. Similarity locates potentially relevant context; it is neither answer support
+nor confidence. Instructions require explicit uncertainty, unsupported questions and conflicting
+claims, including when nonempty context does not answer the question. Partial coverage and budget
+omissions must not be described as an exhaustive corpus search. Full escaped-envelope reservation,
+current authorization on each outbound boundary, no tools, no settled-history replay, and final
+settlement revalidation apply independently of retrieval type. State owns delivery acceptance.
 
 ## Stable history
 

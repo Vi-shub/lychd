@@ -9,6 +9,7 @@ from pydantic import ConfigDict, Field, field_validator, model_validator
 from lychd.config.settings.section import SettingsSection
 from lychd.domain.archive import ArchiveProfile
 from lychd.domain.cortex.bridge_preference import BridgePreference
+from lychd.domain.cortex.semantic_answer import SemanticAnswerSelection
 from lychd.domain.delegation.routing import DelegatedRuntimeBinding
 from lychd.domain.scout.feed import ScoutFeedProfile
 from lychd.domain.scout.profile import ScoutProfile
@@ -17,7 +18,7 @@ from lychd.domain.scout.profile import ScoutProfile
 class BridgeCastingSettings(SettingsSection):
     """Select exact Bridge execution, optionally ranked once at revision-2 admission."""
 
-    revision: Literal["2", "3", "4"]
+    revision: Literal["2", "3", "4", "5"]
     """The exact registered Bridge revision supporting a persisted capability binding."""
     capability_key: str | None = Field(default=None, min_length=1)
     """The exact animator:family:model capability key, never a model alias or pool."""
@@ -28,6 +29,9 @@ class BridgeCastingSettings(SettingsSection):
     scout: ScoutProfile | None = None
     """Mandatory explicit public-page profile for revision 4 only."""
 
+    semantic: SemanticAnswerSelection | None = None
+    """Mandatory explicit threshold and bounds for revision 5 only."""
+
     @model_validator(mode="after")
     def _require_archive_binding(self) -> BridgeCastingSettings:
         if self.revision == "2":
@@ -35,13 +39,16 @@ class BridgeCastingSettings(SettingsSection):
                 msg = "Bridge revision 2 requires capability_key XOR preference."
                 raise ValueError(msg)
         elif self.capability_key is None or self.preference is not None:
-            msg = "Bridge revisions 3 and 4 require capability_key and reject preference."
+            msg = "Bridge revisions 3, 4 and 5 require capability_key and reject preference."
             raise ValueError(msg)
         if (self.revision == "3") != (self.archive is not None):
             msg = "Bridge revision 3 requires archive; revision 2 does not accept it."
             raise ValueError(msg)
         if (self.revision == "4") != (self.scout is not None):
             msg = "Bridge revision 4 requires scout; other revisions do not accept it."
+            raise ValueError(msg)
+        if (self.revision == "5") != (self.semantic is not None):
+            msg = "Bridge revision 5 requires semantic; other revisions do not accept it."
             raise ValueError(msg)
         return self
 

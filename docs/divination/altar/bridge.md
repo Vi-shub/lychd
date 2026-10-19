@@ -315,7 +315,7 @@ query and threshold; completion never launches it automatically.
 
 Choose **Recall public sources** in Bridge, or open `/bridge?notes=recall`. This separate view
 returns attributed public-note sources; it does not generate an answer or admit a Run. Ordinary
-Bridge public-note answers remain lexical. Opening the view reads only the authorized configured
+revision 3 public-note answers remain lexical. Opening the view reads only the authorized configured
 profile and generation. These metadata do not prove that semantic recall is enabled, that the
 generation is registered, that notes have eligible derivations, or that the exact model is warm.
 
@@ -345,6 +345,52 @@ model work, undo a selection or prove rollback. A later explicit submission uses
 may incur new work. Current refusal and profile changes clear protected display; late responses
 cannot replace a newer focus. Return to conversation preserves its separate drafts, unresolved
 offerings and Consent.
+
+### Answer from a semantic generation
+
+The separate revision 5 uses the configured semantic generation to supply sources to a native
+answer workflow. Its [delivery record](../../state-of-the-work.md#karma-semantic-memory) separates
+component, PostgreSQL and actual model acceptance. Enable it deliberately through the normal
+[configuration lifecycle](../../sepulcher/extensions/weaver/index.md#choose-a-bridge-capability);
+opening **Recall public sources** does not change conversation routing.
+
+Use the existing independent `archive.profile`, `archive.derivation` and `archive.semantic = true`
+selection. Keep the retained namespace, owner and policy unchanged. When moving from revision 3's
+legacy `weaver.bridge.archive` configuration, move that same profile to `archive.profile`; revision 5
+does not accept `weaver.bridge.archive`. Generation registration and promoted-note preparation
+remain explicit [management operations](#prepare-a-promoted-note-for-semantic-recall).
+
+```toml
+[weaver.bridge]
+revision = "5"
+capability_key = "replace-with-the-exact-local-chat-capability"
+
+[weaver.bridge.semantic]
+min_cosine = 0.5
+max_results = 5
+char_budget = 8000
+```
+
+The threshold is an explicit operator choice, not a confidence calibration. Composition requires
+PostgreSQL, local access and declared exact chat and embedding bindings; it starts no model or
+preparation. Bridge's composer identifies the configured semantic default without claiming current
+readiness. Each admitted Run retains its bindings; an older Run keeps its own revision. There is
+no per-message mode selector.
+
+Ask about the promoted public notes. Loom shows recall, answer and settlement; Orb follows their
+actual Run events. A managed dedicated model can enter bounded hardware waiting through the
+existing Orchestrator. Missing generation, revoked sources and service failure refuse the Run;
+they are not successful empty searches. Returned context can be irrelevant, and coverage can be
+partial. Inspect the answer's source keys, revisions, uncertainty and conflicts rather than
+treating a similarity score as proof.
+
+This revision has no tools and does not replay earlier conversation history. It resolves the
+same receipt again before outbound model work and settlement. The full escaped source envelope
+has a separate 16000-character ceiling; overly large projections refuse rather than truncate.
+Source text stays transient, while the generated answer and ordinary messages may quote it and
+persist. Revocation blocks future use without erasing earlier influence. The existing matching
+Archive inspector remains revision-3 selection evidence; this mode does not create a stronger
+capture or transmission receipt.
 
 ## Public-page answers
 

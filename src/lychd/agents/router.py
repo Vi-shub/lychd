@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from lychd.domain.archive import ArchiveProfile
 from lychd.domain.cortex.bridge_preference import BridgePreferenceDecision, validate_retained_preference
+from lychd.domain.cortex.semantic_answer import SemanticAnswerBinding
 from lychd.domain.delegation.routing import DelegatedRuntimeBinding
 from lychd.domain.scout.feed import ScoutFeedBinding
 from lychd.domain.scout.profile import ScoutBinding
@@ -38,6 +39,7 @@ class Intent(BaseModel):
     admitted_capability_key: str | None = Field(default=None, min_length=1)
     admitted_bridge_preference: BridgePreferenceDecision | None = None
     admitted_archive: ArchiveProfile | None = None
+    admitted_semantic: SemanticAnswerBinding | None = None
     admitted_delegation: DelegatedRuntimeBinding | None = None
     admitted_scout: ScoutBinding | ScoutFeedBinding | None = None
 

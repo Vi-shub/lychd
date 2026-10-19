@@ -207,6 +207,20 @@ digests may enter Graph state, while recalled bytes remain transient Context dat
 and 2 keep their existing manifests and recovery contracts. State of Work separately records
 whether the new revision's runtime and PostgreSQL acceptance have passed.
 
+The separately opt-in `bridge_chat@5` semantic source-answer casting belongs to the same retained
+Bridge lineage. Its immutable score is `RecallSemanticNotes` → `AnswerSemanticNotes` →
+`SettleSemanticAnswer`, with a separate checkpoint schema. Typed `weaver.bridge.semantic` selects
+explicit threshold and bounds; the existing independently enabled Archive semantic generation
+supplies the manifest/reference. Boot composition requires PostgreSQL, the actual local Archive
+caller mapping and an exact local chat capability, without readiness probing, startup derivation,
+registration or inference. Admission pins all bindings before queue publication; restored state
+must match the persisted Run and current source authority. The [Memory](27-memory.md#native-semantic-source-answer-consumer)
+and [Context](21-context.md#explicit-archive-projection) owners govern retrieval and outbound data.
+Existing revisions keep their identity, manifests and history contracts. Omission does not change
+the ordinary conversation route. This boot selector does not supply a per-message mode switch;
+Altar guidance describes the configured default independently of historical Runs and readiness.
+State separately owns executable and native answer acceptance.
+
 The opt-in `bridge_chat@4` revision answers one explicitly declared public page. Its
 command is `/read-public <exact HTTPS URL>` followed by a newline and a nonblank question. The
 authenticated operator separately declares the complete locator public under the current local
@@ -343,8 +357,14 @@ imports code named by configuration, scans packages for subclasses, or guesses a
 from a similar label. Placement-specific Agent and Context assembly occurs after resolution so a
 Reader may receive an exact `structure` or `verbatim` projection without acquiring Writer tools,
 while a Writer must separately satisfy its declared effect and authority contract. The current
-source delivers the fixed v2 registry and a bounded `[weaver.bridge]` selector for `bridge_chat@2`
-or the public-note `bridge_chat@3` and public-page `bridge_chat@4` profiles.
+source delivers the fixed v2 registry and a bounded `[weaver.bridge]` selector for `bridge_chat@2`,
+public-note `bridge_chat@3`, public-page `bridge_chat@4`, or explicitly boot-selected semantic-source
+`bridge_chat@5`. Revision 5 binds the independently enabled Archive semantic generation's exact
+manifest/reference and embedding binding, an explicit cosine threshold and finite recall bounds,
+and one exact local Soulstone Chat capability. Boot composition checks declaration metadata without
+readiness probes, model work, generation registration or derivation; Run admission retains the
+complete semantic binding before queue publication. Omitting configuration keeps revision 1 for
+new admissions, and a changed selection cannot redirect older Runs.
 Its exact capability key is server-admitted Run intent, copied into typed Graph state; a missing key refuses admission or checkpoint decoding,
 and an unavailable target never falls back to another runtime. The worker binds the revision's
 state validator to persisted Run intent; the Graph runner checks fresh and restored state before

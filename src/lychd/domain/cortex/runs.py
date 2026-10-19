@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from lychd.domain.archive import ArchiveProfile  # runtime annotation for retained RunRecord serialization
 from lychd.domain.cortex.bridge_preference import BridgePreferenceDecision
+from lychd.domain.cortex.semantic_answer import SemanticAnswerBinding
 from lychd.domain.delegation.routing import DelegatedRuntimeBinding
 from lychd.domain.scout.feed import ScoutFeedBinding
 from lychd.domain.scout.profile import ScoutBinding
@@ -179,6 +180,7 @@ class RunRecord:
     admitted_capability_key: str | None = None
     admitted_bridge_preference: BridgePreferenceDecision | None = None
     admitted_archive: ArchiveProfile | None = None
+    admitted_semantic: SemanticAnswerBinding | None = None
     admitted_delegation: DelegatedRuntimeBinding | None = None
     admitted_scout: ScoutBinding | ScoutFeedBinding | None = None
     attempt: int = 0
@@ -208,6 +210,7 @@ class RunRecord:
             admitted_capability_key=self.admitted_capability_key,
             admitted_bridge_preference=self.admitted_bridge_preference,
             admitted_archive=self.admitted_archive,
+            admitted_semantic=self.admitted_semantic,
             admitted_delegation=self.admitted_delegation,
             admitted_scout=self.admitted_scout,
         )

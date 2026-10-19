@@ -16,6 +16,8 @@ from lychd.agents.services import default_sigil
 from lychd.agents.the_first_one import default_forge
 from lychd.agents.workflows import BuiltinWorkflowRegistry, builtin_workflow_registry
 from lychd.config.settings.root import get_settings
+from lychd.domain.animation.capabilities import SourceKind
+from lychd.domain.animation.schemas.capability_family import CapabilityFamily
 from lychd.domain.animation.services.declarations import (
     compile_animator_declarations,
 )
@@ -28,6 +30,7 @@ from lychd.domain.cortex.engine import QueueRouter, RouteRule, RunEngine
 from lychd.domain.cortex.events import InProcessEventBus
 from lychd.domain.cortex.leases import LeaseLedger
 from lychd.domain.cortex.ledger import InMemoryRunLedger
+from lychd.domain.cortex.semantic_answer import SemanticAnswerBinding
 from lychd.domain.cortex.substrate import RunSubstrate
 from lychd.domain.delegation.services import (
     DelegatedAgentCoordinator,
@@ -483,10 +486,68 @@ def _configured_castings(
     if workflows is not None and (bridge_casting is not None or settings.weaver.creation is not None):
         msg = "Explicit workflow registry injection cannot be combined with [weaver.bridge] configuration."
         raise ValueError(msg)
+    if bridge_casting is not None and bridge_casting.revision == "5":
+        if profile != "postgres" or operator_access is None:
+            msg = "Semantic Bridge requires PostgreSQL and the actual local credential owner."
+            raise ValueError(msg)
+        if settings.archive is None or not settings.archive.semantic or settings.archive.derivation is None:
+            msg = "Semantic Bridge requires the independently enabled Archive semantic generation."
+            raise ValueError(msg)
     if scavenger_casting is not None and (profile != "postgres" or operator_access is None):
         msg = "Scavenger requires PostgreSQL and the actual local credential owner."
         raise ValueError(msg)
     return bridge_casting, scavenger_casting, delegation_binding, profile
+
+
+def _configured_semantic_answer(
+    *,
+    settings: Settings,
+    selection: BridgeCastingSettings | None,
+    registry: AnimatorRegistry,
+    service: ArchiveSemanticService | None,
+    subject_resolver: Callable[[Sigil], ArchiveSubject] | None,
+) -> SemanticAnswerBinding | None:
+    """Bind existing service identities using declaration metadata, without probing readiness."""
+    if selection is None or selection.revision != "5":
+        return None
+    archive = settings.archive
+    if (
+        selection.semantic is None
+        or selection.capability_key is None
+        or archive is None
+        or not archive.semantic
+        or archive.derivation is None
+        or service is None
+        or subject_resolver is None
+    ):
+        msg = "Semantic Bridge requires its configured service, selection and exact local subject resolver."
+        raise ValueError(msg)
+    binding = SemanticAnswerBinding(
+        **selection.semantic.model_dump(), manifest=service.manifest, generation=service.reference
+    )
+    if (
+        binding.manifest.archive != archive.profile
+        or binding.manifest.binding != archive.derivation.binding
+        or binding.generation.generation_id != archive.derivation.generation_id
+        or subject_resolver(default_sigil()) != archive.profile.owner_subject
+    ):
+        msg = "Semantic Bridge service does not match the configured generation and local subject binding."
+        raise ValueError(msg)
+    embedding = registry.require_embedding(binding.manifest.binding, "embed_query")
+    capability = registry.get_capability(selection.capability_key)
+    if (
+        embedding.embedding_profile != binding.manifest.embedding
+        or capability is None
+        or capability.key != selection.capability_key
+        or capability.source_kind is not SourceKind.SOULSTONE
+        or capability.family is not CapabilityFamily.CHAT
+        or not capability.model_id.strip()
+        or capability.model_id != capability.model_id.strip()
+        or capability.model_id == "*"
+    ):
+        msg = "Semantic Bridge requires the exact registered local chat model and Core embedding binding."
+        raise ValueError(msg)
+    return binding
 
 
 def build_altar_services(
@@ -641,6 +702,7 @@ def build_altar_services(
         stasis_store=stasis_store,
         delegates=delegates,
         archive=archive,
+        archive_semantic=archive_semantic,
         archive_subject_resolver=archive_subject_resolver,
         scout=scout if scout_admission is not None else None,
         feed_scout=scout if feed_admission is not None else None,
@@ -662,6 +724,13 @@ def build_altar_services(
         bridge_preference=bridge_casting.preference if bridge_casting is not None else None,
         bridge_preference_selector=BridgePreferenceSelector(registry, leases).select,
         bridge_archive=bridge_casting.archive if bridge_casting is not None else None,
+        bridge_semantic=_configured_semantic_answer(
+            settings=settings,
+            selection=bridge_casting,
+            registry=registry,
+            service=archive_semantic,
+            subject_resolver=archive_subject_resolver,
+        ),
         delegation_binding=delegation_binding,
         bridge_scout=bridge_casting.scout if bridge_casting is not None else None,
         scout_admission=scout_admission,

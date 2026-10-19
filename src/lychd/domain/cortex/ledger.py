@@ -178,6 +178,7 @@ def _intent_payload(intent: Intent, *, idempotency_key: str | None = None) -> di
         "admitted_capability_key": intent.admitted_capability_key,
         "admitted_bridge_preference": preference.model_dump(mode="json") if preference is not None else None,
         "admitted_archive": intent.admitted_archive.model_dump(mode="json") if intent.admitted_archive else None,
+        "admitted_semantic": intent.admitted_semantic.model_dump(mode="json") if intent.admitted_semantic else None,
         "admitted_scout": intent.admitted_scout.model_dump(mode="json") if intent.admitted_scout else None,
         "admitted_delegation": intent.admitted_delegation.model_dump(mode="json")
         if intent.admitted_delegation
@@ -580,6 +581,7 @@ class InMemoryRunLedger:
             admitted_capability_key=intent.admitted_capability_key,
             admitted_bridge_preference=preference,
             admitted_archive=intent.admitted_archive,
+            admitted_semantic=intent.admitted_semantic,
             admitted_delegation=intent.admitted_delegation,
             admitted_scout=intent.admitted_scout,
         )
@@ -2090,6 +2092,7 @@ class DbRunLedger:
                     intent.get("admitted_bridge_preference"), intent.get("admitted_capability_key")
                 ),
                 "admitted_archive": intent.get("admitted_archive"),
+                "admitted_semantic": intent.get("admitted_semantic"),
                 "admitted_delegation": intent.get("admitted_delegation"),
                 "admitted_scout": intent.get("admitted_scout"),
             }
@@ -2110,6 +2113,7 @@ class DbRunLedger:
             admitted_capability_key=parsed_intent.admitted_capability_key,
             admitted_bridge_preference=parsed_intent.admitted_bridge_preference,
             admitted_archive=parsed_intent.admitted_archive,
+            admitted_semantic=parsed_intent.admitted_semantic,
             admitted_delegation=parsed_intent.admitted_delegation,
             admitted_scout=parsed_intent.admitted_scout,
             attempt=int(row.attempt),  # type: ignore[attr-defined]

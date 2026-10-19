@@ -32,6 +32,7 @@ from lychd.domain.cortex.engine import RunEngine
 from lychd.domain.cortex.events import InProcessEventBus, RunEvent, RunEventKind
 from lychd.domain.cortex.ledger import RunAdmissionConflictError
 from lychd.domain.cortex.runs import TERMINAL_STATUSES, RunRecord
+from lychd.domain.cortex.semantic_answer import SemanticAnswerBinding
 from lychd.domain.scout.profile import ScoutProfile, ScoutWorkflowError
 from lychd.domain.web.consent_reviews import (
     ConsentReviewFailureError,
@@ -97,6 +98,14 @@ def _composer_view(state: State) -> BridgeComposer | None:
         and getattr(state.services, "scout_admission", None) is not None
     ):
         guidance = _SCOUT_COMPOSER_GUIDANCE
+    if identity == ("bridge_chat", "5") and isinstance(getattr(engine, "bridge_semantic", None), SemanticAnswerBinding):
+        guidance = (
+            "Semantic public-note answers are configured for new messages. "
+            "Ask a question about explicitly promoted notes in the configured generation. "
+            "Sources may have partial preparation; similarity does not prove the notes answer your question. "
+            "Replies have no tools and do not replay earlier conversation history. "
+            "This selection does not indicate model or generation readiness."
+        )
     return BridgeComposer(pattern_id=identity[0], pattern_revision=identity[1], guidance=guidance)
 
 

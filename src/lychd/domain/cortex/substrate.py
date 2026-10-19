@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from lychd.agents.workflows import WorkflowRegistry
     from lychd.compositions.scavenger.ports import ScavengerWorkflowPort
     from lychd.domain.archive import ArchiveService, ArchiveSubject
+    from lychd.domain.archive.semantic_service import ArchiveSemanticService
     from lychd.domain.cortex.cancellation import RunEffectLifecycle
     from lychd.domain.cortex.context import ContextOrchestrator
     from lychd.domain.cortex.engine import RunQueue
@@ -90,6 +91,7 @@ class RunSubstrate:
     # workflows fail closed when this port is absent; no adapter is fabricated here.
     delegates: DelegatedAgentCoordinatorPort | None = None
     archive: ArchiveService | None = None
+    archive_semantic: ArchiveSemanticService | None = None
     archive_subject_resolver: Callable[[Sigil], ArchiveSubject] | None = None
     scout: ScoutWorkflowPort | None = None
     feed_scout: ScoutFeedWorkflowPort | None = None
@@ -119,6 +121,7 @@ class RunSubstrate:
             sigil_provider=sigil_provider,
             delegates=self.delegates,
             archive=self.archive,
+            archive_semantic=self.archive_semantic,
             scout=self.scout,
             feed_scout=self.feed_scout,
             scavenger=self.scavenger,

@@ -14,6 +14,7 @@ from lychd.agents.workflows import (
     BRIDGE_CHAT_ARCHIVE,
     BRIDGE_CHAT_BOUND,
     BRIDGE_CHAT_SCOUT,
+    BRIDGE_CHAT_SEMANTIC,
     BuiltinWorkflowRegistry,
     Workflow,
 )
@@ -38,7 +39,7 @@ _GUIDANCE = (
 
 def _configure(services: SimpleNamespace, *, revision: str = "4") -> Mock:
     services.run_engine.workflows = BuiltinWorkflowRegistry(
-        workflows=(BRIDGE_CHAT, BRIDGE_CHAT_BOUND, BRIDGE_CHAT_ARCHIVE, BRIDGE_CHAT_SCOUT),
+        workflows=(BRIDGE_CHAT, BRIDGE_CHAT_BOUND, BRIDGE_CHAT_ARCHIVE, BRIDGE_CHAT_SCOUT, BRIDGE_CHAT_SEMANTIC),
         active_revisions=(("bridge_chat", revision),),
         default_name="bridge_chat",
     )
@@ -175,3 +176,33 @@ def test_unavailable_admission_registry_does_not_fall_back_to_catalogue(
     response = altar_client.get("/api/v1/bridge")
     assert response.status_code == 200
     assert response.json()["composer"] is None
+
+
+@pytest.mark.parametrize("bound", [False, True])
+def test_semantic_composer_describes_current_default_without_claiming_readiness(
+    altar_client: AsgiClient,
+    fake_services: SimpleNamespace,
+    *,
+    bound: bool,
+) -> None:
+    from lychd.domain.cortex.semantic_answer import SemanticAnswerBinding
+    from tests.unit.domain.test_archive_semantic import MANIFEST, REFERENCE
+
+    _configure(fake_services, revision="5")
+    fake_services.run_engine.bridge_semantic = (
+        SemanticAnswerBinding(manifest=MANIFEST, generation=REFERENCE, min_cosine=-0.5) if bound else None
+    )
+    session_id = asyncio.run(_retained_run(fake_services, BRIDGE_CHAT_ARCHIVE))
+    response = altar_client.get(f"/api/v1/bridge/sessions/{session_id}")
+    assert response.status_code == 200
+    composer = response.json()["composer"]
+    assert (composer["pattern_id"], composer["pattern_revision"]) == ("bridge_chat", "5")
+    if bound:
+        assert "Semantic public-note answers" in composer["guidance"]
+        assert "partial" in composer["guidance"]
+        assert "no tools" in composer["guidance"]
+        assert "does not indicate" in composer["guidance"]
+        assert "earlier conversation history" in composer["guidance"]
+        assert str(REFERENCE.generation_id) not in composer["guidance"]
+    else:
+        assert composer["guidance"] is None

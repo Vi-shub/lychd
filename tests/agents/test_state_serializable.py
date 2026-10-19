@@ -30,6 +30,7 @@ from lychd.agents.workflows import (
     BRIDGE_CHAT_ARCHIVE,
     BRIDGE_CHAT_BOUND,
     BRIDGE_CHAT_SCOUT,
+    BRIDGE_CHAT_SEMANTIC,
     DELEGATED_RITE,
     DELEGATED_RITE_BOUND,
     OBSERVE_MARKET,
@@ -86,6 +87,10 @@ async def test_every_workflow_state_round_trips() -> None:
             intent = intent.model_copy(
                 update={"prompt": PROMPT, "admitted_capability_key": "chat:offline", "admitted_scout": scout_binding()}
             )
+        if workflow is BRIDGE_CHAT_SEMANTIC:
+            from tests.unit.domain.cortex.test_semantic_answer_admission import BINDING
+
+            intent = intent.model_copy(update={"admitted_capability_key": "chat:offline", "admitted_semantic": BINDING})
         if workflow is OBSERVE_MARKET:
             with pytest.raises(ScoutWorkflowError) as refused:
                 workflow.make_state(intent)
