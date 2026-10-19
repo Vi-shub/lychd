@@ -1,0 +1,314 @@
+{
+  "record_kind": "sanitized_public_maintained_native_semantic_answer_qualification",
+  "observed_on": "2026-10-19",
+  "status": "passed",
+  "cleanup": "passed",
+  "qualification": "semantic-answer-v1",
+  "case_profile": "generated-answer-and-empty-recall-v2",
+  "evidence_boundary": "Authenticated in-process ASGI + actual registered CPU model + actual PG; no deployed Vessel/CLI/browser or general quality claim.",
+  "source_observation": {
+    "head": "151b0cf408772212b3e9cab0fbdd9cf75345ed58",
+    "manifest_sha256": "1ddb7be311e647a2c12a6579760b95883bc816627af23bfe2c3f8ddaca383b7e",
+    "role": "Actual admitted source head; distinct from the fixed Chat-profile fixture revision."
+  },
+  "source_sha256": {
+    "domain/animation/embeddings.py": "a80d6def54bf29d8c1be10b3e34f4d0da7ac449afefdc86811f053ec6c74ed94",
+    "domain/animation/services/registry.py": "7c55001fccf1cbaaacb7536d328b6a06d7cbaacce65ab7a5c1a2e7e97bb3c797",
+    "domain/cortex/dispatcher.py": "648b0b36315622b54bae87f4342d66d2db187c0e15ca6563659316b016575713",
+    "domain/cortex/leases.py": "29a1fc205fedd317b1814e635e7198b3cfc66fa6d7e2cfa64357c3ca21d8bbf2",
+    "extensions/builtin/animator/llamacpp/embedding.py": "853d8ec8b7a02a4babb76c809d2d71ab126bc7e278e47cac2fb869899ea55e91",
+    "extensions/builtin/animator/llamacpp/embedding_profile.py": "b93e3c9283062adc11508633085ad4a950b28330699d39443e3bf0d82d6967bd",
+    "extensions/builtin/animator/llamacpp/connector.py": "d377c6a62e8dd63bfae6a166ef3eb5a6cca13aa115a314b7374ab27f0427453e",
+    "extensions/builtin/animator/runtimes/llamacpp.py": "21e47f5e742dd5a0c50589b9b490cb1c9aceab9d97fabb95f2b5ceb231b8b0ca",
+    "extensions/builtin/animator/soulstones/llamacpp.py": "cf522f7a55fbc093ffc1ffb73877b45b133ad191baa24e502b3244f9868b6cff",
+    "pyproject.toml": "dccbffe885f53d943b56234802ccae58280ca9095f2094371941b597139f184d",
+    "uv.lock": "11576fb625e8810c4466053a6c958a6d9cfa49a84acbd31c0ee428a668654bca",
+    "tests/support/embedding_runtime.py": "3f50055a0e529bdaf83de38737af7c066db946f6f08cf4e255f03cdbd0d21d9b",
+    "tests/scout_postgres_fixture.py": "664645a1c51686828e5046ac9048e34cb74f819dfe10b67c6122e0e0dd899123",
+    "src/lychd/domain/archive/contracts.py": "dd2fbe1e3ce1ffe42169089eb2a89679ef63f73cad39ad32785cfc214fcc878f",
+    "src/lychd/domain/archive/derivation.py": "873ffda639a1162e6cd875fe1d673e28b0e78b0174ce826b8584b7dc39a2aeb8",
+    "src/lychd/domain/archive/derivation_service.py": "ead53468dcc9f2ea107b1abbd0680693c65db7dbef31ebe64a4144c0839da677",
+    "src/lychd/domain/archive/semantic.py": "5e00c646fb57e19a782f07ce2631022eeaf56f791e082a371d8d3faba60d7825",
+    "src/lychd/domain/archive/semantic_service.py": "cdc06da84adb0f9de3ae1bc5c52bd5ef8905320a10d5443fa1c7a7f02299e63f",
+    "src/lychd/db/archive.py": "28d6a4da88ca4f8bcfd10ab03c51c4b69356ae32b2002882c0a835a4caa3f4d8",
+    "src/lychd/db/archive_derivation.py": "06ae07be8916b1c9375532ebea562c9daf0f73fa684f95e1aa707c9a82f982fd",
+    "src/lychd/db/archive_semantic.py": "21be29a4df55288bebca234cb520aa0fbe5f20be54fd2ea7b56c22748aece5af",
+    "src/lychd/db/models/archive.py": "72f273d21a9dd51b6815d912dc47a0ca1f9e74f943b0bdcb4509b2b14a1cce99",
+    "src/lychd/db/models/archive_derivation.py": "8355134483e9a4686c6cf9d0d2f4cd91f22d66253320045092674da2c6a22836",
+    "src/lychd/interface/web/archive.py": "acd37a304f83df88ffcf2c250095e53b094c01832f73d492d7bb28cda66e25e2",
+    "src/lychd/interface/web/archive_access.py": "c9bb5a35af4fc08bc113ecd4a7f92fff2ddb4932fe250424fd0f26dea5f9e28a",
+    "src/lychd/interface/web/archive_derivation.py": "c88f0cbce4d118dcc9b691c44c1c9e9c3330404d1738d372bea5bb9f411bf8dc",
+    "src/lychd/interface/web/archive_derivation_factory.py": "68f09ecba065aaabacf116fc154cefa8bb34b6b16c4ef3a14a8d5551e356a3f5",
+    "src/lychd/interface/web/archive_generation_factory.py": "ade6b83dcda14b140d9cea0fec4fdbba590610e322b5b73773df1648042a2571",
+    "src/lychd/interface/web/archive_semantic.py": "67c7563521702967b156336b6304d8a2fc4b4f073e06640a0896336f38846471",
+    "src/lychd/interface/web/archive_semantic_factory.py": "eeff5f1f949167e1171df5cae6354dc637d2412be62f60f87e37f1a760571916",
+    "tests/support/archive_semantic_runtime.py": "3ac1ef26d2244bd8e162b5b505d52a883cbc526912303236ed3a3542fcfb829a",
+    "tests/integration/test_archive_semantic_native_runtime.py": "fb13f2375be7e63baed051ca6114af77dc66dc022b3f19b8c85e2c2ca299ded6",
+    "tests/conftest.py": "ee6a7991363a5681b647635b7ff3a8ffa0cefb8a3c2a771ae1994d6381da5dc7",
+    "src/lychd/config/settings/__init__.py": "30a4cf7be568e87b346657d78d57303a991e470a16c6bbb4d554fe95f928923e",
+    "src/lychd/config/settings/archive.py": "0b1177e6c47e9094f325e4ea3727d925c31352e15fcf040614442fee61ddb6a8",
+    "src/lychd/config/settings/root.py": "a8c179f5f52a0a2260680b164958a9138fd5a75b7202f90bbe0ad1a5ccb2d0bf",
+    "src/lychd/config/settings/server.py": "60a02e500070ad6b07af5ec25aed2e0772b42b46c9f2255ce18dbfd08f475825",
+    "src/lychd/domain/codex/middleware.py": "9853769b5b5cacb9817395896d6dc6cea42533370d3febddf73226cee752496c",
+    "src/lychd/domain/codex/local_access.py": "4617db35469740582fb947ff96a98d6c5b7c90a85af027c4b8f115c715d68de3",
+    "src/lychd/domain/codex/sigil.py": "f9135798b6f40a356471efe36e1143ff22622818448bd8167e299473db4e9ed2",
+    "src/lychd/domain/codex/guards.py": "1313d755fc12b3f97c420c28ae2015ed975556f20a67eb529803378102fcc473",
+    "src/lychd/interface/web/archive_response.py": "ccf248e51015fc24115dfd66f1503fb59a0f682e45e44d15ba48a7c6fa24c541",
+    "src/lychd/interface/web/openapi.py": "acebfdb30cd753523e4fd50bec391240bce68bd240cbdd4e0ce1a35d6d95d22d",
+    "tests/integration/test_semantic_answer_native_runtime.py": "ca222a7ee53dbfb22458052e155ced110d66a0e87781022d991af7321343a435",
+    "tests/integration/test_local_bridge_runtime.py": "00e24103a907b1aa4d1b518d7bd38267a3b2d5cdd4fce1db923f6f239d11c7d2",
+    "tests/integration/test_production_wiring.py": "e06fa6964a77546f6106b231fbd6c70e9df2902b86304f340e42cb14372500d0",
+    "scripts/local_model_probe.py": "a8904d9e1b777e880d63a8e455cd07bff8819d9ff1edeb211b693e9eeb8957c5",
+    "src/lychd/app.py": "6515063f5d46620bd0665a2a76ea4f9970eaee974fc29a977633e58216619c6a",
+    "src/lychd/db/bootstrap.py": "d73ba53c4d6541b96899b436beb6b9b8e9c926fa400f677b1956c168b5517d86",
+    "src/lychd/db/factory.py": "90ccc44320140ed95a0ee82eb3fac6036368bffcdcc696842cca7679e6238d7e",
+    "src/lychd/db/engine.py": "18e2b6b4c6d84d0085d151a4eb79de6179e150fa696f5e2ce02f42a28655cede",
+    "src/lychd/db/checkpoints.py": "b379be4a51d3744fe880e05ca317793bc42519e778527b42bee0950444f40068",
+    "src/lychd/db/sessions.py": "64bd8cb6f056b20051c8140ed166cc46b35388b092684ee32e442233bdbcb1c3",
+    "src/lychd/interface/web/lifespan.py": "bdf5a29ad35e6ed4134f94b30f88db882f6e05b210c072f76c85a1c362907979",
+    "src/lychd/interface/web/altar_services.py": "3e7d0fa59685efa90be2cb5539b42d64ef32d8dbbf131beea8e1053087731029",
+    "src/lychd/agents/workflows/semantic_chat.py": "d03858f5d78428faa8b36e3311e6a2b04af068cd49fd8a4d6aacf18b89f5bd49",
+    "src/lychd/agents/archive_context.py": "f909268a9abc2fa2e214db70890cc9ab6771416c5a4104d711cdc0c65dfe291d",
+    "src/lychd/agents/context_limits.py": "dd283fd293c2caf3d521d4e23cd33fd509fb82a2624f213b9d3a49530f92bdd4",
+    "src/lychd/domain/cortex/semantic_answer.py": "c3dfd2ee118cbcbee8323c2bf9b8d24380fb037538b054809ffb0b7abe6b5282",
+    "src/lychd/domain/cortex/context.py": "89eec82da27f308363e6ffe2495ee7660945bf6c0b7cea768d6da3aadf14400d",
+    "src/lychd/domain/cortex/dispatcher.py": "648b0b36315622b54bae87f4342d66d2db187c0e15ca6563659316b016575713",
+    "src/lychd/domain/cortex/leases.py": "29a1fc205fedd317b1814e635e7198b3cfc66fa6d7e2cfa64357c3ca21d8bbf2",
+    "src/lychd/domain/cortex/engine.py": "92ff4d9cd09f2874a12585f814630e4f86de8c86d77dbb7f660be24a7ab5b823",
+    "src/lychd/domain/cortex/runs.py": "382f46128fc129b00a683f8c3b19b9dc596a3c2d0aac03f46ab752b424362fc5",
+    "src/lychd/domain/cortex/ledger.py": "8a20a5827713ba4be001401b96992c554df6d095ac7bd5e6574d2f6a564dcfb1",
+    "src/lychd/domain/animation/model_factory.py": "be6e37f960fd470ed886d11a25bd237201b165f2326d609d193a1af42a1e69a2",
+    "src/lychd/ghouls/runs.py": "97d0fa8d33c541c180ffcd31ff32128ce31081cd8910ac28fc9bfec6d69fd1ed",
+    "src/lychd/system/services/queues.py": "cf87c902cb93be042b9c30417a70fe85158966435eb0566cd627422344d46b76"
+  },
+  "identities": {
+    "workflow": "bridge_chat@5",
+    "archive_profile": "local-public-notes@1",
+    "policy_revision": "public-notes.1",
+    "selection": {
+      "min_cosine": -1.0,
+      "max_results": 1,
+      "char_budget": 512
+    },
+    "embedding": {
+      "profile_id": "qwen3-06b-q8-b9445@1",
+      "interface": "model.embed@1",
+      "model_id": "lychd-qwen3-embedding-06b-q8",
+      "model_sha256": "06507c7b42688469c4e7298b0a1e16deff06caf291cf0a5b278c308249c3e439",
+      "image_digest": "ghcr.io/ggml-org/llama.cpp@sha256:39f4f2c5fd4537f85208f905e70269b5b691fbc6de00fd916c37a60a710b7d52",
+      "engine_revision": "af6528e6df5d798f7f1363ec1141699be0f638e2",
+      "dialect": "llamacpp:b9445:embeddings-float-normalize2",
+      "conformance_digest": "d62f339b644253eaa2bd1bc394376971c5086c7621104acbfb9eac94a92baefa",
+      "query_prefix": "Instruct: Given a web search query, retrieve relevant passages that answer the query\nQuery:",
+      "document_prefix": "",
+      "tokenizer": "gguf:add_special=true:parse_special=true",
+      "pooling": "last",
+      "normalization": "l2",
+      "normalization_tolerance": 0.0001,
+      "scalar_encoding": "float32-le",
+      "dimension": 1024,
+      "max_batch_items": 1,
+      "max_input_bytes": 4096,
+      "max_input_tokens": 511,
+      "max_response_bytes": 65536,
+      "timeout_seconds": 40
+    },
+    "embedding_observed_image_id": "sha256:364346159fa6b62dc8b6e0324f5d5aa537a5824971434d36c139adcb2b3b592e",
+    "postgres_image_id": "sha256:1963bc48febf543433baa1ce3edcc6cc08154de722e22495f86681cc9a849026",
+    "chat_profile": {
+      "model_id": "Qwen3.8-27B",
+      "source_revision": "31b39d03c389f09bbfe5d918f5f532cf636eb35b",
+      "context_tokens": 4096,
+      "max_tokens": 256,
+      "deadline_seconds": 30.0
+    },
+    "chat_profile_source_revision_role": "Fixed ProbeProfile fixture declaration; not the observed source head.",
+    "chat_observed_image_id": "8a5213701489d9704e6fa18f8d09f7b93ff59c55484307e26fe49407dd696817"
+  },
+  "public_oracle": {
+    "source_key": "copper-lantern-hours",
+    "source_revision": "public-fixture-1",
+    "source": "Public synthetic fixture: the copper lantern kiosk opens at 14:20 on Moonday.",
+    "question": "When does the copper lantern kiosk open on Moonday?"
+  },
+  "outer_limits": {
+    "operations": 4,
+    "native_input_tokens": 2044,
+    "embedding_POSTs": 8,
+    "chat_POSTs": 2,
+    "outer_seconds": 300,
+    "model_seconds": 180,
+    "cleanup_seconds": 30
+  },
+  "active_limits": {
+    "operations": 4,
+    "embedding_POSTs": 8,
+    "native_input_tokens": 2044,
+    "chat_POSTs": 1,
+    "chat_output_tokens": 256,
+    "warm_inventory_GETs": 5,
+    "retry": false
+  },
+  "proof": {
+    "operations": 4,
+    "query_operations": 3,
+    "derivation_operations": 1,
+    "embedding_POSTs": 8,
+    "native_input_tokens": 118,
+    "chat_POSTs": 1,
+    "warm_inventory_GETs": 3,
+    "observed_chat_clients": 1,
+    "observed_embedding_clients": 14,
+    "observed_inventory_clients": 3,
+    "context_assemblies": 1,
+    "normal_terminal_releases": 3,
+    "leases_remaining": 0,
+    "all_observed_clients_closed": true,
+    "substrate_unpublished": true,
+    "cleanup_errors": [],
+    "revocation_sql": {
+      "source_cleared": true,
+      "vector_cleared": true,
+      "attempt_cleared": true
+    },
+    "sql_disposal": {
+      "calls": 1,
+      "status": "dispose_returned",
+      "service_close_status": "returned",
+      "recorded_same_owner_loop": true,
+      "recorded_same_service": true
+    }
+  },
+  "cases": {
+    "A": {
+      "status": "done",
+      "context_assembly_attempts": 1,
+      "context_released": true,
+      "chat_attempts": 1,
+      "chat_grants": 1,
+      "chat_POSTs": 1,
+      "coverage": {
+        "promoted_notes": 1,
+        "eligible_notes": 1
+      },
+      "selected_count": 1,
+      "omitted_for_budget": 0,
+      "normal_terminal_release_recorded": true,
+      "answer": "\n\nThe copper lantern kiosk opens at **14:20** on Moonday.\n\nSource: `copper-lantern-hours` / `public-fixture-1` (cosine 0.832). Note: the record is explicitly labelled a public synthetic fixture, so treat the value as fixture data rather than a live operational schedule.\n\nCoverage: 1 eligible vector, 1 promoted, 0 omitted for budget — full coverage of the eligible set for this query.",
+      "response": {
+        "response_count": 1,
+        "model": "Qwen3.8-27B",
+        "state": "complete",
+        "finish_reason": "stop",
+        "provider_finish_reason": "stop"
+      },
+      "replay_new_compute": 0
+    },
+    "B": {
+      "status": "failed",
+      "context_assembly_attempts": 0,
+      "context_released": true,
+      "chat_attempts": 0,
+      "chat_grants": 0,
+      "chat_POSTs": 0,
+      "coverage": {
+        "promoted_notes": 1,
+        "eligible_notes": 1
+      },
+      "selected_count": 1,
+      "omitted_for_budget": 0,
+      "normal_terminal_release_recorded": true,
+      "typed_refusal": {
+        "type": "ArchiveRefused",
+        "code": "source_integrity",
+        "retained_error": "Archive refused: source_integrity."
+      }
+    },
+    "C": {
+      "status": "done",
+      "context_assembly_attempts": 0,
+      "context_released": true,
+      "chat_attempts": 0,
+      "chat_grants": 0,
+      "chat_POSTs": 0,
+      "coverage": {
+        "promoted_notes": 0,
+        "eligible_notes": 0
+      },
+      "selected_count": 0,
+      "omitted_for_budget": 0,
+      "normal_terminal_release_recorded": true,
+      "answer": "Deterministic recall result: no public notes were selected for this question. At recall, there were no promoted public notes. At recall, 0 of 0 promoted public notes were searchable in the configured generation. This recall cannot support an answer to the question.",
+      "deterministic_empty_recall": true,
+      "new_SDK_messages": 0,
+      "replay_new_compute": 0
+    }
+  },
+  "artifact_unchanged_after_cleanup": true,
+  "independent_terminal_audit": {
+    "attribution": "Root independent retained terminal audit; no fresh physical observation by this receipt editor or visible-output reviewer.",
+    "physical_settled": true,
+    "workflow_passed": true,
+    "checks": {
+      "unit_processes_cgroups": true,
+      "listener_socket": true,
+      "containers_volumes_caches": true,
+      "source_SDK_tools_model_raw": true,
+      "original_warm": true,
+      "relay_and_warm": true
+    },
+    "errors": [],
+    "raw_custody_pairs": 20,
+    "warm_quiescent": true,
+    "unchanged_source_files": 1529,
+    "unchanged_selected_sdk_files": 2198,
+    "unchanged_original_files": 1358,
+    "unchanged_pinned_files": 3760
+  },
+  "independent_warm_observation": {
+    "same_recorded_model_identity": true,
+    "quiescent_before": true,
+    "quiescent_after": true,
+    "delta": {
+      "prompt_tokens": 1018,
+      "generated_tokens": 239,
+      "successful_requests": 1
+    },
+    "observer_GETs": [
+      2,
+      2
+    ],
+    "observer_model_POSTs": [
+      0,
+      0
+    ],
+    "observer_mutations": [
+      0,
+      0
+    ],
+    "relay_controller_GETs": 4
+  },
+  "independent_visible_review": {
+    "verdict": "passed_fixed_cases_and_recorded_operations",
+    "report_sha256": "4baadcb1f4a662882c2b8c0c828d0e7f60a1afba764aba31ffaeb86d8bf01260",
+    "attribution": "Independent source/text review of retained visible answers, strict completion summaries and recorded operation/lifecycle evidence; no new physical audit or runtime."
+  },
+  "input_sha256": {
+    "prospective_oracle_v2": "54de8c209d4b179de5bde9b17d7ae33040c78bf7e7aaaba3f975ce87e163d772",
+    "raw_receipt": "7f50542413eac148ed7b384e116ef4d07d949783b616360d03cb242831f4776a",
+    "answer_workflow": "e8dbdabef30628caaa799f72af8fa2c28199c7f45b554ff31603e185ddf59fb9",
+    "root_terminal_audit": "fa34a00b8bf4cf76b668c06bbf2fbc1194c3f98fecc060a4bbc6a1dbad6fdfcd",
+    "root_runtime_result": "29e5aeae52ebab58ba5851918c036087b9c72380b44a10739121bb51dfbc25c7",
+    "runtime_admission": "9ca965c21acc9501f76f54ed52d12c0693e9996d3da7c9b383546d42cf612f2d",
+    "warm_before": "69fea44a3406f93ccd369079a799de11c6229a44fe1ba2a76acc08714f9324c7",
+    "warm_after": "02d989cd946e9987bfff3ce1efaf74eb35276072315e8184890f23b8ab1d4719"
+  },
+  "caveats": [
+    "One public synthetic note and fixed question under the exact native ASGI/SQL/model/workflow profile; no general grounding, retrieval-quality, conflicting-source, adversarial-source or partial-coverage qualification.",
+    "The raw helper semantic-answer-v1 and outer two-Chat ceiling are preserved; active v2 admission allowed one Chat POST and observed one. Earlier failed v1 occurrences and spent allowances remain unchanged.",
+    "Visible-answer/SDK str equality, source-envelope exclusion from retained input/state, B authenticated-revocation timing and call ordering, SDK-history equality and exact replay Run/turn identity are test-backed reports, not independently reconstructed from the selected raw artifacts.",
+    "C normal release, zero new SDK messages and replay zero compute are recorded observations; no Context assembly is claimed for C.",
+    "The visible reviewer inspected Root physical-audit records and recomputed warm deltas but did not freshly inspect physical state, each custody pair or preserved source trees.",
+    "No installed startup, browser/CLI delivery, automatic worker-death recovery, private-material, autonomous-deployment or aggregate user-subtree CPU/RAM containment claim."
+  ]
+}

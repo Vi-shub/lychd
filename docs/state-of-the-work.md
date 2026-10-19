@@ -2059,11 +2059,27 @@ with historical coverage and an explicit source-limited abstention. They retain 
 and winning-receipt versus caller-work accounting. A real in-memory session store proves unchanged
 prior SDK history, clearing of an unsettled SDK suffix, one visible outcome and replay without
 another embedding. Authority revoked before or during answer/final resolution still refuses. This
-branch currently has component evidence; the earlier SQL runs below do not qualify its new outcome.
-The prospective native case profile keeps one strictly completed generated answer, revoked-source
-refusal and an empty-recall outcome with zero Chat generation, Context assembly or new SDK messages.
-It remains unqualified until a
-fresh bounded run and independent settlement; earlier failed attempts remain failed.
+branch also has the fixed native A/B/C observation below; the earlier SQL runs do not qualify its
+new outcome. Earlier failed native attempts remain failed.
+
+The separate [maintained native answer observation](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/archive/native-semantic-answer-runtime-2026-10-19.json)
+qualifies one public synthetic `generated-answer-and-empty-recall-v2` occurrence through
+authenticated in-process ASGI, actual PostgreSQL, the registered CPU embedding profile and warm
+Qwen3.8-27B with `bridge_chat@5`. A returned the fixture's 14:20 opening time with its exact source
+key/revision and normalized/provider `stop`. B retained typed `source_integrity` after revocation
+with zero Chat or Context assembly. C returned a labelled source-limited deterministic recall
+result with no selected/promoted/searchable notes, zero Chat, zero Context assembly and zero new
+SDK messages; the normal terminal release was recorded. A and C recorded replay with no new
+compute. Four embedding operations/eight POSTs used 118 input tokens; one Chat POST matched the
+independent warm-counter delta of 1,018 prompt and 239 generated tokens. All observed clients
+closed, no leases remained, and application SQL disposal returned once after service close.
+An independent retained visible-output review passed these fixed cases and recorded operation
+evidence; Root's separate terminal audit passed six physical checks and recorded 20 raw custody
+pairs. These are attributed retained observations. Raw SDK text equality, retained input/state
+exclusion, history equality, replay identity and revocation timing remain test-backed reports,
+not independently reconstructed from the sanitized receipt. Its raw `semantic-answer-v1` outer
+envelope permits two Chat calls; active v2 admission permitted one and observed one. The observed
+source head and fixed Chat-profile fixture revision are recorded separately.
 
 Actual PostgreSQL source-answer controls passed five cases in each of two bounded runs, with zero
 failures, errors or skips and independently confirmed physical settlement. A fresh fixture drives
@@ -2105,8 +2121,8 @@ the Orchestrator or exercise normal Settings database socket configuration.
 
 **Boundary — Not yet:** Ordinary Bridge3 remains lexical RAG for explicit same-host public notes.
 The separate semantic API has only the fixed native lifecycle qualification above; general retrieval
-quality remains unqualified. Revision 5 has component and actual-PostgreSQL custody evidence only;
-its native answer usefulness, grounding, installed startup and automatic crash recovery remain
+quality remains unqualified. Revision 5 additionally has the fixed native answer observation above;
+general answer usefulness and grounding, installed startup and automatic crash recovery remain
 unqualified. General `CandidateArchivePort`, automatic conversation retention, extraction, Curator,
 GraphRAG, shared namespaces, remote IAM, private-material egress and training remain unqualified.
 Public-note management controls
@@ -2132,7 +2148,7 @@ Generated answers can quote sources; later revocation does not erase earlier out
 - **Verification:** [Semantic protocol and numeric identity](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/test_archive_semantic.py), [retained schema and safe storage failures](https://github.com/hexanomicon/lychd/blob/main/tests/unit/db/test_archive_semantic.py), [actual PostgreSQL fences and runtime role](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_semantic_pg.py), [composed HTTP with intercepted model responses](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_semantic_http_pg.py), [transport denials](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_archive_semantic.py), and [exported contract](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_archive_semantic_openapi.py)
 - **Source:** [Semantic source-answer workflow](https://github.com/hexanomicon/lychd/blob/main/src/lychd/agents/workflows/semantic_chat.py) and [immutable semantic admission binding](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/cortex/semantic_answer.py)
 - **Verification:** [Component graph, current-authority and transient-source controls](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_semantic_chat.py), [semantic admission and effect-free composition](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_semantic_answer_admission.py), and [actual PostgreSQL worker custody and explicit typed reconstruction](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_semantic_answer_pg.py)
-- **Verification:** [Initial readiness observations](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/web/test_lifespan_readiness.py) and [explicit unqualified native answer profile](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_semantic_answer_native_runtime.py) with [inert transport/result controls](https://github.com/hexanomicon/lychd/blob/main/tests/unit/support/test_semantic_answer_runtime.py). The answer profile has no successful maintained qualification; it does not extend the fixed Archive lifecycle receipt.
+- **Verification:** [Initial readiness observations](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/web/test_lifespan_readiness.py), [fixed native answer profile](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_semantic_answer_native_runtime.py), [maintained native answer receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/archive/native-semantic-answer-runtime-2026-10-19.json), and [inert transport/result controls](https://github.com/hexanomicon/lychd/blob/main/tests/unit/support/test_semantic_answer_runtime.py) and [maintained receipt freshness controls](https://github.com/hexanomicon/lychd/blob/main/tests/unit/support/test_archive_semantic_runtime.py). This separate fixed A/B/C qualification does not extend the Archive lifecycle receipt.
 - **Verification:** [Native semantic composition](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_semantic_native_runtime.py), [owned runtime helper](https://github.com/hexanomicon/lychd/blob/main/tests/support/archive_semantic_runtime.py), [maintained native receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/archive/native-semantic-runtime-2026-10-19.json), and [inert admission/source freshness](https://github.com/hexanomicon/lychd/blob/main/tests/unit/support/test_archive_semantic_runtime.py)
 - **Verification:** [Metadata authority, cursor and column-selection tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/db/test_archive_failures.py) and [guarded metadata HTTP tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_archive_metadata.py); the PostgreSQL lifecycle and vertical tests above include retained metadata recovery and no-write reads.
 - **Source:** [Public-note focus](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/PublicNotes.svelte) and [framework-neutral recovery controller](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/archive/notes.ts)

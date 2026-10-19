@@ -389,8 +389,11 @@ unrelated work, warm services, model bytes and retained data. The maintained rec
 inert/source-freshness tests qualify the named synthetic profile; neither ordinary CI nor this
 command proves semantic Bridge/browser delivery, general retrieval quality or autonomous operation.
 
-The separate `test_semantic_answer_native_runtime.py` is an **unqualified**, opt-in Bridge5
-answer profile, not an extension of the successful Archive receipt above. It additionally needs a
+The separate `test_semantic_answer_native_runtime.py` has a maintained qualification for one
+fixed public synthetic Bridge5 A/B/C occurrence, separate from the Archive receipt above. Its
+sanitized receipt is `tests/fixtures/archive/native-semantic-answer-runtime-2026-10-19.json`;
+the ordinary inert test binds its critical source hashes through `_sources(ANSWER_PROFILE)`.
+It additionally needs a
 fresh scoped warm-Chat relay and private six-key `ProbeProfile` declaration, separately admitted
 through `LYCHD_SEMANTIC_ANSWER_CHAT_PROFILE` and
 `LYCHD_REQUIRE_SEMANTIC_ANSWER_NATIVE_PROOF=1`. It reserves four embedding operations/eight POSTs
@@ -400,7 +403,16 @@ A requires a source-attributed answer with strict final `stop`; B refuses revoke
 Chat; C requires a labelled deterministic empty-recall outcome with no Chat grant, Context assembly
 or SDK suffix. There is no prior-history replay. A known `length` on the generated answer fails;
 neither a useful text fragment nor successful Run transport relaxes that oracle. Historical v1
-attempts and their spent allowances remain unchanged; the new case profile needs fresh admission. Admit the relay, actual model/readiness request allowance, shared leases,
+attempts and their spent allowances remain unchanged; every new occurrence needs fresh admission.
+The maintained occurrence used four embedding operations/eight POSTs/118 input tokens and one
+Chat POST; an independent retained visible-output review passed its fixed A/B/C cases, and Root's
+separate terminal audit passed all six physical checks. This qualifies authenticated in-process
+ASGI, actual PostgreSQL, the named CPU embedding and warm Qwen3.8-27B profile with `bridge_chat@5`.
+It does not qualify installed startup, browser delivery, automatic crash recovery, general answer
+quality or aggregate containment. Raw SDK state/history and replay equality remain test-backed
+reports rather than independently reconstructed evidence. The raw helper's `semantic-answer-v1`
+qualification and two-Chat outer ceiling remain intact; active v2 admission allowed one and
+observed one. Admit the relay, actual model/readiness request allowance, shared leases,
 SQL owner and terminal cleanup before running it; the ordinary Archive command does not do so.
 Independent source/content review and physical settlement remain separate from test assertions.
 
