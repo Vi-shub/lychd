@@ -150,7 +150,7 @@ Use this opt-in profile for questions about explicitly retained **public** notes
 It requires the PostgreSQL binding and migrations from [Summoning](../../summoning.md), an exact
 local chat capability, and the existing loopback Altar access boundary. It does not automatically
 read your files or save conversations as memory. The [delivery record](../../state-of-the-work.md#karma-semantic-memory)
-separates the tested application path from live host and model qualification.
+distinguishes portable tests, dated native operator observations and installed operation.
 
 Select revision 3 in the Weaver configuration, using the exact capability key observed in
 [Nexus](nexus.md). This example's capability is a placeholder; namespace and owner identify one
@@ -215,6 +215,11 @@ The answer profile has no model tools and does not replay prior answers. Each re
 the exact selected notes as attributed data, with room reserved in Context. The source envelope
 is transient; receipts retain identifiers and digests. The model is instructed to cite source keys
 and revisions, but its generated claims still need judgment.
+
+The [19 October observation](../../state-of-the-work.md#karma-semantic-memory) follows the same
+question through candidate, promotion, correction and revocation on a real local model. The
+answer changes with the eligible source revision and abstains when none remains. That one terse
+lexical case does not establish general question answering or semantic retrieval.
 
 To correct a note, submit a new `source_revision` and explicitly promote it. Prior receipts then
 refuse the superseded revision. Revocation also prevents future resolution, including before a

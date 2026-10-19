@@ -1920,6 +1920,18 @@ and replays no settled history. PostgreSQL tests cover real HTTP controllers, Ru
 worker execution, typed checkpoint reconstruction, stale-source refusal, migration lineage and
 the actual restricted runtime database role. Earlier Bridge manifests remain retained unchanged.
 
+A separate [19 October native operator observation](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/archive/native-public-notes-2026-10-19.json)
+at source `c4d86be6` exercised ordinary Settings/Runes, database bootstrap, CLI, Granian TCP,
+PostgreSQL and the existing shared Qwen3.8-27B runtime. Four fresh Sessions answered one frozen
+synthetic lexical question: the candidate was excluded; promotion supplied revision 1; correction
+supplied only revision 2; revocation restored explicit uncertainty. Independent review checked
+source attribution, the conditional exception, exact receipt/wire bindings and lifecycle-caused
+stale refusals. Four model POSTs used 2,356 prompt and 252 generated tokens. Root independently
+settled the temporary service, process groups, listeners, database and anonymous volume while
+preserving the warm model and retained data. The receipt retains raw native API responses and
+model request bodies, but no raw model response stream or outgoing API headers. This is a dated
+single-case observation, not a released live-test harness or general retrieval benchmark.
+
 An independent optional Archive configuration exposes its exact generation reference through
 the authorized `GET /api/v1/archive/derivations/generations/configured` route. Discovery checks
 current policy without reading storage, registering rows, acquiring a lease or probing a model.
@@ -1937,8 +1949,11 @@ shares the application's lease ledger without emitting Run events for caller-sup
 retrieval, general `CandidateArchivePort`, automatic conversation retention, extraction, Curator,
 GraphRAG, shared namespaces, remote IAM, private-material egress or training. There is no Archive
 browser editor. Ordinary revision 3 execution uses live Graph persistence; separately proved typed
-checkpoint reconstruction does not establish automatic recovery after worker death. The model and
-resource seams in the vertical receipt are controlled fixtures, not a live GPU/model qualification.
+checkpoint reconstruction does not establish automatic recovery after worker death. The portable
+vertical receipt substitutes model/resource seams; the separate native observation qualifies only
+its named model, configuration and trusted operator profile. Its native address-space/CPU limits
+apply per process, not to the aggregate cgroup. Neither receipt qualifies an installed caged body,
+private memory or autonomous improvement.
 The derivation path has no background worker, automatic model activation, chunking or ANN index;
 oversize notes refuse. The separate live Core embedding proof does not qualify the combined
 Archive/database/model path.
