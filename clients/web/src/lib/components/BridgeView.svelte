@@ -943,6 +943,9 @@
             </div>
             <CircleRun runId={turn.runId} {turn} cancelling={cancellingRuns.has(turn.runId)} oncancel={() => void cancelRun(turn)} />
             <div class="turn__body">{turn.content || (turnIsTerminal(turn) ? "No reply text was retained for this Run." : "")}</div>
+            {#if turn.runStatus === "failed" && turn.content}
+              <p class="turn__fault" role="status">This Run failed. The text shown here is not a completed answer.</p>
+            {/if}
             {#if turn.runStatus === "awaiting_hardware" || turn.transitionRequestId}
               <div class="body-crossing">
                 <span class="body-crossing__title">Capability transition</span>

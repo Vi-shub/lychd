@@ -45,6 +45,8 @@ import { bridgeWorkspaceKey, createBridgeWorkspace } from "$lib/bridge/workspace
 import BridgeView from "./BridgeView.svelte";
 
 const createdAt = "2026-07-28T00:00:00Z";
+const failedStreamNotice = "This Run failed. The text shown here is not a completed answer.";
+const failureReply = "The summoning faltered. This request could not be completed.";
 const cancelMock = vi.mocked(cancelBridgeRun);
 const decideConsentMock = vi.mocked(decideConsent);
 const getSnapshotMock = vi.mocked(getBridgeSnapshot);
@@ -745,6 +747,7 @@ describe("Bridge route and stream ownership", () => {
     if (!firstCall) throw new Error("The initial stream was not attached.");
     await act(() => firstCall[2]("The run stream went quiet; reconnecting."));
     expect(listenMock).toHaveBeenCalledOnce();
+    expect(screen.queryByText(failedStreamNotice)).toBeNull();
 
     const onHardClose = firstCall[4]?.onHardClose;
     if (!onHardClose) throw new Error("The hard-close hook was not registered.");
@@ -766,6 +769,7 @@ describe("Bridge route and stream ownership", () => {
     expect(screen.getByText("projection stale")).toBeTruthy();
     expect(getRunSnapshotMock).toHaveBeenCalledOnce();
     expect(listenMock).toHaveBeenCalledTimes(2);
+    expect(screen.queryByText(failedStreamNotice)).toBeNull();
     view.unmount();
   });
 
@@ -944,17 +948,53 @@ describe("Bridge route and stream ownership", () => {
     view.unmount();
   });
 
-  it.each(["authoritative partial", ""])("shows a failed Run without inventing reply text when retained content is %j", async (content) => {
-    getSnapshotMock.mockResolvedValue(snapshot("session-a", [{ ...projection(), content }]));
+  it.each([
+    { content: "authoritative partial\n  unfinished detail", doneText: null },
+    { content: "", doneText: null },
+    { content: "authoritative partial", doneText: failureReply }
+  ])("shows a failed Run without inventing reply text for %j", async ({ content, doneText }) => {
+    const retained = deferred<BridgeSnapshot>();
+    getSnapshotMock.mockReset();
+    getSnapshotMock.mockResolvedValueOnce(snapshot("session-a", [{ ...projection(), content }]))
+      .mockReturnValueOnce(retained.promise);
     const view = render(BridgeView, { sessionId: "session-a" });
     expect(await screen.findByRole("button", { name: "Cancel run run-a" })).toBeTruthy();
+    expect(screen.queryByText(failedStreamNotice)).toBeNull();
 
-    await act(() => latestRunListener()(event("run-a", 18, "done", { status: "failed", turn: null })));
+    vi.useFakeTimers();
+    await act(() => latestRunListener()(event("run-a", 18, "done", {
+      status: "failed", turn: doneText === null ? null : { content: doneText }
+    })));
 
+    const visibleContent = doneText ?? content;
     expect(screen.getAllByText("failed")).toHaveLength(1);
-    expect(screen.getByText(content || "No reply text was retained for this Run.")).toBeTruthy();
+    expect(view.container.querySelector('[data-run-id="run-a"] .turn__body')?.textContent).toBe(
+      visibleContent || "No reply text was retained for this Run."
+    );
+    if (visibleContent) {
+      expect(screen.getByText(failedStreamNotice).getAttribute("role")).toBe("status");
+    } else {
+      expect(screen.queryByText(failedStreamNotice)).toBeNull();
+    }
+    expect(screen.getByRole("link", { name: "Look into the Orb" }).getAttribute("href")).toBe("/orb/run-a");
     expect(screen.queryByText("The turn has settled.")).toBeNull();
     expect(screen.queryByRole("button", { name: "Cancel run run-a" })).toBeNull();
+    expect(listenMock).toHaveBeenCalledOnce();
+
+    await act(() => vi.advanceTimersByTime(50));
+    expect(getSnapshotMock).toHaveBeenCalledTimes(2);
+    const refreshed = snapshot("session-a");
+    refreshed.session!.turns = [{ ...accepted("run-a", failureReply).turn, role: "agent", state: "failed" }];
+    await act(() => retained.resolve(refreshed));
+
+    const rows = view.container.querySelectorAll('article.turn--agent[data-run-id="run-a"]');
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.querySelector(".turn__body")?.textContent).toBe(failureReply);
+    expect(rows[0]?.getAttribute("data-state")).toBe("failed");
+    expect(screen.queryByText(failedStreamNotice)).toBeNull();
+    expect(screen.getByRole("link", { name: "Look into the Orb" }).getAttribute("href")).toBe("/orb/run-a");
+    expect(screen.queryByRole("button", { name: "Cancel run run-a" })).toBeNull();
+    expect(listenMock).toHaveBeenCalledOnce();
     view.unmount();
   });
 
@@ -1091,6 +1131,9 @@ describe("Bridge route and stream ownership", () => {
         })
       )
     );
+
+    expect(screen.getByText("settled A")).toBeTruthy();
+    expect(screen.queryByText(failedStreamNotice)).toBeNull();
 
     await view.rerender({ sessionId: "session-b" });
     await act(async () => {

@@ -93,7 +93,12 @@ admission. Suggesting an action in conversation cannot authorize it.
 
 When the Run settles, follow the strip's link to [Orb](orb.md) to inspect its evidence. A failed
 or cancelled Run stays visible even when it has no corresponding settled agent turn. Your
-admitted message may therefore appear in the conversation without an answer beside it.
+admitted message may therefore appear in the conversation without an answer beside it. When a
+failed Run still has a live text projection, Bridge explicitly marks that text as not a completed
+answer. A terminal event may already supply a retained failure message; the notice makes no claim
+about the text's provenance. A retained agent turn from the session snapshot replaces the live
+projection when it becomes available. Orb reports failure presence; it does not expose private
+diagnostic reasons or authorize an automatic retry.
 
 Incoming text preserves your place when you scroll into older work. **Latest turn** returns to
 the conversation's end and releases a linked Run focus without changing your draft.

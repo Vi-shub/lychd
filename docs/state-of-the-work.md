@@ -1157,7 +1157,11 @@ read.
 After an initial snapshot read fails, **Retry read** repeats the current route's read, preserving
 drafts and unresolved offerings without submitting text.
 Terminal Run snapshots prefer the retained reply and fragments over incomplete live deltas while
-preserving the stream cursor. Definitely refused text is retained alongside a later draft. Hard
+preserving the stream cursor. A failed Run's nonempty live text carries an explicit notice that it
+is not a completed answer, including when a terminal event already supplied a failure message.
+The session snapshot's retained agent turn replaces that live projection and notice. Empty failed
+text keeps the explicit no-reply message; transport errors alone do not trigger the notice.
+Definitely refused text is retained alongside a later draft. Hard
 unload warns; this state does not survive browser termination. The shell's consent link opens a
 session chooser with server-owned per-session counts; decisions update only their owning
 session's visible attention.
