@@ -15,6 +15,7 @@ import asyncio
 import json
 import os
 import re
+import secrets
 import select
 import shutil
 import signal
@@ -23,7 +24,7 @@ import time
 import traceback
 from contextlib import suppress
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import pytest
 
@@ -38,10 +39,15 @@ CORRECTION = "The observatory opens at one in the afternoon on Saturday."
 OPERATIONS = 8
 POSTS = 16
 NATIVE_TOKENS = 4088  # Eight fixed operations, each Core-bounded to at most511.
+ANSWER_PROFILE = "semantic-answer-v1"
+ANSWER_OPERATIONS = 4
+ANSWER_POSTS = 8
+ANSWER_NATIVE_TOKENS = 2044
+Qualification = Literal["archive-v1", "semantic-answer-v1"]
 _SCRATCH_ROOT = Path("/tmp")  # noqa: S108 - admission boundary; fresh leaf and private owned ancestors are checked
 
 
-def _sources() -> dict[str, str]:
+def _sources(qualification: Qualification = "archive-v1") -> dict[str, str]:
     import hashlib
 
     names = (
@@ -80,6 +86,34 @@ def _sources() -> dict[str, str]:
         "src/lychd/interface/web/archive_response.py",
         "src/lychd/interface/web/openapi.py",
     )
+    if qualification == ANSWER_PROFILE:
+        names += (
+            "tests/integration/test_semantic_answer_native_runtime.py",
+            "tests/integration/test_local_bridge_runtime.py",
+            "tests/integration/test_production_wiring.py",
+            "scripts/local_model_probe.py",
+            "src/lychd/app.py",
+            "src/lychd/db/bootstrap.py",
+            "src/lychd/db/factory.py",
+            "src/lychd/db/engine.py",
+            "src/lychd/db/checkpoints.py",
+            "src/lychd/db/sessions.py",
+            "src/lychd/interface/web/lifespan.py",
+            "src/lychd/interface/web/altar_services.py",
+            "src/lychd/agents/workflows/semantic_chat.py",
+            "src/lychd/agents/archive_context.py",
+            "src/lychd/agents/context_limits.py",
+            "src/lychd/domain/cortex/semantic_answer.py",
+            "src/lychd/domain/cortex/context.py",
+            "src/lychd/domain/cortex/dispatcher.py",
+            "src/lychd/domain/cortex/leases.py",
+            "src/lychd/domain/cortex/engine.py",
+            "src/lychd/domain/cortex/runs.py",
+            "src/lychd/domain/cortex/ledger.py",
+            "src/lychd/domain/animation/model_factory.py",
+            "src/lychd/ghouls/runs.py",
+            "src/lychd/system/services/queues.py",
+        )
     return {
         **native._source_hashes(),
         **{name: hashlib.sha256((native._ROOT / name).read_bytes()).hexdigest() for name in names},
@@ -163,10 +197,15 @@ def _listener(process: subprocess.Popen[bytes]) -> int | None:
     return int(owned[0][1].split(":")[1], 16)
 
 
-def _outer(lab: native._Lab) -> dict[str, Any]:
+def _outer(lab: native._Lab, qualification: Qualification = "archive-v1") -> dict[str, Any]:
     """Refuse execution outside the operator's fixed, bounded process-tree unit."""
-    unit = os.environ.get("LYCHD_ARCHIVE_NATIVE_OUTER_UNIT", "")
-    assert re.fullmatch(r"lychd-archive-native-[0-9a-f]{32}\.service", unit), "outer_unit_required"
+    env, prefix = (
+        ("LYCHD_ARCHIVE_NATIVE_OUTER_UNIT", "lychd-archive-native-")
+        if qualification == "archive-v1"
+        else ("LYCHD_SEMANTIC_ANSWER_NATIVE_OUTER_UNIT", "lychd-semantic-answer-native-")
+    )
+    unit = os.environ.get(env, "")
+    assert re.fullmatch(prefix + r"[0-9a-f]{32}\.service", unit), "outer_unit_required"
     raw = lab.run(
         [
             "/usr/bin/systemctl",
@@ -192,7 +231,9 @@ def _outer(lab: native._Lab) -> dict[str, Any]:
     return fields
 
 
-def _pg_custody(root: Path, container: Any, socket: Path, receipt: dict[str, Any]) -> None:
+def _pg_custody(
+    root: Path, container: Any, socket: Path, receipt: dict[str, Any], qualification: Qualification = "archive-v1"
+) -> None:
     """Observe exact bind and anonymous image-volume identities before client SQL."""
     container.reload()
     host = container.attrs["HostConfig"]
@@ -208,11 +249,14 @@ def _pg_custody(root: Path, container: Any, socket: Path, receipt: dict[str, Any
     assert not host["Devices"]
     assert not host["DeviceRequests"]
     binds = [mount for mount in receipt["mounts"] if mount["Type"] == "bind"]
-    assert len(binds) == 1
-    assert binds[0]["Source"] == str(socket)
-    assert binds[0]["Destination"] == "/scout-socket"
-    assert binds[0]["RW"] is True
-    assert binds[0]["Propagation"] == "rprivate"
+    if qualification == "archive-v1":
+        assert len(binds) == 1
+        assert binds[0]["Source"] == str(socket)
+        assert binds[0]["Destination"] == "/scout-socket"
+        assert binds[0]["RW"] is True
+        assert binds[0]["Propagation"] == "rprivate"
+    else:
+        assert not binds, "answer_pg_no_host_binds"
     volumes = [mount for mount in receipt["mounts"] if mount["Type"] == "volume"]
     assert len(volumes) <= 4
     for mount in volumes:
@@ -222,15 +266,29 @@ def _pg_custody(root: Path, container: Any, socket: Path, receipt: dict[str, Any
     assert len(binds) + len(volumes) == len(receipt["mounts"]), "unexpected_mount_type"
 
 
-def _pg_limits(container: Any, receipt: dict[str, Any]) -> int:
+def _pg_limits(container: Any, receipt: dict[str, Any], qualification: Qualification = "archive-v1") -> int:
     container.reload()
     host = container.attrs["HostConfig"]
     receipt["inspection"] = {
         name: host[name] for name in ("NetworkMode", "PortBindings", "Memory", "MemorySwap", "NanoCpus", "PidsLimit")
     }
     receipt["image_id"] = container.attrs["Image"]
-    assert host["NetworkMode"] == "none"
-    assert not host["PortBindings"]
+    if qualification == "archive-v1":
+        assert host["NetworkMode"] == "none"
+        assert not host["PortBindings"]
+    else:
+        assert host["NetworkMode"] == "bridge"
+        assert set(host["PortBindings"]) == {"5432/tcp"}
+        bindings = host["PortBindings"]["5432/tcp"]
+        assert len(bindings) == 1
+        assert bindings[0]["HostIp"] == "127.0.0.1"
+        ports = container.attrs["NetworkSettings"]["Ports"]
+        assert set(ports) == {"5432/tcp"}
+        assert len(ports["5432/tcp"]) == 1
+        endpoint = ports["5432/tcp"][0]
+        assert endpoint["HostIp"] == "127.0.0.1"
+        assert 1 <= int(endpoint["HostPort"]) <= 65535
+        receipt["endpoint"] = {"host": "127.0.0.1", "port": int(endpoint["HostPort"])}
     assert host["Memory"] == host["MemorySwap"] == 512 * 1024**2
     assert host["NanoCpus"] == 1_000_000_000
     assert host["PidsLimit"] == 128
@@ -251,6 +309,35 @@ def _pg_limits(container: Any, receipt: dict[str, Any]) -> int:
     assert quota == period
     assert values["pids.max"] == "128"
     return pid
+
+
+def _answer_pg_ready(client: Any, database: Any) -> None:
+    """Observe the final PG process through its private container socket only."""
+    deadline = time.monotonic() + 30
+    while time.monotonic() < deadline:
+        database.reload()
+        assert database.attrs["State"]["Running"] is True
+        created = client.api.exec_create(
+            database.id,
+            [
+                "sh",
+                "-c",
+                'test "$(cat /proc/1/comm)" = postgres && exec pg_isready -q -t 2 -h /var/run/postgresql -U scout -d scout',
+            ],
+            stdout=False,
+            stderr=False,
+        )
+        client.api.exec_start(created["Id"], detach=True)
+        while time.monotonic() < deadline:
+            observed = client.api.exec_inspect(created["Id"])
+            if not observed["Running"]:
+                if observed["ExitCode"] == 0:
+                    return
+                break
+            time.sleep(0.1)
+        time.sleep(0.1)
+    message = "answer_pg_readiness_deadline"
+    raise TimeoutError(message)
 
 
 def _start_model(
@@ -300,34 +387,71 @@ def _start_model(
 
 
 def run_native_semantic_proof(  # noqa: C901, PLR0912, PLR0915 - one outer owner must retain every partial resource through independent cleanup
-    root: Path, monkeypatch: pytest.MonkeyPatch, workflow: Any
+    root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    workflow: Any,
+    *,
+    qualification: Qualification = "archive-v1",
+    chat_profile: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Own only one fresh model, one PG and one namespace-FD-pinned relay."""
-    if os.environ.get("LYCHD_REQUIRE_ARCHIVE_SEMANTIC_NATIVE_PROOF") != "1":
-        pytest.skip("set LYCHD_REQUIRE_ARCHIVE_SEMANTIC_NATIVE_PROOF=1 for the fixed public proof")
+    assert qualification in {"archive-v1", ANSWER_PROFILE}, "fixed_qualification_required"
+    opt_in = (
+        "LYCHD_REQUIRE_ARCHIVE_SEMANTIC_NATIVE_PROOF"
+        if qualification == "archive-v1"
+        else "LYCHD_REQUIRE_SEMANTIC_ANSWER_NATIVE_PROOF"
+    )
+    if os.environ.get(opt_in) != "1":
+        pytest.skip(f"set {opt_in}=1 for the fixed public proof")
+    if qualification == ANSWER_PROFILE:
+        from scripts.local_model_probe import ProbeProfile
+
+        assert chat_profile is not None
+        assert set(chat_profile) == {
+            "base_url",
+            "model_id",
+            "source_revision",
+            "context_tokens",
+            "max_tokens",
+            "deadline_seconds",
+        }
+        declared = ProbeProfile.model_validate(chat_profile)
+        assert declared.model_id == "Qwen3.8-27B"
+        assert declared.base_url.startswith("http://127.0.0.1:")
+        assert declared.context_tokens == 4096
+        assert declared.max_tokens == 256
+        assert declared.deadline_seconds == 30
+    else:
+        assert chat_profile is None, "archive_profile_has_no_chat"
     value = os.environ.get("LYCHD_EMBEDDING_FIXTURE")
     assert value, "existing public LYCHD_EMBEDDING_FIXTURE required"
     assert signal.getitimer(signal.ITIMER_REAL) == (0.0, 0.0), "exclusive_alarm_required"
     assert Path(__file__).resolve() == native._ROOT / "tests/support/archive_semantic_runtime.py"
-    assert Path(workflow.__code__.co_filename).resolve() == (
-        native._ROOT / "tests/integration/test_archive_semantic_native_runtime.py"
+    callback = (
+        "tests/integration/test_archive_semantic_native_runtime.py"
+        if qualification == "archive-v1"
+        else "tests/integration/test_semantic_answer_native_runtime.py"
     )
+    assert Path(workflow.__code__.co_filename).resolve() == native._ROOT / callback
+    assert workflow.__name__ == "_workflow", "fixed_callback_required"
     socket = _admit_root(root)
     root.mkdir(mode=0o700)
     manifest = native.qualification()
     fixture = Path(value)
     identity = native.verify_artifact(fixture, size=manifest["model_bytes"], digest=manifest["model_sha256"])
-    sources = _sources()
+    sources = _sources(qualification)
     native._verify_imports()
     lab = native._Lab(root, native.required_tools())
     receipt: dict[str, Any] = {
         "status": "failed",
         "cleanup": "pending",
         "source_sha256": sources,
+        "qualification": qualification,
         "limits": {
-            "operations": OPERATIONS,
-            "native_input_tokens": NATIVE_TOKENS,
-            "embedding_POSTs": POSTS,
+            "operations": OPERATIONS if qualification == "archive-v1" else ANSWER_OPERATIONS,
+            "native_input_tokens": NATIVE_TOKENS if qualification == "archive-v1" else ANSWER_NATIVE_TOKENS,
+            "embedding_POSTs": POSTS if qualification == "archive-v1" else ANSWER_POSTS,
+            "chat_POSTs": 0 if qualification == "archive-v1" else 2,
             "outer_seconds": 300,
             "model_seconds": 180,
             "cleanup_seconds": 30,
@@ -336,19 +460,26 @@ def run_native_semantic_proof(  # noqa: C901, PLR0912, PLR0915 - one outer owner
         "image_id": manifest["image_id"],
         "evidence_boundary": (
             "Authenticated in-process ASGI + actual registered CPU model + actual PG; "
+            "no deployed Vessel/CLI/browser or general quality claim."
+            if qualification == ANSWER_PROFILE
+            else "Authenticated in-process ASGI + actual registered CPU model + actual PG; "
             "no deployed Vessel/CLI/browser/Bridge or general quality claim."
         ),
         "postgres": {},
         "relay": {},
         "independent_terminal_audit": "required_from_operator",
     }
+    if qualification == ANSWER_PROFILE:
+        receipt["admitted_chat_profile"] = chat_profile
     relay = None
     relay_fd = None
     relay_port = None
     namespace_fds: list[int] = []
     client = None
     pg_fd = None
-    pg_name = "lychd-archive-native-" + lab.token
+    pg_name = (
+        "lychd-archive-native-" if qualification == "archive-v1" else "lychd-semantic-answer-native-"
+    ) + lab.token
     pg_id = None
     create_attempted = False
     receipt["model_container_name"] = lab.name
@@ -358,7 +489,7 @@ def run_native_semantic_proof(  # noqa: C901, PLR0912, PLR0915 - one outer owner
     previous = signal.signal(signal.SIGALRM, _alarm)
     signal.setitimer(signal.ITIMER_REAL, 300)
     try:
-        receipt["outer_unit"] = _outer(lab)
+        receipt["outer_unit"] = _outer(lab, qualification)
         info = lab.podman(
             "info",
             "--format",
@@ -377,28 +508,53 @@ def run_native_semantic_proof(  # noqa: C901, PLR0912, PLR0915 - one outer owner
         pg_image = client.images.get(PG_IMAGE)
         assert pg_image.id == PG_IMAGE
         receipt["postgres"]["image_volume_destinations"] = sorted(pg_image.attrs["Config"]["Volumes"] or {})
-        socket.mkdir(mode=0o777)
-        socket.chmod(0o777)
-        database = client.containers.create(
-            PG_IMAGE,
-            name=pg_name,
-            labels={pg._LABEL: pg_name},
-            command=[
-                "postgres",
-                "-c",
-                "unix_socket_directories=/var/run/postgresql,/scout-socket",
-                "-c",
-                "listen_addresses=",
-            ],
-            environment={"POSTGRES_USER": "scout", "POSTGRES_PASSWORD": "fixture", "POSTGRES_DB": "scout"},
-            network_mode="none",
-            use_config_proxy=False,
-            volumes={str(socket): {"bind": "/scout-socket", "mode": "rw,Z"}},
-            mem_limit="512m",
-            memswap_limit="512m",
-            nano_cpus=1_000_000_000,
-            pids_limit=128,
-        )
+        database_access: Any = socket
+        if qualification == "archive-v1":
+            socket.mkdir(mode=0o777)
+            socket.chmod(0o777)
+            database = client.containers.create(
+                PG_IMAGE,
+                name=pg_name,
+                labels={pg._LABEL: pg_name},
+                command=[
+                    "postgres",
+                    "-c",
+                    "unix_socket_directories=/var/run/postgresql,/scout-socket",
+                    "-c",
+                    "listen_addresses=",
+                ],
+                environment={"POSTGRES_USER": "scout", "POSTGRES_PASSWORD": "fixture", "POSTGRES_DB": "scout"},
+                network_mode="none",
+                use_config_proxy=False,
+                volumes={str(socket): {"bind": "/scout-socket", "mode": "rw,Z"}},
+                mem_limit="512m",
+                memswap_limit="512m",
+                nano_cpus=1_000_000_000,
+                pids_limit=128,
+            )
+        else:
+            password = secrets.token_urlsafe(32)
+            database = client.containers.create(
+                PG_IMAGE,
+                name=pg_name,
+                labels={pg._LABEL: pg_name},
+                command=["postgres", "-c", "password_encryption=scram-sha-256"],
+                environment={
+                    "POSTGRES_USER": "scout",
+                    "POSTGRES_PASSWORD": password,
+                    "POSTGRES_DB": "scout",
+                    "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256",
+                    "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
+                },
+                network_mode="bridge",
+                ports={"5432/tcp": ("127.0.0.1", 0)},
+                use_config_proxy=False,
+                mem_limit="512m",
+                memswap_limit="512m",
+                nano_cpus=1_000_000_000,
+                pids_limit=128,
+            )
+            database_access = {"user": "scout", "database": "scout", "password": password}
         pg_id = database.id
         receipt["postgres"]["container_id"] = pg_id
         try:
@@ -408,14 +564,18 @@ def run_native_semantic_proof(  # noqa: C901, PLR0912, PLR0915 - one outer owner
             partial_pid = database.attrs["State"]["Pid"]
             if type(partial_pid) is int and partial_pid > 0:
                 _process(root, receipt, "postgres", partial_pid)
-            _pg_custody(root, database, socket, receipt["postgres"])
+            _pg_custody(root, database, socket, receipt["postgres"], qualification)
         pg_pid = database.attrs["State"]["Pid"]
         assert type(pg_pid) is int
         assert pg_pid > 0
         pg_fd = os.pidfd_open(pg_pid)
         receipt["postgres"]["pid"] = pg_pid
-        assert _pg_limits(database, receipt["postgres"]) == pg_pid
-        pg._ready(client, database)
+        assert _pg_limits(database, receipt["postgres"], qualification) == pg_pid
+        if qualification == "archive-v1":
+            pg._ready(client, database)
+        else:
+            _answer_pg_ready(client, database)
+            database_access.update(receipt["postgres"]["endpoint"])
         create_attempted = True
         _start_model(root, lab, fixture, manifest, receipt)
         receipt["runtime"] = native._attest_runtime(lab, fixture, manifest)
@@ -483,13 +643,13 @@ def run_native_semantic_proof(  # noqa: C901, PLR0912, PLR0915 - one outer owner
 
         async def bounded() -> Any:
             async with asyncio.timeout(min(105, max(0.01, lab.deadline - time.monotonic() - 5))):
-                return await workflow(root, socket, relay_port, monkeypatch, receipt)
+                return await workflow(root, database_access, relay_port, monkeypatch, receipt)
 
         receipt["proof"] = asyncio.run(bounded())
         assert lab.identity() == [lab.cid, lab.token, True]
         assert all(not select.select([fd], [], [], 0)[0] for fd in lab.handles)
-        assert _pg_limits(database, receipt["postgres"]) == pg_pid
-        assert _sources() == sources
+        assert _pg_limits(database, receipt["postgres"], qualification) == pg_pid
+        assert _sources(qualification) == sources
         native._verify_imports()
         receipt["status"] = "passed"
     except BaseException:

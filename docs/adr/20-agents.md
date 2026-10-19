@@ -169,6 +169,22 @@ still false. `AgentSpec.retries` bounds validation repair; tool argument repair 
 AI retries, while policy refusal and missing premises settle explicitly rather than demand success
 without bound.
 
+### Semantic answer completion
+
+The semantic source-answer casting classifies the final SDK response before ordinary answer
+settlement. A known normalized `length` finish is an `answer_output_limit` refusal, even when the
+SDK returns a nonempty string and marks the received response `complete`. It must not assign that
+partial result as the normal answer or new settled message history. Already-streamed text remains
+provisional and may remain in Run evidence; refusal does not erase earlier observations.
+
+This check follows the existing failure path after the admitted call, without SDK repair,
+automatic retry, a larger generation budget, or another capability selection. Inspect the last
+response's completion metadata; an earlier response's limit is not the final response's outcome.
+Absent or other finish metadata retains current adapter compatibility and proves no natural stop.
+A named qualification may require the stronger explicit `stop` criterion. RunDONE still records
+successful Graph termination under its implemented checks, rather than factual truth, groundedness
+or a universal output-completeness certificate. Other castings keep their own result contracts.
+
 ### Mechanical cognitive postures
 
 A **Posture** bounds instructions, output schema, model settings, and tool grant. Expansion,

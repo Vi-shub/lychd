@@ -1,15 +1,15 @@
 {
   "admitted_untracked_files": [
-    "tests/integration/test_archive_semantic_native_runtime.py",
-    "tests/support/archive_semantic_runtime.py"
+    "tests/integration/test_semantic_answer_native_runtime.py",
+    "tests/unit/support/test_semantic_answer_runtime.py"
   ],
   "artifact_unchanged_after_cleanup": true,
   "cleanup": "passed",
   "controller": {
-    "controller_max_rss_kib": 648276,
-    "controller_system_cpu_seconds": 0.43370699999999995,
-    "controller_user_cpu_seconds": 3.1902,
-    "elapsed_seconds": 19.441953076981008,
+    "controller_max_rss_kib": 647008,
+    "controller_system_cpu_seconds": 0.470267,
+    "controller_user_cpu_seconds": 3.042197,
+    "elapsed_seconds": 19.101296518929303,
     "resource_boundary": "Controller self only; excludes model and PostgreSQL containers. Not aggregate host cost."
   },
   "distribution_versions": {
@@ -24,7 +24,7 @@
     "pytest": "9.1.1",
     "sqlalchemy": "2.0.54"
   },
-  "elapsed_seconds": 16.931,
+  "elapsed_seconds": 16.716,
   "evidence_boundary": "Authenticated in-process ASGI + actual registered CPU model + actual PG; no deployed Vessel/CLI/browser/Bridge or general quality claim.",
   "host": "Linux, cgroup v2, user systemd, ordinary rootless Podman and cached Docker PostgreSQL",
   "image_id": "sha256:364346159fa6b62dc8b6e0324f5d5aa537a5824971434d36c139adcb2b3b592e",
@@ -39,12 +39,12 @@
     "original_files_unchanged": 1358,
     "owned_containers_volumes_listener_socket_absent": true,
     "physical_settled": true,
-    "pinned_files_unchanged": 3729,
+    "pinned_files_unchanged": 3744,
     "process_groups_empty": 5,
     "process_identities_absent": 5,
     "raw_custody_pairs": 27,
     "selected_sdk_files_unchanged": 2198,
-    "source_files_unchanged": 1511,
+    "source_files_unchanged": 1528,
     "warm_and_retained_preserved": true,
     "workflow_passed": true
   },
@@ -67,6 +67,7 @@
     }
   },
   "limits": {
+    "chat_POSTs": 0,
     "cleanup_seconds": 30,
     "embedding_POSTs": 16,
     "model_seconds": 180,
@@ -124,7 +125,7 @@
     "version": "version: 9445 (af6528e6d)"
   },
   "schema": 1,
-  "source_base": "01b75dba8510f5cd068e8074458251becbc396e7",
+  "source_base": "31b39d03c389f09bbfe5d918f5f532cf636eb35b",
   "source_identity_boundary": "Observed critical43source hashes plus full private source/SDK/tool/model closure; not a general transitive dependency or containment attestation.",
   "source_sha256": {
     "domain/animation/embeddings.py": "a80d6def54bf29d8c1be10b3e34f4d0da7ac449afefdc86811f053ec6c74ed94",
@@ -167,7 +168,7 @@
     "tests/conftest.py": "ee6a7991363a5681b647635b7ff3a8ffa0cefb8a3c2a771ae1994d6381da5dc7",
     "tests/integration/test_archive_semantic_native_runtime.py": "fb13f2375be7e63baed051ca6114af77dc66dc022b3f19b8c85e2c2ca299ded6",
     "tests/scout_postgres_fixture.py": "664645a1c51686828e5046ac9048e34cb74f819dfe10b67c6122e0e0dd899123",
-    "tests/support/archive_semantic_runtime.py": "ddb34823c96a5c5f900d45246104fe0b0f4efeabbb3f01557410bb3543c900ef",
+    "tests/support/archive_semantic_runtime.py": "3ac1ef26d2244bd8e162b5b505d52a883cbc526912303236ed3a3542fcfb829a",
     "tests/support/embedding_runtime.py": "3f50055a0e529bdaf83de38737af7c066db946f6f08cf4e255f03cdbd0d21d9b",
     "uv.lock": "11576fb625e8810c4466053a6c958a6d9cfa49a84acbd31c0ee428a668654bca"
   },

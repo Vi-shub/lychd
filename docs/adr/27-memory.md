@@ -263,6 +263,9 @@ Before chat/hardware work, every outbound count/request/stream, and settlement, 
 schema2 receipt under current generation/source/derivation and caller fences. No rerank, replacement,
 lexical fallback, automatic preparation or unknown-outcome inference retry is implied. Context
 preserves coverage and source attribution under [ADR21](21-context.md#explicit-archive-projection).
+The answer consumer applies [ADR20’s completion rule](20-agents.md#semantic-answer-completion)
+before ordinary settlement: a known output-limit response refuses without automatic retry. A
+successful empty recall is distinct from incomplete model generation.
 A generated answer can quote sources and persist; revocation blocks later use without erasing that
 prior influence. Retrieval conformance or a synthetic ranking trial cannot establish grounded
 answers, abstention, actual native execution or broad quality. State records those acceptances

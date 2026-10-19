@@ -337,7 +337,7 @@ async def test_production_lifespan_publication_and_synchronous_withdrawal(
     admission.arm_native_launcher()
     published: list[object] = []
     services = SimpleNamespace(
-        registry=SimpleNamespace(ensure_loaded=lambda: None),
+        registry=SimpleNamespace(ensure_loaded=lambda: None, list_capabilities=list),
         substrate=SimpleNamespace(effects=None),
         run_engine=object(),
         aclose=AsyncMock(),

@@ -152,7 +152,7 @@ class RecallSemanticNotes(BaseNode[SemanticChatState, WorkflowServices]):
 
 @dataclass
 class AnswerSemanticNotes(BaseNode[SemanticChatState, WorkflowServices]):
-    """Resolve exact current source material under the normal local model lease."""
+    """Resolve current sources and reject known output limits under the local model lease."""
 
     async def run(self, ctx: GraphRunContext[SemanticChatState, WorkflowServices]) -> SettleSemanticAnswer:
         # Refuse stale recall before dispatch can request a hardware transition.
@@ -220,6 +220,13 @@ class AnswerSemanticNotes(BaseNode[SemanticChatState, WorkflowServices]):
             )
             if not isinstance(result.output, str):
                 msg = "answer_shape"
+                raise ArchiveRefused(msg)
+            final_response = next(
+                (message for message in reversed(result.new_messages) if message.get("kind") == "response"),
+                None,
+            )
+            if final_response is not None and final_response.get("finish_reason") == "length":
+                msg = "answer_output_limit"
                 raise ArchiveRefused(msg)
             ctx.state.answer = result.output
             ctx.state.new_messages = result.new_messages

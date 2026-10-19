@@ -2041,6 +2041,13 @@ this casting excludes prior conversation history. The injected source envelope s
 model history; generated answers may quote source text and persist. Execution uses the existing shared
 hardware lease path, without automatic generation registration, preparation or lexical fallback.
 
+The final serialized response is checked before ordinary answer/history assignment. A known
+normalized `length` finish refuses with `answer_output_limit`, even if the SDK returns nonempty
+text. Component controls prove that the original code accepted this case, then exercise refusal,
+normal/unknown completion metadata, final-response ordering, one provider call and lease closure.
+Other or absent metadata retains adapter compatibility without certifying completeness. Streamed
+text remains provisional evidence; this check adds no automatic retry or larger budget.
+
 Actual PostgreSQL source-answer controls passed five cases in each of two bounded runs, with zero
 failures, errors or skips and independently confirmed physical settlement. A fresh fixture drives
 HTTP admission, retained idempotent binding and the actual worker through ordinary answer settlement.
@@ -2051,6 +2058,14 @@ manual reconstruction controls do not establish automatic worker-death recovery.
 embedding substitutes, FunctionModel and a local Chat substitute replace native inference, and
 the broker is captured. Both runs made zero real-model calls; they establish SQL custody and
 settlement, not grounding, abstention, model usefulness or installed startup.
+
+A further six-case PostgreSQL run preserves those cases and adds the actual worker failure path
+for a nonempty output-limited FunctionModel stream. Its normalized metadata passes through the
+original SDK and pump: the Run retains `FAILED` and the safe reason, with one provider attempt, no
+normal settled answer or SDK history, and observed Context/lease cleanup. The recall receipt stays
+inspectable; ordinary Live Stasis leaves no retained checkpoint in this case. All six cases pass
+with zero real-model calls, and an independent terminal audit confirms resource and input custody.
+This is an offline-provider SQL result, not native output-completeness qualification.
 
 A separate [native composition test](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_semantic_native_runtime.py)
 and [maintained observation](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/archive/native-semantic-runtime-2026-10-19.json)
@@ -2063,6 +2078,9 @@ operations (five queries, three documents), 16 model POSTs and 177 input tokens 
 all observed clients closed and no leases remaining. An independent operator audit confirmed
 owned processes, groups, cgroups, containers, anonymous storage, listener and socket absence,
 and unchanged source/model/selected SDK, unrelated work, warm services and retained storage.
+Application startup also probes capabilities whose preloaded metadata has no readiness state,
+before recovery starts; metadata never forces cold/error observations to warm. Focused lifespan
+controls distinguish this real-adapter observation from metadata hydration or forcing warm state.
 The test requires a separately admitted bounded outer unit and an independent terminal audit;
 its [operation procedure](https://github.com/hexanomicon/lychd/blob/main/CONTRIBUTING.md)
 retains the trusted operator and fixed host/profile boundary. It does not activate a model through
@@ -2097,6 +2115,7 @@ Generated answers can quote sources; later revocation does not erase earlier out
 - **Verification:** [Semantic protocol and numeric identity](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/test_archive_semantic.py), [retained schema and safe storage failures](https://github.com/hexanomicon/lychd/blob/main/tests/unit/db/test_archive_semantic.py), [actual PostgreSQL fences and runtime role](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_semantic_pg.py), [composed HTTP with intercepted model responses](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_semantic_http_pg.py), [transport denials](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_archive_semantic.py), and [exported contract](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_archive_semantic_openapi.py)
 - **Source:** [Semantic source-answer workflow](https://github.com/hexanomicon/lychd/blob/main/src/lychd/agents/workflows/semantic_chat.py) and [immutable semantic admission binding](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/cortex/semantic_answer.py)
 - **Verification:** [Component graph, current-authority and transient-source controls](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_semantic_chat.py), [semantic admission and effect-free composition](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/cortex/test_semantic_answer_admission.py), and [actual PostgreSQL worker custody and explicit typed reconstruction](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_semantic_answer_pg.py)
+- **Verification:** [Initial readiness observations](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/web/test_lifespan_readiness.py) and [explicit unqualified native answer profile](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_semantic_answer_native_runtime.py) with [inert transport/result controls](https://github.com/hexanomicon/lychd/blob/main/tests/unit/support/test_semantic_answer_runtime.py). The answer profile has no successful maintained qualification; it does not extend the fixed Archive lifecycle receipt.
 - **Verification:** [Native semantic composition](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_semantic_native_runtime.py), [owned runtime helper](https://github.com/hexanomicon/lychd/blob/main/tests/support/archive_semantic_runtime.py), [maintained native receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/archive/native-semantic-runtime-2026-10-19.json), and [inert admission/source freshness](https://github.com/hexanomicon/lychd/blob/main/tests/unit/support/test_archive_semantic_runtime.py)
 - **Verification:** [Metadata authority, cursor and column-selection tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/db/test_archive_failures.py) and [guarded metadata HTTP tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_archive_metadata.py); the PostgreSQL lifecycle and vertical tests above include retained metadata recovery and no-write reads.
 - **Source:** [Public-note focus](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/PublicNotes.svelte) and [framework-neutral recovery controller](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/archive/notes.ts)

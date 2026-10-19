@@ -16,6 +16,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from pydantic_ai.messages import ModelMessagesTypeAdapter, ModelRequest, UserPromptPart
+from pydantic_ai.models import StreamedResponse
 from pydantic_graph import GraphRunContext
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -334,6 +335,98 @@ async def test_postgres_checkpoint_reconstruction_rechecks_before_chat(  # noqa:
             assert session is not None
             assert all(turn.role != "agent" for turn in session.turns)
         assert fresh.queries.calls == fresh.queries.closed == 1
+    finally:
+        await original.bus.aclose()
+        await fresh.bus.aclose()
+
+
+async def test_output_limit_fails_retained_worker_without_settled_answer_or_history(  # noqa: PLR0915 - one ordered retained admission, worker refusal and cleanup proof
+    pg_factory: async_sessionmaker[AsyncSession], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    original = SemanticBoot(pg_factory)
+    await seed(original)
+    session_id, run_id, _ = await admit(original)
+    admitted = await DbRunLedger(session_factory=pg_factory).get(run_id)
+    assert admitted is not None
+    assert admitted.status is RunStatus.QUEUED
+    assert admitted.admitted_semantic == original.binding
+    fresh = SemanticBoot(pg_factory, binding=original.binding, queries=original.queries)
+    attempts: list[str] = []
+    finishes: list[str | None] = []
+    lease_events: list[str] = []
+    releases: list[tuple[str, bool]] = []
+    original_stream = fresh.model.request_stream
+    original_lease = fresh.dispatcher.lease_grant
+    context = fresh.substrate.context
+    original_release = context.release
+
+    @asynccontextmanager
+    async def output_limited_stream(*args: Any, **kwargs: Any) -> AsyncGenerator[StreamedResponse]:
+        attempts.append("stream")
+        async with original_stream(*args, **kwargs) as response:
+            # Public SDK metadata is copied into ModelResponse by StreamedResponse.get().
+            response.finish_reason = "length"
+            try:
+                yield response
+            finally:
+                finishes.append(response.get().finish_reason)
+
+    @asynccontextmanager
+    async def observe_lease(**kwargs: Any) -> AsyncGenerator[CapabilityGrant]:
+        try:
+            async with original_lease(**kwargs) as grant:
+                lease_events.append("open")
+                yield grant
+        finally:
+            lease_events.append("closed")
+
+    def observe_release(released_run: str) -> None:
+        assembled = context.get(released_run) is not None
+        original_release(released_run)
+        releases.append((released_run, assembled))
+
+    monkeypatch.setattr(fresh.model, "request_stream", output_limited_stream)
+    monkeypatch.setattr(fresh.dispatcher, "lease_grant", observe_lease)
+    monkeypatch.setattr(context, "release", observe_release)
+    try:
+        with pytest.raises(ArchiveRefused) as caught:
+            await fresh.drive(run_id)
+        assert caught.value.code == "answer_output_limit"
+        failed = await DbRunLedger(session_factory=pg_factory).get(run_id)
+        assert failed is not None
+        assert failed.status is RunStatus.FAILED
+        assert failed.admitted_semantic == original.binding
+        assert failed.error is not None
+        assert "answer_output_limit" in failed.error
+        assert vertical.SOURCE not in failed.error
+        assert attempts == ["stream"]
+        assert finishes == ["length"]
+        assert len(fresh.outbound) == 1
+        assert fresh.dispatcher.requires_tools_calls == [False]
+        assert fresh.dispatcher.capability_key_calls == [vertical.CAPABILITY]
+        assert fresh.queries.calls == fresh.queries.closed == 1
+        assert lease_events == ["open", "closed"]
+        assert releases == [(run_id, True)]
+        assert context.get(run_id) is None
+        assert await fresh.checkpoints.load(run_id) is None
+        state = BRIDGE_CHAT_SEMANTIC.make_state(failed.to_intent())
+        assert isinstance(state, SemanticChatState)
+        request = semantic_recall_request(binding=original.binding, run_id=run_id, prompt=state.prompt)
+        receipt = await fresh.semantic.inspect_recall(
+            vertical.PROFILE.owner_subject,
+            request,
+            recall_purpose=ARCHIVE_ANSWER_PURPOSE,
+            purpose="archive:manage",
+        )
+        assert receipt is not None
+        assert receipt.run_id == UUID(run_id)
+        session = await fresh.sessions.get_session(session_id)
+        assert session is not None
+        assert session.message_history == []
+        agents = [turn for turn in session.turns if turn.role == "agent"]
+        # The worker may retain its generic failed turn; generated text is not settled.
+        assert all(turn.state == "failed" for turn in agents)
+        assert all(vertical.FIRST_ANSWER not in turn.content for turn in agents)
     finally:
         await original.bus.aclose()
         await fresh.bus.aclose()

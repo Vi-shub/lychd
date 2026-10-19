@@ -79,7 +79,9 @@ validated Rune registry; installs routes, middleware, framework plugins, and dep
 then enters its lifespan. Startup crosses these boundaries in order:
 
 1. Wait for the Host Reactor fence and connect both queues.
-2. Build durable dependencies and services; load runtime registry material off the event loop.
+2. Build durable dependencies and services; hydrate runtime registry material off the event loop,
+   then obtain any missing initial capability observations before recovery. Metadata-only binding
+   does not satisfy readiness; an existing observation is not automatically replaced or made WARM.
 3. Recover durable authority, including preauthorization policy, cancellation, terminal evidence
    and checkpoints, orphaned Runs, consent, delegated waits, and pending delivery.
 4. Start the maintenance relays, then publish the shared run substrate and `app.state.services`.

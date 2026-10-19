@@ -209,7 +209,7 @@ async def test_real_workers_drain_before_dependencies_or_preserve_them_on_uncert
 
     settings = SimpleNamespace(orchestration=SimpleNamespace(switching=SimpleNamespace(actuator="none")))
     services = SimpleNamespace(
-        registry=SimpleNamespace(ensure_loaded=lambda: None),
+        registry=SimpleNamespace(ensure_loaded=lambda: None, list_capabilities=list),
         substrate=SimpleNamespace(effects=None),
         run_engine=object(),
     )

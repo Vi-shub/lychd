@@ -389,6 +389,17 @@ unrelated work, warm services, model bytes and retained data. The maintained rec
 inert/source-freshness tests qualify the named synthetic profile; neither ordinary CI nor this
 command proves semantic Bridge/browser delivery, general retrieval quality or autonomous operation.
 
+The separate `test_semantic_answer_native_runtime.py` is an **unqualified**, opt-in Bridge5
+answer profile, not an extension of the successful Archive receipt above. It additionally needs a
+fresh scoped warm-Chat relay and private six-key `ProbeProfile` declaration, separately admitted
+through `LYCHD_SEMANTIC_ANSWER_CHAT_PROFILE` and
+`LYCHD_REQUIRE_SEMANTIC_ANSWER_NATIVE_PROOF=1`. It reserves four embedding operations/eight POSTs
+and two Chat calls with 256 output tokens each, no prior-history replay, and strict final `stop`
+completion. A known `length` fails; neither a useful text fragment nor successful Run transport
+relaxes that oracle. Admit the relay, actual model/readiness request allowance, shared leases,
+SQL owner and terminal cleanup before running it; the ordinary Archive command does not do so.
+Independent source/content review and physical settlement remain separate from test assertions.
+
 Scout's separate Linux x86-64 extraction proof requires an already installed Bubblewrap and a
 reviewed dedicated CPython installation. Outside the checkout, prepare a JSON profile with
 absolute `bwrap` and `python_root` paths plus a `libraries` array containing the individual

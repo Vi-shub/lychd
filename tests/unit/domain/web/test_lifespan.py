@@ -673,7 +673,7 @@ async def test_postgres_reconciliation_failure_blocks_publication_and_cleans_up(
         resume_delegate=AsyncMock(),
     )
     services = SimpleNamespace(
-        registry=SimpleNamespace(ensure_loaded=Mock()),
+        registry=SimpleNamespace(ensure_loaded=Mock(), list_capabilities=list),
         substrate=SimpleNamespace(effects=None),
         run_engine=run_engine,
         aclose=AsyncMock(side_effect=lambda: cleanup_events.append("services")),

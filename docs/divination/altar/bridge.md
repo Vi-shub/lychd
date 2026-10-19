@@ -384,6 +384,14 @@ they are not successful empty searches. Returned context can be irrelevant, and 
 partial. Inspect the answer's source keys, revisions, uncertainty and conflicts rather than
 treating a similarity score as proof.
 
+If generation reaches its output limit, the semantic request fails with `answer_output_limit`
+rather than publishing a normal settled answer or new SDK message history. Text already streamed
+is provisional and may remain in Run evidence. Open the linked Orb to inspect the failure; review
+the configured generation budget before making a new offering. There is no automatic retry or
+budget increase, and replaying the same admitted request does not create another inference.
+A successful recall with no eligible notes remains a retrieval miss, distinct from this output
+limit. A completed Run is not a certificate of answer truth or universal provider completeness.
+
 This revision has no tools and does not replay earlier conversation history. It resolves the
 same receipt again before outbound model work and settlement. The full escaped source envelope
 has a separate 16000-character ceiling; overly large projections refuse rather than truncate.

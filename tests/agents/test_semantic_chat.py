@@ -10,14 +10,16 @@ from __future__ import annotations
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from dataclasses import replace
-from typing import Any, cast
+from typing import Any, Literal, cast
 from uuid import UUID
 
 import pytest
-from pydantic_ai.messages import ModelMessagesTypeAdapter, ModelRequest, UserPromptPart
+from pydantic_ai.messages import ModelMessagesTypeAdapter, ModelRequest, ModelResponse, TextPart, UserPromptPart
 from pydantic_graph import GraphRunContext
 
 from lychd.agents.router import Intent
+from lychd.agents.workflows import semantic_chat
+from lychd.agents.workflows.nodes import PumpResult
 from lychd.agents.workflows.semantic_chat import (
     BRIDGE_CHAT_SEMANTIC,
     SEMANTIC_CHAT_GRAPH,
@@ -215,3 +217,107 @@ def test_semantic_request_identity_and_bounds_are_exact_and_distinct_from_bridge
     assert request.generation == REFERENCE
     assert request.query == state.prompt
     assert (request.min_cosine, request.max_results, request.char_budget) == (-0.5, 5, 8000)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "case",
+    [
+        "length",
+        "stop",
+        "unknown",
+        "other",
+        "absent_finish",
+        "earlier_length_final_stop",
+        "earlier_stop_final_length",
+        "earlier_length_final_unknown",
+        "length_then_request",
+        "shape_before_length",
+    ],
+)
+async def test_semantic_answer_classifies_final_serialized_completion_without_retry(  # noqa: PLR0915 - one ordered completion/lease/settlement proof
+    case: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _intent, state, services, _authority, _store, core, provider, turns = _case()
+    ctx = GraphRunContext(state=state, deps=services)
+    await RecallSemanticNotes().run(ctx)
+    cases: dict[
+        str,
+        tuple[tuple[Literal["length", "stop", "content_filter"] | None, ...], str | None, bool],
+    ] = {
+        "length": (("length",), "answer_output_limit", False),
+        "stop": (("stop",), None, False),
+        "unknown": ((None,), None, False),
+        "other": (("content_filter",), None, False),
+        "absent_finish": ((None,), None, False),
+        "earlier_length_final_stop": (("length", "stop"), None, False),
+        "earlier_stop_final_length": (("stop", "length"), "answer_output_limit", False),
+        "earlier_length_final_unknown": (("length", None), None, False),
+        "length_then_request": (("length",), "answer_output_limit", True),
+        "shape_before_length": (("length",), "answer_shape", False),
+    }
+    finishes, expected_code, trailing_request = cases[case]
+    pump_calls: list[str] = []
+    lease_events: list[str] = []
+    observed_messages: list[Any] = []
+    original_pump = semantic_chat.pump_agent_events
+    original_lease = services.dispatcher.lease_grant
+
+    async def completed(*args: Any, **kwargs: Any) -> PumpResult[Any]:
+        pump_calls.append("pump")
+        result = await original_pump(*args, **kwargs)
+        assert result.output == "answer"
+        # Keep the actual pump/provider work and vary only its serialized result seam.
+        responses: list[ModelRequest | ModelResponse] = [
+            ModelResponse(parts=[TextPart("answer")], finish_reason=finish) for finish in finishes
+        ]
+        messages = [message for message in result.new_messages if message.get("kind") != "response"]
+        messages.extend(ModelMessagesTypeAdapter.dump_python(responses, mode="json"))
+        if case == "absent_finish":
+            messages[-1].pop("finish_reason")
+        if trailing_request:
+            messages.extend(
+                ModelMessagesTypeAdapter.dump_python([ModelRequest.user_text_prompt("AFTER_RESPONSE")], mode="json")
+            )
+        observed_messages.extend(messages)
+        output: Any = {"answer": "answer"} if case == "shape_before_length" else result.output
+        return replace(result, output=output, new_messages=messages)
+
+    @asynccontextmanager
+    async def observe_lease(**kwargs: Any) -> AsyncGenerator[CapabilityGrant]:
+        try:
+            async with original_lease(**kwargs) as grant:
+                lease_events.append("open")
+                yield grant
+        finally:
+            lease_events.append("closed")
+
+    monkeypatch.setattr(semantic_chat, "pump_agent_events", completed)
+    monkeypatch.setattr(services.dispatcher, "lease_grant", observe_lease)
+    if expected_code is not None:
+        with pytest.raises(ArchiveRefused) as caught:
+            await AnswerSemanticNotes().run(ctx)
+        assert caught.value.code == expected_code
+        assert state.answer is None
+        assert state.new_messages == []
+        assert not turns.added
+        session = await turns.get_session(state.session_id)
+        assert session is not None
+        assert session.turns == []
+        assert session.message_history == ["PRIOR_HISTORY_MUST_NOT_REPLAY"]
+    else:
+        next_node = await AnswerSemanticNotes().run(ctx)
+        assert isinstance(next_node, SettleSemanticAnswer)
+        assert state.answer == "answer"
+        assert state.new_messages == observed_messages
+        await next_node.run(ctx)
+        assert len(turns.added) == 1
+        assert turns.added[0][1].state == "settled"
+    assert pump_calls == ["pump"]
+    assert len(provider.sent) == 1
+    assert services.dispatcher.calls == ["chat"]
+    assert services.dispatcher.requires_tools_calls == [False]
+    assert lease_events == ["open", "closed"]
+    assert core.calls == core.closed == 1
+    assert not core.active
+    assert not services.orchestrator.calls

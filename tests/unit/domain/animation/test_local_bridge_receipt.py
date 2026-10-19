@@ -123,7 +123,7 @@ def test_maintained_local_bridge_receipt_keeps_its_exact_boundary() -> None:
     assert "The optional thinking policy was omitted" in receipt["identity_boundary"]
     assert "Creation investigation was omitted." in receipt["identity_boundary"]
     assert receipt["source_identity"] == {
-        "base_revision_declared": "03033814ef9360380ac86f42fb4a8af40d86eabc",
+        "base_revision_declared": "31b39d03c389f09bbfe5d918f5f532cf636eb35b",
         "clean_checkout_attested": False,
         "atomic_transitive_closure_attested": False,
         "scope": "bounded-critical-source-and-test-fingerprints",
@@ -250,10 +250,10 @@ def test_maintained_local_bridge_receipt_matches_critical_sources() -> None:
         evidence["joined_test_sha256_before_trial"]
         == receipt["source_fingerprints"]["tests/integration/test_local_bridge_runtime.py"]
     )
-    assert evidence["coordinator_source_sha256"] == "9952b1b9e177dead006475af4c49ac1ecfba5acb89d56075229e0318b09c05db"
+    assert evidence["coordinator_source_sha256"] == "e81e1540890e24a81e19dfb2e8393abd9c0b078c788bc4b72baa3a73a8435b3f"
     assert (
         evidence["resource_launcher_source_sha256"]
-        == "57626a1137f52aa4a60fa37b55cb973b1bafa011b20aa53612e75316f333b1ac"
+        == "5501216f6134ad20f1f03d95734715f757369d301be8620bf5016da3b1fc0aa5"
     )
     for digest in evidence.values():
         assert len(digest) == 64

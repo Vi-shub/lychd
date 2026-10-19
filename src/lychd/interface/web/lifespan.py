@@ -30,6 +30,7 @@ if TYPE_CHECKING:
 
     from lychd.config.runes.registry import RuneRegistry
     from lychd.config.settings.root import Settings
+    from lychd.domain.animation.services.registry import AnimatorRegistry
     from lychd.domain.cortex.cancellation import RunEffectLifecycle
     from lychd.domain.cortex.engine import RunQueue
     from lychd.domain.orchestration.containment import SoftActivationGuard
@@ -107,9 +108,7 @@ async def altar_services_lifespan(app: Litestar) -> AsyncGenerator[None]:
             operator_access=getattr(app.state, "local_operator_access", None),
         )
 
-        # Hydration and initial probes bridge synchronous work; keep them off the
-        # event loop. Rune discovery already happened once in AppInit.
-        await asyncio.to_thread(services.registry.ensure_loaded)
+        await _load_initial_capabilities(services.registry)
 
         await _recover_durable_state(
             services=services,
@@ -166,6 +165,18 @@ async def altar_services_lifespan(app: Litestar) -> AsyncGenerator[None]:
                 await services.aclose()
         finally:
             await disconnect_run_queues(connected_queues)
+
+
+async def _load_initial_capabilities(registry: AnimatorRegistry) -> None:
+    """Complete initial observations, including metadata hydrated by Archive binding."""
+    # Hydration and synchronous probes stay off the event loop. Rune discovery
+    # already happened in AppInit; a hydrated generation cannot be loaded again.
+    await asyncio.to_thread(registry.ensure_loaded)
+    missing_animators = sorted(
+        {spec.animator_name for spec in registry.list_capabilities() if registry.get_capability_state(spec.key) is None}
+    )
+    for animator_name in missing_animators:
+        await registry.refresh_capability_states_for_animator(animator_name)
 
 
 async def _drain_process_work(
