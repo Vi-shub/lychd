@@ -250,6 +250,7 @@
             <p class="loom-canvas-note">Read-only layout · Connections are declared permissions</p>
           </section>
           <details class="loom-outline" open={outlineOpen} ontoggle={(event) => {
+            if (!event.currentTarget.isConnected) return;
             if (event.currentTarget.open !== outlineOpen) outlineMode = event.currentTarget.open ? "open" : "closed";
           }}>
             <summary>Graph outline <span>Stations &amp; permissions</span></summary>

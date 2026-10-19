@@ -175,6 +175,9 @@ describe("Orb parallel Run field", () => {
 });
 
 it("polls only while visible, never overlaps catalogue reads, and stops on teardown", async () => {
+  const warning = vi.spyOn(console, "warn");
+  let duplicateUnmountWarning = false;
+  let mounted = true;
   vi.useFakeTimers();
   const visibility = vi.spyOn(document, "visibilityState", "get").mockReturnValue("visible");
   const empty = { ...page, runs: [] };
@@ -196,8 +199,13 @@ it("polls only while visible, never overlaps catalogue reads, and stops on teard
     visibility.mockReturnValue("visible");
     await act(() => document.dispatchEvent(new Event("visibilitychange")));
     expect(getOrbCatalogue).toHaveBeenCalledTimes(3);
-    view.unmount();
+    view.unmount(); mounted = false;
     await act(() => vi.advanceTimersByTimeAsync(10000));
     expect(getOrbCatalogue).toHaveBeenCalledTimes(3);
-  } finally { view.unmount(); visibility.mockRestore(); vi.useRealTimers(); }
+  } finally {
+    if (mounted) view.unmount();
+    duplicateUnmountWarning = warning.mock.calls.some((args) => args.some((value) => String(value).includes("lifecycle_double_unmount")));
+    warning.mockRestore(); visibility.mockRestore(); vi.useRealTimers();
+  }
+  expect(duplicateUnmountWarning).toBe(false);
 });

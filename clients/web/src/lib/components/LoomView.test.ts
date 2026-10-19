@@ -350,3 +350,30 @@ it("previews node meaning on hover and keyboard focus without changing the selec
   expect(node.getAttribute("aria-pressed")).toBe("false");
   view.unmount();
 });
+
+it("ignores queued outline toggle callbacks after unmount", async () => {
+  vi.mocked(getLoomPatternRevision).mockResolvedValue(score);
+  const originalWarn = console.warn;
+  const stacks: string[] = [];
+  const warning = vi.spyOn(console, "warn").mockImplementation((...args) => {
+    originalWarn(...args);
+    if (args.some((value) => String(value).includes("derived_inert"))) stacks.push(new Error("Detached outline toggle accessed destroyed derived").stack ?? "derived_inert");
+  });
+  const view = render(LoomView, { patternId: "bridge_chat", revision: "1" });
+  let mounted = true;
+  try {
+    const summary = await screen.findByText("Graph outline", { exact: false, selector: "summary" });
+    const details = summary.parentElement as HTMLDetailsElement;
+    details.open = true;
+    view.unmount(); mounted = false;
+    expect(details.isConnected).toBe(false);
+    await act(async () => {
+      details.dispatchEvent(new Event("toggle"));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(stacks).toEqual([]);
+  } finally {
+    if (mounted) view.unmount();
+    warning.mockRestore();
+  }
+});
