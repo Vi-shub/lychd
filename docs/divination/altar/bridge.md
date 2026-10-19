@@ -176,8 +176,20 @@ normal [configuration lifecycle](../../sepulcher/extensions/weaver/index.md#choo
 when changing the selected revision. An already admitted Run keeps its original profile and
 capability; changed current authority can refuse its continuation.
 
-There is no note editor in Altar yet. The authenticated API exposes these explicit operations,
-under the same access and CSRF requirements as other Altar writes:
+There is no note editor in Altar yet. The authenticated API can recover retained metadata after
+navigation or a lost mutation response. These reads reveal no note text, search vectors or embeddings:
+
+| GET path | Result |
+| --- | --- |
+| `/api/v1/archive/profile` | The currently configured public-note profile, namespace, owner and policy. This performs no storage or model work and does not prove that retained material accepts that binding. |
+| `/api/v1/archive/notes` | Metadata for every lifecycle, including candidates, archived revisions and revoked tombstones. `limit` is 1–50; optional `source_key` matches exactly. Follow the opaque `next_cursor` with the same source filter; absence returns an empty page, while changed binding or storage failure refuses. |
+| `/api/v1/archive/notes/{record_id}` | One retained record's current metadata and lifecycle version. A missing record refuses rather than replaying an effect or restoring revoked content. |
+
+After an uncertain lifecycle response, read the exact record, inspect its current version and make
+a new explicit decision. Do not automatically repeat a stale transition. Listing metadata does
+not make a note eligible for recall or establish which profile an admitted Bridge Run uses.
+
+The existing writes require the same local access and CSRF protection as other Altar mutations:
 
 | POST path | Body and result |
 | --- | --- |

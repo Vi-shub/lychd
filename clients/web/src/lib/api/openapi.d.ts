@@ -113,10 +113,28 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** ListNotes */
+        get: operations["listArchiveNotes"];
         put?: never;
         /** Admit */
         post: operations["admitArchiveNote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/archive/notes/{record_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GetNote */
+        get: operations["getArchiveNote"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -168,6 +186,23 @@ export interface paths {
         put?: never;
         /** Revoke */
         post: operations["revokeArchiveNote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/archive/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Profile */
+        get: operations["getArchiveProfile"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -937,6 +972,18 @@ export interface components {
         ArchiveLifecycleIntent: {
             expected_version: number;
         };
+        /** ArchiveProfile */
+        ArchiveProfile: {
+            /** Format: uuid */
+            namespace_id: string;
+            owner_subject: components["schemas"]["ArchiveSubject"];
+            policy_revision: string;
+            /**
+             * @default local-public-notes@1
+             * @constant
+             */
+            profile: "local-public-notes@1";
+        };
         /** ArchiveResolveIntent */
         ArchiveResolveIntent: {
             receipt_digest: string;
@@ -1650,6 +1697,11 @@ export interface components {
             /** Format: date-time */
             snapshot_at: string;
             transitions: components["schemas"]["TransitionRecordView"][];
+        };
+        /** NoteListPage */
+        NoteListPage: {
+            next_cursor?: string | null;
+            records: components["schemas"]["NoteRecord"][];
         };
         /** NoteProposal */
         NoteProposal: {
@@ -2393,6 +2445,45 @@ export interface operations {
             };
         };
     };
+    listArchiveNotes: {
+        parameters: {
+            query?: {
+                limit?: number;
+                source_key?: string | null;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Request fulfilled, document follows */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteListPage"];
+                };
+            };
+            /** @description Bad request syntax or unsupported method */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                        extra?: null | {
+                            [key: string]: unknown;
+                        } | unknown[];
+                        status_code: number;
+                    };
+                };
+            };
+        };
+    };
     admitArchiveNote: {
         parameters: {
             query?: never;
@@ -2408,6 +2499,43 @@ export interface operations {
         responses: {
             /** @description Document created, URL follows */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteRecord"];
+                };
+            };
+            /** @description Bad request syntax or unsupported method */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                        extra?: null | {
+                            [key: string]: unknown;
+                        } | unknown[];
+                        status_code: number;
+                    };
+                };
+            };
+        };
+    };
+    getArchiveNote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                record_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Request fulfilled, document follows */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2551,6 +2679,26 @@ export interface operations {
                         } | unknown[];
                         status_code: number;
                     };
+                };
+            };
+        };
+    };
+    getArchiveProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Request fulfilled, document follows */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArchiveProfile"];
                 };
             };
         };

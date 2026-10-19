@@ -32,6 +32,35 @@
         "title": "ArchiveLifecycleIntent",
         "type": "object"
       },
+      "ArchiveProfile": {
+        "additionalProperties": false,
+        "properties": {
+          "namespace_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "owner_subject": {
+            "$ref": "#/components/schemas/ArchiveSubject"
+          },
+          "policy_revision": {
+            "maxLength": 160,
+            "minLength": 1,
+            "type": "string"
+          },
+          "profile": {
+            "const": "local-public-notes@1",
+            "default": "local-public-notes@1",
+            "type": "string"
+          }
+        },
+        "required": [
+          "namespace_id",
+          "owner_subject",
+          "policy_revision"
+        ],
+        "title": "ArchiveProfile",
+        "type": "object"
+      },
       "ArchiveResolveIntent": {
         "additionalProperties": false,
         "properties": {
@@ -2899,6 +2928,33 @@
         "title": "NexusSnapshot",
         "type": "object"
       },
+      "NoteListPage": {
+        "additionalProperties": false,
+        "properties": {
+          "next_cursor": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "records": {
+            "items": {
+              "$ref": "#/components/schemas/NoteRecord"
+            },
+            "maxItems": 50,
+            "type": "array"
+          }
+        },
+        "required": [
+          "records"
+        ],
+        "title": "NoteListPage",
+        "type": "object"
+      },
       "NoteProposal": {
         "additionalProperties": false,
         "properties": {
@@ -5436,6 +5492,112 @@
       }
     },
     "/api/v1/archive/notes": {
+      "get": {
+        "deprecated": false,
+        "operationId": "listArchiveNotes",
+        "parameters": [
+          {
+            "allowEmptyValue": false,
+            "allowReserved": false,
+            "deprecated": false,
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "type": "integer"
+            }
+          },
+          {
+            "allowEmptyValue": false,
+            "allowReserved": false,
+            "deprecated": false,
+            "in": "query",
+            "name": "source_key",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          {
+            "allowEmptyValue": false,
+            "allowReserved": false,
+            "deprecated": false,
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteListPage"
+                }
+              }
+            },
+            "description": "Request fulfilled, document follows",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "detail": "Bad Request",
+                      "extra": {},
+                      "status_code": 400
+                    }
+                  ],
+                  "properties": {
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    },
+                    "status_code": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Bad request syntax or unsupported method"
+          }
+        },
+        "summary": "ListNotes"
+      },
       "post": {
         "deprecated": false,
         "operationId": "admitArchiveNote",
@@ -5501,6 +5663,76 @@
           }
         },
         "summary": "Admit"
+      }
+    },
+    "/api/v1/archive/notes/{record_id}": {
+      "get": {
+        "deprecated": false,
+        "operationId": "getArchiveNote",
+        "parameters": [
+          {
+            "deprecated": false,
+            "in": "path",
+            "name": "record_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteRecord"
+                }
+              }
+            },
+            "description": "Request fulfilled, document follows",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "detail": "Bad Request",
+                      "extra": {},
+                      "status_code": 400
+                    }
+                  ],
+                  "properties": {
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    },
+                    "status_code": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Bad request syntax or unsupported method"
+          }
+        },
+        "summary": "GetNote"
       }
     },
     "/api/v1/archive/notes/{record_id}/archive": {
@@ -5741,6 +5973,26 @@
           }
         },
         "summary": "Revoke"
+      }
+    },
+    "/api/v1/archive/profile": {
+      "get": {
+        "deprecated": false,
+        "operationId": "getArchiveProfile",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArchiveProfile"
+                }
+              }
+            },
+            "description": "Request fulfilled, document follows",
+            "headers": {}
+          }
+        },
+        "summary": "Profile"
       }
     },
     "/api/v1/archive/recalls": {

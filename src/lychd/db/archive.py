@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.exc import SQLAlchemyError
 
 from lychd.db.archive_derivation_lifecycle import invalidate_derivations
@@ -19,6 +19,9 @@ from lychd.domain.archive.contracts import (
     ArchiveRefused,
     ArchiveSubject,
     Lifecycle,
+    NoteListCursor,
+    NoteListPage,
+    NoteListRequest,
     NoteProposal,
     NoteRecord,
     RecallItem,
@@ -32,9 +35,51 @@ from lychd.domain.archive.contracts import (
 )
 
 if TYPE_CHECKING:
+    from sqlalchemy.engine import RowMapping
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
     from lychd.domain.archive.ports import AuthorizationCheck
+
+
+# Metadata inspection must never hydrate ArchiveNote's controlled payload columns.
+METADATA_COLUMNS = (
+    ArchiveNote.namespace_id,
+    ArchiveNote.id,
+    ArchiveNote.revision_digest,
+    ArchiveNote.lifecycle_version,
+    ArchiveNote.source_key,
+    ArchiveNote.source_revision,
+    ArchiveNote.source_digest,
+    ArchiveNote.producer,
+    ArchiveNote.observed_at,
+    ArchiveNote.lifecycle,
+    ArchiveNote.created_at,
+)
+
+
+def _metadata_record(row: RowMapping) -> NoteRecord:
+    return NoteRecord.model_validate(
+        {
+            **{
+                key: row[key]
+                for key in (
+                    "namespace_id",
+                    "source_key",
+                    "source_revision",
+                    "source_digest",
+                    "producer",
+                    "observed_at",
+                    "lifecycle",
+                    "created_at",
+                )
+            },
+            "reference": {
+                "record_id": row["id"],
+                "revision_digest": row["revision_digest"],
+                "lifecycle_version": row["lifecycle_version"],
+            },
+        }
+    )
 
 
 def _record(note: ArchiveNote) -> NoteRecord:
@@ -87,6 +132,76 @@ class DbArchiveStore:
         except SQLAlchemyError:
             msg = "storage"
             raise ArchiveRefused(msg) from None
+
+    async def list_notes(
+        self, profile: ArchiveProfile, request: NoteListRequest, check: AuthorizationCheck
+    ) -> NoteListPage:
+        """Read a bounded keyset using metadata columns across every lifecycle."""
+        async with self._transaction() as session:
+            present = await lock_archive_namespace(session, profile, missing_ok=True)
+            check(None, digest(request))
+            if not present:
+                return NoteListPage(records=())
+            statement = select(*METADATA_COLUMNS).where(ArchiveNote.namespace_id == profile.namespace_id)
+            if request.source_key is not None:
+                statement = statement.where(ArchiveNote.source_key == request.source_key)
+            if request.cursor is not None:
+                before = NoteListCursor.decode(request.cursor)
+                statement = statement.where(
+                    or_(
+                        ArchiveNote.created_at < before.created_at,
+                        and_(ArchiveNote.created_at == before.created_at, ArchiveNote.id < before.record_id),
+                    )
+                )
+            rows = (
+                (
+                    await session.execute(
+                        statement.order_by(ArchiveNote.created_at.desc(), ArchiveNote.id.desc()).limit(
+                            request.limit + 1
+                        )
+                    )
+                )
+                .mappings()
+                .all()
+            )
+            records = tuple(_metadata_record(row) for row in rows[: request.limit])
+            next_cursor = None
+            if len(rows) > request.limit:
+                last = records[-1]
+                next_cursor = NoteListCursor(
+                    namespace_id=profile.namespace_id,
+                    source_key=request.source_key,
+                    created_at=last.created_at,
+                    record_id=last.reference.record_id,
+                ).encode()
+            page = NoteListPage(records=records, next_cursor=next_cursor)
+            check(None, digest({"query": request.model_dump(mode="json"), "page": page.model_dump(mode="json")}))
+            return page
+
+    async def get_note(self, profile: ArchiveProfile, record_id: UUID, check: AuthorizationCheck) -> NoteRecord:
+        """Inspect an exact retained record without selecting source text or vectors."""
+        async with self._transaction() as session:
+            present = await lock_archive_namespace(session, profile, missing_ok=True)
+            check(record_id, digest({"record_id": str(record_id)}))
+            row = None
+            if present:
+                row = (
+                    (
+                        await session.execute(
+                            select(*METADATA_COLUMNS).where(
+                                ArchiveNote.namespace_id == profile.namespace_id, ArchiveNote.id == record_id
+                            )
+                        )
+                    )
+                    .mappings()
+                    .one_or_none()
+                )
+            if row is None:
+                msg = "record_missing"
+                raise ArchiveRefused(msg)
+            record = _metadata_record(row)
+            check(record_id, digest(record))
+            return record
 
     async def admit(self, profile: ArchiveProfile, proposal: NoteProposal, check: AuthorizationCheck) -> NoteRecord:
         request_digest = digest(proposal)

@@ -191,3 +191,119 @@ async def test_resolve_rechecks_current_authority_after_store_handoff(*, revoke_
     assert len(authority.calls) == 3
     assert authority.calls[-1].object_id == receipt.receipt_id
     assert authority.calls[-1].binding_digest == receipt.receipt_digest
+
+
+@pytest.mark.asyncio
+async def test_profile_discovery_never_enters_storage() -> None:
+    authority = Authority()
+    store = AsyncMock()
+    service = ArchiveService(profile=PROFILE, store=store, authorizer=authority)
+    assert await service.discover_profile(SUBJECT, purpose="archive:manage") == PROFILE
+    assert store.mock_calls == []
+    assert authority.calls[-1].action == "profile_discover"
+
+
+@pytest.mark.parametrize(
+    "updates", [{"limit": 0}, {"limit": 51}, {"cursor": "%"}, {"cursor": "x" * 2049}, {"source_key": "bad\x00"}]
+)
+def test_metadata_query_is_bounded(updates: dict[str, Any]) -> None:
+    from lychd.domain.archive import NoteListRequest
+
+    with pytest.raises(ValidationError):
+        NoteListRequest.model_validate({"namespace_id": PROFILE.namespace_id, **updates})
+
+
+def test_metadata_cursor_binds_namespace_source_and_exact_timestamp() -> None:
+    from lychd.domain.archive import NoteListCursor, NoteListRequest
+
+    position = NoteListCursor(
+        namespace_id=PROFILE.namespace_id,
+        source_key="fox",
+        created_at=datetime(2026, 10, 19, 1, 2, 3, 123456, tzinfo=UTC),
+        record_id=uuid4(),
+    )
+    encoded = position.encode()
+    assert NoteListCursor.decode(encoded) == position
+    assert NoteListRequest(namespace_id=PROFILE.namespace_id, source_key="fox", cursor=encoded).cursor == encoded
+    for changes in (
+        {"namespace_id": uuid4(), "source_key": "fox"},
+        {"namespace_id": PROFILE.namespace_id, "source_key": "other"},
+    ):
+        with pytest.raises(ValidationError):
+            NoteListRequest.model_validate({**changes, "cursor": encoded})
+    with pytest.raises(ValidationError):
+        NoteListCursor(
+            namespace_id=PROFILE.namespace_id,
+            created_at=datetime(2026, 10, 19, tzinfo=UTC).replace(tzinfo=None),
+            record_id=uuid4(),
+        )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("operation", ["list_notes", "get_note", "discover_profile"])
+@pytest.mark.parametrize("denial", ["policy", "subject"])
+async def test_metadata_denied_before_storage(operation: str, denial: str) -> None:
+    from lychd.domain.archive import NoteListRequest
+
+    authority = Authority()
+    authority.allowed = denial != "policy"
+    subject = SUBJECT if denial == "policy" else ArchiveSubject(identity="unbound")
+    store = AsyncMock()
+    archive = ArchiveService(profile=PROFILE, store=store, authorizer=authority)
+    args = {
+        "list_notes": (NoteListRequest(namespace_id=PROFILE.namespace_id),),
+        "get_note": (uuid4(),),
+        "discover_profile": (),
+    }
+    with pytest.raises(ArchiveRefused, match="authority"):
+        await getattr(archive, operation)(subject, *args[operation], purpose="archive:manage")
+    assert store.mock_calls == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("operation", ["list_notes", "get_note"])
+async def test_metadata_rechecks_authority_after_store_cleanup(operation: str) -> None:
+    from lychd.domain.archive import Lifecycle, NoteListPage, NoteListRequest, NoteRecord, RecordRef
+
+    authority = Authority()
+    record = NoteRecord(
+        namespace_id=PROFILE.namespace_id,
+        reference=RecordRef(record_id=uuid4(), revision_digest="1" * 64, lifecycle_version=3),
+        source_key="fox",
+        source_revision="one",
+        source_digest="2" * 64,
+        producer="operator",
+        observed_at=datetime.now(UTC),
+        lifecycle=Lifecycle.REVOKED,
+        created_at=datetime.now(UTC),
+    )
+    value = NoteListPage(records=(record,)) if operation == "list_notes" else record
+
+    async def exit_store(*args: Any) -> Any:
+        args[-1](record.reference.record_id, "3" * 64)
+        authority.allowed = False
+        return value
+
+    store = AsyncMock()
+    getattr(store, operation).side_effect = exit_store
+    archive = ArchiveService(profile=PROFILE, store=store, authorizer=authority)
+    arg = (
+        NoteListRequest(namespace_id=PROFILE.namespace_id) if operation == "list_notes" else record.reference.record_id
+    )
+    with pytest.raises(ArchiveRefused, match="authority"):
+        await getattr(archive, operation)(SUBJECT, arg, purpose="archive:manage")
+    assert len(authority.calls) == 3
+    assert authority.calls[-1].action == "inspect"
+
+
+@pytest.mark.asyncio
+async def test_metadata_query_namespace_refuses_before_authority_or_storage() -> None:
+    from lychd.domain.archive import NoteListRequest
+
+    authority = Authority()
+    store = AsyncMock()
+    archive = ArchiveService(profile=PROFILE, store=store, authorizer=authority)
+    with pytest.raises(ArchiveRefused, match="namespace"):
+        await archive.list_notes(SUBJECT, NoteListRequest(namespace_id=uuid4()), purpose="archive:manage")
+    assert authority.calls == []
+    assert store.mock_calls == []

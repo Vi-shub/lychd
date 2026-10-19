@@ -14,7 +14,10 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 
-async def lock_archive_namespace(session: AsyncSession, profile: ArchiveProfile, *, create: bool = False) -> None:
+async def lock_archive_namespace(
+    session: AsyncSession, profile: ArchiveProfile, *, create: bool = False, missing_ok: bool = False
+) -> bool:
+    """Lock retained ownership; inspection may observe absence without creating a row."""
     # Fixed local-public-notes@1 execution bounds; never change connection defaults.
     await session.execute(text("SET LOCAL statement_timeout = '5s'"))
     await session.execute(text("SET LOCAL lock_timeout = '2s'"))
@@ -32,8 +35,11 @@ async def lock_archive_namespace(session: AsyncSession, profile: ArchiveProfile,
         select(ArchiveNamespace).where(ArchiveNamespace.id == profile.namespace_id).with_for_update()
     )
     if row is None:
+        if missing_ok and not create:
+            return False
         msg = "namespace_missing"
         raise ArchiveRefused(msg)
     if (row.owner_subject, row.policy_revision) != (profile.owner_subject.identity, profile.policy_revision):
         msg = "namespace_binding"
         raise ArchiveRefused(msg)
+    return True

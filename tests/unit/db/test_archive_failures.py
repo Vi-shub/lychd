@@ -33,6 +33,10 @@ PROFILE = ArchiveProfile(namespace_id=UUID(int=1), owner_subject=SUBJECT, policy
 SOURCE = "SOURCE_PARAMETER_MUST_NOT_REACH_FAILURE_HISTORY"
 
 
+def allow_check(object_id: UUID | None, binding_digest: str) -> None:
+    pass
+
+
 async def _invoke(store: DbArchiveStore, operation: str) -> None:
     def check(*_: object) -> None:
         pass
@@ -200,3 +204,138 @@ async def test_archive_transaction_lifetime_failures_remain_safe(
         assert SOURCE not in "".join(format_exception(caught.value))
     else:
         assert caught.value is error
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("operation", ["list_notes", "get_note"])
+async def test_metadata_storage_failures_are_safe(operation: str) -> None:
+    from lychd.domain.archive import NoteListRequest
+
+    session = AsyncMock()
+    session.__aenter__.return_value = session
+    session.begin = Mock(return_value=AsyncMock())
+    session.execute.side_effect = StatementError("failed", "SELECT :content", {"content": SOURCE}, RuntimeError(SOURCE))
+    store = DbArchiveStore(cast("Any", lambda: session))
+    arg = NoteListRequest(namespace_id=PROFILE.namespace_id) if operation == "list_notes" else UUID(int=2)
+    with pytest.raises(ArchiveRefused, match="storage") as caught:
+        await getattr(store, operation)(PROFILE, arg, allow_check)
+    assert SOURCE not in "".join(format_exception(caught.value))
+
+
+@pytest.mark.asyncio
+async def test_metadata_missing_namespace_performs_no_persistent_writes() -> None:
+    from lychd.domain.archive import NoteListRequest
+
+    session = AsyncMock()
+    session.__aenter__.return_value = session
+    session.begin = Mock(return_value=AsyncMock())
+    session.scalar.return_value = None
+    store = DbArchiveStore(cast("Any", lambda: session))
+    checks: list[tuple[UUID | None, str]] = []
+
+    def check(object_id: UUID | None, binding_digest: str) -> None:
+        checks.append((object_id, binding_digest))
+
+    assert (await store.list_notes(PROFILE, NoteListRequest(namespace_id=PROFILE.namespace_id), check)).records == ()
+    with pytest.raises(ArchiveRefused, match="record_missing"):
+        await store.get_note(PROFILE, UUID(int=2), check)
+    assert len(checks) == 2
+    assert all(str(call.args[0]).startswith("SET LOCAL") for call in session.execute.await_args_list)
+    session.add.assert_not_called()
+    session.flush.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("field", ["owner_subject", "policy_revision"])
+async def test_metadata_mismatched_namespace_binding_is_not_empty(field: str) -> None:
+    from lychd.domain.archive import NoteListRequest
+
+    session = AsyncMock()
+    session.__aenter__.return_value = session
+    session.begin = Mock(return_value=AsyncMock())
+    values = {
+        "id": PROFILE.namespace_id,
+        "owner_subject": SUBJECT.identity,
+        "policy_revision": PROFILE.policy_revision,
+        field: "different",
+    }
+    session.scalar.return_value = ArchiveNamespace(**values)
+    store = DbArchiveStore(cast("Any", lambda: session))
+    with pytest.raises(ArchiveRefused, match="namespace_binding"):
+        await store.list_notes(PROFILE, NoteListRequest(namespace_id=PROFILE.namespace_id), allow_check)
+
+
+@pytest.mark.asyncio
+async def test_metadata_selects_only_bounded_columns_and_preserves_ties() -> None:
+    from types import SimpleNamespace
+
+    from lychd.domain.archive import NoteListCursor, NoteListRequest
+
+    instant = datetime(2026, 10, 19, 1, 2, 3, 123456, tzinfo=UTC)
+    rows = [
+        {
+            "namespace_id": PROFILE.namespace_id,
+            "id": UUID(int=index),
+            "revision_digest": "1" * 64,
+            "lifecycle_version": 3,
+            "source_key": "fox",
+            "source_revision": str(index),
+            "source_digest": "2" * 64,
+            "producer": "operator",
+            "observed_at": instant,
+            "lifecycle": "revoked",
+            "created_at": instant,
+        }
+        for index in (3, 2, 1)
+    ]
+    statements: list[Any] = []
+
+    async def execute(statement: Any) -> Any:
+        if not str(statement).startswith("SET LOCAL"):
+            statements.append(statement)
+        before = str(statement.compile(compile_kwargs={"literal_binds": True}))
+        selected = rows[2:] if "archive_note.id <" in before else rows
+        return SimpleNamespace(mappings=lambda: SimpleNamespace(all=lambda: selected, one_or_none=lambda: rows[0]))
+
+    session = AsyncMock()
+    session.__aenter__.return_value = session
+    session.begin = Mock(return_value=AsyncMock())
+    session.execute.side_effect = execute
+    session.scalar.return_value = ArchiveNamespace(
+        id=PROFILE.namespace_id, owner_subject=SUBJECT.identity, policy_revision=PROFILE.policy_revision
+    )
+    store = DbArchiveStore(cast("Any", lambda: session))
+    first = await store.list_notes(
+        PROFILE, NoteListRequest(namespace_id=PROFILE.namespace_id, source_key="fox", limit=2), allow_check
+    )
+    assert first.next_cursor is not None
+    assert NoteListCursor.decode(first.next_cursor).created_at == instant
+    second = await store.list_notes(
+        PROFILE,
+        NoteListRequest(namespace_id=PROFILE.namespace_id, source_key="fox", limit=2, cursor=first.next_cursor),
+        allow_check,
+    )
+    assert [item.reference.record_id.int for item in (*first.records, *second.records)] == [3, 2, 1]
+    assert second.next_cursor is None
+    assert (await store.get_note(PROFILE, UUID(int=3), allow_check)).lifecycle is Lifecycle.REVOKED
+    for statement in statements:
+        assert {column.name for column in statement.selected_columns} == {
+            "namespace_id",
+            "id",
+            "revision_digest",
+            "lifecycle_version",
+            "source_key",
+            "source_revision",
+            "source_digest",
+            "producer",
+            "observed_at",
+            "lifecycle",
+            "created_at",
+        }
+        sql = str(statement.compile(compile_kwargs={"literal_binds": True}))
+        assert "content" not in sql
+        assert "search_vector" not in sql
+        assert "embedding" not in sql
+    assert "LIMIT 3" in str(statements[0].compile(compile_kwargs={"literal_binds": True}))
+    assert "archive_note.created_at <" in str(statements[1])
+    session.add.assert_not_called()

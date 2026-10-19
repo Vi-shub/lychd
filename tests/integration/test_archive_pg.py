@@ -6,7 +6,7 @@ import asyncio
 from collections.abc import AsyncIterator, Iterator
 from datetime import UTC, datetime
 from typing import Any, cast
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 import pytest_asyncio
@@ -376,6 +376,14 @@ async def test_revoked_response_does_not_claim_committed_operation_rolled_back(
         assert retained.lifecycle == expected[action]
     authority.allowed = True
     reopened = service(factory, authority)
+    from lychd.domain.archive import NoteListRequest
+
+    recovered = await reopened.list_notes(SUBJECT, NoteListRequest(namespace_id=PROFILE.namespace_id), purpose=PURPOSE)
+    assert recovered.records[0].lifecycle == expected[action]
+    assert (
+        await reopened.get_note(SUBJECT, recovered.records[0].reference.record_id, purpose=PURPOSE)
+        == recovered.records[0]
+    )
     if action == "recall":
         replay = await reopened.recall(SUBJECT, request, purpose=PURPOSE)
         assert len(replay.selected) == 1
@@ -447,3 +455,132 @@ async def test_lexical_statement_timeout_is_local_failure_not_a_miss(factory: as
     async with factory() as session:
         assert await session.scalar(select(func.count()).select_from(ArchiveRecall)) == 0
         assert await session.scalar(text("SHOW statement_timeout")) == "0"
+
+
+@pytest.mark.asyncio
+async def test_metadata_reload_across_lifecycles_and_missing_namespace_without_writes(
+    factory: async_sessionmaker[AsyncSession],
+) -> None:
+    from lychd.domain.archive import NoteListRequest
+
+    archive = service(factory)
+    assert await archive.discover_profile(SUBJECT, purpose=PURPOSE) == PROFILE
+    assert (
+        await archive.list_notes(SUBJECT, NoteListRequest(namespace_id=PROFILE.namespace_id), purpose=PURPOSE)
+    ).records == ()
+    with pytest.raises(ArchiveRefused, match="record_missing"):
+        await archive.get_note(SUBJECT, uuid4(), purpose=PURPOSE)
+    async with factory() as session:
+        assert await session.scalar(select(func.count()).select_from(ArchiveNamespace)) == 0
+        assert await session.scalar(select(func.count()).select_from(ArchiveIntake)) == 0
+        assert await session.scalar(select(func.count()).select_from(ArchiveRecall)) == 0
+    first = await archive.admit(SUBJECT, proposal(), purpose=PURPOSE)
+    assert (
+        await service(factory).get_note(SUBJECT, first.reference.record_id, purpose=PURPOSE)
+    ).lifecycle is Lifecycle.CANDIDATE
+    await archive.promote(SUBJECT, first.reference.record_id, expected_version=1, purpose=PURPOSE)
+    assert (
+        await service(factory).get_note(SUBJECT, first.reference.record_id, purpose=PURPOSE)
+    ).lifecycle is Lifecycle.PROMOTED
+    correction = await archive.admit(
+        SUBJECT, proposal(source_revision="2", text="A blue fox guards the archive."), purpose=PURPOSE
+    )
+    await archive.promote(SUBJECT, correction.reference.record_id, expected_version=1, purpose=PURPOSE)
+    await archive.revoke(SUBJECT, correction.reference.record_id, expected_version=2, purpose=PURPOSE)
+    candidate = await archive.admit(SUBJECT, proposal(source_key="other"), purpose=PURPOSE)
+    # Force timestamp ties and reconstruct the service to exercise retained keysets.
+    instant = datetime(2026, 10, 19, 1, 2, 3, 123456, tzinfo=UTC)
+    async with factory() as session, session.begin():
+        for row in await session.scalars(select(ArchiveNote)):
+            row.created_at = instant
+    fresh = service(factory)
+    ids: list[UUID] = []
+    cursor = None
+    for _ in range(4):
+        page = await fresh.list_notes(
+            SUBJECT, NoteListRequest(namespace_id=PROFILE.namespace_id, limit=1, cursor=cursor), purpose=PURPOSE
+        )
+        ids.extend(item.reference.record_id for item in page.records)
+        if page.next_cursor is None:
+            break
+        cursor = page.next_cursor
+    else:
+        pytest.fail("Metadata pagination did not terminate within its retained rows.")
+    assert ids == sorted(
+        [first.reference.record_id, correction.reference.record_id, candidate.reference.record_id], reverse=True
+    )
+    assert (await fresh.get_note(SUBJECT, first.reference.record_id, purpose=PURPOSE)).lifecycle is Lifecycle.ARCHIVED
+    assert (
+        await fresh.get_note(SUBJECT, correction.reference.record_id, purpose=PURPOSE)
+    ).lifecycle is Lifecycle.REVOKED
+    selected = await fresh.list_notes(
+        SUBJECT, NoteListRequest(namespace_id=PROFILE.namespace_id, source_key="operator-note"), purpose=PURPOSE
+    )
+    assert len(selected.records) == 2
+    assert "content" not in selected.model_dump_json()
+    assert "text" not in selected.model_dump_json()
+    with pytest.raises(ArchiveRefused, match="revoked"):
+        await fresh.admit(
+            SUBJECT, proposal(source_revision="2", text="A blue fox guards the archive."), purpose=PURPOSE
+        )
+    with pytest.raises(ArchiveRefused, match="stale_version"):
+        await fresh.revoke(SUBJECT, first.reference.record_id, expected_version=1, purpose=PURPOSE)
+    for updates in ({"owner_subject": ArchiveSubject(identity="different")}, {"policy_revision": "different"}):
+        changed = PROFILE.model_copy(update=updates)
+        shifted = service(factory, Authority(changed))
+        with pytest.raises(ArchiveRefused, match="namespace_binding"):
+            await shifted.list_notes(
+                changed.owner_subject, NoteListRequest(namespace_id=PROFILE.namespace_id), purpose=PURPOSE
+            )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("operation", ["list_notes", "get_note"])
+async def test_metadata_authority_revoked_after_initial_authorization(
+    factory: async_sessionmaker[AsyncSession], operation: str
+) -> None:
+    from lychd.domain.archive import NoteListRequest
+
+    retained = await promote(service(factory))
+    authority = Authority()
+    archive = service(factory, authority)
+    arg = (
+        NoteListRequest(namespace_id=PROFILE.namespace_id)
+        if operation == "list_notes"
+        else retained.reference.record_id
+    )
+    async with factory() as session, session.begin():
+        await session.scalar(
+            select(ArchiveNamespace).where(ArchiveNamespace.id == PROFILE.namespace_id).with_for_update()
+        )
+        task = asyncio.create_task(getattr(archive, operation)(SUBJECT, arg, purpose=PURPOSE))
+        await asyncio.wait_for(authority.called.wait(), timeout=5)
+        authority.allowed = False
+    with pytest.raises(ArchiveRefused, match="authority"):
+        await task
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("operation", ["list_notes", "get_note"])
+async def test_metadata_authority_revoked_at_session_cleanup(
+    factory: async_sessionmaker[AsyncSession], operation: str
+) -> None:
+    from lychd.domain.archive import NoteListRequest
+
+    retained = await promote(service(factory))
+    authority = Authority()
+
+    class RevokingSession(AsyncSession):
+        async def close(self) -> None:
+            await super().close()
+            authority.allowed = False
+
+    closing = async_sessionmaker[AsyncSession](factory.kw["bind"], class_=RevokingSession, expire_on_commit=False)
+    archive = service(closing, authority)
+    arg = (
+        NoteListRequest(namespace_id=PROFILE.namespace_id)
+        if operation == "list_notes"
+        else retained.reference.record_id
+    )
+    with pytest.raises(ArchiveRefused, match="authority"):
+        await getattr(archive, operation)(SUBJECT, arg, purpose=PURPOSE)

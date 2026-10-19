@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
 import json
 from datetime import datetime
 from enum import StrEnum
@@ -19,6 +21,8 @@ MAX_NOTE_CHARS = 16_000
 MAX_QUERY_CHARS = 2_000
 MAX_RESULTS = 20
 MAX_RECALL_CHARS = 32_000
+MAX_METADATA_RESULTS = 50
+MAX_METADATA_CURSOR_CHARS = 2048
 
 
 class ArchiveValue(BaseModel):
@@ -127,6 +131,68 @@ class NoteRecord(ArchiveValue):
     created_at: datetime
 
 
+class NoteListCursor(ArchiveValue):
+    """Exact keyset position bound to one namespace and source filter."""
+
+    namespace_id: UUID
+    source_key: Label | None = None
+    created_at: datetime
+    record_id: UUID
+
+    @field_validator("created_at")
+    @classmethod
+    def aware_timestamp(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            msg = "Metadata cursor time must be timezone-aware."
+            raise ValueError(msg)
+        return value
+
+    def encode(self) -> str:
+        return base64.urlsafe_b64encode(self.model_dump_json().encode()).decode()
+
+    @classmethod
+    def decode(cls, value: str) -> NoteListCursor:
+        """Reject oversized, malformed and noncanonical continuation values."""
+        if not value or len(value) > MAX_METADATA_CURSOR_CHARS:
+            msg = "Invalid Archive metadata cursor."
+            raise ValueError(msg)
+        try:
+            raw = base64.b64decode(value, altchars=b"-_", validate=True)
+            cursor = cls.model_validate_json(raw)
+        except (ValueError, binascii.Error):
+            msg = "Invalid Archive metadata cursor."
+            raise ValueError(msg) from None
+        if cursor.encode() != value:
+            msg = "Invalid Archive metadata cursor."
+            raise ValueError(msg)
+        return cursor
+
+
+class NoteListRequest(ArchiveValue):
+    """Finite metadata inspection, never a recall or text-search request."""
+
+    namespace_id: UUID
+    limit: Annotated[int, Field(ge=1, le=MAX_METADATA_RESULTS)] = MAX_METADATA_RESULTS
+    source_key: Label | None = None
+    cursor: Annotated[str, Field(min_length=1, max_length=MAX_METADATA_CURSOR_CHARS)] | None = None
+
+    @model_validator(mode="after")
+    def bound_cursor(self) -> NoteListRequest:
+        if self.cursor is not None:
+            cursor = NoteListCursor.decode(self.cursor)
+            if (cursor.namespace_id, cursor.source_key) != (self.namespace_id, self.source_key):
+                msg = "Archive metadata cursor does not match this query."
+                raise ValueError(msg)
+        return self
+
+
+class NoteListPage(ArchiveValue):
+    """Metadata across every lifecycle, including retained revoked tombstones."""
+
+    records: Annotated[tuple[NoteRecord, ...], Field(max_length=MAX_METADATA_RESULTS)]
+    next_cursor: Annotated[str, Field(max_length=MAX_METADATA_CURSOR_CHARS)] | None = None
+
+
 class RecallRequest(ArchiveValue):
     namespace_id: UUID
     request_id: UUID
@@ -196,6 +262,8 @@ class RecallProjection(ArchiveValue):
 
 
 type ArchiveAction = Literal[
+    "profile_discover",
+    "inspect",
     "admit",
     "promote",
     "archive",

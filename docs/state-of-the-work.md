@@ -1920,6 +1920,16 @@ and replays no settled history. PostgreSQL tests cover real HTTP controllers, Ru
 worker execution, typed checkpoint reconstruction, stale-source refusal, migration lineage and
 the actual restricted runtime database role. Earlier Bridge manifests remain retained unchanged.
 
+Authorized configuration discovery and finite metadata reads now support review after reload or
+a lost mutation response. Profile discovery performs no storage, registration, model or Run work.
+Lists expose at most 50 metadata records per page across all lifecycles, with an exact source-key
+filter and stable timestamp/UUID cursor; exact-record reads recover the current lifecycle/version.
+Both select only metadata columns, including revoked tombstones, and never hydrate source text,
+search vectors or embeddings. Reads create no persistent namespace, note or receipt rows. A missing
+namespace lists empty; changed retained bindings and storage failures refuse distinctly. Current
+management authority is checked before storage, after namespace preparation and after session
+cleanup. Inspection grants no recall eligibility or automatic lifecycle retry.
+
 A separate [19 October native operator observation](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/archive/native-public-notes-2026-10-19.json)
 at source `c4d86be6` exercised ordinary Settings/Runes, database bootstrap, CLI, Granian TCP,
 PostgreSQL and the existing shared Qwen3.8-27B runtime. Four fresh Sessions answered one frozen
@@ -1965,6 +1975,7 @@ Generated answers can quote sources; later revocation does not erase earlier out
 - **Source:** [Derivation service](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/archive/derivation_service.py), [derivation store](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/archive_derivation.py), [migration 0013](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/migrations/versions/0013_archive_derivations.py), and [configured derivation API](https://github.com/hexanomicon/lychd/blob/main/src/lychd/interface/web/archive_derivation.py)
 - **Verification:** [Domain tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/test_archive.py), [PostgreSQL lifecycle](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_pg.py), [migrations](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_migrations_pg.py), [runtime role](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_runtime_pg.py), [worker and typed continuation](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_vertical_pg.py), and [projection tests](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_archive_context.py)
 - **Verification:** [Derivation races](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_derivation_pg.py), [configured HTTP and lease integration](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_derivation_http_pg.py), [migration rollback](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_derivation_migrations_pg.py), and [derivation runtime role](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_derivation_runtime_pg.py)
+- **Verification:** [Metadata authority, cursor and column-selection tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/db/test_archive_failures.py) and [guarded metadata HTTP tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_archive_metadata.py); the PostgreSQL lifecycle and vertical tests above include retained metadata recovery and no-write reads.
 - **Topic:** [Public-note answers](./divination/altar/bridge.md#public-note-answers)
 - **Law:** [Memory](./adr/27-memory.md)
 

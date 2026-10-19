@@ -675,3 +675,44 @@ async def test_empty_recall_is_a_successful_explicit_empty_projection(
     assert run is not None
     assert run.status is RunStatus.DONE
     assert envelope(boot.outbound[0])["items"] == []
+
+
+async def test_http_metadata_reload_retains_tombstones_and_never_initializes_on_get(
+    pg_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    from sqlalchemy import func
+
+    boot = PostgresArchiveBoot(pg_factory)
+    async with boot.client() as client:
+        profile = await client.get("/api/v1/archive/profile")
+        assert profile.status_code == 200
+        assert profile.json() == PROFILE.model_dump(mode="json")
+        page = await client.get("/api/v1/archive/notes")
+        assert page.status_code == 200
+        assert page.json() == {"records": [], "next_cursor": None}
+        missing = await client.get(f"/api/v1/archive/notes/{uuid4()}")
+        assert missing.status_code == 409
+    async with pg_factory() as db:
+        assert await db.scalar(select(func.count()).select_from(ArchiveNamespace)) == 0
+        assert await db.scalar(select(func.count()).select_from(ArchiveIntake)) == 0
+        assert await db.scalar(select(func.count()).select_from(ArchiveRecall)) == 0
+    note = await promote(boot)
+    async with boot.client() as client:
+        await post(client, f"/api/v1/archive/notes/{note['reference']['record_id']}/revoke", {"expected_version": 2})
+    fresh = PostgresArchiveBoot(pg_factory)
+    async with fresh.client() as client:
+        page = await client.get("/api/v1/archive/notes", params={"source_key": "public-note"})
+        exact = await client.get(f"/api/v1/archive/notes/{note['reference']['record_id']}")
+        assert page.status_code == exact.status_code == 200
+        assert page.json()["records"] == [exact.json()]
+        assert exact.json()["lifecycle"] == "revoked"
+        assert "content" not in exact.json()
+        assert "text" not in exact.json()
+    fresh.caller[0] = Sigil(name="other", scopes=default_local_sigil().scopes)
+    async with fresh.client() as client:
+        assert (await client.get("/api/v1/archive/profile")).status_code == 403
+        assert (await client.get("/api/v1/archive/notes")).status_code == 403
+    disabled = PostgresArchiveBoot(pg_factory, profile=None)
+    async with disabled.client() as client:
+        assert (await client.get("/api/v1/archive/profile")).status_code == 404
+        assert (await client.get("/api/v1/archive/notes")).status_code == 404

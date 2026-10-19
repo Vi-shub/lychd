@@ -36,7 +36,7 @@ class LocalArchivePolicy:
             or request.policy_revision != self.profile.policy_revision
         ):
             return False
-        if request.action in {"admit", "promote", "archive", "revoke"}:
+        if request.action in {"admit", "promote", "archive", "revoke", "profile_discover", "inspect"}:
             return request.purpose == "archive:manage"
         if self.derivations:
             purposes = {

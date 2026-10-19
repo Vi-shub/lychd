@@ -59,6 +59,20 @@ boundary does not undo an already committed mutation. An authorized exact intake
 its retained identity and current lifecycle; stale lifecycle retries refuse their expected-version
 comparison rather than guessing whether to repeat the change.
 
+Authorized configuration discovery and metadata inspection have explicit actions and management
+purpose; recall is not a shortcut to review authority. Configuration discovery returns only the
+current configured public-note profile, without storage access, namespace creation, model probes
+or Run admission. It does not establish compatibility with an existing retained namespace.
+Metadata reads expose bounded source/revision, digest, lifecycle/version and retention metadata
+across candidates, promoted revisions, archives and revoked tombstones. They select no note text,
+search vectors, recall projections or embeddings. Lists use a finite page bound and stable keyset;
+an exact-record read permits recovery from a lost mutation response without replaying that effect.
+Reads create no persistent namespace, note or receipt rows. A missing namespace lists empty, while
+an existing owner/policy mismatch or storage failure refuses instead of becoming an empty result.
+Current authorization is rechecked after awaited preparation and transaction/session cleanup.
+Recovered lifecycle versions still require a new explicit compare-and-set decision; inspection
+neither retries a transition nor restores revoked content or source-revision eligibility.
+
 A durable recall receipt retains the exact namespace, subject, purpose, policy, query digest,
 budgets, selected revision and lifecycle identities, projection digests, and ordered scores. It
 contains neither query nor note text. Resolving that receipt rechecks current authority and exact

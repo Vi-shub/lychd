@@ -13,6 +13,8 @@ if TYPE_CHECKING:
         ArchiveProfile,
         ArchiveSubject,
         Lifecycle,
+        NoteListPage,
+        NoteListRequest,
         NoteProposal,
         NoteRecord,
         RecallProjection,
@@ -31,6 +33,12 @@ class ArchiveAuthorizer(Protocol):
 
 class ArchiveStore(Protocol):
     """Persistence serializes operations and calls the check after awaited preparation."""
+
+    async def list_notes(
+        self, profile: ArchiveProfile, request: NoteListRequest, check: AuthorizationCheck
+    ) -> NoteListPage: ...
+
+    async def get_note(self, profile: ArchiveProfile, record_id: UUID, check: AuthorizationCheck) -> NoteRecord: ...
 
     async def admit(self, profile: ArchiveProfile, proposal: NoteProposal, check: AuthorizationCheck) -> NoteRecord: ...
 

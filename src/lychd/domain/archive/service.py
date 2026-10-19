@@ -10,6 +10,8 @@ from lychd.domain.archive.contracts import (
     ArchiveRefused,
     ArchiveSubject,
     Lifecycle,
+    NoteListPage,
+    NoteListRequest,
     NoteProposal,
     NoteRecord,
     RecallProjection,
@@ -21,6 +23,7 @@ from lychd.domain.archive.contracts import (
 if TYPE_CHECKING:
     from uuid import UUID
 
+    from lychd.domain.archive.contracts import ArchiveAction
     from lychd.domain.archive.ports import ArchiveAuthorizer, ArchiveStore, AuthorizationCheck
 
 
@@ -37,7 +40,7 @@ class ArchiveService:
         self,
         subject: ArchiveSubject,
         namespace_id: UUID,
-        action: Literal["admit", "promote", "archive", "revoke", "recall", "resolve"],
+        action: ArchiveAction,
         purpose: str,
     ) -> AuthorizationCheck:
         if namespace_id != self.profile.namespace_id:
@@ -45,6 +48,27 @@ class ArchiveService:
             raise ArchiveRefused(msg)
 
         return authorization_check(self.profile, self._authorizer, subject, action, purpose)
+
+    async def discover_profile(self, subject: ArchiveSubject, *, purpose: str) -> ArchiveProfile:
+        """Disclose configuration without storage, model work or namespace initialization."""
+        check = self._check(subject, self.profile.namespace_id, "profile_discover", purpose)
+        check(None, digest(self.profile))
+        return self.profile
+
+    async def list_notes(self, subject: ArchiveSubject, request: NoteListRequest, *, purpose: str) -> NoteListPage:
+        check = self._check(subject, request.namespace_id, "inspect", purpose)
+        check(None, digest(request))
+        page = await self._store.list_notes(self.profile, request, check)
+        # Store return follows awaited transaction and connection cleanup.
+        check(None, digest({"query": request.model_dump(mode="json"), "page": page.model_dump(mode="json")}))
+        return page
+
+    async def get_note(self, subject: ArchiveSubject, record_id: UUID, *, purpose: str) -> NoteRecord:
+        check = self._check(subject, self.profile.namespace_id, "inspect", purpose)
+        check(record_id, digest({"record_id": str(record_id)}))
+        record = await self._store.get_note(self.profile, record_id, check)
+        check(record_id, digest(record))
+        return record
 
     async def admit(self, subject: ArchiveSubject, proposal: NoteProposal, *, purpose: str) -> NoteRecord:
         check = self._check(subject, proposal.namespace_id, "admit", purpose)

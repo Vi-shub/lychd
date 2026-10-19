@@ -5,12 +5,16 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
-from litestar import Controller, Request, post
+from litestar import Controller, Request, get, post
 from litestar.datastructures import State
-from litestar.params import FromPath
-from pydantic import BaseModel, ConfigDict, Field
+from litestar.exceptions import ValidationException
+from litestar.params import FromPath, FromQuery
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from lychd.domain.archive import (
+    ArchiveProfile,
+    NoteListPage,
+    NoteListRequest,
     NoteProposal,
     NoteRecord,
     RecallProjection,
@@ -40,6 +44,37 @@ class ArchiveController(Controller):
 
     path = "/api/v1/archive"
     guards = (requires_scopes("altar:read"),)
+
+    @get("/profile", name="archive:profile", operation_id="getArchiveProfile")
+    async def profile(self, request: Request[Any, Any, Any], state: State) -> ArchiveProfile:
+        """Discover authorized configuration; this is no storage or readiness probe."""
+        service, subject = require_archive_access(request, state)
+        return await archive_result(service.discover_profile(subject, purpose="archive:manage"))
+
+    @get("/notes", name="archive:list", operation_id="listArchiveNotes")
+    async def list_notes(
+        self,
+        request: Request[Any, Any, Any],
+        state: State,
+        limit: FromQuery[int] = 50,
+        source_key: FromQuery[str | None] = None,
+        cursor: FromQuery[str | None] = None,
+    ) -> NoteListPage:
+        """Inspect a finite metadata page, including archived and revoked records."""
+        service, subject = require_archive_access(request, state)
+        try:
+            query = NoteListRequest(
+                namespace_id=service.profile.namespace_id, limit=limit, source_key=source_key, cursor=cursor
+            )
+        except ValidationError:
+            raise ValidationException(detail="Invalid Archive metadata query.") from None
+        return await archive_result(service.list_notes(subject, query, purpose="archive:manage"))
+
+    @get("/notes/{record_id:uuid}", name="archive:get", operation_id="getArchiveNote")
+    async def get_note(self, record_id: FromPath[UUID], request: Request[Any, Any, Any], state: State) -> NoteRecord:
+        """Refresh one exact metadata identity without replaying a lifecycle effect."""
+        service, subject = require_archive_access(request, state)
+        return await archive_result(service.get_note(subject, record_id, purpose="archive:manage"))
 
     @post("/notes", name="archive:admit", operation_id="admitArchiveNote")
     async def admit(self, data: NoteProposal, request: Request[Any, Any, Any], state: State) -> NoteRecord:
