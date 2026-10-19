@@ -100,13 +100,21 @@ fresh inputs. Host bootstrap tolerates unprovisioned default mounts; runtime com
 missing credentials. Uncaged bind preflight checks the captured bootstrap and runtime database
 passwords, local access password, and signing key separately before compilation.
 
-**Boundary:** This covers the core DB/web credentials, not every extension's credential handling
-or live Podman provisioning. No automatic credential reload is delivered.
+An explicit `LYCHD_RUNTIME_SECRETS=podman-core@1` startup source uses the existing trusted
+Podman reader for only the declared runtime DB, signing and local access values. Inert source
+controls cover exact reads, rejection of competing credential inputs and explicit constructor
+server sections, refusal of upstream filtering that hides empty overrides, fail-closed errors,
+secret-free output and cached/snapshot consumption. Bootstrap and Phoenix credentials stay unset.
+
+**Boundary:** This covers core DB/web source behavior, not every extension's credential handling,
+live Podman capture or provisioning, retained-role password agreement, or an installed native-only
+binding. Existing caged and dual generations do not select this source automatically. No automatic
+credential reload is delivered.
 
 **Evidence**
 
 - **Source:** [Settings](https://github.com/hexanomicon/lychd/blob/main/src/lychd/config/settings/root.py), [Credential source](https://github.com/hexanomicon/lychd/blob/main/src/lychd/config/settings/sources.py)
-- **Verification:** [Credential tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/config/test_credentials.py), [Settings tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/config/test_settings.py), [Uncaged preflight tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_binding_preflight.py)
+- **Verification:** [Credential tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/config/test_credentials.py), [Settings tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/config/test_settings.py), [Native source controls](https://github.com/hexanomicon/lychd/blob/main/tests/unit/config/test_native_runtime_secrets.py), [Uncaged preflight tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_binding_preflight.py)
 - **Law:** [Configuration](./adr/12-configuration.md)
 
 ### Rune configuration loading {#rune-configuration-loading}

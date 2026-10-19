@@ -1,4 +1,4 @@
-"""Startup-only adaptation of the core credential environment and Podman mounts."""
+"""Startup-only adaptation of core credentials from the selected runtime source."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ MOUNTED_SECRETS_DIR = Path("/run/secrets")
 
 
 class RuntimeSecretsSource(PydanticBaseSettingsSource):
-    """Fill runtime credentials from Pydantic's captured environment and mounted files."""
+    """Capture legacy credentials or explicitly selected Podman runtime credentials."""
 
     def __init__(self, settings_cls: type[BaseSettings], environment: PydanticBaseSettingsSource) -> None:
         """Reuse the environment captured by Pydantic for this construction."""
@@ -25,6 +25,7 @@ class RuntimeSecretsSource(PydanticBaseSettingsSource):
             raise TypeError(msg)
         self._environment = environment.env_vars
         self._case_sensitive = environment.case_sensitive
+        self._ignore_empty = environment.env_ignore_empty
 
     @override
     def get_field_value(self, field: FieldInfo, field_name: str) -> tuple[Any, str, bool]:
@@ -32,6 +33,21 @@ class RuntimeSecretsSource(PydanticBaseSettingsSource):
 
     @override
     def __call__(self) -> dict[str, Any]:
+        key = "LYCHD_RUNTIME_SECRETS" if self._case_sensitive else "lychd_runtime_secrets"
+        if key in self._environment:
+            selection = self._environment[key]
+            if type(selection) is not str or selection != "podman-core@1":
+                msg = "Unsupported LYCHD_RUNTIME_SECRETS selection."
+                raise ValueError(msg)
+            if self._ignore_empty:
+                msg = "Selected Podman runtime credentials require preserved empty environment values."
+                raise ValueError(msg)
+            self._reject_podman_overrides()
+            return self._podman_core_credentials()
+        return self._legacy_credentials()
+
+    def _legacy_credentials(self) -> dict[str, Any]:
+        """Retain the established explicit, environment and mounted-file precedence."""
         self._reject_toml_credentials()
         declared = self.current_state.get("server", {})
         server = ServerSettings.model_validate(declared)
@@ -69,6 +85,73 @@ class RuntimeSecretsSource(PydanticBaseSettingsSource):
                     msg = f"Secret file for {env_key} is empty: '{path}'."
                     raise ValueError(msg)
             credentials.setdefault(section, {})[field] = SecretStr(value)
+        return {"server": credentials}
+
+    def _reject_podman_overrides(self) -> None:
+        """Refuse constructor server sections and supplied values before secret I/O."""
+        msg = "LYCHD_RUNTIME_SECRETS=podman-core@1 forbids supplied core credentials or constructor server sections."
+        if "server" in self.settings_sources_data.get("InitSettingsSource", {}):
+            raise ValueError(msg)
+        for env_key in (
+            "LYCHD_DB_PASSWORD",
+            "LYCHD_RUNTIME_DB_PASSWORD",
+            "LYCHD_PHOENIX_DB_PASSWORD",
+            "LYCHD_APP_SECRET_KEY",
+            "LYCHD_LOCAL_ACCESS_PASSWORD",
+        ):
+            for alias in (env_key, f"{env_key}_FILE"):
+                key = alias if self._case_sensitive else alias.lower()
+                if key in self._environment:
+                    raise ValueError(msg)
+
+        # Earlier source states retain competing inputs hidden by precedence.
+        if any(
+            self._has_supplied_credentials(values.get("server", {}))
+            for values in (*self.settings_sources_data.values(), self.current_state)
+        ):
+            raise ValueError(msg)
+
+    @staticmethod
+    def _has_supplied_credentials(declared: object) -> bool:
+        """Identify credential inputs and complete sections without reading their values."""
+        if isinstance(declared, BaseModel):
+            return True
+        if not isinstance(declared, dict):
+            return False  # ServerSettings validation rejects malformed declarations.
+        server = cast("dict[str, Any]", declared)
+        for section, fields in (
+            ("database", ("password", "runtime_password", "phoenix_password")),
+            ("web", ("secret_key", "access_password")),
+        ):
+            existing = server.get(section, {})
+            if isinstance(existing, BaseModel) or (
+                isinstance(existing, dict) and any(field in existing for field in fields)
+            ):
+                return True
+        return False
+
+    def _podman_core_credentials(self) -> dict[str, Any]:
+        """Read only the declared runtime password, signing key and local access password."""
+        from lychd.system.host_tools import trusted_host_tool
+        from lychd.system.services.secrets import PodmanSecretStore, PodmanSecretStoreError
+
+        server = ServerSettings.model_validate(self.current_state.get("server", {}))
+        try:
+            podman = trusted_host_tool("podman")
+            if podman is None:
+                msg = "A trusted Podman executable is required for selected runtime credentials."
+                raise ValueError(msg)
+            store = PodmanSecretStore(podman)
+            credentials = {
+                "database": {"runtime_password": store.read(server.database.runtime_password_secret)},
+                "web": {
+                    "secret_key": store.read(server.web.secret_key_secret),
+                    "access_password": store.read(server.web.access_password_secret),
+                },
+            }
+        except (OSError, PodmanSecretStoreError):
+            msg = "Selected Podman runtime credentials are unavailable."
+            raise ValueError(msg) from None
         return {"server": credentials}
 
     def _reject_toml_credentials(self) -> None:

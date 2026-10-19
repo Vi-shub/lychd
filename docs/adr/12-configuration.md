@@ -275,8 +275,47 @@ access password, and application signing key separately against that captured ge
 Explicit file overrides must be readable and nonempty at Settings construction. Nested settings
 models perform validation only; explicitly supplied section instances are complete overrides.
 Bind preflight requires the Codex secret file to be Magus-owned with
-group and other permissions closed. Generated units use file form and scope mounts to the unit that
-needs them. Filesystem permissions do not isolate code within that unit.
+group and other permissions closed. Generated caged units use file form and scope mounts to the
+unit that needs them. Filesystem permissions do not isolate code within that unit.
+
+### Explicit native core credential source
+
+A process may explicitly select `LYCHD_RUNTIME_SECRETS=podman-core@1` before its first Settings
+construction. Selection is interpreted from the existing Pydantic environment capture; absent
+selection retains the precedence above. An empty, unknown or non-string captured selection refuses
+before credential I/O. A selected Podman profile also refuses Pydantic's optional empty-value
+filtering mode, which would hide competing empty aliases. When a caller explicitly enables that
+filtering and supplies an empty selection, the capture contains no selection and retains legacy
+behavior; it does not select Podman.
+`LYCHD_MODE=uncaged`, an installed Podman executable, or a missing mount never selects this source.
+Selection is a credential-source contract, not launcher attestation or permission to run a service.
+
+This profile reads exactly the declared runtime database password, application signing key and
+local access password from the existing trusted rootless Podman secret owner. It uses the
+host-attested Podman executable and the existing exact-name, bounded secret reader, once per
+field per Settings construction. It reads no bootstrap or Phoenix password, creates or replaces
+no secret, and exports no secret through environment, unit text, serialization or diagnostics.
+Unavailable or untrusted Podman, missing or malformed secret data and read failure refuse without
+fallback. A partial read does not publish a partial Settings generation.
+
+Before any Podman read, the profile refuses any explicit constructor `server` section, including
+an empty dictionary or a complete model. This also covers constructor modes that serialize model
+instances before the source sees them. All five core credential fields supplied through the
+root-grammar environment, even explicit `None`, and their corresponding legacy value or `*_FILE`
+aliases, even empty ones, also refuse. There is no equal-value exception. TOML credential values
+remain forbidden. Server declarations and secret references remain available through their normal
+environment/TOML precedence; explicit non-server root sections retain their existing behavior.
+Source priority must not silently replace the selected owner's values.
+
+The resulting credentials remain excluded `SecretStr` values in the one captured Settings
+generation. Cached consumers and snapshot restoration perform no further reads; a new explicit
+construction or process restart reads again. The three reads are not an atomic secret generation,
+and secret presence or matching names do not prove that a retained database role accepts them.
+The migration gate and PostgreSQL authentication retain that responsibility. This source grants
+no bootstrap authority, Portal or Soulstone credential transport, binding conversion, runtime
+mutation, automatic rotation or reload. Existing caged and dual binding generations do not select
+it implicitly; a coherent native-only installed generation needs its own binding and lifecycle
+evidence.
 
 ### Policy and derived projections
 
