@@ -123,6 +123,15 @@ export async function getArchiveProfile(signal?: AbortSignal): Promise<component
 export async function discoverArchiveGeneration(signal?: AbortSignal): Promise<components["schemas"]["GenerationRef"]> {
   return unwrap(await client.GET("/api/v1/archive/derivations/generations/configured", { signal }));
 }
+export async function registerArchiveGeneration(body: components["schemas"]["GenerationRef"]): Promise<components["schemas"]["GenerationStatus"]> {
+  return unwrap(await client.POST("/api/v1/archive/derivations/generations/register", { body, headers: await csrfHeaders() }));
+}
+export async function deriveArchiveNote(body: components["schemas"]["DerivationRequest"]): Promise<components["schemas"]["DerivationStatus"]> {
+  return unwrap(await client.POST("/api/v1/archive/derivations/derive", { body, headers: await csrfHeaders() }));
+}
+export async function inspectArchiveDerivation(body: components["schemas"]["DerivationRequest"], signal?: AbortSignal): Promise<components["schemas"]["DerivationStatus"]> {
+  return unwrap(await client.POST("/api/v1/archive/derivations/status", { body, signal, headers: await csrfHeaders() }));
+}
 export async function recallArchiveSemanticNotes(body: components["schemas"]["SemanticRecallRequest"]): Promise<components["schemas"]["SemanticRecallResult"]> {
   return unwrap(await client.POST("/api/v1/archive/semantic/recalls", { body, headers: await csrfHeaders() }));
 }

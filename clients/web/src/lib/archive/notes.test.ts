@@ -134,3 +134,27 @@ it("routes recall separately while preserving management-only draft departure re
   for (const value of ["manage", "new", id]) expect(notesFocusSelection(value)).toBe(notesSelection(value));
   for (const value of ["Recall", "recall ", "unknown", null]) expect(notesFocusSelection(value)).toBeNull();
 });
+
+it("serializes preparation with intake/promote/revoke while leaving metadata reads available", async () => {
+  const t = setup(); await t.manager.load(); t.manager.select(id); await t.manager.check();
+  t.manager.freeze(body); t.manager.setPreparationBusy(true);
+  await t.manager.submit(); await t.manager.transition("promote", t.state.record!); await t.manager.transition("revoke", t.state.record!);
+  expect(t.api.admit).not.toHaveBeenCalled(); expect(t.api.promote).not.toHaveBeenCalled(); expect(t.api.revoke).not.toHaveBeenCalled();
+  await t.manager.list(); await t.manager.check(); expect(t.state.record).toBeTruthy();
+  t.manager.setPreparationBusy(false); await t.manager.transition("promote", t.state.record!); expect(t.api.promote).toHaveBeenCalledTimes(1);
+});
+it("a captured current preparation refusal clears parent management and draft custody, while old focus/profile callbacks are inert", async () => {
+  const t = setup(); await t.manager.load(); t.manager.select(id); await t.manager.check(); t.manager.freeze(body);
+  const old = t.manager.capturePreparationRefusal(); t.manager.select(other); t.manager.select(id); await t.manager.check();
+  old(new ApiError("private", 403)); expect(t.state.profile).not.toBeNull(); expect(t.state.frozen).not.toBeNull();
+  const previousProfile = t.manager.capturePreparationRefusal(); vi.mocked(t.api.profile).mockResolvedValue({ ...profile, policy_revision: "new" }); await t.manager.load();
+  previousProfile(new ApiError("private", 401)); expect(t.state.profile?.policy_revision).toBe("new");
+  t.manager.freeze(body); const current = t.manager.capturePreparationRefusal(); current(new ApiError("private", 403));
+  expect(t.state.profile).toBeNull(); expect(t.state.record).toBeNull(); expect(t.state.records).toEqual([]); expect(t.state.frozen).toBeNull(); expect(t.state.message).not.toContain("private");
+  t.manager.dispose(); current(new ApiError("late", 401)); expect(t.state.record).toBeNull();
+});
+it("current preparation configuration authority remains current across same-note metadata and lifecycle reads", async () => {
+  const t = setup(); await t.manager.load(); t.manager.select(id); await t.manager.check();
+  const refusal = t.manager.capturePreparationRefusal(); vi.mocked(t.api.read).mockResolvedValue(record(id, 3, "revoked")); await t.manager.check();
+  refusal(new ApiError("private", 403)); expect(t.state.profile).toBeNull(); expect(t.state.record).toBeNull();
+});

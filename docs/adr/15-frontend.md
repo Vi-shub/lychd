@@ -170,7 +170,32 @@ Drafts and frozen bodies remain transient to the browser document, with departur
 GETs are abortable and late responses remain fenced by selection, profile and lifetime. Current
 authority refusal clears protected material. The focus uses generated transport, existing local
 Origin/CSRF/access gates, escaped text, semantic forms, keyboard controls and visible uncertainty.
-These management modes create no browser ledger, consent authority, recall operation or model request.
+Intake, metadata and lifecycle management create no browser ledger, consent authority, recall
+operation or model request.
+
+A separate explicit preparation section may operate on the exact selected public-note revision.
+It discovers configured generation metadata without preparing anything. **Register configured
+generation** is a named shared-generation mutation using that exact reference; it neither embeds
+nor reactivates a retired generation. **Check preparation** is a protected metadata-only POST for
+the exact generation and source reference. Neither opening, navigation, checking nor promotion
+registers a generation or derives a note automatically.
+
+**Prepare this promoted revision** requires an explicit review of the current profile, generation
+and full source reference and may incur one local embedding operation under Archive authority.
+It sends no source text from the browser, activates no model and chains no recall or answer Run.
+Its existing request has no occurrence UUID or caller attempt-version precondition; row and attempt
+versions describe latest durable state, not authorship or the cost of one HTTP invocation. A lost
+response stays unknown after a status check. A further explicit preparation decision may repeat
+compute even with the identical body; only the server can establish eligible completed replay.
+DB-observed expiry does not prove cancellation or stop earlier work.
+
+Frozen preparation references and status remain document-local. Historical status after a
+lifecycle change needs the original exact source reference; reload cannot invent an old lifecycle
+version. Local preparation and note-write gestures are serialized. Profile, generation, selection,
+operation and lifetime fences reject stale responses; current authority refusal clears protected
+management and preparation display. Departure or read abortion grants no cancellation or rollback
+claim. Preparation adds no browser ledger, bulk/background worker, automatic retry or readiness
+service.
 
 The separate `recall` notes focus is an explicit sources-only consumer of Archive's schema2
 semantic API. Opening, typing, navigation and metadata refresh perform no semantic query or source

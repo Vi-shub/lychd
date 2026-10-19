@@ -4,12 +4,13 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { ArchiveBridgeDefault, NoteRecord } from "$lib/api/models";
 const hooks = vi.hoisted(() => ({ after: [] as (() => void)[], before: [] as ((event: unknown) => void)[] }));
 vi.mock("$app/navigation", () => ({ afterNavigate: (fn: () => void) => { hooks.after.push(fn); }, beforeNavigate: (fn: (event: unknown) => void) => { hooks.before.push(fn); } }));
-vi.mock("$lib/api/client", () => ({ ApiError: class ApiError extends Error { constructor(message: string, public status?: number) { super(message); } }, getArchiveProfile: vi.fn(), getArchiveBridgeDefault: vi.fn(), listArchiveNotes: vi.fn(), getArchiveNote: vi.fn(), admitArchiveNote: vi.fn(), promoteArchiveNote: vi.fn(), revokeArchiveNote: vi.fn(), getBridgeSnapshot: vi.fn() }));
+vi.mock("$lib/api/client", () => ({ ApiError: class ApiError extends Error { constructor(message: string, public status?: number) { super(message); } }, getArchiveProfile: vi.fn(), getArchiveBridgeDefault: vi.fn(), listArchiveNotes: vi.fn(), getArchiveNote: vi.fn(), admitArchiveNote: vi.fn(), promoteArchiveNote: vi.fn(), revokeArchiveNote: vi.fn(), discoverArchiveGeneration: vi.fn(), registerArchiveGeneration: vi.fn(), deriveArchiveNote: vi.fn(), inspectArchiveDerivation: vi.fn(), getBridgeSnapshot: vi.fn() }));
 import * as api from "$lib/api/client";
 import PublicNotes from "./PublicNotes.svelte";
 const namespace = "00000000-0000-4000-8000-000000000001", id = "00000000-0000-4000-8000-000000000002";
 const record: NoteRecord = { namespace_id: namespace, reference: { record_id: id, revision_digest: "a".repeat(64), lifecycle_version: 1 }, source_key: "<script>key</script>", source_revision: "r1", source_digest: "b".repeat(64), producer: "p", observed_at: "2026-10-19T00:00:00Z", created_at: "2026-10-19T00:00:00Z", lifecycle: "candidate" };
 beforeEach(() => { vi.clearAllMocks(); hooks.after = []; hooks.before = []; vi.stubGlobal("crypto", webcrypto);
+  vi.mocked(api.discoverArchiveGeneration).mockResolvedValue({ generation_id: "00000000-0000-4000-8000-000000000004", manifest_digest: "c".repeat(64) });
   vi.mocked(api.getArchiveProfile).mockResolvedValue({ profile: "local-public-notes@1", namespace_id: namespace, owner_subject: { identity: "owner" }, policy_revision: "policy" });
   vi.mocked(api.getArchiveBridgeDefault).mockResolvedValue({ current_default: { pattern_id: "bridge_chat", pattern_revision: "3", guidance: "ignored" }, requests_profile: true });
   vi.mocked(api.listArchiveNotes).mockResolvedValue({ records: [record], next_cursor: null }); vi.mocked(api.getArchiveNote).mockResolvedValue(record);
@@ -110,5 +111,60 @@ it.each([{ modes: ["manage"] }, { modes: ["manage", "new"] }])("a late intake ca
   await view.rerender({ selection: "manage", onSelect }); await act(() => { hooks.after.forEach((fn) => fn()); });
   expect((screen.getByLabelText("Exact source-key filter (optional)") as HTMLInputElement).value).toBe("newer-filter");
   expect(screen.getByText("newer-filter", { selector: "code" })).toBeTruthy(); expect(api.admitArchiveNote).toHaveBeenCalledTimes(1);
+  view.unmount();
+});
+
+it("promotion starts no preparation POST; a reviewed preparation serializes revoke/correction and never hydrates note metadata", async () => {
+  const promoted = { ...record, lifecycle: "promoted" as const, reference: { ...record.reference, lifecycle_version: 2 } };
+  vi.mocked(api.promoteArchiveNote).mockResolvedValue(promoted);
+  let finish!: (value: import("$lib/api/models").ArchiveDerivationStatus) => void;
+  vi.mocked(api.deriveArchiveNote).mockReturnValue(new Promise((resolve) => { finish = resolve; }));
+  const view = render(PublicNotes, { selection: id, onSelect: vi.fn() });
+  await screen.findByRole("button", { name: "Promote this candidate" });
+  await fireEvent.click(screen.getByRole("button", { name: "Promote this candidate" })); await screen.findByText(/Promoted: lifecycle-eligible/);
+  expect(api.registerArchiveGeneration).not.toHaveBeenCalled(); expect(api.deriveArchiveNote).not.toHaveBeenCalled(); expect(api.inspectArchiveDerivation).not.toHaveBeenCalled();
+  await fireEvent.click(screen.getByRole("button", { name: "Review preparation" }));
+  expect(screen.getByRole("heading", { name: "Review exact preparation" })).toBe(document.activeElement);
+  expect(api.deriveArchiveNote).not.toHaveBeenCalled(); await fireEvent.click(screen.getByRole("button", { name: "Prepare this promoted revision" }));
+  expect((screen.getByRole("button", { name: "Review revoke" }) as HTMLButtonElement).disabled).toBe(true);
+  expect((screen.getByRole("button", { name: "Stage correction" }) as HTMLButtonElement).disabled).toBe(true);
+  const sent = vi.mocked(api.deriveArchiveNote).mock.calls[0]![0]; expect(sent).toEqual({ generation: { generation_id: "00000000-0000-4000-8000-000000000004", manifest_digest: "c".repeat(64) }, source: promoted.reference });
+  await act(() => { finish({ derivation_id: id, namespace_id: namespace, generation: sent.generation, source: sent.source, source_digest: promoted.source_digest,
+    row_version: 2, attempt_version: 1, state: "complete", observed_at: record.created_at, expires_at: null, completed_at: record.created_at, failure_code: null, invalidated_reason: null, vector_digest: "d".repeat(64), receipt_digest: null }); });
+  expect(screen.getByText("complete", { selector: "strong" })).toBeTruthy(); expect(screen.getByText(/Promoted: lifecycle-eligible/)).toBeTruthy();
+  expect((screen.getByRole("button", { name: "Review revoke" }) as HTMLButtonElement).disabled).toBe(false); expect(api.revokeArchiveNote).not.toHaveBeenCalled(); view.unmount();
+});
+it.each([401, 403])("a current preparation %s clears protected parent management too", async (status) => {
+  vi.mocked(api.getArchiveNote).mockResolvedValue({ ...record, lifecycle: "promoted" });
+  vi.mocked(api.inspectArchiveDerivation).mockRejectedValue(new api.ApiError("sensitive", status));
+  const view = render(PublicNotes, { selection: id, onSelect: vi.fn() }); await screen.findByText("Configured generation");
+  await screen.findByRole("button", { name: "Review revoke" }); await fireEvent.click(screen.getByRole("button", { name: "Check preparation" }));
+  await screen.findByText(/Public-note configuration is unavailable/);
+  expect(screen.queryByRole("heading", { name: "Semantic preparation" })).toBeNull(); expect(screen.queryByRole("button", { name: "Review revoke" })).toBeNull();
+  expect(screen.queryByText(record.source_key)).toBeNull(); expect(screen.queryByText("sensitive")).toBeNull(); view.unmount();
+});
+it("late initial secondary metadata cannot steal a preparation review heading focus", async () => {
+  let finish!: (value: { records: NoteRecord[] }) => void;
+  vi.mocked(api.listArchiveNotes).mockReturnValue(new Promise((resolve) => { finish = resolve; }));
+  vi.mocked(api.getArchiveNote).mockResolvedValue({ ...record, lifecycle: "promoted" });
+  const view = render(PublicNotes, { selection: id, onSelect: vi.fn() }); await screen.findByText("Configured generation");
+  await fireEvent.click(screen.getByRole("button", { name: "Review preparation" }));
+  const heading = screen.getByRole("heading", { name: "Review exact preparation" }); expect(document.activeElement).toBe(heading);
+  await act(() => { finish({ records: [record] }); }); expect(document.activeElement).toBe(heading); expect(api.deriveArchiveNote).not.toHaveBeenCalled(); view.unmount();
+});
+
+it.each([401, 403])("current preparation %s refusal after same-note metadata refresh clears the whole management focus", async (status) => {
+  const promoted = { ...record, lifecycle: "promoted" as const };
+  vi.mocked(api.getArchiveNote).mockResolvedValue(promoted);
+  let reject!: (error: unknown) => void;
+  vi.mocked(api.inspectArchiveDerivation).mockReturnValue(new Promise((_resolve, no) => { reject = no; }));
+  const view = render(PublicNotes, { selection: id, onSelect: vi.fn() }); await screen.findByText("Configured generation");
+  await fireEvent.click(screen.getByRole("button", { name: "Check preparation" }));
+  await fireEvent.click(screen.getByRole("button", { name: "Check exact record" }));
+  await screen.findByText(/Promoted: lifecycle-eligible/);
+  await act(() => { reject(new api.ApiError("sensitive", status)); });
+  expect(screen.queryByRole("heading", { name: "Semantic preparation" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Review revoke" })).toBeNull();
+  expect(screen.getByText(/Public-note configuration is unavailable/)).toBeTruthy();
   view.unmount();
 });

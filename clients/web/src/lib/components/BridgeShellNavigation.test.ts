@@ -18,7 +18,7 @@ vi.mock("$lib/api/client", () => ({
   getArchiveProfile: vi.fn().mockResolvedValue({ profile: "local-public-notes@1", namespace_id: "00000000-0000-4000-8000-000000000001", owner_subject: { identity: "owner" }, policy_revision: "policy" }),
   getArchiveBridgeDefault: vi.fn().mockResolvedValue({ current_default: null, requests_profile: null }),
   listArchiveNotes: vi.fn().mockResolvedValue({ records: [] }),
-  getArchiveNote: vi.fn(), admitArchiveNote: vi.fn(), promoteArchiveNote: vi.fn(), revokeArchiveNote: vi.fn(),
+  getArchiveNote: vi.fn(), admitArchiveNote: vi.fn(), promoteArchiveNote: vi.fn(), revokeArchiveNote: vi.fn(), discoverArchiveGeneration: vi.fn(), registerArchiveGeneration: vi.fn(), deriveArchiveNote: vi.fn(), inspectArchiveDerivation: vi.fn(),
   getAtlasProject: vi.fn(),
   getAtlasReferences: vi.fn().mockResolvedValue([]),
   getBridgeSnapshot: vi.fn(),

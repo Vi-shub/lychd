@@ -276,6 +276,41 @@ pending answer settles, but cannot erase output already generated or streamed. A
 mutation may leave it committed: retry exact intake with its original identity; a stale lifecycle
 version refuses rather than repeating the transition.
 
+### Prepare a promoted note for semantic recall
+
+Open the exact record from **Manage public notes**. Preparation works on this promoted public
+revision and the configured generation; source text stays on the server. The exact embedding
+runtime must already be warm through its [Orchestrator owner](../../adr/23-orchestrator.md).
+Configuration alone proves neither registration, source preparation nor readiness.
+
+1. **Check preparation** reads metadata for the exact generation and source reference. It performs
+   no embedding. Distinguish not checked, missing generation/derivation, prepared, running,
+   expired, complete, failed and invalidated from a refused or unavailable read.
+2. **Register configured generation** is a separately named mutation of the shared generation.
+   Inspect the configured profile/reference before acting. It performs no embedding; an exact
+   explicit repeat can observe retained active/retired state, but cannot revive retirement.
+3. Review this source key/revision, namespace, complete source reference and generation, then
+   choose **Prepare this promoted revision**. The request may acquire a local embedding lease and
+   derive that exact note. It does not promote the note, activate a model, start a Run or submit a
+   recall. Oversize or changed sources refuse; no truncation or automatic correction occurs.
+
+A derivation UUID identifies a durable row. Its row/attempt versions and server times describe the
+latest state; they do not identify one browser HTTP invocation or report all compute spent. A lost
+preparation response remains unknown after a successful Check. Prepared, failed or DB-expired state
+can admit new work even for the identical body. A further explicit preparation decision may repeat
+compute; there is no automatic retry. Observed expiry neither stops earlier work nor proves that
+its transport has settled. Only the server can establish an eligible completed no-work replay.
+
+Keep the frozen generation and exact source reference while recovering an uncertain call. After a
+lifecycle change, the newer current reference may not locate historical status; reload cannot
+reconstruct an older lifecycle version. Leaving, clearing or aborting a read proves no rollback or
+cancellation. Current authority/profile changes clear protected display and fence late responses.
+Source preparation and intake/lifecycle writes are locally serialized.
+
+**Complete** means a retained derivation for that exact row. It promises neither corpus coverage,
+future eligibility nor a selected answer. Open **Recall public sources** separately to choose a
+query and threshold; completion never launches it automatically.
+
 ### Recall semantic sources
 
 Choose **Recall public sources** in Bridge, or open `/bridge?notes=recall`. This separate view

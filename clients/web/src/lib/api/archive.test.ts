@@ -59,3 +59,23 @@ it("discovers generation by GET and protects exact semantic recall, metadata ins
   for (const request of requests.slice(1)) { expect(request.headers.get("X-Archive-CSRF")).toBe("only-csrf"); expect(request.headers.has("Authorization")).toBe(false); }
   abort.abort(); expect(requests[0]!.signal.aborted).toBe(true); expect(requests[2]!.signal.aborted).toBe(true); expect(requests[3]!.signal.aborted).toBe(true);
 });
+
+it("protects explicit generation registration, exact derivation and metadata status independently without fabricated occurrence fields", async () => {
+  browserRequests(); const requests: Request[] = [];
+  vi.stubGlobal("fetch", vi.fn(async (request: Request) => {
+    if (request.url.endsWith("/altar/status")) return Response.json({ csrf: { cookie_name: "archive-csrf", header_name: "X-Archive-CSRF" } });
+    requests.push(request); return Response.json({});
+  }));
+  vi.resetModules(); const api = await import("./client"); document.cookie = "archive-csrf=only-csrf";
+  const id = "00000000-0000-4000-8000-000000000001", abort = new AbortController();
+  const generation = { generation_id: id, manifest_digest: "a".repeat(64) };
+  const body = { generation, source: { record_id: id, revision_digest: "b".repeat(64), lifecycle_version: 7 } };
+  await api.registerArchiveGeneration(generation); await api.deriveArchiveNote(body); await api.inspectArchiveDerivation(body, abort.signal);
+  expect(requests.map((r) => [new URL(r.url).pathname, r.method])).toEqual([
+    ["/api/v1/archive/derivations/generations/register", "POST"], ["/api/v1/archive/derivations/derive", "POST"], ["/api/v1/archive/derivations/status", "POST"]
+  ]);
+  expect(await requests[0]!.text()).toBe(JSON.stringify(generation));
+  expect(await requests[1]!.text()).toBe(JSON.stringify(body)); expect(await requests[2]!.text()).toBe(JSON.stringify(body));
+  for (const request of requests) { expect(request.headers.get("X-Archive-CSRF")).toBe("only-csrf"); expect(request.headers.has("Authorization")).toBe(false); }
+  abort.abort(); expect(requests[2]!.signal.aborted).toBe(true);
+});

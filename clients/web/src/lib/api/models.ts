@@ -50,3 +50,7 @@ export type SemanticRecallResult = components["schemas"]["SemanticRecallResult"]
 export type SemanticRecallReceipt = components["schemas"]["SemanticRecallReceipt"];
 export type SemanticRecallProjection = components["schemas"]["SemanticRecallProjection"];
 export type ArchiveResolveIntent = components["schemas"]["ArchiveResolveIntent"];
+
+export type ArchiveGenerationStatus = components["schemas"]["GenerationStatus"];
+export type ArchiveDerivationRequest = components["schemas"]["DerivationRequest"];
+export type ArchiveDerivationStatus = components["schemas"]["DerivationStatus"];

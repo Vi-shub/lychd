@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/svelte";
 import { beforeEach, expect, it, vi } from "vitest";
 vi.mock("$app/state", async () => { const { SvelteURL } = await import("svelte/reactivity"); return { page: { state: {}, url: new SvelteURL("http://localhost/bridge") } }; });
 vi.mock("$app/navigation", () => ({ goto: vi.fn(), afterNavigate: vi.fn(), beforeNavigate: vi.fn() }));
-vi.mock("$lib/api/client", () => ({ ApiError: class extends Error {}, getArchiveProfile: vi.fn().mockRejectedValue(new Error()), getArchiveBridgeDefault: vi.fn(), listArchiveNotes: vi.fn(), getArchiveNote: vi.fn(), admitArchiveNote: vi.fn(), promoteArchiveNote: vi.fn(), revokeArchiveNote: vi.fn(), discoverArchiveGeneration: vi.fn(), recallArchiveSemanticNotes: vi.fn(), inspectArchiveSemanticRecall: vi.fn(), resolveArchiveSemanticRecall: vi.fn() }));
+vi.mock("$lib/api/client", () => ({ ApiError: class extends Error {}, getArchiveProfile: vi.fn().mockRejectedValue(new Error()), getArchiveBridgeDefault: vi.fn(), listArchiveNotes: vi.fn(), getArchiveNote: vi.fn(), admitArchiveNote: vi.fn(), promoteArchiveNote: vi.fn(), revokeArchiveNote: vi.fn(), registerArchiveGeneration: vi.fn(), deriveArchiveNote: vi.fn(), inspectArchiveDerivation: vi.fn(), discoverArchiveGeneration: vi.fn(), recallArchiveSemanticNotes: vi.fn(), inspectArchiveSemanticRecall: vi.fn(), resolveArchiveSemanticRecall: vi.fn() }));
 import { page } from "$app/state";
 import { getArchiveProfile, admitArchiveNote, discoverArchiveGeneration, recallArchiveSemanticNotes, inspectArchiveSemanticRecall, resolveArchiveSemanticRecall } from "$lib/api/client";
 import Page from "./+page.svelte";

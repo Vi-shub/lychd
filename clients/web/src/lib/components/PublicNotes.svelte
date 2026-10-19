@@ -1,7 +1,9 @@
 <script lang="ts">
   import { afterNavigate, beforeNavigate } from "$app/navigation";
   import { getContext, onMount, onDestroy, tick } from "svelte";
-  import { getArchiveProfile, getArchiveBridgeDefault, listArchiveNotes, getArchiveNote, admitArchiveNote, promoteArchiveNote, revokeArchiveNote } from "$lib/api/client";
+  import { getArchiveProfile, getArchiveBridgeDefault, listArchiveNotes, getArchiveNote, admitArchiveNote, promoteArchiveNote, revokeArchiveNote, discoverArchiveGeneration, registerArchiveGeneration, deriveArchiveNote, inspectArchiveDerivation } from "$lib/api/client";
+  import PublicNotePreparation from "./PublicNotePreparation.svelte";
+  import { PublicNotePreparation as PreparationController, initialPreparationState } from "$lib/archive/preparation";
   import type { NoteRecord } from "$lib/api/models";
   import { PublicNoteManager, initialNotesState, emptyNoteDraft, correctionDraft, validateDraft, prepareNote, notesHref, notesSelection } from "$lib/archive/notes";
   import { altarNavigationContext, type AltarNavigation } from "$lib/navigation/instruments";
@@ -9,6 +11,8 @@
   let { selection, onSelect }: { selection: string; onSelect: (selection: string) => void } = $props();
   const navigation = getContext<AltarNavigation | undefined>(altarNavigationContext);
   let noteState = $state.raw(initialNotesState());
+  let preparation = $state.raw(initialPreparationState());
+  let preparationBusy = $state(false);
   let draft = $state(emptyNoteDraft());
   let filter = $state("");
   let errors = $state.raw<string[]>([]);
@@ -31,16 +35,21 @@
   let draftGeneration = 0;
   let focusGeneration = 0;
   let authorityEpoch = 0;
+  const preparationController = new PreparationController({ generation: discoverArchiveGeneration, register: registerArchiveGeneration,
+    derive: deriveArchiveNote, inspect: inspectArchiveDerivation }, (next) => { preparation = next; },
+    (busy) => { preparationBusy = busy; manager.setPreparationBusy(busy); }, () => manager.capturePreparationRefusal());
   const manager = new PublicNoteManager({ profile: getArchiveProfile, defaults: getArchiveBridgeDefault, list: listArchiveNotes,
     read: getArchiveNote, admit: admitArchiveNote, promote: promoteArchiveNote, revoke: revokeArchiveNote }, (next) => {
     noteState = next;
+    preparationController.setContext(next.profile, next.selected, next.record, next.writing);
     if (next.authorityEpoch !== authorityEpoch) {
       authorityEpoch = next.authorityEpoch; ++draftGeneration; draft = emptyNoteDraft(); filter = ""; errors = []; revokeReview = null; preparing = false;
     }
   });
   const hasDraft = $derived(!!(draft.sourceKey || draft.revision || draft.text || draft.producer || draft.observedAt));
-  const transient = $derived(hasDraft || !!noteState.frozen || noteState.intakeUnknown || !!noteState.transitionUnknown || noteState.writing);
-  const commandBlocked = $derived(noteState.writing || noteState.detailBusy || !!(noteState.transitionUnknown && noteState.transitionUnknown.recordId === noteState.selected && !noteState.transitionUnknown.checked));
+  const preparationTransient = $derived(!!preparation.frozen || !!preparation.historical || preparation.unknown || preparation.registrationUnknown || preparation.operation !== "idle");
+  const transient = $derived(preparationTransient || hasDraft || !!noteState.frozen || noteState.intakeUnknown || !!noteState.transitionUnknown || noteState.writing);
+  const commandBlocked = $derived(preparationBusy || noteState.writing || noteState.detailBusy || !!(noteState.transitionUnknown && noteState.transitionUnknown.recordId === noteState.selected && !noteState.transitionUnknown.checked));
   afterNavigate(() => {
     ++focusGeneration;
     revokeReview = null;
@@ -55,14 +64,14 @@
   async function focusSelection(expected: string, initialFallback = false) {
     await tick();
     if (!alive || selection !== expected) return;
-    if (initialFallback && document.activeElement instanceof HTMLElement && document.activeElement.closest("a,button,input,textarea,select,[contenteditable=true]")) return;
+    if (initialFallback && document.activeElement instanceof HTMLElement && document.activeElement.closest("a,button,input,textarea,select,[contenteditable=true],[tabindex]")) return;
     (expected === "new" ? formHeading : expected === "manage" ? metadataHeading : detailHeading)?.focus();
   }
   async function openDiscardReview() {
     discardReview = true; await tick();
     if (alive && discardReview) discardHeading?.focus();
   }
-  onDestroy(() => { alive = false; ++draftGeneration; manager.dispose(); });
+  onDestroy(() => { alive = false; ++draftGeneration; preparationController.dispose(); manager.dispose(); });
   function guardUnload(event: BeforeUnloadEvent) {
     if (transient) { event.preventDefault(); event.returnValue = ""; }
   }
@@ -70,11 +79,11 @@
     const target = event.to?.url, values = target?.searchParams.getAll("notes") ?? [];
     const stays = !event.willUnload && target?.pathname === "/bridge" && values.length === 1 &&
       notesSelection(values[0] ?? null) !== null && !target.searchParams.has("investigation");
-    if (!stays && !event.willUnload && transient && !window.confirm("Leave public notes? Draft and frozen replay body will be lost. Leaving does not cancel or resolve an unknown write. Keep the exact record and source identities.")) event.cancel();
+    if ((!stays || (preparationTransient && values[0] !== noteState.selected)) && !event.willUnload && transient && !window.confirm("Leave public notes? Draft and frozen intake/preparation references will be lost. Leaving does not cancel model work or resolve an unknown write. Keep the exact record, source and generation references.")) event.cancel();
   });
   async function prepare(event: SubmitEvent) {
     event.preventDefault();
-    if (preparing || noteState.intakeUnknown || noteState.writing || noteState.frozen || !noteState.profile) return;
+    if (preparing || preparationBusy || noteState.intakeUnknown || noteState.writing || noteState.frozen || !noteState.profile) return;
     errors = validateDraft($state.snapshot(draft));
     if (errors.length) { await tick(); errorHeading?.focus(); return; }
     const version = ++draftGeneration, namespace = noteState.profile.namespace_id, generation = focusGeneration, expected = selection;
@@ -95,7 +104,7 @@
     if (alive && generation === focusGeneration && expected === selection) detailHeading?.focus();
   }
   async function stageCorrection(record: NoteRecord) {
-    if (noteState.frozen || noteState.writing || hasDraft) { await openDiscardReview(); return; }
+    if (preparationBusy || noteState.frozen || noteState.writing || hasDraft) { await openDiscardReview(); return; }
     draft = correctionDraft(record); errors = []; onSelect("new");
     await tick(); formHeading?.focus();
   }
@@ -153,7 +162,7 @@
         <p>Source text is never read back. Supply complete replacement text. The digest binds the exact UTF-8 text submitted by this form; no application trimming or normalization is applied. Drafts and replay bodies stay in this document only.</p>
         {#if draft.replacesRevision}<p>Replacing revision <code>{draft.replacesRevision}</code>. Choose a different revision; revision labels do not imply ordering. The predecessor stays promoted until this candidate is explicitly promoted.</p>{/if}
         {#if errors.length}<div role="alert"><h3 {@attach errorFocus} tabindex="-1">Check public intake</h3><ul>{#each errors as error (error)}<li>{error}</li>{/each}</ul></div>{/if}
-        <fieldset disabled={preparing || noteState.intakeUnknown || noteState.writing || !!noteState.frozen}>
+        <fieldset disabled={preparing || preparationBusy || noteState.intakeUnknown || noteState.writing || !!noteState.frozen}>
           <legend>Public source revision</legend>
           <label>Source key <input bind:value={draft.sourceKey} readonly={draft.replacesRevision !== null} autocomplete="off" /></label>
           <label>Source revision <input bind:value={draft.revision} autocomplete="off" /></label>
@@ -162,15 +171,15 @@
           <label>Complete replacement text <textarea rows="9" bind:value={draft.text} spellcheck="false"></textarea><span>{[...draft.text].length} / 16,000 code points</span></label>
           <label class="declaration"><input type="checkbox" bind:checked={draft.publicMaterial} />I confirm this is public material.</label>
         </fieldset>
-        <button class="rune-btn" type="submit" disabled={preparing || noteState.intakeUnknown || noteState.writing || !!noteState.frozen}>{preparing ? "Computing exact UTF-8 digest…" : "Prepare public intake"}</button>
+        <button class="rune-btn" type="submit" disabled={preparing || preparationBusy || noteState.intakeUnknown || noteState.writing || !!noteState.frozen}>{preparing ? "Computing exact UTF-8 digest…" : "Prepare public intake"}</button>
       </form>
     {/if}
     {#if noteState.frozen}<section class="notice" aria-labelledby="frozen-title"><h2 id="frozen-title">Frozen public intake</h2>
       <dl><dt>Classification</dt><dd>public</dd><dt>Namespace</dt><dd>{noteState.frozen.namespace_id}</dd><dt>Request UUID</dt><dd>{noteState.frozen.request_id}</dd>
         <dt>Source key</dt><dd>{noteState.frozen.source_key}</dd><dt>Source revision</dt><dd>{noteState.frozen.source_revision}</dd><dt>Exact UTF-8 SHA-256</dt><dd>{noteState.frozen.source_digest}</dd></dl>
       <p>UUID, observation timestamp, digest and complete body are frozen before sending. Intake alone does not make this revision recall-eligible.</p>
-      {#if noteState.replayAvailable}<button class="rune-btn" disabled={noteState.writing} onclick={() => submit(true)}>Replay identical intake</button>
-      {:else if !noteState.intakeUnknown}<button class="rune-btn" disabled={noteState.writing} onclick={() => submit()}>Submit candidate once</button>{/if}
+      {#if noteState.replayAvailable}<button class="rune-btn" disabled={noteState.writing || preparationBusy} onclick={() => submit(true)}>Replay identical intake</button>
+      {:else if !noteState.intakeUnknown}<button class="rune-btn" disabled={noteState.writing || preparationBusy} onclick={() => submit()}>Submit candidate once</button>{/if}
       <button class="rune-btn" disabled={noteState.writing} onclick={openDiscardReview}>Discard draft and replay body</button>
     </section>{/if}
     {#if discardReview}<section class="notice" aria-label="Discard review"><h2 {@attach discardFocus} tabindex="-1">Discard transient material?</h2><p>Discarding loses identical replay ability and does not cancel or resolve an unknown write. Keep the displayed source identity and any exact record UUID.</p>
@@ -196,7 +205,7 @@
         <dt>Producer</dt><dd>{noteState.record.producer}</dd><dt>Observed</dt><dd>{noteState.record.observed_at}</dd><dt>Created</dt><dd>{noteState.record.created_at}</dd></dl>
         <p>{noteState.record.lifecycle === "candidate" ? "Candidate: excluded from ordinary recall." : noteState.record.lifecycle === "promoted" ? "Promoted: lifecycle-eligible; current authorization and a matching answer are not promised." : noteState.record.lifecycle === "revoked" ? "Revoked tombstone: this source revision cannot be re-ingested." : "Archived: excluded from ordinary recall."}</p>
         {#if noteState.record.lifecycle === "candidate"}<button class="rune-btn" disabled={commandBlocked} onclick={() => manager.transition("promote", noteState.record!)}>Promote this candidate</button>{/if}
-        <button class="rune-btn" disabled={noteState.writing} onclick={() => stageCorrection(noteState.record!)}>Stage correction</button>
+        <button class="rune-btn" disabled={noteState.writing || preparationBusy} onclick={() => stageCorrection(noteState.record!)}>Stage correction</button>
         {#if noteState.record.lifecycle !== "revoked"}<button class="rune-btn" disabled={commandBlocked} onclick={() => reviewRevoke(noteState.record!)}>Review revoke</button>{/if}
       {/if}
       {#if revokeReview}<section class="notice" aria-labelledby="revoke-title"><h3 id="revoke-title" {@attach reviewFocus} tabindex="-1">Revoke this exact revision?</h3>
@@ -204,6 +213,7 @@
         <p>Controlled source text is cleared and an anti-reingestion tombstone remains. Earlier answers and backups are outside this promise. Revocation cannot return this revision to recall.</p>
         <button class="rune-btn" onclick={() => { revokeReview = null; detailHeading?.focus(); }}>Keep revision</button><button class="rune-btn" disabled={commandBlocked} onclick={confirmRevoke}>Confirm exact revoke</button>
       </section>{/if}
+      <PublicNotePreparation state={preparation} controller={preparationController} blocked={noteState.writing} recordAvailable={!!noteState.record} />
       <a href={notesHref("manage")}>Return to metadata list</a>
     </article>{/if}
   {/if}

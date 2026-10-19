@@ -78,6 +78,8 @@ export class PublicNoteManager {
   private epoch = 0;
   private selection = 0;
   private focus: string | null = null;
+  private focusEpoch = 0;
+  private preparationBusy = false;
   private listing = 0;
   private readAbort: AbortController | null = null;
   private listAbort: AbortController | null = null;
@@ -99,6 +101,13 @@ export class PublicNoteManager {
       intakeUnknown: this.state.intakeUnknown, transitionUnknown: this.state.transitionUnknown,
       authorityEpoch: this.state.authorityEpoch + 1 });
     return true;
+  }
+  setPreparationBusy(busy: boolean) { this.preparationBusy = busy; }
+  capturePreparationRefusal(): (error: unknown) => void {
+    const epoch = this.epoch, focusEpoch = this.focusEpoch, profile = JSON.stringify(this.state.profile);
+    return (error) => {
+      if (this.current(epoch) && focusEpoch === this.focusEpoch && profile === JSON.stringify(this.state.profile)) this.refused(error);
+    };
   }
   async load() {
     if (!this.alive || this.state.writing) return;
@@ -152,7 +161,7 @@ export class PublicNoteManager {
   }
   select(focus: string | null) {
     if (!this.alive || this.focus === focus) return;
-    this.focus = focus;
+    this.focus = focus; ++this.focusEpoch;
     const id = focus === "new" || focus === "manage" ? null : focus;
     ++this.selection; this.readAbort?.abort();
     this.publish({ selected: id, record: null, detailBusy: false, detailError: "" });
@@ -182,14 +191,14 @@ export class PublicNoteManager {
     }
   }
   freeze(proposal: NoteProposal) {
-    if (this.original || this.state.intakeUnknown || this.state.writing || proposal.namespace_id !== this.state.profile?.namespace_id) return;
+    if (this.original || this.state.intakeUnknown || this.state.writing || this.preparationBusy || proposal.namespace_id !== this.state.profile?.namespace_id) return;
     this.original = JSON.stringify(proposal);
     this.publish({ frozen: JSON.parse(this.original) as NoteProposal, replayAvailable: false });
   }
   async submit() { if (this.original && !this.state.intakeUnknown) await this.postOriginal(); }
   async replay() { if (this.state.replayAvailable) await this.postOriginal(); }
   private async postOriginal() {
-    if (!this.original || !this.alive || this.state.writing || !this.state.profile || this.state.frozen?.namespace_id !== this.state.profile.namespace_id) return;
+    if (!this.original || !this.alive || this.state.writing || this.preparationBusy || !this.state.profile || this.state.frozen?.namespace_id !== this.state.profile.namespace_id) return;
     const body = JSON.parse(this.original) as NoteProposal, epoch = this.epoch, selection = ++this.selection;
     this.readAbort?.abort();
     this.publish({ writing: true, intakeUnknown: true, replayAvailable: false, message: "Submitting frozen public intake once; no automatic retry." });
@@ -213,7 +222,7 @@ export class PublicNoteManager {
   }
   async transition(target: "promote" | "revoke", expected: NoteRecord) {
     const record = this.state.record, profile = this.state.profile;
-    if (!record || !profile || !this.alive || this.state.writing || record.reference.record_id !== expected.reference.record_id ||
+    if (!record || !profile || !this.alive || this.state.writing || this.preparationBusy || record.reference.record_id !== expected.reference.record_id ||
       record.reference.lifecycle_version !== expected.reference.lifecycle_version || record.namespace_id !== expected.namespace_id ||
       (target === "promote" ? record.lifecycle !== "candidate" : record.lifecycle === "revoked") ||
       (this.state.transitionUnknown?.recordId === record.reference.record_id && !this.state.transitionUnknown.checked)) return;

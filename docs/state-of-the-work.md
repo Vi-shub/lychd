@@ -1973,6 +1973,16 @@ transport, component and route tests cover these paths and preserve the separate
 workspace. This does not qualify ordinary installed runtime preparation, real-browser interaction
 or retrieval quality; configuration metadata alone establishes none of those prerequisites.
 
+The exact-note detail also provides separate configured-generation registration, explicit
+preparation Check and reviewed preparation of one promoted revision. It uses the existing typed
+Archive ports; opening, navigation, promotion and completion never automatically register, derive,
+activate a model or submit recall. Latest derivation row/attempt state does not attribute one HTTP
+invocation or all compute spent; a lost preparation response remains unknown after Check, and a
+further explicit attempt may repeat work. Local write guards, current-authority/profile/selection
+and lifetime fences preserve management ownership and reject stale callbacks. These are portable
+browser-controller/control tests, separate from the fixed native lifecycle below; ordinary
+installed preparation and real-browser acceptance remain open.
+
 A separate [19 October native operator observation](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/archive/native-public-notes-2026-10-19.json)
 at source `c4d86be6` exercised ordinary Settings/Runes, database bootstrap, CLI, Granian TCP,
 PostgreSQL and the existing shared Qwen3.8-27B runtime. Four fresh Sessions answered one frozen
@@ -2063,6 +2073,8 @@ Generated answers can quote sources; later revocation does not erase earlier out
 - **Verification:** [Recovery and unknown outcomes](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/archive/notes.test.ts), [controls and late-focus races](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/PublicNotes.test.ts), [transport/CSRF](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/api/archive.test.ts), [closed route dispatch](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/routes/bridge/page.test.ts), and [ordinary Bridge workspace preservation](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/BridgeShellNavigation.test.ts)
 - **Source:** [Explicit semantic source focus](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/PublicNoteRecall.svelte) and [plain recall controller](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/archive/semantic.ts)
 - **Verification:** [Semantic request, recovery and source fences](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/archive/semantic.test.ts), [source focus and keyboard controls](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/PublicNoteRecall.test.ts), and the transport/route/workspace tests above.
+- **Source:** [Exact-note preparation controls](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/PublicNotePreparation.svelte) and [preparation controller](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/archive/preparation.ts)
+- **Verification:** [Latest-state and frozen-reference recovery](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/archive/preparation.test.ts), [preparation controls](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/PublicNotePreparation.test.ts), and the public-note management/transport tests above.
 - **Source:** [Exact-Run Archive inspector](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/ArchiveRecallPanel.svelte); [inspector tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/ArchiveRecallPanel.test.ts) cover protected display and lifetime.
 - **Verification:** [Exact-Run recall binding, preseed and current-authority HTTP tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_archive_run_recall.py); the PostgreSQL lifecycle and vertical tests above cover terminal and historical metadata reads.
 - **Topic:** [Public-note answers](./divination/altar/bridge.md#public-note-answers), [explicit semantic sources](./divination/altar/bridge.md#recall-semantic-sources), and [matching Archive selection](./divination/altar/orb.md#inspect-a-matching-archive-selection)
