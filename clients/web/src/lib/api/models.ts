@@ -34,3 +34,10 @@ export type SwapTicket = components["schemas"]["SwapTicket"];
 export type TransitionEventEnvelope = components["schemas"]["TransitionEventEnvelope"];
 export type TransitionPlan = components["schemas"]["TransitionPlan"];
 export type TransitionRecordView = components["schemas"]["TransitionRecordView"];
+
+export type ArchiveProfile = components["schemas"]["ArchiveProfile"];
+export type ArchiveBridgeDefault = components["schemas"]["ArchiveBridgeDefault"];
+export type NoteProposal = components["schemas"]["NoteProposal"];
+export type NoteRecord = components["schemas"]["NoteRecord"];
+export type NoteListPage = components["schemas"]["NoteListPage"];
+export type ArchiveLifecycleIntent = components["schemas"]["ArchiveLifecycleIntent"];

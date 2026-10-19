@@ -9,6 +9,7 @@ routes to the implementation and its operating guide rather than duplicating eit
 | --- | --- | --- |
 | Project concerns, judgments, references, and continuation | [AtlasView.svelte](lib/components/AtlasView.svelte), [Atlas link hints](lib/atlas/navigation.ts) | [Atlas](../../../docs/divination/altar/atlas.md) |
 | Conversation, consent, and offering recovery | [BridgeView.svelte](lib/components/BridgeView.svelte), [shell-lifetime workspace](lib/bridge/workspace.svelte.ts) | [Bridge](../../../docs/divination/altar/bridge.md) |
+| Public-note intake, lifecycle review and metadata recovery within Bridge | [PublicNotes.svelte](lib/components/PublicNotes.svelte), [recovery controller](lib/archive/notes.ts) | [Public notes](../../../docs/divination/altar/bridge.md#manage-public-notes) |
 | Parallel Run field and one Run's retained records and gaps | [OrbField.svelte](lib/components/OrbField.svelte), [OrbView.svelte](lib/components/OrbView.svelte) | [Orb](../../../docs/divination/altar/orb.md) |
 | Observed capability, preview, ticket, and physical request | [NexusView.svelte](lib/components/NexusView.svelte) | [Nexus](../../../docs/divination/altar/nexus.md) |
 | Exact registered score and computed graph | [LoomView.svelte](lib/components/LoomView.svelte), [shared canvas](lib/components/graph/GraphCanvas.svelte) | [Loom](../../../docs/divination/altar/loom.md) |

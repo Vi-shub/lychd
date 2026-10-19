@@ -18,6 +18,37 @@
         "title": "AltarStatus",
         "type": "object"
       },
+      "ArchiveBridgeDefault": {
+        "additionalProperties": false,
+        "properties": {
+          "current_default": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/BridgeComposer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "requests_profile": {
+            "oneOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "current_default",
+          "requests_profile"
+        ],
+        "title": "ArchiveBridgeDefault",
+        "type": "object"
+      },
       "ArchiveLifecycleIntent": {
         "additionalProperties": false,
         "properties": {
@@ -5197,6 +5228,26 @@
           }
         },
         "summary": "Status"
+      }
+    },
+    "/api/v1/archive/bridge-default": {
+      "get": {
+        "deprecated": false,
+        "operationId": "getArchiveBridgeDefault",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArchiveBridgeDefault"
+                }
+              }
+            },
+            "description": "Request fulfilled, document follows",
+            "headers": {}
+          }
+        },
+        "summary": "BridgeDefault"
       }
     },
     "/api/v1/archive/derivations/derive": {

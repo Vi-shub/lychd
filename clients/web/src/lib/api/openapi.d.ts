@@ -21,6 +21,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/archive/bridge-default": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** BridgeDefault */
+        get: operations["getArchiveBridgeDefault"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/archive/derivations/derive": {
         parameters: {
             query?: never;
@@ -967,6 +984,11 @@ export interface components {
         AltarStatus: {
             csrf: components["schemas"]["CsrfClientContract"];
             pending_consents: number;
+        };
+        /** ArchiveBridgeDefault */
+        ArchiveBridgeDefault: {
+            current_default: components["schemas"]["BridgeComposer"] | null;
+            requests_profile: boolean | null;
         };
         /** ArchiveLifecycleIntent */
         ArchiveLifecycleIntent: {
@@ -2265,6 +2287,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AltarStatus"];
+                };
+            };
+        };
+    };
+    getArchiveBridgeDefault: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Request fulfilled, document follows */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArchiveBridgeDefault"];
                 };
             };
         };

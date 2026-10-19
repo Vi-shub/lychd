@@ -136,6 +136,42 @@ supplied annotation coverage as escaped text, validating unknown dictionary fiel
 Native acceptance, external assessment and owner disposition confer no browser execution or
 promotion authority. An explicit reload uses current read authority; disclosure appends no feedback.
 
+### Public notes within Bridge
+
+The `/bridge` route may focus explicit public-note management through one `notes` query:
+`manage` opens metadata, `new` opens intake, and a record UUID selects exact metadata. Invalid,
+duplicate or simultaneous investigation/note focus is unavailable without effect. The focus keeps
+ordinary Session drafts, unresolved offerings and Consent separate; the conversation rail is not
+an Archive source list. Only mode/record identity enters navigation, never note text or a request
+body. This adds no instrument or automatic conversation-to-memory admission.
+
+The server's authorized configured-profile read and bounded all-lifecycle metadata pages support
+reload without browser record custody. Exact-record reads remain independent of the loaded page.
+Public-note text is not returned for preview or prefilled editing. Correction supplies complete
+new text under a different immutable source revision and requires a separate promotion. Revocation
+keeps the minimum source identity and does not erase earlier answers or backups.
+
+An independent authorized current-default projection identifies the admission engine's actual
+Pattern and complete managed-profile match. Show requested, not requested, unavailable and failed
+states distinctly. Configuration is neither readiness nor the next routed Run; a historical Run
+retains its own admitted profile. Browser revision checks or fetching conversation history cannot
+supply this projection.
+
+Every intake freezes its UUID, exact UTF-8 digest, observation time and public declaration before
+submission. Only an explicit identical intake replay may reuse that retained body; navigation,
+refresh or failure starts no retry or replacement UUID. A metadata match recovers a source record,
+not proof of which intake occurrence committed. Lifecycle actions pin the record and expected
+version, with no optimistic state or replay. After an uncertain response, Check reads current
+metadata; an unchanged version or missing record cannot establish that an in-flight action failed.
+A newer version establishes current state, not causal authorship. A fresh explicit decision may
+use the recovered version without reclassifying the earlier occurrence as successful or rolled back.
+
+Drafts and frozen bodies remain transient to the browser document, with departure/reload warnings.
+GETs are abortable and late responses remain fenced by selection, profile and lifetime. Current
+authority refusal clears protected material. The focus uses generated transport, existing local
+Origin/CSRF/access gates, escaped text, semantic forms, keyboard controls and visible uncertainty.
+It creates no browser ledger, consent authority, recall operation or model request.
+
 ### Scavenger finite observation application
 
 `/scavenger` is an application working view within the Altar, separate from the five

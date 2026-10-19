@@ -8,13 +8,17 @@ vi.mock("$app/state", async () => {
   const { SvelteURL } = await import("svelte/reactivity");
   return { page: { state: {}, url: new SvelteURL("http://localhost/bridge") } };
 });
-vi.mock("$app/navigation", () => ({ goto: vi.fn(), replaceState: vi.fn() }));
+vi.mock("$app/navigation", () => ({ goto: vi.fn(), replaceState: vi.fn(), beforeNavigate: vi.fn(), afterNavigate: vi.fn() }));
 vi.mock("$lib/api/client", () => ({
   ApiError: class ApiError extends Error {},
   cancelBridgeRun: vi.fn(),
   createBridgeSession: vi.fn(),
   decideConsent: vi.fn(),
   getAltarStatus: vi.fn(),
+  getArchiveProfile: vi.fn().mockResolvedValue({ profile: "local-public-notes@1", namespace_id: "00000000-0000-4000-8000-000000000001", owner_subject: { identity: "owner" }, policy_revision: "policy" }),
+  getArchiveBridgeDefault: vi.fn().mockResolvedValue({ current_default: null, requests_profile: null }),
+  listArchiveNotes: vi.fn().mockResolvedValue({ records: [] }),
+  getArchiveNote: vi.fn(), admitArchiveNote: vi.fn(), promoteArchiveNote: vi.fn(), revokeArchiveNote: vi.fn(),
   getAtlasProject: vi.fn(),
   getAtlasReferences: vi.fn().mockResolvedValue([]),
   getBridgeSnapshot: vi.fn(),
@@ -30,6 +34,7 @@ import { createBridgeSession, getAltarStatus, getBridgeSnapshot, getOrbRun, send
 import { bridgeWorkspaceKey, createBridgeWorkspace } from "$lib/bridge/workspace.svelte";
 import AltarShell from "./AltarShell.svelte";
 import BridgeView from "./BridgeView.svelte";
+import PublicNotes from "./PublicNotes.svelte";
 import OrbView from "./OrbView.svelte";
 
 const children = createRawSnippet(() => ({ render: () => "<div></div>" }));
@@ -198,4 +203,21 @@ describe("Bridge selection across instrument navigation", () => {
     expect(shellHref("Orb")).toBe("/orb");
     shell.unmount();
   });
+});
+
+it("preserves Bridge draft, unresolved offering and consent while visiting public-note focus", async () => {
+  await visit("/bridge/session-b");
+  const shell = render(AltarShell, { children }); const work = createBridgeWorkspace();
+  work.setDraft("session-b", "Unfinished public-note detour draft");
+  work.pending.set("session-b", { text: "Unresolved offering", requestId: "request-b", uncertain: true, sending: false, error: "Unknown" });
+  work.consentDecisions.set("consent-b", { sessionId: "session-b", verdict: "approve", sending: false, error: "Unknown" });
+  await visit("/bridge?notes=manage");
+  const notes = render(PublicNotes, { target: screen.getByRole("main"), props: { selection: "manage", onSelect: vi.fn() }, context: new Map([[bridgeWorkspaceKey, work]]) });
+  await screen.findByRole("heading", { name: "Configured profile" });
+  expect(shellHref("Bridge")).toBe("/bridge/session-b");
+  notes.unmount();
+  await visit("/bridge?notes=new"); await visit("/bridge?notes=00000000-0000-4000-8000-000000000001");
+  expect(work.drafts.get("session-b")).toBe("Unfinished public-note detour draft"); expect(work.pending.get("session-b")?.requestId).toBe("request-b");
+  expect(work.consentDecisions.get("consent-b")?.verdict).toBe("approve"); expect(work.needsUnloadWarning).toBe(true);
+  expect(sendBridgeMessage).not.toHaveBeenCalled(); expect(createBridgeSession).not.toHaveBeenCalled(); shell.unmount();
 });

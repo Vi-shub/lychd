@@ -100,6 +100,13 @@ class BridgeComposer(ClientContract):
     guidance: str | None
 
 
+class ArchiveBridgeDefault(ClientContract):
+    """Current default's exact managed-profile match, without readiness or Run inference."""
+
+    current_default: BridgeComposer | None
+    requests_profile: bool | None
+
+
 class BridgeSnapshot(ClientContract):
     """Refresh-reconstructable Bridge projection."""
 

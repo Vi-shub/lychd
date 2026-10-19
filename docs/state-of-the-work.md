@@ -1930,6 +1930,18 @@ namespace lists empty; changed retained bindings and storage failures refuse dis
 management authority is checked before storage, after namespace preparation and after session
 cleanup. Inspection grants no recall eligibility or automatic lifecycle retry.
 
+Bridge now supplies a **Public notes** focus at `/bridge?notes=manage|new|UUID`, using the generated
+management transport. It shows configured profile and a separately authorized actual-default/full-
+profile match, finite all-lifecycle pages and exact-record recovery. Explicit intake freezes the
+UUID/body/submitted UTF-8 digest; promotion is separate. Correction fixes the source key and asks
+for complete new text under a different revision; revocation requires exact consequence review.
+Unknown intake and lifecycle outcomes remain distinct from observed current metadata. No refresh,
+navigation or late response retries a write or takes over a newer focus. Current refusal/profile
+change and teardown fence protected data and callbacks. Component/transport/controller tests cover
+these paths, full-mode navigation races, escaped source identities and preservation of ordinary
+Bridge drafts, unresolved offerings and Consent. These portable tests do not qualify a real-browser
+or installed workflow.
+
 A separate [19 October native operator observation](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/archive/native-public-notes-2026-10-19.json)
 at source `c4d86be6` exercised ordinary Settings/Runes, database bootstrap, CLI, Granian TCP,
 PostgreSQL and the existing shared Qwen3.8-27B runtime. Four fresh Sessions answered one frozen
@@ -1957,8 +1969,9 @@ shares the application's lease ledger without emitting Run events for caller-sup
 
 **Boundary — Not yet:** This is lexical RAG for explicit same-host public notes, without semantic
 retrieval, general `CandidateArchivePort`, automatic conversation retention, extraction, Curator,
-GraphRAG, shared namespaces, remote IAM, private-material egress or training. There is no Archive
-browser editor. Ordinary revision 3 execution uses live Graph persistence; separately proved typed
+GraphRAG, shared namespaces, remote IAM, private-material egress or training. Public-note controls
+have no source-body preview or prefilled editing; real-browser keyboard/reflow/reload acceptance and
+installed cutover remain unqualified. Ordinary revision 3 execution uses live Graph persistence; separately proved typed
 checkpoint reconstruction does not establish automatic recovery after worker death. The portable
 vertical receipt substitutes model/resource seams; the separate native observation qualifies only
 its named model, configuration and trusted operator profile. Its native address-space/CPU limits
@@ -1976,6 +1989,8 @@ Generated answers can quote sources; later revocation does not erase earlier out
 - **Verification:** [Domain tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/test_archive.py), [PostgreSQL lifecycle](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_pg.py), [migrations](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_migrations_pg.py), [runtime role](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_runtime_pg.py), [worker and typed continuation](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_vertical_pg.py), and [projection tests](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_archive_context.py)
 - **Verification:** [Derivation races](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_derivation_pg.py), [configured HTTP and lease integration](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_derivation_http_pg.py), [migration rollback](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_derivation_migrations_pg.py), and [derivation runtime role](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_derivation_runtime_pg.py)
 - **Verification:** [Metadata authority, cursor and column-selection tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/db/test_archive_failures.py) and [guarded metadata HTTP tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_archive_metadata.py); the PostgreSQL lifecycle and vertical tests above include retained metadata recovery and no-write reads.
+- **Source:** [Public-note focus](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/PublicNotes.svelte) and [framework-neutral recovery controller](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/archive/notes.ts)
+- **Verification:** [Recovery and unknown outcomes](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/archive/notes.test.ts), [controls and late-focus races](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/PublicNotes.test.ts), [transport/CSRF](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/api/archive.test.ts), [closed route dispatch](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/routes/bridge/page.test.ts), and [ordinary Bridge workspace preservation](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/BridgeShellNavigation.test.ts)
 - **Topic:** [Public-note answers](./divination/altar/bridge.md#public-note-answers)
 - **Law:** [Memory](./adr/27-memory.md)
 

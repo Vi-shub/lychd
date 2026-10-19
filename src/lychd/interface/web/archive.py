@@ -11,6 +11,7 @@ from litestar.exceptions import ValidationException
 from litestar.params import FromPath, FromQuery
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from lychd.agents.workflows import WorkflowRegistry
 from lychd.domain.archive import (
     ArchiveProfile,
     NoteListPage,
@@ -22,6 +23,7 @@ from lychd.domain.archive import (
     RecallRequest,
 )
 from lychd.domain.codex.guards import requires_scopes
+from lychd.domain.web.contracts import ArchiveBridgeDefault, BridgeComposer
 from lychd.interface.web.archive_response import archive_result, require_archive_access
 
 
@@ -50,6 +52,34 @@ class ArchiveController(Controller):
         """Discover authorized configuration; this is no storage or readiness probe."""
         service, subject = require_archive_access(request, state)
         return await archive_result(service.discover_profile(subject, purpose="archive:manage"))
+
+    @get("/bridge-default", name="archive:bridge-default", operation_id="getArchiveBridgeDefault")
+    async def bridge_default(self, request: Request[Any, Any, Any], state: State) -> ArchiveBridgeDefault:
+        """Compare current admission configuration without inspecting another profile or Run."""
+        service, subject = require_archive_access(request, state)
+        profile = await archive_result(service.discover_profile(subject, purpose="archive:manage"))
+        engine = getattr(state.services, "run_engine", None)
+        registry = getattr(engine, "workflows", None)
+        current = None
+        if isinstance(registry, WorkflowRegistry):
+            try:
+                workflow = registry.default
+            except RuntimeError:
+                # An unavailable admission binding remains unknown, not a catalogue fallback.
+                pass
+            else:
+                current = BridgeComposer(
+                    pattern_id=workflow.manifest.key, pattern_revision=workflow.manifest.revision, guidance=None
+                )
+        binding = getattr(engine, "bridge_archive", None)
+        matches = None
+        if current is not None:
+            matches = (
+                (current.pattern_id, current.pattern_revision) == ("bridge_chat", "3")
+                and isinstance(binding, ArchiveProfile)
+                and binding == profile
+            )
+        return ArchiveBridgeDefault(current_default=current, requests_profile=matches)
 
     @get("/notes", name="archive:list", operation_id="listArchiveNotes")
     async def list_notes(

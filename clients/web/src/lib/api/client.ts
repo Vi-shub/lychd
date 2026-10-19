@@ -116,6 +116,34 @@ export async function deleteMarketObservation(admissionId: string, body: compone
   }));
 }
 
+export async function getArchiveProfile(signal?: AbortSignal): Promise<components["schemas"]["ArchiveProfile"]> {
+  return unwrap(await client.GET("/api/v1/archive/profile", { signal }));
+}
+export async function getArchiveBridgeDefault(signal?: AbortSignal): Promise<components["schemas"]["ArchiveBridgeDefault"]> {
+  return unwrap(await client.GET("/api/v1/archive/bridge-default", { signal }));
+}
+export async function listArchiveNotes(options: { sourceKey?: string; cursor?: string; signal?: AbortSignal } = {}): Promise<components["schemas"]["NoteListPage"]> {
+  return unwrap(await client.GET("/api/v1/archive/notes", {
+    signal: options.signal, params: { query: { limit: 50, source_key: options.sourceKey, cursor: options.cursor } }
+  }));
+}
+export async function getArchiveNote(recordId: string, signal?: AbortSignal): Promise<components["schemas"]["NoteRecord"]> {
+  return unwrap(await client.GET("/api/v1/archive/notes/{record_id}", { signal, params: { path: { record_id: recordId } } }));
+}
+export async function admitArchiveNote(body: components["schemas"]["NoteProposal"]): Promise<components["schemas"]["NoteRecord"]> {
+  return unwrap(await client.POST("/api/v1/archive/notes", { body, headers: await csrfHeaders() }));
+}
+export async function promoteArchiveNote(recordId: string, body: components["schemas"]["ArchiveLifecycleIntent"]): Promise<components["schemas"]["NoteRecord"]> {
+  return unwrap(await client.POST("/api/v1/archive/notes/{record_id}/promote", {
+    params: { path: { record_id: recordId } }, body, headers: await csrfHeaders()
+  }));
+}
+export async function revokeArchiveNote(recordId: string, body: components["schemas"]["ArchiveLifecycleIntent"]): Promise<components["schemas"]["NoteRecord"]> {
+  return unwrap(await client.POST("/api/v1/archive/notes/{record_id}/revoke", {
+    params: { path: { record_id: recordId } }, body, headers: await csrfHeaders()
+  }));
+}
+
 export async function getAltarStatus(): Promise<AltarStatus> {
   const status = unwrap(await client.GET("/api/v1/altar/status")) as AltarStatus;
   csrfContract = status.csrf;

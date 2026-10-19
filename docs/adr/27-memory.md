@@ -63,6 +63,12 @@ Authorized configuration discovery and metadata inspection have explicit actions
 purpose; recall is not a shortcut to review authority. Configuration discovery returns only the
 current configured public-note profile, without storage access, namespace creation, model probes
 or Run admission. It does not establish compatibility with an existing retained namespace.
+A separate authorized interface projection may identify the admission engine's current default
+Pattern and compare its complete configured Archive binding with this managed profile. Only
+`bridge_chat@3` with an equal binding requests this profile; another default or a missing/different
+binding does not. An unavailable admission default stays unknown. This projection reveals no other
+profile's namespace or owner and performs no storage, model or Run work. It establishes neither
+readiness, the next routed Run, nor the binding of an already admitted Run.
 Metadata reads expose bounded source/revision, digest, lifecycle/version and retention metadata
 across candidates, promoted revisions, archives and revoked tombstones. They select no note text,
 search vectors, recall projections or embeddings. Lists use a finite page bound and stable keyset;

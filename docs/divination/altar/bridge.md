@@ -176,12 +176,49 @@ normal [configuration lifecycle](../../sepulcher/extensions/weaver/index.md#choo
 when changing the selected revision. An already admitted Run keeps its original profile and
 capability; changed current authority can refuse its continuation.
 
-There is no note editor in Altar yet. The authenticated API can recover retained metadata after
-navigation or a lost mutation response. These reads reveal no note text, search vectors or embeddings:
+### Manage public notes
+
+Choose **Manage public notes** in Bridge. The **Configured profile** identifies the collection;
+**Current Bridge default** separately says whether the actual default requests this exact profile.
+Unavailable and failed reads stay distinct. This configuration establishes neither storage/model
+readiness, the next routed Run nor an earlier Run's binding.
+
+1. Choose **New public note**, supply source key, source revision, producer, observation time with
+   timezone and complete text, then explicitly declare the material public. **Prepare public
+   intake** freezes the UUID, observation time, exact submitted UTF-8 digest and body for review.
+   **Submit candidate once** retains a candidate; **Promote this candidate** is a separate decision.
+2. **Manage notes** shows bounded metadata across all lifecycles. An exact source-key filter and
+   **Load more metadata** select further pages; the loaded count is not a total. A record link
+   recovers its current metadata independently of the loaded page. **Check exact record** refreshes
+   that version without replaying an effect.
+3. **Stage correction** keeps the source key fixed and starts with empty replacement text and a
+   new revision label. Supply the complete replacement and a different revision, then prepare and
+   submit it. The prior promoted revision remains eligible until separate promotion supersedes it.
+   Existing text is not read back or prefilled; revision labels imply no ordering.
+4. **Review revoke** displays the exact namespace, source/revision, record, digest and expected
+   version. **Confirm exact revoke** removes controlled text and retains the anti-reingestion
+   tombstone. Earlier answers and backups are outside that promise.
+
+A lost response stays unknown. An explicit **Replay identical intake** can reuse only the frozen
+original body; metadata lookup cannot identify which intake occurrence committed. Lifecycle
+commands have no replay action. Check the exact record and make a fresh explicit decision; an
+unchanged version, missing read or later refusal cannot prove rollback. A newer version proves
+current state rather than authorship of the attempted occurrence. No refresh or navigation sends
+a write automatically, and a late response cannot take over a newer selected focus.
+
+Drafts and frozen bodies remain in this browser document only. Departure/reload warns before
+losing them; reload recovers authorized metadata, not the original body or identical replay ability.
+Keep unknown request/source/record identities when needed. Current refusal clears protected
+material. Ordinary conversation drafts, unresolved offerings and Consent remain separate;
+**Return to conversation** follows the shell's ordinary Bridge selection.
+
+The authenticated API supports the same recovery. These reads reveal no note text, search vectors
+or embeddings:
 
 | GET path | Result |
 | --- | --- |
 | `/api/v1/archive/profile` | The currently configured public-note profile, namespace, owner and policy. This performs no storage or model work and does not prove that retained material accepts that binding. |
+| `/api/v1/archive/bridge-default` | The actual admission default and its complete managed-profile match, or unavailable. This reveals no other collection and performs no storage, history, readiness or Run work. |
 | `/api/v1/archive/notes` | Metadata for every lifecycle, including candidates, archived revisions and revoked tombstones. `limit` is 1–50; optional `source_key` matches exactly. Follow the opaque `next_cursor` with the same source filter; absence returns an empty page, while changed binding or storage failure refuses. |
 | `/api/v1/archive/notes/{record_id}` | One retained record's current metadata and lifecycle version. A missing record refuses rather than replaying an effect or restoring revoked content. |
 

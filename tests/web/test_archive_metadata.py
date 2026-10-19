@@ -16,6 +16,14 @@ from litestar.datastructures import State
 from litestar.middleware import DefineMiddleware
 from litestar.middleware.authentication import AbstractAuthenticationMiddleware, AuthenticationResult
 
+from lychd.agents.workflows import (
+    BRIDGE_CHAT,
+    BRIDGE_CHAT_ARCHIVE,
+    BRIDGE_CHAT_BOUND,
+    BRIDGE_CHAT_SCOUT,
+    BuiltinWorkflowRegistry,
+    Workflow,
+)
 from lychd.domain.archive import (
     ArchiveProfile,
     ArchiveRefused,
@@ -38,7 +46,9 @@ PROFILE = ArchiveProfile(
 )
 
 
-def client(store: AsyncMock, *, configured: bool = True, caller: Sigil | None = None) -> httpx.AsyncClient:
+def client(
+    store: AsyncMock, *, configured: bool = True, caller: Sigil | None = None, engine: object | None = None
+) -> httpx.AsyncClient:
     policy = LocalArchivePolicy(profile=PROFILE, caller=default_local_sigil())
     archive = ArchiveService(profile=PROFILE, store=store, authorizer=policy)
 
@@ -49,6 +59,9 @@ def client(store: AsyncMock, *, configured: bool = True, caller: Sigil | None = 
 
     services = SimpleNamespace(
         archive=archive if configured else None,
+        run_engine=engine,
+        # Deliberately disagreeing catalogue; it is not the admission default.
+        workflows=BuiltinWorkflowRegistry(workflows=(BRIDGE_CHAT_ARCHIVE,)),
         substrate=SimpleNamespace(archive_subject_resolver=policy.subject_for if configured else None),
     )
     app = Litestar(
@@ -110,7 +123,7 @@ async def test_invalid_metadata_query_never_reaches_storage(params: dict[str, An
     assert store.mock_calls == []
 
 
-@pytest.mark.parametrize("path", ["/profile", "/notes", f"/notes/{uuid4()}"])
+@pytest.mark.parametrize("path", ["/profile", "/bridge-default", "/notes", f"/notes/{uuid4()}"])
 async def test_metadata_unconfigured_and_wrong_caller_refuse(path: str) -> None:
     store = AsyncMock()
     async with client(store, configured=False) as http:
@@ -164,4 +177,85 @@ async def test_recall_purpose_never_supplies_metadata_storage_authority(operatio
     }
     with pytest.raises(ArchiveRefused, match="authority"):
         await getattr(archive, operation)(PROFILE.owner_subject, *args[operation], purpose="archive:answer")
+    assert store.mock_calls == []
+
+
+def admission_engine(*, revision: str = "3", binding: object = PROFILE) -> SimpleNamespace:
+    return SimpleNamespace(
+        workflows=BuiltinWorkflowRegistry(
+            workflows=(BRIDGE_CHAT, BRIDGE_CHAT_BOUND, BRIDGE_CHAT_ARCHIVE, BRIDGE_CHAT_SCOUT),
+            active_revisions=(("bridge_chat", revision),),
+            default_name="bridge_chat",
+        ),
+        bridge_archive=binding,
+        submit=AsyncMock(side_effect=AssertionError("Configuration reads cannot admit a Run.")),
+    )
+
+
+@pytest.mark.parametrize("revision", ["1", "2", "3", "4"])
+async def test_archive_bridge_default_uses_actual_admission_not_catalogue(revision: str) -> None:
+    store = AsyncMock()
+    engine = admission_engine(revision=revision)
+    async with client(store, engine=engine) as http:
+        response = await http.get("/api/v1/archive/bridge-default")
+    assert response.status_code == 200
+    assert response.json() == {
+        "current_default": {"pattern_id": "bridge_chat", "pattern_revision": revision, "guidance": None},
+        "requests_profile": revision == "3",
+    }
+    assert store.mock_calls == []
+    engine.submit.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "binding",
+    [
+        None,
+        object(),
+        PROFILE.model_copy(update={"namespace_id": uuid4()}),
+        PROFILE.model_copy(update={"owner_subject": ArchiveSubject(identity="PRIVATE_OTHER_OWNER")}),
+        PROFILE.model_copy(update={"policy_revision": "PRIVATE_OTHER_POLICY"}),
+    ],
+)
+async def test_archive_bridge_default_requires_whole_profile_without_disclosing_another(binding: object) -> None:
+    store = AsyncMock()
+    engine = admission_engine(binding=binding)
+    async with client(store, engine=engine) as http:
+        response = await http.get("/api/v1/archive/bridge-default")
+    assert response.status_code == 200
+    assert response.json()["current_default"]["pattern_revision"] == "3"
+    assert response.json()["requests_profile"] is False
+    assert "PRIVATE_OTHER" not in response.text
+    assert "namespace_id" not in response.text
+    assert "owner_subject" not in response.text
+    assert store.mock_calls == []
+    engine.submit.assert_not_called()
+
+
+class UnavailableDefault(BuiltinWorkflowRegistry):
+    @property
+    def default(self) -> Workflow:
+        message = "Admission default unavailable."
+        raise RuntimeError(message)
+
+
+@pytest.mark.parametrize("registry", [None, UnavailableDefault(workflows=(BRIDGE_CHAT,))])
+async def test_archive_bridge_default_unknown_does_not_fall_back(registry: object) -> None:
+    store = AsyncMock()
+    engine = admission_engine()
+    engine.workflows = registry
+    async with client(store, engine=engine) as http:
+        response = await http.get("/api/v1/archive/bridge-default")
+    assert response.status_code == 200
+    assert response.json() == {"current_default": None, "requests_profile": None}
+    assert store.mock_calls == []
+    engine.submit.assert_not_called()
+
+
+async def test_archive_bridge_default_without_engine_is_unknown() -> None:
+    store = AsyncMock()
+    async with client(store) as http:
+        response = await http.get("/api/v1/archive/bridge-default")
+    assert response.status_code == 200
+    assert response.json() == {"current_default": None, "requests_profile": None}
     assert store.mock_calls == []
