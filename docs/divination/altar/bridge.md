@@ -276,6 +276,41 @@ pending answer settles, but cannot erase output already generated or streamed. A
 mutation may leave it committed: retry exact intake with its original identity; a stale lifecycle
 version refuses rather than repeating the transition.
 
+### Recall semantic sources
+
+Choose **Recall public sources** in Bridge, or open `/bridge?notes=recall`. This separate view
+returns attributed public-note sources; it does not generate an answer or admit a Run. Ordinary
+Bridge public-note answers remain lexical. Opening the view reads only the authorized configured
+profile and generation. These metadata do not prove that semantic recall is enabled, that the
+generation is registered, that notes have eligible derivations, or that the exact model is warm.
+
+Prepare those prerequisites separately through the existing [Archive derivation and semantic
+contract](../../adr/27-memory.md). Intake and promotion alone do not derive a note. This view
+never registers a generation, derives notes or activates a model. Installed runtime preparation
+and general retrieval quality retain their [delivery boundary](../../state-of-the-work.md#karma-semantic-memory).
+
+1. Enter a public query and an explicit minimum cosine similarity between −1 and 1. Similarity
+   locates context; it is not answer confidence or a truth score. Review the result and source
+   character bounds. **Query and load exact sources once** freezes the exact query, namespace,
+   generation, bounds and a fresh request UUID, then requests a selection and resolves its exact
+   receipt digest under current authority.
+2. Read coverage and whole-source budget omissions alongside the ordered sources. Each source
+   identifies its key, immutable revision, record/lifecycle version and similarity. Selection time
+   describes the retained snapshot; source resolution time describes this browser's later read.
+   Partial derivation coverage and an empty selection are distinct from an unavailable model or
+   refused request. Source text is data and grants no instruction or effect authority.
+3. If the query response is lost, **Check exact request metadata only** inspects the same frozen
+   request without embedding or loading text. No receipt yet does not prove that an in-flight
+   query failed. A recovered receipt requires **Load exact current sources**; correction,
+   revocation or changed authority may refuse the old selection. No automatic query retry occurs.
+
+Query drafts, frozen bodies and resolved text stay in this browser document. Departure warns before
+losing them; they do not enter the URL or browser storage. Clearing or leaving does not cancel
+model work, undo a selection or prove rollback. A later explicit submission uses a new UUID and
+may incur new work. Current refusal and profile changes clear protected display; late responses
+cannot replace a newer focus. Return to conversation preserves its separate drafts, unresolved
+offerings and Consent.
+
 ## Public-page answers
 
 When Scout is the configured Bridge default, the composer shows its command instructions and a

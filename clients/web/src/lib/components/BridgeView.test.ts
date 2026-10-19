@@ -1664,3 +1664,21 @@ describe("Bridge historical consent navigation", () => {
     view.unmount();
   });
 });
+
+it("links the separate source recall focus without moving a session draft, unresolved offering or Consent", async () => {
+  getSnapshotMock.mockImplementation(async () => ({ ...snapshot("session-a"), pending_consents: [pendingConsent], pending_count: 1 }));
+  sendMock.mockRejectedValueOnce(new TypeError("Response lost"));
+  const work = createBridgeWorkspace();
+  const first = render(BridgeView, { props: { sessionId: "session-a" }, context: new Map([[bridgeWorkspaceKey, work]]) });
+  await screen.findByLabelText("Message"); await offer("unresolved conversation offering");
+  await fireEvent.input(screen.getByLabelText("Message"), { target: { value: "later conversation draft" } });
+  const link = screen.getByRole("link", { name: "Recall public sources" });
+  expect(link.getAttribute("href")).toBe("/bridge?notes=recall");
+  expect(work.drafts.get("session-a")).toBe("later conversation draft"); expect(sendMock).toHaveBeenCalledTimes(1); expect(decideConsentMock).not.toHaveBeenCalled();
+  first.unmount();
+  const returned = render(BridgeView, { props: { sessionId: "session-a" }, context: new Map([[bridgeWorkspaceKey, work]]) });
+  await screen.findByRole("button", { name: "Retry original offering" });
+  expect((screen.getByLabelText("Message") as HTMLTextAreaElement).value).toBe("later conversation draft");
+  expect(screen.getByRole("region", { name: "Unresolved offering" }).textContent).toContain("unresolved conversation offering");
+  expect(sendMock).toHaveBeenCalledTimes(1); expect(decideConsentMock).not.toHaveBeenCalled(); returned.unmount();
+});

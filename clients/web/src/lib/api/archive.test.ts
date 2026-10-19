@@ -35,3 +35,27 @@ it("reads exact Run recall metadata by GET with cancellation and no CSRF discove
   expect([...requests[0]!.headers.keys()]).not.toContain("x-archive-csrf");
   controller.abort(); expect(requests[0]!.signal.aborted).toBe(true);
 });
+
+it("discovers generation by GET and protects exact semantic recall, metadata inspection and receipt resolution through generated paths", async () => {
+  browserRequests(); const requests: Request[] = [];
+  vi.stubGlobal("fetch", vi.fn(async (request: Request) => {
+    if (request.url.endsWith("/altar/status")) return Response.json({ csrf: { cookie_name: "archive-csrf", header_name: "X-Archive-CSRF" } });
+    requests.push(request); return Response.json(request.url.endsWith("/inspect") ? null : {});
+  }));
+  vi.resetModules(); const api = await import("./client"); document.cookie = "archive-csrf=only-csrf";
+  const id = "00000000-0000-4000-8000-000000000001", abort = new AbortController();
+  const body = { namespace_id: id, request_id: id, generation: { generation_id: id, manifest_digest: "a".repeat(64) },
+    query: " exact é\r\n ", min_cosine: -0.25, max_results: 3, char_budget: 4000, run_id: null };
+  await api.discoverArchiveGeneration(abort.signal); await api.recallArchiveSemanticNotes(body);
+  expect(await api.inspectArchiveSemanticRecall(body, abort.signal)).toBeNull();
+  await api.resolveArchiveSemanticRecall(id, { receipt_digest: "b".repeat(64) }, abort.signal);
+  expect(requests.map((request) => [new URL(request.url).pathname, request.method])).toEqual([
+    ["/api/v1/archive/derivations/generations/configured", "GET"], ["/api/v1/archive/semantic/recalls", "POST"],
+    ["/api/v1/archive/semantic/recalls/inspect", "POST"], [`/api/v1/archive/semantic/recalls/${id}/resolve`, "POST"]
+  ]);
+  expect(requests[0]!.body).toBeNull();
+  expect(await requests[1]!.text()).toBe(JSON.stringify(body)); expect(await requests[2]!.text()).toBe(JSON.stringify(body));
+  expect(await requests[3]!.json()).toEqual({ receipt_digest: "b".repeat(64) });
+  for (const request of requests.slice(1)) { expect(request.headers.get("X-Archive-CSRF")).toBe("only-csrf"); expect(request.headers.has("Authorization")).toBe(false); }
+  abort.abort(); expect(requests[0]!.signal.aborted).toBe(true); expect(requests[2]!.signal.aborted).toBe(true); expect(requests[3]!.signal.aborted).toBe(true);
+});

@@ -43,3 +43,10 @@ export type NoteListPage = components["schemas"]["NoteListPage"];
 export type ArchiveLifecycleIntent = components["schemas"]["ArchiveLifecycleIntent"];
 
 export type ArchiveRunRecall = components["schemas"]["ArchiveRunRecall"];
+
+export type ArchiveGeneration = components["schemas"]["GenerationRef"];
+export type SemanticRecallRequest = components["schemas"]["SemanticRecallRequest"];
+export type SemanticRecallResult = components["schemas"]["SemanticRecallResult"];
+export type SemanticRecallReceipt = components["schemas"]["SemanticRecallReceipt"];
+export type SemanticRecallProjection = components["schemas"]["SemanticRecallProjection"];
+export type ArchiveResolveIntent = components["schemas"]["ArchiveResolveIntent"];

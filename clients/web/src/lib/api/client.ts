@@ -120,6 +120,20 @@ export async function deleteMarketObservation(admissionId: string, body: compone
 export async function getArchiveProfile(signal?: AbortSignal): Promise<components["schemas"]["ArchiveProfile"]> {
   return unwrap(await client.GET("/api/v1/archive/profile", { signal }));
 }
+export async function discoverArchiveGeneration(signal?: AbortSignal): Promise<components["schemas"]["GenerationRef"]> {
+  return unwrap(await client.GET("/api/v1/archive/derivations/generations/configured", { signal }));
+}
+export async function recallArchiveSemanticNotes(body: components["schemas"]["SemanticRecallRequest"]): Promise<components["schemas"]["SemanticRecallResult"]> {
+  return unwrap(await client.POST("/api/v1/archive/semantic/recalls", { body, headers: await csrfHeaders() }));
+}
+export async function inspectArchiveSemanticRecall(body: components["schemas"]["SemanticRecallRequest"], signal?: AbortSignal): Promise<components["schemas"]["SemanticRecallReceipt"] | null> {
+  return unwrap(await client.POST("/api/v1/archive/semantic/recalls/inspect", { body, signal, headers: await csrfHeaders() }));
+}
+export async function resolveArchiveSemanticRecall(receiptId: string, body: components["schemas"]["ArchiveResolveIntent"], signal?: AbortSignal): Promise<components["schemas"]["SemanticRecallProjection"]> {
+  return unwrap(await client.POST("/api/v1/archive/semantic/recalls/{receipt_id}/resolve", {
+    params: { path: { receipt_id: receiptId } }, body, signal, headers: await csrfHeaders()
+  }));
+}
 export async function getArchiveBridgeDefault(signal?: AbortSignal): Promise<components["schemas"]["ArchiveBridgeDefault"]> {
   return unwrap(await client.GET("/api/v1/archive/bridge-default", { signal }));
 }

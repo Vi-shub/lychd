@@ -1961,6 +1961,18 @@ these paths, full-mode navigation races, escaped source identities and preservat
 Bridge drafts, unresolved offerings and Consent. These portable tests do not qualify a real-browser
 or installed workflow.
 
+A distinct **Recall public sources** focus at `/bridge?notes=recall` now composes the explicit
+semantic API into a sources-only query and exact current-source read. It requires a user-supplied
+finite threshold, shows numeric bounds and freezes the raw request with a fresh UUID. It displays
+escaped ordered source/revision identities, similarity, coverage/omissions and distinct selection
+and resolution-response times. Unknown Check uses the same frozen request for metadata only;
+recovered selection needs an explicit current-source load. It never automatically retries a query,
+activates a model, prepares derivations or admits an answer Run. Profile/generation/current-authority
+and lifetime fences clear protected projections and reject late responses. Portable controller,
+transport, component and route tests cover these paths and preserve the separate conversation
+workspace. This does not qualify ordinary installed runtime preparation, real-browser interaction
+or retrieval quality; configuration metadata alone establishes none of those prerequisites.
+
 A separate [19 October native operator observation](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/archive/native-public-notes-2026-10-19.json)
 at source `c4d86be6` exercised ordinary Settings/Runes, database bootstrap, CLI, Granian TCP,
 PostgreSQL and the existing shared Qwen3.8-27B runtime. Four fresh Sessions answered one frozen
@@ -2024,7 +2036,7 @@ the Orchestrator or exercise normal Settings database socket configuration.
 The separate semantic API has only the fixed native lifecycle qualification above; general retrieval
 quality remains unqualified. General `CandidateArchivePort`, automatic conversation retention, extraction, Curator,
 GraphRAG, shared namespaces, remote IAM, private-material egress and training remain unqualified.
-Public-note controls
+Public-note management controls
 have no source-body preview or prefilled editing; real-browser keyboard/reflow/reload acceptance and
 installed cutover remain unqualified. Ordinary revision 3 execution uses live Graph persistence; separately proved typed
 checkpoint reconstruction does not establish automatic recovery after worker death. The portable
@@ -2049,9 +2061,11 @@ Generated answers can quote sources; later revocation does not erase earlier out
 - **Verification:** [Metadata authority, cursor and column-selection tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/db/test_archive_failures.py) and [guarded metadata HTTP tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_archive_metadata.py); the PostgreSQL lifecycle and vertical tests above include retained metadata recovery and no-write reads.
 - **Source:** [Public-note focus](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/PublicNotes.svelte) and [framework-neutral recovery controller](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/archive/notes.ts)
 - **Verification:** [Recovery and unknown outcomes](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/archive/notes.test.ts), [controls and late-focus races](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/PublicNotes.test.ts), [transport/CSRF](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/api/archive.test.ts), [closed route dispatch](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/routes/bridge/page.test.ts), and [ordinary Bridge workspace preservation](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/BridgeShellNavigation.test.ts)
+- **Source:** [Explicit semantic source focus](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/PublicNoteRecall.svelte) and [plain recall controller](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/archive/semantic.ts)
+- **Verification:** [Semantic request, recovery and source fences](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/archive/semantic.test.ts), [source focus and keyboard controls](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/PublicNoteRecall.test.ts), and the transport/route/workspace tests above.
 - **Source:** [Exact-Run Archive inspector](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/ArchiveRecallPanel.svelte); [inspector tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/ArchiveRecallPanel.test.ts) cover protected display and lifetime.
 - **Verification:** [Exact-Run recall binding, preseed and current-authority HTTP tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_archive_run_recall.py); the PostgreSQL lifecycle and vertical tests above cover terminal and historical metadata reads.
-- **Topic:** [Public-note answers](./divination/altar/bridge.md#public-note-answers) and [matching Archive selection](./divination/altar/orb.md#inspect-a-matching-archive-selection)
+- **Topic:** [Public-note answers](./divination/altar/bridge.md#public-note-answers), [explicit semantic sources](./divination/altar/bridge.md#recall-semantic-sources), and [matching Archive selection](./divination/altar/orb.md#inspect-a-matching-archive-selection)
 - **Law:** [Memory](./adr/27-memory.md)
 
 ### Mirror identity {#mirror-identity}

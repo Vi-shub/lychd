@@ -17,6 +17,9 @@ export function notesSelection(value: string | null): string | null {
   if (value === "new" || value === "manage") return value;
   return value !== null && z.uuid().safeParse(value).success ? value.toLowerCase() : null;
 }
+export function notesFocusSelection(value: string | null): string | null {
+  return value === "recall" ? value : notesSelection(value);
+}
 export interface NoteDraft { sourceKey: string; revision: string; text: string; producer: string; observedAt: string; publicMaterial: boolean; replacesRevision: string | null }
 export function emptyNoteDraft(): NoteDraft { return { sourceKey: "", revision: "", text: "", producer: "", observedAt: "", publicMaterial: false, replacesRevision: null }; }
 export function correctionDraft(record: NoteRecord): NoteDraft {

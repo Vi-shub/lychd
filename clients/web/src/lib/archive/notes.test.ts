@@ -126,3 +126,11 @@ it("explains the actual Archive request_conflict code and closes unknown codes/d
   expect(safeNoteFailure(new ApiError("sensitive detail", 409, "request_conflict"))).toBe("The intake identity conflicts with retained input.");
   expect(safeNoteFailure(new ApiError("sensitive detail", 409, "unrecognized_sensitive_code"))).toBe("The protected request failed (409).");
 });
+
+it("routes recall separately while preserving management-only draft departure recognition", async () => {
+  const { notesSelection, notesFocusSelection, notesHref } = await import("./notes");
+  expect(notesFocusSelection("recall")).toBe("recall"); expect(notesHref("recall")).toBe("/bridge?notes=recall");
+  expect(notesSelection("recall")).toBeNull();
+  for (const value of ["manage", "new", id]) expect(notesFocusSelection(value)).toBe(notesSelection(value));
+  for (const value of ["Recall", "recall ", "unknown", null]) expect(notesFocusSelection(value)).toBeNull();
+});

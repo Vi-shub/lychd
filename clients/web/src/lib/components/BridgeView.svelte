@@ -825,7 +825,7 @@
   {/if}
 
   <div class="bridge-thread">
-    <nav class="atlas-links" aria-label="Bridge work"><a href="/bridge?investigation=new">Investigate public source</a><a href="/bridge?notes=manage">Manage public notes</a></nav>
+    <nav class="atlas-links" aria-label="Bridge work"><a href="/bridge?investigation=new">Investigate public source</a><a href="/bridge?notes=manage">Manage public notes</a><a href="/bridge?notes=recall">Recall public sources</a></nav>
     {#if !firstVisit}
       <header class="bridge-heading">
         <div>

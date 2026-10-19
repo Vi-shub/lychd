@@ -138,7 +138,7 @@ promotion authority. An explicit reload uses current read authority; disclosure 
 
 ### Public notes within Bridge
 
-The `/bridge` route may focus explicit public-note management through one `notes` query:
+The `/bridge` route may focus explicit public-note work through one `notes` query:
 `manage` opens metadata, `new` opens intake, and a record UUID selects exact metadata. Invalid,
 duplicate or simultaneous investigation/note focus is unavailable without effect. The focus keeps
 ordinary Session drafts, unresolved offerings and Consent separate; the conversation rail is not
@@ -147,7 +147,7 @@ body. This adds no instrument or automatic conversation-to-memory admission.
 
 The server's authorized configured-profile read and bounded all-lifecycle metadata pages support
 reload without browser record custody. Exact-record reads remain independent of the loaded page.
-Public-note text is not returned for preview or prefilled editing. Correction supplies complete
+The management API returns no public-note text for preview or prefilled editing. Correction supplies complete
 new text under a different immutable source revision and requires a separate promotion. Revocation
 keeps the minimum source identity and does not erase earlier answers or backups.
 
@@ -170,7 +170,28 @@ Drafts and frozen bodies remain transient to the browser document, with departur
 GETs are abortable and late responses remain fenced by selection, profile and lifetime. Current
 authority refusal clears protected material. The focus uses generated transport, existing local
 Origin/CSRF/access gates, escaped text, semantic forms, keyboard controls and visible uncertainty.
-It creates no browser ledger, consent authority, recall operation or model request.
+These management modes create no browser ledger, consent authority, recall operation or model request.
+
+The separate `recall` notes focus is an explicit sources-only consumer of Archive's schema2
+semantic API. Opening, typing, navigation and metadata refresh perform no semantic query or source
+resolution. Authorized profile/configured-generation discovery is metadata only; it establishes
+neither semantic opt-in, an active registered generation, eligible derivations nor runtime warmth.
+The operator separately prepares the runtime, generation and promoted sources under their current
+owners. Recall never activates, registers, derives, falls back or changes ordinary Bridge3.
+
+One explicit submission freezes a fresh request UUID, exact query/namespace/generation, user-supplied
+finite minimum similarity and visible result/character bounds. It may compose recall with exact
+receipt-digest resolution in that same gesture. Display only the resulting currently authorized,
+ordered source projection with source/revision identity, similarity and coverage/omissions;
+similarity grants no answer-confidence or truth claim. Selection time and resolution time stay
+distinct. Source bodies, queries and request bodies never enter navigation or browser persistence.
+
+After an unknown query outcome, an explicit check may inspect only the frozen full request without
+inference or hydration. An absent receipt does not establish that an in-flight query failed. A
+recovered selection needs explicit current-source resolution; there is no automatic recall retry
+or exactly-once inference claim. Current refusal/profile change/lifetime replacement fence late
+responses and clear protected projections. Waiting is HTTP presentation state, not a durable Run;
+leaving or aborting a request does not claim to cancel model work or undo retained selection.
 
 ### Scavenger finite observation application
 
