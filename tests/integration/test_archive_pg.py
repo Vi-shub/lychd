@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator, Iterator
+import json
+from collections.abc import AsyncIterator, Callable, Iterator
 from datetime import UTC, datetime
+from pathlib import Path
+from time import perf_counter_ns
 from typing import Any, cast
 from uuid import UUID, uuid4
 
@@ -673,3 +676,77 @@ async def test_historical_authority_revoked_at_actual_awaited_boundaries(
             authority.allowed = False
         with pytest.raises(ArchiveRefused, match="authority"):
             await task
+
+
+@pytest.mark.asyncio
+async def test_public_relevance_corpus_lexical_calibration(
+    factory: async_sessionmaker[AsyncSession], record_testsuite_property: Callable[[str, object], None]
+) -> None:
+    # Heldout bytes are deliberately absent; this case cannot evaluate semantic quality.
+    fixture_path = Path(__file__).parents[1] / "fixtures/archive/semantic-recall-need-v1.json"
+    fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+    notes = fixture["notes"]
+    queries = fixture["calibration_queries"]
+    assert len(notes) == 24
+    assert len({note["source_key"] for note in notes}) == 24
+    assert len(queries) == 12
+    assert {
+        kind: sum(item["query_kind"] == kind for item in queries) for kind in ("literal", "paraphrase", "unanswerable")
+    } == {"literal": 4, "paraphrase": 4, "unanswerable": 4}
+    assert all(item["split"] == "calibration" for item in queries)
+    assert {item["language"] for item in queries} == {"en", "sk"}
+    archive = service(factory)
+    retained: dict[str, NoteRecord] = {}
+    for note in notes:
+        assert note["active"] is True
+        assert note["revision"] == "1"
+        assert text_digest(note["content"]) == note["content_sha256"]
+        retained[note["source_key"]] = await promote(
+            archive, proposal(source_key=note["source_key"], text=note["content"])
+        )
+    observations: list[dict[str, Any]] = []
+    for item in queries:
+        assert text_digest(item["text"]) == item["text_sha256"]
+        relevant = set(item["relevant_source_keys"])
+        assert relevant <= retained.keys()
+        assert bool(relevant) is (item["query_kind"] != "unanswerable")
+        request = query(item["text"], max_results=3, char_budget=32_000)
+        start = perf_counter_ns()
+        receipt = await archive.recall(SUBJECT, request, purpose=PURPOSE)
+        elapsed_ns = perf_counter_ns() - start
+        assert receipt.retrieval_policy == "postgres-simple-lexical@1"
+        assert receipt.query_digest == item["text_sha256"]
+        assert receipt.request_digest == request.binding_digest(PROFILE, SUBJECT, PURPOSE)
+        assert receipt.computed_digest() == receipt.receipt_digest
+        assert receipt.omitted_for_budget == 0
+        projection = await archive.resolve_receipt(SUBJECT, receipt.receipt_id, receipt.receipt_digest, purpose=PURPOSE)
+        selected = [entry.source_key for entry in receipt.selected]
+        assert projection.receipt == receipt
+        assert [entry.selection for entry in projection.items] == list(receipt.selected)
+        for projected in projection.items:
+            source = next(note for note in notes if note["source_key"] == projected.selection.source_key)
+            assert projected.selection.reference == retained[source["source_key"]].reference
+            assert projected.selection.source_revision == source["revision"]
+            assert projected.selection.source_digest == source["content_sha256"]
+            assert projected.selection.projection_digest == source["content_sha256"]
+            assert projected.selection.projected_chars == len(source["content"])
+            assert projected.text == source["content"]
+        rank = next((rank for rank, key in enumerate(selected, 1) if key in relevant), None)
+        observations.append(
+            {
+                "query_id": item["query_id"],
+                "kind": item["query_kind"],
+                "language": item["language"],
+                "recall_at_3": len(set(selected) & relevant) / len(relevant) if relevant else None,
+                "reciprocal_rank": 1 / rank if rank is not None else 0.0,
+                "unanswerable_false_positive": bool(selected) if not relevant else None,
+                "retrieval_elapsed_ns": elapsed_ns,
+                "request": request.model_dump(mode="json"),
+                "receipt": receipt.model_dump(mode="json"),
+            }
+        )
+    record_testsuite_property("lexical_calibration", json.dumps(observations, ensure_ascii=False, sort_keys=True))
+    assert all(item["recall_at_3"] == 1 for item in observations if item["kind"] == "literal")
+    quartz = next(item for item in observations if item["query_id"] == "cal-en-quartz-paraphrase")
+    assert quartz["recall_at_3"] == 0
+    assert quartz["receipt"]["selected"] == []

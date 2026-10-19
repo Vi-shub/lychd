@@ -1,0 +1,523 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "public_synthetic_relevance_calibration",
+  "purpose": "Need oracle for source-attributed public memory. No semantic quality or actual LychD operational policy is asserted.",
+  "provenance": {
+    "campaign": "lychd-memory-context-2026-10-18",
+    "task": "semantic-recall-need-01/corpus-author",
+    "author": "Codex AI synthetic corpus candidate author",
+    "content_origin": "Public synthetic local development and operations scenarios; no private facts.",
+    "judgment_origin": "AI-authored relevance labels; candidate judgments, not human ground truth.",
+    "independent_verification": false,
+    "immutable_base_revision": "7f74ed933a1c450e6f762a1d8b2f9474ffdd571a",
+    "input_tar_sha256": "3ce23b849e02ff7f86ade91f8fbadfc4c88f3409456f377b3ac84dd848d08933",
+    "digest_contract": "content_sha256 and text_sha256 hash the exact UTF-8 string value, without an added newline.",
+    "fixture_exception": "The Quartz target preserves the exposed historical synthetic revision-2 fixture verbatim, including its canary-like checklist identifier. It is represented as revision 1 in this new corpus and is not representative general language.",
+    "retrieval_boundary": "Corpus notes can be visible to retrievers. Heldout query and relevance bytes remain sealed by role until semantic rules and source are frozen."
+  },
+  "notes": [
+    {
+      "source_key": "quartz-review-rule",
+      "revision": "1",
+      "active": true,
+      "language": "en",
+      "role": "target",
+      "group_id": "quartz-review",
+      "title": "Quartz review checklist",
+      "content": "Project Quartz maintenance rule: when a review begins and the incident is closed, use checklist cedar-checklist-c374946b. When a review begins and the incident is open, keep the existing checklist.",
+      "content_sha256": "92524db1e31e987acba4b2a178c484c663dd29733549a7083efea16094cbe3b0"
+    },
+    {
+      "source_key": "workbench-archive-restore",
+      "revision": "1",
+      "active": true,
+      "language": "en",
+      "role": "target",
+      "group_id": "workbench-restore",
+      "title": "Restore a workbench archive",
+      "content": "A workbench archive is restored only after its checksum matches the saved manifest. Restore a matching archive into an empty staging directory, compare its file inventory with the manifest, and open the restored files only after that comparison succeeds. If the checksum does not match, stop this restore and select the previous verified archive. Never overwrite the working directory during this check.",
+      "content_sha256": "5f805066990a2b632b1778c29218a10ef093197892a2c708321918920fa98f4e"
+    },
+    {
+      "source_key": "vyvojova-cache-cistenie",
+      "revision": "1",
+      "active": true,
+      "language": "sk",
+      "role": "target",
+      "group_id": "cache-cistenie",
+      "title": "Čistenie vývojovej cache",
+      "content": "Vývojovú cache možno vymazať až po zastavení všetkých lokálnych pracovníkov a po skúšobnom výpise, ktorý potvrdí presnú cieľovú cestu. Ak niektorý pracovník ešte beží, čistenie sa odloží. Samotná prítomnosť zámkového súboru nenahrádza kontrolu zastavenia.",
+      "content_sha256": "23f56e28f34cad29c65d8b06c0af1841337e53b9d78fd33b1e19925a13512fe7"
+    },
+    {
+      "source_key": "vydanie-schvalenie",
+      "revision": "1",
+      "active": true,
+      "language": "sk",
+      "role": "target",
+      "group_id": "vydanie-autorita",
+      "title": "Kto schvaľuje lokálne vydanie",
+      "content": "Lokálne vydanie schvaľuje správca vydania uvedený v aktuálnom registri rolí. Vedúci incidentu môže zastaviť prípravu, ale nemôže nahradiť súhlas správcu vydania. Ak register správcu neuvádza, vydanie zostáva pozastavené až do opravy registra; zápis zo stretnutia sa nepovažuje za náhradné poverenie.",
+      "content_sha256": "1c773a92040d5eeb8ec3e8fa8b3862001a58858827cba1725125d1598e4e10f8"
+    },
+    {
+      "source_key": "diagnostic-log-retention",
+      "revision": "1",
+      "active": true,
+      "language": "en",
+      "role": "target",
+      "group_id": "diagnostic-retention",
+      "title": "Diagnostic log retention",
+      "content": "Local diagnostic logs are retained for fourteen days, measured from the timestamp of the last entry in each file. A file under an investigation hold is excluded from automatic deletion even after fourteen days. It can rejoin the deletion queue only when the investigation owner records that the hold is released. A daily summary does not release a hold.",
+      "content_sha256": "4e92f2270e4f03e5511e9819cb926046a6b012600ff13e204c9917e7b6a31130"
+    },
+    {
+      "source_key": "migration-uncertain-outcome",
+      "revision": "1",
+      "active": true,
+      "language": "en",
+      "role": "target",
+      "group_id": "migration-recovery",
+      "title": "Unknown migration outcome",
+      "content": "When a local migration process disappears without a final result, pause subsequent schema changes and reconcile the migration ledger with the actual schema before deciding whether to retry. Do not rerun the migration while its outcome is unknown. A read-only status check may be repeated, but a successful status check alone does not establish whether the migration committed.",
+      "content_sha256": "bc869e824870d7c2f749bf0c397bff81fe88b44bdaa51e4d8772f4e3c729f15a"
+    },
+    {
+      "source_key": "konfiguracia-navrat",
+      "revision": "1",
+      "active": true,
+      "language": "sk",
+      "role": "target",
+      "group_id": "konfiguracia-obnova",
+      "title": "Návrat konfigurácie po neúspešnom štarte",
+      "content": "Pred zmenou lokálnej konfigurácie sa uloží posledná overená kópia. Ak služba po zmene neprejde kontrolou pripravenosti, služba sa zastaví, obnoví sa táto overená kópia a až potom sa vykoná jeden nový štart s kontrolou pripravenosti. Ak zlyhá aj tento štart, služba zostane zastavená a ďalší pokus čaká na preskúmanie príčiny.",
+      "content_sha256": "066de1ced0fdd9f9d210c5323c56e538d8eace5e3f96761d5efe03d94d0f6406"
+    },
+    {
+      "source_key": "balik-prevzatie",
+      "revision": "1",
+      "active": true,
+      "language": "sk",
+      "role": "target",
+      "group_id": "balik-prevzatie",
+      "title": "Prevzatie lokálneho balíka zmien",
+      "content": "Pri prevzatí lokálneho balíka zmien príjemca najprv porovná kontrolný súčet archívu s odovzdávacím manifestom. Zhodu zaznamená do potvrdenia prevzatia. Ak súčet nesedí alebo manifest chýba, balík sa nepoužije a vyžiada sa nové odovzdanie. Zhodný súčet potvrdzuje neporušenosť prenosu, nie oprávnenie zmeny nasadiť.",
+      "content_sha256": "4a51055e3339c77fc5caff2cc48e46596e38acbdd2c0fd68b71d1ed42363c490"
+    },
+    {
+      "source_key": "quartz-first-setup",
+      "revision": "1",
+      "active": true,
+      "language": "en",
+      "role": "nearby_distractor",
+      "group_id": "quartz-review",
+      "title": "Quartz first local setup",
+      "content": "Project Quartz uses the contributor-start checklist for the first local setup by a new contributor. The setup checklist covers creating a scratch directory, checking available disk space, and opening the sample workspace. This onboarding note does not choose a maintenance-review checklist or describe incident states.",
+      "content_sha256": "ef7be0acac193d659af665fd13a79593a855b8e4e81649fc31ce1ab2d7da7762"
+    },
+    {
+      "source_key": "workbench-archive-create",
+      "revision": "1",
+      "active": true,
+      "language": "en",
+      "role": "nearby_distractor",
+      "group_id": "workbench-restore",
+      "title": "Create a workbench archive",
+      "content": "To create a workbench archive, close open editors for the selected directory, record the file inventory in a manifest, and save the checksum beside the completed archive. Record the creation date in the backup index. This note covers archive creation; it contains no restore destination, restore sequence, or checksum-failure recovery policy.",
+      "content_sha256": "93a7b80fb7df14534b461831192cba261012a8854f0cddbacf31f592a03886fd"
+    },
+    {
+      "source_key": "cache-meranie",
+      "revision": "1",
+      "active": true,
+      "language": "sk",
+      "role": "nearby_distractor",
+      "group_id": "cache-cistenie",
+      "title": "Meranie veľkosti cache",
+      "content": "Pre prehľad o využití disku sa veľkosť vývojovej cache meria každý pracovný deň pred obedom. Výsledok sa zapíše v mebibajtoch spolu s časom merania. Tento záznam slúži na sledovanie rastu a neurčuje podmienky vymazania ani povolenú kapacitu cache.",
+      "content_sha256": "bef4142a3051f11c660d1434ac3e59cc3f2da4eccfc433713530a3c4b8d989fd"
+    },
+    {
+      "source_key": "vydanie-zapis-stretnutia",
+      "revision": "1",
+      "active": true,
+      "language": "sk",
+      "role": "nearby_distractor",
+      "group_id": "vydanie-autorita",
+      "title": "Zápis zo stretnutia o vydaní",
+      "content": "Zapisovateľ stretnutia o lokálnom vydaní zaznamená prítomných, navrhnutý termín a otvorené otázky. Zápis uloží vedľa pracovného plánu a po oprave preklepu ponechá dátum pôvodného stretnutia. Táto poznámka neprideľuje právomoc schváliť vydanie ani neurčuje zastupovanie rolí.",
+      "content_sha256": "202dedafc651cbe92a02c8ce178dd38a5214edd7b2f6155fd698d63baa2e6794"
+    },
+    {
+      "source_key": "diagnostic-log-display",
+      "revision": "1",
+      "active": true,
+      "language": "en",
+      "role": "nearby_distractor",
+      "group_id": "diagnostic-retention",
+      "title": "Display diagnostic logs",
+      "content": "The local diagnostic viewer displays the newest two hundred lines initially. Loading an older page adds two hundred more lines without rewriting the log file. Clearing the viewer window removes only the displayed text; it does not delete a file or change a retention hold.",
+      "content_sha256": "a68763d1f0c8035437aade709ef4c823630a6378f408d49a666f9796493a4d97"
+    },
+    {
+      "source_key": "migration-plan-format",
+      "revision": "1",
+      "active": true,
+      "language": "en",
+      "role": "nearby_distractor",
+      "group_id": "migration-recovery",
+      "title": "Migration plan formatting",
+      "content": "A local migration plan lists the proposed schema change, its expected duration, and the name of the review document. Draft plans are numbered within the current release folder. This formatting note does not define recovery from a lost process or prove the outcome of an executed migration.",
+      "content_sha256": "65e16db13ead5f51bc30c1c85276434aa93f13dc92b08e2f2c9113db8e0d982f"
+    },
+    {
+      "source_key": "konfiguracia-format",
+      "revision": "1",
+      "active": true,
+      "language": "sk",
+      "role": "nearby_distractor",
+      "group_id": "konfiguracia-obnova",
+      "title": "Formát pracovnej konfigurácie",
+      "content": "Pracovná konfigurácia používa odsadenie dvomi medzerami a jeden kľúč na riadok. Pri formátovaní sa zachová poradie sekcií a poznámky pri hodnotách. Formátovacia kontrola nevykonáva štart služby, nevyberá obnovovaciu kópiu a nepotvrdzuje prevádzkovú pripravenosť.",
+      "content_sha256": "e786dd309e06cb288ff5eccd14dd58f86aa85987457b68c624c54c3fabbaebab"
+    },
+    {
+      "source_key": "balik-popis",
+      "revision": "1",
+      "active": true,
+      "language": "sk",
+      "role": "nearby_distractor",
+      "group_id": "balik-prevzatie",
+      "title": "Popis balíka zmien",
+      "content": "Sprievodný popis lokálneho balíka zmien uvádza účel zmeny, zoznam dotknutých oblastí a obmedzenia kandidáta. Názov súboru má obsahovať čitateľný názov práce bez osobných údajov. Tento popis neurčuje overenie prenosu, podpisovanie ani rozhodnutie o nasadení.",
+      "content_sha256": "5f231934f1539d8a82523c71c1449f6945e31f2d490e1e311706e3d149bfa1be"
+    },
+    {
+      "source_key": "focused-test-selection",
+      "revision": "1",
+      "active": true,
+      "language": "en",
+      "role": "other_useful",
+      "group_id": "focused-tests",
+      "title": "Selecting a focused test run",
+      "content": "For a small local change, choose the tests that exercise the changed boundary and record their exact command and result. If the changed boundary is not covered, record the gap before broadening the change. A passing unrelated smoke check does not replace an affected-boundary check.",
+      "content_sha256": "9bb49203fe527b9483ed334be7bc257eef04a04444763f1efa7e3cf1919ae932"
+    },
+    {
+      "source_key": "terminal-text-encoding",
+      "revision": "1",
+      "active": true,
+      "language": "en",
+      "role": "other_useful",
+      "group_id": "terminal-encoding",
+      "title": "Saving terminal text",
+      "content": "Local text receipts are saved as UTF-8 with an explicit newline at the end of the file. Before sharing a receipt, check that accented characters survive a reopen and remove copied terminal control sequences. The receipt keeps the observed result and the command that produced it.",
+      "content_sha256": "0eac455994db63658c4d95c9af486b598a419f95916974b487060504166681af"
+    },
+    {
+      "source_key": "scratch-disk-alert",
+      "revision": "1",
+      "active": true,
+      "language": "en",
+      "role": "other_useful",
+      "group_id": "scratch-capacity",
+      "title": "Scratch disk capacity warning",
+      "content": "When the scratch volume has less than ten percent free space, stop starting new bulk exports and list the largest disposable scratch directories. Delete a directory only after confirming it is disposable in the current work inventory. Capacity warnings do not authorize removal of archives or active work.",
+      "content_sha256": "0e7ba41f02d95ddd4fdc28c60ea0578deb5bd62fe9a9b6f0afd6a9000363b04c"
+    },
+    {
+      "source_key": "workspace-handoff-note",
+      "revision": "1",
+      "active": true,
+      "language": "en",
+      "role": "other_useful",
+      "group_id": "workspace-handoff",
+      "title": "Local workspace handoff note",
+      "content": "A local workspace handoff note records the work directory, the current task, unfinished checks, and the time of the last saved result. The recipient acknowledges the note before editing the shared workspace. An acknowledgment establishes who continues the work; it does not certify unfinished checks.",
+      "content_sha256": "d99c05ba080ccca238778c1e6a5e063a0e087348259d798c41425102519dbe63"
+    },
+    {
+      "source_key": "porovnanie-vzoriek",
+      "revision": "1",
+      "active": true,
+      "language": "sk",
+      "role": "other_useful",
+      "group_id": "vzorky-porovnanie",
+      "title": "Porovnanie ukážkových súborov",
+      "content": "Pred porovnaním ukážkových súborov sa oba súbory otvoria v rovnakom textovom zobrazení. Rozdiely v koncoch riadkov sa označia oddelene od obsahových rozdielov. Ak sa zmenilo iba kódovanie, záznam porovnania to uvedie výslovne a nepripíše zmenu obsahu.",
+      "content_sha256": "57107673d5aef5afbf51c09e4bb9f6cf2ec5d5451664eb8705538d0dc4f631fc"
+    },
+    {
+      "source_key": "inventar-kablov",
+      "revision": "1",
+      "active": true,
+      "language": "sk",
+      "role": "other_useful",
+      "group_id": "kable-inventar",
+      "title": "Inventár káblov pracoviska",
+      "content": "Pri mesačnej kontrole pracoviska sa pri každom náhradnom kábli zaznamená typ konektorov a výsledok vizuálnej kontroly. Kábel s poškodeným plášťom sa odloží do označenej nádoby na vyradenie. Inventár sa vedie bez mien používateľov a bez údajov o sieti.",
+      "content_sha256": "fdcdf6d482cfe6f56aaff7c575ae9c9d2132e903f9b2ee6f8d1aa8234f5594c7"
+    },
+    {
+      "source_key": "oprava-postupu",
+      "revision": "1",
+      "active": true,
+      "language": "sk",
+      "role": "other_useful",
+      "group_id": "postupy-oprava",
+      "title": "Oprava preklepu v postupe",
+      "content": "Pri oprave preklepu v lokálnom postupe sa ponechá význam kroku a do poznámky k zmene sa uvedie pôvodná a opravená formulácia. Ak oprava mení podmienku vykonania, nejde iba o preklep a postup sa odošle vlastníkovi na vecné posúdenie.",
+      "content_sha256": "35e7799c60e51348075c974769774a1cdc4e5be3bdbf04c4dfb58ced66cfcaf4"
+    },
+    {
+      "source_key": "koniec-pracovneho-bloku",
+      "revision": "1",
+      "active": true,
+      "language": "sk",
+      "role": "other_useful",
+      "group_id": "pracovny-blok",
+      "title": "Ukončenie pracovného bloku",
+      "content": "Na konci pracovného bloku sa uloží rozpracovaný text, zapíše najbližší konkrétny krok a zatvoria nepotrebné lokálne náhľady. Dlhšie bežiaca úloha sa zaznamená spolu s miestom jej výsledku. Záznam o prestávke neoznačuje nehotovú úlohu ako dokončenú.",
+      "content_sha256": "be00ae8c41cf43440e4b20b94fa165f83860ca1207727204b9edad59cb6a57fa"
+    }
+  ],
+  "calibration_provenance": {
+    "campaign": "lychd-memory-context-2026-10-18",
+    "task": "semantic-recall-need-01/corpus-author",
+    "author": "Codex AI synthetic corpus candidate author",
+    "content_origin": "Public synthetic local development and operations scenarios; no private facts.",
+    "judgment_origin": "AI-authored relevance labels; candidate judgments, not human ground truth.",
+    "independent_verification": false,
+    "immutable_base_revision": "7f74ed933a1c450e6f762a1d8b2f9474ffdd571a",
+    "input_tar_sha256": "3ce23b849e02ff7f86ade91f8fbadfc4c88f3409456f377b3ac84dd848d08933",
+    "digest_contract": "content_sha256 and text_sha256 hash the exact UTF-8 string value, without an added newline.",
+    "fixture_exception": "The Quartz target preserves the exposed historical synthetic revision-2 fixture verbatim, including its canary-like checklist identifier. It is represented as revision 1 in this new corpus and is not representative general language.",
+    "retrieval_boundary": "Corpus notes can be visible to retrievers. Heldout query and relevance bytes remain sealed by role until semantic rules and source are frozen.",
+    "literal_control_design": "Literal queries are intentionally lexical-compatible keyword positive controls, using exact source phrases; they do not represent natural-language retrieval accuracy. This one bounded source-level repair preceded all retrieval observations; no retriever, database, test, or model was run."
+  },
+  "calibration_queries": [
+    {
+      "query_id": "cal-quartz-literal",
+      "split": "calibration",
+      "query_kind": "literal",
+      "group_id": "quartz-review",
+      "language": "en",
+      "text": "Project Quartz review begins. Incident closed checklist? Incident open checklist?",
+      "text_sha256": "c46f0c6ce72c071c2efc2813f57b87727e2dff96d1f51c7bf86a86b585434009",
+      "relevant_source_keys": [
+        "quartz-review-rule"
+      ],
+      "support": [
+        {
+          "source_key": "quartz-review-rule",
+          "source_revision": "1",
+          "exact_span": "Project Quartz maintenance rule: when a review begins and the incident is closed, use checklist cedar-checklist-c374946b. When a review begins and the incident is open, keep the existing checklist."
+        }
+      ],
+      "empty_reason": null
+    },
+    {
+      "query_id": "cal-en-quartz-paraphrase",
+      "split": "calibration",
+      "query_kind": "paraphrase",
+      "group_id": "quartz-review",
+      "language": "en",
+      "text": "Project Quartz: which checklist should I use when a review is starting and the incident has already been closed?",
+      "text_sha256": "263853aa0248e3cd44a8169acbeac835c9370af8979ac8842566adc7fc76c448",
+      "relevant_source_keys": [
+        "quartz-review-rule"
+      ],
+      "support": [
+        {
+          "source_key": "quartz-review-rule",
+          "source_revision": "1",
+          "exact_span": "Project Quartz maintenance rule: when a review begins and the incident is closed, use checklist cedar-checklist-c374946b."
+        }
+      ],
+      "empty_reason": null
+    },
+    {
+      "query_id": "cal-quartz-unanswerable",
+      "split": "calibration",
+      "query_kind": "unanswerable",
+      "group_id": "quartz-review",
+      "language": "en",
+      "text": "Who owns the Quartz maintenance-review checklist, and how can I contact them?",
+      "text_sha256": "54bdf8fe0b165b2aaf5028a4b99424a8ace053246fc255c2ce9a87a7f7731d8a",
+      "relevant_source_keys": [],
+      "support": [],
+      "empty_reason": "The corpus gives the checklist-selection rule and a setup checklist, but no checklist owner or contact route."
+    },
+    {
+      "query_id": "cal-restore-literal",
+      "split": "calibration",
+      "query_kind": "literal",
+      "group_id": "workbench-restore",
+      "language": "en",
+      "text": "Restore a matching archive into an empty staging directory",
+      "text_sha256": "2c9670c16981d2ba2608afcc4770a6408562a6d7079d3cbf7c55e7cd96371be1",
+      "relevant_source_keys": [
+        "workbench-archive-restore"
+      ],
+      "support": [
+        {
+          "source_key": "workbench-archive-restore",
+          "source_revision": "1",
+          "exact_span": "Restore a matching archive into an empty staging directory, compare its file inventory with the manifest, and open the restored files only after that comparison succeeds. If the checksum does not match, stop this restore and select the previous verified archive."
+        }
+      ],
+      "empty_reason": null
+    },
+    {
+      "query_id": "cal-restore-paraphrase",
+      "split": "calibration",
+      "query_kind": "paraphrase",
+      "group_id": "workbench-restore",
+      "language": "en",
+      "text": "I want to recover a workbench backup safely. Where should I unpack it, when can I open its files, and what should I do if its fingerprint is wrong?",
+      "text_sha256": "aa6fbbbf82c9a502e5c4b294f4bc55127cb798393256cb64f7512aef2c4ef9e2",
+      "relevant_source_keys": [
+        "workbench-archive-restore"
+      ],
+      "support": [
+        {
+          "source_key": "workbench-archive-restore",
+          "source_revision": "1",
+          "exact_span": "A workbench archive is restored only after its checksum matches the saved manifest. Restore a matching archive into an empty staging directory, compare its file inventory with the manifest, and open the restored files only after that comparison succeeds. If the checksum does not match, stop this restore and select the previous verified archive."
+        }
+      ],
+      "empty_reason": null
+    },
+    {
+      "query_id": "cal-restore-unanswerable",
+      "split": "calibration",
+      "query_kind": "unanswerable",
+      "group_id": "workbench-restore",
+      "language": "en",
+      "text": "Which encryption key decrypts a workbench archive before restoration?",
+      "text_sha256": "97d869aae3f6f636704b54ebc232e04527933c8bf16cdb11cfdf8c5331bc72d1",
+      "relevant_source_keys": [],
+      "support": [],
+      "empty_reason": "No note specifies archive encryption, decryption, or a key identifier."
+    },
+    {
+      "query_id": "cal-cache-literal",
+      "split": "calibration",
+      "query_kind": "literal",
+      "group_id": "cache-cistenie",
+      "language": "sk",
+      "text": "Vývojovú cache možno vymazať až po zastavení všetkých lokálnych pracovníkov",
+      "text_sha256": "a52290d2fdd37990a60b0e2a4c947fbb20a79997e45b6339373b9c9c2483c536",
+      "relevant_source_keys": [
+        "vyvojova-cache-cistenie"
+      ],
+      "support": [
+        {
+          "source_key": "vyvojova-cache-cistenie",
+          "source_revision": "1",
+          "exact_span": "Vývojovú cache možno vymazať až po zastavení všetkých lokálnych pracovníkov a po skúšobnom výpise, ktorý potvrdí presnú cieľovú cestu. Ak niektorý pracovník ešte beží, čistenie sa odloží."
+        }
+      ],
+      "empty_reason": null
+    },
+    {
+      "query_id": "cal-cache-paraphrase",
+      "split": "calibration",
+      "query_kind": "paraphrase",
+      "group_id": "cache-cistenie",
+      "language": "sk",
+      "text": "Chcem uvoľniť miesto odstránením vývojovej cache. Čo si musím najprv overiť a môžem pokračovať, keď ešte pracuje jeden lokálny proces?",
+      "text_sha256": "5fba0c6938d39dd0ad7571330850f5ad2ae9ea7175ac2d33e2d0a770f829bdff",
+      "relevant_source_keys": [
+        "vyvojova-cache-cistenie"
+      ],
+      "support": [
+        {
+          "source_key": "vyvojova-cache-cistenie",
+          "source_revision": "1",
+          "exact_span": "Vývojovú cache možno vymazať až po zastavení všetkých lokálnych pracovníkov a po skúšobnom výpise, ktorý potvrdí presnú cieľovú cestu. Ak niektorý pracovník ešte beží, čistenie sa odloží."
+        }
+      ],
+      "empty_reason": null
+    },
+    {
+      "query_id": "cal-cache-unanswerable",
+      "split": "calibration",
+      "query_kind": "unanswerable",
+      "group_id": "cache-cistenie",
+      "language": "sk",
+      "text": "Aká je maximálna povolená veľkosť vývojovej cache v mebibajtoch?",
+      "text_sha256": "a775250e920a5f0559df862ae5929cce7642ac4098aad87b3007c035786fad0a",
+      "relevant_source_keys": [],
+      "support": [],
+      "empty_reason": "Poznámka o meraní uvádza jednotku a čas merania, ale žiadna poznámka neurčuje maximálnu kapacitu cache."
+    },
+    {
+      "query_id": "cal-authority-literal",
+      "split": "calibration",
+      "query_kind": "literal",
+      "group_id": "vydanie-autorita",
+      "language": "sk",
+      "text": "Lokálne vydanie schvaľuje správca vydania",
+      "text_sha256": "d7d45e56d3325d37a2fbc934d4d912cec60526408c496e2160ea7e514ec01bc6",
+      "relevant_source_keys": [
+        "vydanie-schvalenie"
+      ],
+      "support": [
+        {
+          "source_key": "vydanie-schvalenie",
+          "source_revision": "1",
+          "exact_span": "Lokálne vydanie schvaľuje správca vydania uvedený v aktuálnom registri rolí. Vedúci incidentu môže zastaviť prípravu, ale nemôže nahradiť súhlas správcu vydania. Ak register správcu neuvádza, vydanie zostáva pozastavené až do opravy registra; zápis zo stretnutia sa nepovažuje za náhradné poverenie."
+        }
+      ],
+      "empty_reason": null
+    },
+    {
+      "query_id": "cal-authority-paraphrase",
+      "split": "calibration",
+      "query_kind": "paraphrase",
+      "group_id": "vydanie-autorita",
+      "language": "sk",
+      "text": "Na stretnutí vedúci incidentu povedal, že môžeme vydať zmenu, ale v registri chýba správca vydania. Stačí to a koho súhlas má rozhodovať?",
+      "text_sha256": "c0be7ccdd6db91a836c4431230c2377e18406dc730fd729572aab4e8f7309f17",
+      "relevant_source_keys": [
+        "vydanie-schvalenie"
+      ],
+      "support": [
+        {
+          "source_key": "vydanie-schvalenie",
+          "source_revision": "1",
+          "exact_span": "Lokálne vydanie schvaľuje správca vydania uvedený v aktuálnom registri rolí. Vedúci incidentu môže zastaviť prípravu, ale nemôže nahradiť súhlas správcu vydania. Ak register správcu neuvádza, vydanie zostáva pozastavené až do opravy registra; zápis zo stretnutia sa nepovažuje za náhradné poverenie."
+        }
+      ],
+      "empty_reason": null
+    },
+    {
+      "query_id": "cal-authority-unanswerable",
+      "split": "calibration",
+      "query_kind": "unanswerable",
+      "group_id": "vydanie-autorita",
+      "language": "sk",
+      "text": "Kto zastupuje správcu vydania počas dovolenky a dokedy musí odpovedať?",
+      "text_sha256": "0b77cfc1067ecfd4fc153f29353f4782213743e2f96d917a0b1ac314e5c1192b",
+      "relevant_source_keys": [],
+      "support": [],
+      "empty_reason": "Korpus určuje zdroj schvaľovacej autority, ale neuvádza zástupcu ani lehotu odpovede."
+    }
+  ],
+  "heldout_commitment": {
+    "sha256": "5ec966d4fb6cb0acfb9c342d64e3fd6a72cf0378a2d1ba9a4b1d722859637917",
+    "bytes": 11960,
+    "query_count": 12,
+    "query_kinds": {
+      "literal": 4,
+      "paraphrase": 4,
+      "unanswerable": 4
+    },
+    "languages": {
+      "en": 6,
+      "sk": 6
+    },
+    "seal": "Queries/labels retained outside the repository by a separate verifier until semantic source and calibration rule are frozen. This is role-based exposure control, not enforced filesystem confinement."
+  }
+}
