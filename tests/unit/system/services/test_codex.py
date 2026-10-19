@@ -11,6 +11,7 @@ from lychd.system.services.codex import CodexService
 from lychd.system.services.lifecycle.models import CreatedResources
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
     from pathlib import Path
 
 
@@ -33,14 +34,22 @@ def codex_paths(tmp_path: Path) -> dict[str, Path]:
 
 
 @pytest.fixture
-def codex_service(codex_paths: dict[str, Path]) -> CodexService:
-    """Instantiate CodexService with isolated paths."""
-    return CodexService(
-        toml_path=codex_paths["toml"],
-        runes_path=codex_paths["runes"],
-        postgres_root_path=codex_paths["postgres"],
-        rune_schemas=[],
-    )
+def codex_service(
+    codex_paths: dict[str, Path],
+    monkeypatch: pytest.MonkeyPatch,
+) -> Iterator[CodexService]:
+    """Isolate configuration reads and cached settings as well as write paths."""
+    monkeypatch.setattr(settings_module, "PATH_LYCHD_TOML", codex_paths["toml"])
+    get_settings.cache_clear()
+    try:
+        yield CodexService(
+            toml_path=codex_paths["toml"],
+            runes_path=codex_paths["runes"],
+            postgres_root_path=codex_paths["postgres"],
+            rune_schemas=[],
+        )
+    finally:
+        get_settings.cache_clear()
 
 
 def test_lychd_toml_is_valid_and_round_trips_through_settings(

@@ -23,8 +23,8 @@ Soulforge corpora stay distinct and cite by stable ref.
 
 !!! warning "Delivery boundary"
     The bounded public-note profile below does not deliver the general Archive contract.
-    Automatic intake, semantic retrieval, cross-namespace sharing, Curator, and private-material
-    recall remain separate work. Existing Karma rows are not a usable memory corpus. State owns
+    Automatic intake, combined native semantic retrieval, cross-namespace sharing, Curator, and
+    private-material recall remain separate work. Existing Karma rows are not a usable memory corpus. State owns
     the profile's exact executable and acceptance boundary.
 
 ## Bounded local public notes
@@ -155,6 +155,90 @@ This derivation API adds no semantic recall, ANN index, Bridge revision, model t
 format. Existing lexical receipts and Bridge3 behavior remain unchanged. Model conformance,
 PostgreSQL race tests and live host acceptance are separate evidence boundaries recorded by State.
 
+## Explicit exact semantic recall
+
+A separately selected exact semantic consumer binds the same public-note Archive profile and one
+immutable configured generation/reference plus Core model.embed@1 binding. Query inference is
+separately opt-in through `archive.semantic` (default `false`), permitted only with the existing
+`archive.derivation` selection. It uses that exact configured generation; derivation configuration
+alone grants no semantic query authority. Startup registers/derives/queries nothing. Caller supplies
+no vector, arbitrary embedder, namespace fallback or model command. Lexical request/receipt schema1,
+digests, retained replay and Bridge3 remain unchanged; the semantic policy is
+postgres-exact-cosine@1 with a separate strict request and schema2 receipt.
+
+Generation readiness is **per-source derivation**, not a generation-wide completed corpus claim. A
+query may search only the exact current complete rows of its active configured generation. Under the
+existing namespace lock in the final selection transaction, the receipt counts current promoted
+non-null notes and the subset with eligible complete vectors before threshold/rank; retained
+coverage is historical on replay. Zero eligible rows is an observed empty compatible set with
+explicit coverage; missing/foreign/unregistered/retired/mismatched generation is a typed failure,
+not a miss. No completeness marker, new namespace adoption or silent generation registration is
+invented.
+
+The request binds namespace/request identity, exact generation/manifest, configured profile/policy,
+trusted subject/purpose, raw query digest and complete defaults/budgets into request identity. Query
+length is bounded by current Archive limit; Core additionally enforces exact rendered UTF-8/token
+bounds. min_cosine is an explicit required finite value in[-1,1], not an inferred
+confidence/default. Results use finite cosine similarity in[-1,1] (one minus pgvector cosine
+distance), descending score and stable note UUID ties. All current eligibility predicates apply
+before exact distance/ranking; no global top-k followed by filtering, approximate index or silent
+lexical fallback. Select at most the requested top-k, then fit whole-note character budget without
+truncation or backfill, retaining omissions.
+
+Semantic recall and semantic resolution use separate explicit authorization actions
+(semantic_recall, semantic_resolve); historical metadata retains inspect authority. The caller's
+current configured namespace/owner/policy, purpose and exact request/generation binding must
+authorize before query disclosure/storage; recheck after every awaited preparation, before each
+source-bearing Core request and after session/lease cleanup. Source text and query remain
+public-classified protected data under those authorities. Similarity locates context; it grants no
+instruction, tool, write, identity or truth authority.
+
+Preflight/replay is a short serialized namespace transaction. Exact completed semantic replay checks
+integrity and full binding and returns its original text-free receipt with zero embedding, including
+after source/generation retirement as historical selection only. It never reranks or restores
+eligibility. Conflicting request identity, including lexical/semantic reuse, refuses before
+inference. For a new request, preflight verifies the active exact generation and captures its
+version, then releases the transaction before one ordinary embed_query lease. Validate
+profile/item/input/rendered/vector/token/native receipt bindings and canonical float32/L2 without
+renormalization. Close/join driver and counted lease before selection/publication. Missing
+readiness, malformed/oversize output, cancellation, timeout and cleanup failure cannot publish a
+miss.
+
+The final namespace transaction first rechecks current authority and looks up the request identity
+again: a matching completed receipt returns its original selection with this caller's execution
+metadata; a conflict refuses. Only the unpublished branch rechecks the same active
+generation/version and selects current eligible joined source/vector rows. A retired generation
+during inference refuses. Note lifecycle changes during inference affect this final eligible
+snapshot; no stale vector can be resurrected. Selected rows pin exact source
+revision/digest/lifecycle/projection, derivation identity/row version/vector digest and
+generation/reference/version. Persist schema2 in the existing archive_recall JSON/namespace-request
+uniqueness, with text-free query execution metadata/digests/tokens and
+coverage/bounds/order/omissions. Never persist raw query text, query-vector coordinates, source
+bodies or a second vector copy in the receipt. No migration or new durable job ledger is justified
+for this slice.
+
+No database lock spans inference or cleanup. Concurrent unseen identical requests may each perform
+their one explicitly admitted local query operation before one receipt wins publication. This
+duplicate cost is explicitly allowed, not exactly-once inference. Completed replay does no model
+work. A successful immediate call result reports both the winning retained selection receipt and any
+query-execution metadata incurred by **this caller**, so a losing publisher cannot disguise its own
+work as zero-cost replay. Winning receipt usage is not total duplicate/unknown-failure accounting;
+no durable all-attempt/spend completeness claim follows. No automatic retry; unknown outcome
+requires an explicit caller decision and may incur another operation. Reuse the existing counted
+lease/resource boundaries, without adding a global paid-capacity policy.
+
+Semantic resolution rechecks current authority, exact active generation/reference/version, and every
+selected complete derivation/source/lifecycle/projection fence before returning attributed source
+bytes. Revocation, archival, supersession, generation retirement, missing/incomplete/changed vectors
+or any binding change refuses the whole resolution; no replacement source or rerank. Historical
+text-free inspection remains independent and can survive those changes. Final synchronous authority
+checks follow transaction/session cleanup; they do not claim atomic socket-write/lifecycle or
+deletion of earlier influence. Existing lexical readers explicitly refuse a schema2 receipt rather
+than silently parsing it as schema1.
+
+This section governs a separately selected consumer; it does not establish delivery. State owns
+executable and native-composition acceptance.
+
 ## Framework boundary and Memori
 
 [Memori](https://github.com/MemoriLabs/Memori) is a maintained comparison source, not an installed
@@ -252,7 +336,9 @@ Orchestrator supplies readiness. Neither decides what deserves retention. Extrac
 relations, summaries and preferences remain attributed claims with a source excerpt or reference.
 
 An authoritative record and its derivation may commit separately. Asynchronous vector work must
-expose its index state and remain invisible to vector recall until its generation is complete.
+expose its index state and remain invisible to vector recall until its exact source derivation
+in the configured generation is complete. The explicit semantic consumer reports partial
+completed-source coverage; it does not infer a generation-wide completion marker.
 Retries are idempotent by source revision and derivation specification.
 
 ## Curation and sediment {#memory-layering-sediment-not-dump}

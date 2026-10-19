@@ -42,12 +42,12 @@ def test_native_tcp_receipt_preserves_its_observed_scope_and_privacy() -> None:
     receipt = json.loads(text)
     assert receipt["schema"] == "local-bridge-vllm-native-tcp@1"
     assert receipt["record_kind"] == "sanitized_public_local_bridge_native_tcp_qualification"
-    assert receipt["qualification_date"] == "2026-10-18"
+    assert receipt["qualification_date"] == "2026-10-19"
     assert receipt["status"] == "passed"
     assert "The optional thinking policy was omitted" in receipt["identity_boundary"]
     assert "Creation investigation was omitted." in receipt["identity_boundary"]
     assert receipt["source_identity"] == {
-        "revision_observed": "2a0fe8136e5d41394000bfb81bf32582f5354605",
+        "revision_observed": "491124702b09b6b8bc9dac3364affbdc97899870",
         "clean_checkout_observed": False,
         "atomic_transitive_closure_attested": False,
         "scope": "bounded-critical-source-and-test-fingerprints",
@@ -240,10 +240,10 @@ def test_native_tcp_receipt_matches_qualified_sources_and_provenance() -> None:
         "resource_launcher_source_sha256",
         "resource_receipt_sha256",
     }
-    assert evidence["coordinator_source_sha256"] == "96290c12c0bfde1ace5b36988e83e392ae843409748a0a976a8f8d3cc03670cb"
+    assert evidence["coordinator_source_sha256"] == "e1f97320f1fe0157d8022f1a12901ece19b39819472fdc6f05df7a6b041e9a43"
     assert (
         evidence["resource_launcher_source_sha256"]
-        == "17266c2ce4b7ddc5dcf8597e62ba01928ba3cc48b675d26d2aad228637bad2e9"
+        == "34333279cc4d576443d7d70489af5f9902046e624db26a66251d9cbc47d049f7"
     )
     for digest in evidence.values():
         assert re.fullmatch(r"[0-9a-f]{64}", digest)

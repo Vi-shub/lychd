@@ -1986,9 +1986,29 @@ rollback and restricted runtime permissions. The configured HTTP test uses the r
 with substituted model responses, covers discovery through registration and derivation, and
 shares the application's lease ledger without emitting Run events for caller-supplied Run identifiers.
 
-**Boundary — Not yet:** This is lexical RAG for explicit same-host public notes, without semantic
-retrieval, general `CandidateArchivePort`, automatic conversation retention, extraction, Curator,
-GraphRAG, shared namespaces, remote IAM, private-material egress or training. Public-note controls
+A separately enabled `archive.semantic = true` consumer uses that same configured derivation
+generation. Its strict request requires an explicit cosine threshold. The authenticated
+`/api/v1/archive/semantic/recalls` endpoint returns a text-free schema2 selection receipt and any
+query execution incurred by this caller; exact completed replay performs no query inference.
+Sibling POST inspection and receipt-resolution routes distinguish historical selection from
+currently eligible source bytes. Source-attributed resolution rechecks the active exact generation
+and every selected source/vector fence. Receipts report the final snapshot's promoted and eligible
+note counts; partial derivation coverage is explicit. Existing lexical/schema1 and Bridge3 remain
+unchanged.
+
+Actual PostgreSQL tests cover filtered exact signed cosine, deterministic ties, coverage, bounded
+whole-note selection, concurrent publication, lifecycle/generation races, corruption, transaction
+timeouts and the existing restricted runtime role. Authenticated ASGI plus actual PostgreSQL tests
+exercise the configured factories, real Core HTTP driver and shared leases with intercepted model
+responses. HTTP numeric-coercion negatives use the production schema plugin. These tests do not
+qualify real-model Archive composition, general retrieval quality, a browser semantic instrument
+or a semantic Bridge Pattern.
+
+**Boundary — Not yet:** Ordinary Bridge3 remains lexical RAG for explicit same-host public notes.
+The separate semantic API has no qualified native model/database composition or general retrieval
+quality. General `CandidateArchivePort`, automatic conversation retention, extraction, Curator,
+GraphRAG, shared namespaces, remote IAM, private-material egress and training remain unqualified.
+Public-note controls
 have no source-body preview or prefilled editing; real-browser keyboard/reflow/reload acceptance and
 installed cutover remain unqualified. Ordinary revision 3 execution uses live Graph persistence; separately proved typed
 checkpoint reconstruction does not establish automatic recovery after worker death. The portable
@@ -2007,6 +2027,8 @@ Generated answers can quote sources; later revocation does not erase earlier out
 - **Source:** [Derivation service](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/archive/derivation_service.py), [derivation store](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/archive_derivation.py), [migration 0013](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/migrations/versions/0013_archive_derivations.py), and [configured derivation API](https://github.com/hexanomicon/lychd/blob/main/src/lychd/interface/web/archive_derivation.py)
 - **Verification:** [Domain tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/test_archive.py), [PostgreSQL lifecycle](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_pg.py), [migrations](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_migrations_pg.py), [runtime role](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_runtime_pg.py), [worker and typed continuation](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_vertical_pg.py), and [projection tests](https://github.com/hexanomicon/lychd/blob/main/tests/agents/test_archive_context.py)
 - **Verification:** [Derivation races](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_derivation_pg.py), [configured HTTP and lease integration](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_derivation_http_pg.py), [migration rollback](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_derivation_migrations_pg.py), and [derivation runtime role](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_derivation_runtime_pg.py)
+- **Source:** [Exact semantic values and service](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/archive/semantic_service.py), [filtered PostgreSQL store](https://github.com/hexanomicon/lychd/blob/main/src/lychd/db/archive_semantic.py), and [separate authenticated API](https://github.com/hexanomicon/lychd/blob/main/src/lychd/interface/web/archive_semantic.py)
+- **Verification:** [Semantic protocol and numeric identity](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/test_archive_semantic.py), [retained schema and safe storage failures](https://github.com/hexanomicon/lychd/blob/main/tests/unit/db/test_archive_semantic.py), [actual PostgreSQL fences and runtime role](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_semantic_pg.py), [composed HTTP with intercepted model responses](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_archive_semantic_http_pg.py), [transport denials](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_archive_semantic.py), and [exported contract](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_archive_semantic_openapi.py)
 - **Verification:** [Metadata authority, cursor and column-selection tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/db/test_archive_failures.py) and [guarded metadata HTTP tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_archive_metadata.py); the PostgreSQL lifecycle and vertical tests above include retained metadata recovery and no-write reads.
 - **Source:** [Public-note focus](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/PublicNotes.svelte) and [framework-neutral recovery controller](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/archive/notes.ts)
 - **Verification:** [Recovery and unknown outcomes](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/archive/notes.test.ts), [controls and late-focus races](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/PublicNotes.test.ts), [transport/CSRF](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/api/archive.test.ts), [closed route dispatch](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/routes/bridge/page.test.ts), and [ordinary Bridge workspace preservation](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/BridgeShellNavigation.test.ts)

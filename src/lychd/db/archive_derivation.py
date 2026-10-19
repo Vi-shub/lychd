@@ -13,6 +13,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import defer, load_only
 
 from lychd.db.archive_derivation_lifecycle import invalidate_derivations
+from lychd.db.archive_generation import exact_generation
 from lychd.db.archive_namespace import lock_archive_namespace
 from lychd.db.models.archive import ArchiveNote
 from lychd.db.models.archive_derivation import ArchiveEmbeddingGeneration, ArchiveNoteEmbedding
@@ -78,28 +79,6 @@ def _status(row: ArchiveNoteEmbedding, now: datetime) -> DerivationStatus:
 
 async def _now(session: AsyncSession) -> datetime:
     return cast("datetime", await session.scalar(select(func.clock_timestamp())))
-
-
-async def _generation(
-    session: AsyncSession, manifest: GenerationManifest, reference: GenerationRef, *, active: bool = True
-) -> ArchiveEmbeddingGeneration:
-    row = await session.scalar(
-        select(ArchiveEmbeddingGeneration).where(
-            ArchiveEmbeddingGeneration.namespace_id == manifest.archive.namespace_id,
-            ArchiveEmbeddingGeneration.id == reference.generation_id,
-        )
-    )
-    if row is None:
-        raise ArchiveRefused("generation_missing")  # noqa: EM101 - closed safe refusal code
-    if (
-        reference.manifest_digest != manifest.digest
-        or row.manifest_digest != manifest.digest
-        or row.manifest != manifest.model_dump(mode="json")
-    ):
-        raise ArchiveRefused("generation_binding")  # noqa: EM101 - closed safe refusal code
-    if active and row.state != "active":
-        raise ArchiveRefused("generation_retired")  # noqa: EM101 - closed safe refusal code
-    return row
 
 
 async def _eligible(session: AsyncSession, manifest: GenerationManifest, reference: RecordRef) -> ArchiveNote:
@@ -210,7 +189,7 @@ class DbArchiveDerivationStore:
                 )
             )
             if row is not None:
-                row = await _generation(session, manifest, reference, active=False)
+                row = await exact_generation(session, manifest, reference, active=False)
             else:
                 same = await session.scalar(
                     select(ArchiveEmbeddingGeneration.id).where(
@@ -241,7 +220,7 @@ class DbArchiveDerivationStore:
         async with self._transaction() as session:
             await lock_archive_namespace(session, manifest.archive)
             check(reference.generation_id, digest(reference))
-            row = await _generation(session, manifest, reference, active=False)
+            row = await exact_generation(session, manifest, reference, active=False)
             if row.version != expected_version or row.state != "active":
                 raise ArchiveRefused("stale_version")  # noqa: EM101 - closed safe refusal code
             row.state, row.version, row.retired_at = "retired", row.version + 1, await _now(session)
@@ -259,7 +238,7 @@ class DbArchiveDerivationStore:
         async with self._transaction() as session:
             await lock_archive_namespace(session, manifest.archive)
             check(request.source.record_id, digest(request))
-            generation = await _generation(session, manifest, request.generation)
+            generation = await exact_generation(session, manifest, request.generation)
             note = await _eligible(session, manifest, request.source)
             row = await _row(session, manifest, request)
             if row is None:
@@ -293,7 +272,7 @@ class DbArchiveDerivationStore:
         async with self._transaction() as session:
             await lock_archive_namespace(session, manifest.archive)
             check(request.source.record_id, digest(request))
-            await _generation(session, manifest, request.generation, active=False)
+            await exact_generation(session, manifest, request.generation, active=False)
             row = await _row(session, manifest, request)
             if row is None:
                 raise ArchiveRefused("derivation_missing")  # noqa: EM101 - closed safe refusal code
@@ -313,7 +292,7 @@ class DbArchiveDerivationStore:
         async with self._transaction() as session:
             await lock_archive_namespace(session, manifest.archive)
             check(expected.derivation_id, digest(request))
-            generation = await _generation(session, manifest, request.generation)
+            generation = await exact_generation(session, manifest, request.generation)
             note = await _eligible(session, manifest, request.source)
             row = await _row(session, manifest, request)
             now = await _now(session)
@@ -371,7 +350,7 @@ class DbArchiveDerivationStore:
         async with self._transaction() as session:
             await lock_archive_namespace(session, manifest.archive)
             check(attempt.status.derivation_id, attempt.binding_digest)
-            generation = await _generation(session, manifest, attempt.status.generation)
+            generation = await exact_generation(session, manifest, attempt.status.generation)
             note = await _eligible(session, manifest, attempt.status.source)
             if note.source_digest != attempt.status.source_digest:
                 raise ArchiveRefused("source_integrity")  # noqa: EM101 - closed safe refusal code

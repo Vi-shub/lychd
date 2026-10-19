@@ -69,3 +69,44 @@ def test_conflicting_bindings_and_arbitrary_derivation_manifest_refuse() -> None
                 }
             )
         ).materialize()
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+def test_semantic_query_is_explicit_and_uses_existing_generation(*, enabled: bool) -> None:
+    binding = profile()
+    selection = {
+        "generation_id": str(uuid4()),
+        "binding": {"capability_key": "local:embedding:model", "profile_digest": "a" * 64},
+    }
+    settings = SettingsSnapshot(
+        payload=json.dumps({"archive": {"profile": binding, "derivation": selection, "semantic": enabled}})
+    ).materialize()
+    assert settings.archive is not None
+    assert settings.archive.semantic is enabled
+    assert settings.archive.derivation is not None
+    assert str(settings.archive.derivation.generation_id) == selection["generation_id"]
+    restored = SettingsSnapshot.capture(settings).materialize()
+    assert restored.archive == settings.archive
+
+
+def test_derivation_alone_does_not_enable_semantic_query() -> None:
+    settings = SettingsSnapshot(
+        payload=json.dumps(
+            {
+                "archive": {
+                    "profile": profile(),
+                    "derivation": {
+                        "generation_id": str(uuid4()),
+                        "binding": {"capability_key": "local:embedding:model", "profile_digest": "a" * 64},
+                    },
+                }
+            }
+        )
+    ).materialize()
+    assert settings.archive is not None
+    assert settings.archive.semantic is False
+
+
+def test_semantic_query_requires_explicit_derivation_selection() -> None:
+    with pytest.raises(ValidationError, match=r"requires archive\.derivation"):
+        SettingsSnapshot(payload=json.dumps({"archive": {"profile": profile(), "semantic": True}})).materialize()

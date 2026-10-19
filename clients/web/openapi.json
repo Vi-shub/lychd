@@ -4727,6 +4727,395 @@
         "title": "ScavengerState",
         "type": "object"
       },
+      "SemanticCoverage": {
+        "additionalProperties": false,
+        "properties": {
+          "eligible_notes": {
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "promoted_notes": {
+            "minimum": 0.0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "eligible_notes",
+          "promoted_notes"
+        ],
+        "title": "SemanticCoverage",
+        "type": "object"
+      },
+      "SemanticQueryExecution": {
+        "additionalProperties": false,
+        "properties": {
+          "execution_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "grant_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "input_digest": {
+            "type": "string"
+          },
+          "item_id": {
+            "maxLength": 36,
+            "minLength": 36,
+            "type": "string"
+          },
+          "operation": {
+            "const": "embed_query",
+            "default": "embed_query",
+            "type": "string"
+          },
+          "profile_digest": {
+            "type": "string"
+          },
+          "receipt_digest": {
+            "type": "string"
+          },
+          "rendered_digest": {
+            "type": "string"
+          },
+          "tokens": {
+            "maximum": 511.0,
+            "minimum": 1.0,
+            "type": "integer"
+          },
+          "vector_digest": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "execution_id",
+          "grant_id",
+          "input_digest",
+          "item_id",
+          "profile_digest",
+          "receipt_digest",
+          "rendered_digest",
+          "tokens",
+          "vector_digest"
+        ],
+        "title": "SemanticQueryExecution",
+        "type": "object"
+      },
+      "SemanticRecallItem": {
+        "additionalProperties": false,
+        "properties": {
+          "selection": {
+            "$ref": "#/components/schemas/SemanticSelection"
+          },
+          "text": {
+            "maxLength": 16000,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "selection",
+          "text"
+        ],
+        "title": "SemanticRecallItem",
+        "type": "object"
+      },
+      "SemanticRecallProjection": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SemanticRecallItem"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/SemanticRecallReceipt"
+          }
+        },
+        "required": [
+          "items",
+          "receipt"
+        ],
+        "title": "SemanticRecallProjection",
+        "type": "object"
+      },
+      "SemanticRecallReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "char_budget": {
+            "maximum": 32000.0,
+            "minimum": 1.0,
+            "type": "integer"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/SemanticCoverage"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "generation": {
+            "$ref": "#/components/schemas/GenerationRef"
+          },
+          "generation_version": {
+            "minimum": 1.0,
+            "type": "integer"
+          },
+          "max_results": {
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "type": "integer"
+          },
+          "min_cosine": {
+            "maximum": 1.0,
+            "minimum": -1.0,
+            "type": "number"
+          },
+          "namespace_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "omitted_for_budget": {
+            "maximum": 20.0,
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "policy_revision": {
+            "maxLength": 160,
+            "minLength": 1,
+            "type": "string"
+          },
+          "profile": {
+            "const": "local-public-notes@1",
+            "default": "local-public-notes@1",
+            "type": "string"
+          },
+          "purpose": {
+            "maxLength": 160,
+            "minLength": 1,
+            "type": "string"
+          },
+          "query_digest": {
+            "type": "string"
+          },
+          "query_execution": {
+            "$ref": "#/components/schemas/SemanticQueryExecution"
+          },
+          "receipt_digest": {
+            "type": "string"
+          },
+          "receipt_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "request_digest": {
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "retrieval_policy": {
+            "const": "postgres-exact-cosine@1",
+            "default": "postgres-exact-cosine@1",
+            "type": "string"
+          },
+          "run_id": {
+            "oneOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "schema_version": {
+            "const": 2,
+            "default": 2,
+            "type": "integer"
+          },
+          "selected": {
+            "items": {
+              "$ref": "#/components/schemas/SemanticSelection"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/ArchiveSubject"
+          }
+        },
+        "required": [
+          "char_budget",
+          "coverage",
+          "created_at",
+          "generation",
+          "generation_version",
+          "max_results",
+          "min_cosine",
+          "namespace_id",
+          "omitted_for_budget",
+          "policy_revision",
+          "purpose",
+          "query_digest",
+          "query_execution",
+          "receipt_digest",
+          "receipt_id",
+          "request_digest",
+          "request_id",
+          "run_id",
+          "selected",
+          "subject"
+        ],
+        "title": "SemanticRecallReceipt",
+        "type": "object"
+      },
+      "SemanticRecallRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "char_budget": {
+            "default": 8000,
+            "maximum": 32000.0,
+            "minimum": 1.0,
+            "type": "integer"
+          },
+          "generation": {
+            "$ref": "#/components/schemas/GenerationRef"
+          },
+          "max_results": {
+            "default": 5,
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "type": "integer"
+          },
+          "min_cosine": {
+            "maximum": 1.0,
+            "minimum": -1.0,
+            "type": "number"
+          },
+          "namespace_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "query": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "run_id": {
+            "oneOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "generation",
+          "min_cosine",
+          "namespace_id",
+          "query",
+          "request_id"
+        ],
+        "title": "SemanticRecallRequest",
+        "type": "object"
+      },
+      "SemanticRecallResult": {
+        "additionalProperties": false,
+        "properties": {
+          "current_query_execution": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SemanticQueryExecution"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/SemanticRecallReceipt"
+          }
+        },
+        "required": [
+          "current_query_execution",
+          "receipt"
+        ],
+        "title": "SemanticRecallResult",
+        "type": "object"
+      },
+      "SemanticSelection": {
+        "additionalProperties": false,
+        "properties": {
+          "derivation_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "projected_chars": {
+            "maximum": 16000.0,
+            "minimum": 1.0,
+            "type": "integer"
+          },
+          "projection_digest": {
+            "type": "string"
+          },
+          "reference": {
+            "$ref": "#/components/schemas/RecordRef"
+          },
+          "row_version": {
+            "minimum": 1.0,
+            "type": "integer"
+          },
+          "score": {
+            "maximum": 1.0,
+            "minimum": -1.0,
+            "type": "number"
+          },
+          "source_digest": {
+            "type": "string"
+          },
+          "source_key": {
+            "maxLength": 160,
+            "minLength": 1,
+            "type": "string"
+          },
+          "source_revision": {
+            "maxLength": 160,
+            "minLength": 1,
+            "type": "string"
+          },
+          "vector_digest": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "derivation_id",
+          "projected_chars",
+          "projection_digest",
+          "reference",
+          "row_version",
+          "score",
+          "source_digest",
+          "source_key",
+          "source_revision",
+          "vector_digest"
+        ],
+        "title": "SemanticSelection",
+        "type": "object"
+      },
       "SessionCreated": {
         "additionalProperties": false,
         "properties": {
@@ -6301,6 +6690,229 @@
           }
         },
         "summary": "RunRecall"
+      }
+    },
+    "/api/v1/archive/semantic/recalls": {
+      "post": {
+        "deprecated": false,
+        "operationId": "recallArchiveSemanticNotes",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SemanticRecallRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SemanticRecallResult"
+                }
+              }
+            },
+            "description": "Document created, URL follows",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "detail": "Bad Request",
+                      "extra": {},
+                      "status_code": 400
+                    }
+                  ],
+                  "properties": {
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    },
+                    "status_code": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Bad request syntax or unsupported method"
+          }
+        },
+        "summary": "Recall"
+      }
+    },
+    "/api/v1/archive/semantic/recalls/inspect": {
+      "post": {
+        "deprecated": false,
+        "operationId": "inspectArchiveSemanticRecall",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SemanticRecallRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/SemanticRecallReceipt"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Document created, URL follows",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "detail": "Bad Request",
+                      "extra": {},
+                      "status_code": 400
+                    }
+                  ],
+                  "properties": {
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    },
+                    "status_code": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Bad request syntax or unsupported method"
+          }
+        },
+        "summary": "Inspect"
+      }
+    },
+    "/api/v1/archive/semantic/recalls/{receipt_id}/resolve": {
+      "post": {
+        "deprecated": false,
+        "operationId": "resolveArchiveSemanticRecall",
+        "parameters": [
+          {
+            "deprecated": false,
+            "in": "path",
+            "name": "receipt_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArchiveResolveIntent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SemanticRecallProjection"
+                }
+              }
+            },
+            "description": "Document created, URL follows",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "detail": "Bad Request",
+                      "extra": {},
+                      "status_code": 400
+                    }
+                  ],
+                  "properties": {
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    },
+                    "status_code": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Bad request syntax or unsupported method"
+          }
+        },
+        "summary": "Resolve"
       }
     },
     "/api/v1/atlas/projects": {

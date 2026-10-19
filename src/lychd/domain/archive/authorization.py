@@ -1,4 +1,4 @@
-"""Shared current policy check for lexical and derivation operations."""
+"""Shared current policy check for lexical, derivation and semantic operations."""
 
 from __future__ import annotations
 

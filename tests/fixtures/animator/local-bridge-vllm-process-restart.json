@@ -105,21 +105,21 @@
     "shutdown": "clean-TestClient-lifespan",
     "start_method": "spawn"
   },
-  "qualification_date": "2026-10-18",
+  "qualification_date": "2026-10-19",
   "qualification_evidence": {
-    "application_receipt_sha256": "1cb9fc552a4bd170be0c63e3c708f49f7c39da358102fdc9fb22ac4e6ef9ef05",
-    "candidate_manifest_sha256": "a7d291cb1a8b424acca2033ec7080226eb3de4460449f62611a4baaac8ab4fc2",
-    "coordinator_receipt_sha256": "28f9ae6fe54bab19ee634ae4e71b314c1ce8ba3e96458920ebf24a60a54e667d",
-    "coordinator_source_sha256": "96290c12c0bfde1ace5b36988e83e392ae843409748a0a976a8f8d3cc03670cb",
-    "model_profile_sha256": "d688cb6ec583fbcfbef5a2395c4c1f8c8160879ac0e21a307d5f8a42ad86413c",
+    "application_receipt_sha256": "aa853d59df07d8d2971c3b36fa24a94201ec5be935b9ff9c913fed1c9a9e7a65",
+    "candidate_manifest_sha256": "c9b3cb8eab2da7e703035372fc0f0d5b08a6459589d75b79a4e1d66be45ab387",
+    "coordinator_receipt_sha256": "df389a7af61161c43916e8960414f2c3c6411e49bdb4c223c699b4c4ac67a96b",
+    "coordinator_source_sha256": "e1f97320f1fe0157d8022f1a12901ece19b39819472fdc6f05df7a6b041e9a43",
+    "model_profile_sha256": "a9b3e9848ae2f9aa3aa3b0de5e15075475d9f43a22ea073fed248f83d3d46f3c",
     "process_test_sha256_before_trial": "9621a9209499c7f552b024e18a1621f132964b87e9d7f0f9d38bbb780515eaa9",
-    "pytest_log_sha256": "cdb69ecd54696d8b65bf0ceeefeffcf5dfa7474d3286488b0e11ad1457864b50",
-    "resource_launcher_source_sha256": "17266c2ce4b7ddc5dcf8597e62ba01928ba3cc48b675d26d2aad228637bad2e9",
-    "resource_receipt_sha256": "e1c5481191729fbdd80be45be19c0aa1d0f67aa34605d945ea97dda775a1431e"
+    "pytest_log_sha256": "ec645ca064b2f81556efde3394fb74df0ea607bab7f49439eeb69b7ffde210b7",
+    "resource_launcher_source_sha256": "34333279cc4d576443d7d70489af5f9902046e624db26a66251d9cbc47d049f7",
+    "resource_receipt_sha256": "105817fea73203b8d40174cef5005741f9a8f707cb8286056da011c2cd2c3f2e"
   },
   "record_kind": "sanitized_public_local_bridge_process_qualification",
-  "retained_history_sha256": "69fce69183e504771fa140c6719bd1cd1e3efb39b84e6dbe4d984e74db87b005",
-  "retained_turns_sha256": "d80d61351a054e269bcf0767db8699d976a135f23d3cc2dfceaa166e31d9af38",
+  "retained_history_sha256": "4eab31ee54211d081ab0318af3d8c0ec780f5db87416e2169a3e2338ce0bbb02",
+  "retained_turns_sha256": "5e2b360738e22c846e1b5115cb6ef323da0535688a1fb1e2e6eb06f5caed0236",
   "runner": {
     "cleanup_verified": true,
     "coordinator_cleanup_reserve_seconds": 30,
@@ -151,7 +151,7 @@
     "src/lychd/agents/the_first_one.py": "18ff57c6305edd1a1bdd7c2a9eb096a91ec28e9699bd2e8f3d4e099fc82e9b98",
     "src/lychd/agents/workflows/bridge_chat.py": "40d720afee98c0abd046d676e62ed1c154736fd9df7d48913ab02013a9c9ab85",
     "src/lychd/agents/workflows/nodes.py": "7b8bb849280495e295300cef7cffff7f351966004d7c0f1d016b8217bfc68b92",
-    "src/lychd/app.py": "f3725dadffc6a2321680167b41712c979099ef5b0bd48b4233ae12f4c1ac2b8d",
+    "src/lychd/app.py": "6515063f5d46620bd0665a2a76ea4f9970eaee974fc29a977633e58216619c6a",
     "src/lychd/compositions/creation/schemas.py": "b111d69523df2b5f84c7cce9fe81a8ede9f5d4b92bdcbc323a54a4c024514584",
     "src/lychd/compositions/creation/services.py": "4bdeceb2dd6905351b5c0daedc8e6b13d479f2aff3f425953a4dd7604399a3b6",
     "src/lychd/config/components.py": "fb35c47ba9ee2cf9cec20b955120da279610579aeddaa81ce78c2b9885f005f7",
@@ -194,7 +194,7 @@
     "src/lychd/interface/api/creation.py": "8bdf671a9d3eef5affa05868cbc96a6b95650675cf4c5762b15d95e603ce3480",
     "src/lychd/interface/api/lifecycle.py": "a8feea8caefba3c640360851ade444349ec0c4b93f334092384a6d00d19aa98a",
     "src/lychd/interface/server_policy.py": "702ff8945dd1ac9f1907b3f0f6ffa5b697446b3af1312fb6e33e0b16b3cbcd74",
-    "src/lychd/interface/web/altar_services.py": "825509f6de440dd0e89684e919628a582d90ed496b74c2721a53cf6800468b59",
+    "src/lychd/interface/web/altar_services.py": "642d2ec0160a182bbc1ebad12f65ea9ecd1664ea5513b4d308a87b641a28b914",
     "src/lychd/interface/web/bridge.py": "9cb949ed5b16e7bb5429eb3161cf77119cd6230800b15b523485d656de6245dc",
     "src/lychd/interface/web/lifespan.py": "4312a3a93adecc3013cebe2cf95ec271905137d2990b839e2e8c7ff5b071e190",
     "src/lychd/system/operator/admission.py": "8312e98209e267ed7bcbeeb990416cbafd36b1127c6436ef0db701d94b0c1f3b",
@@ -206,14 +206,14 @@
   },
   "source_identity": {
     "atomic_transitive_closure_attested": false,
-    "base_revision_declared": "2a0fe8136e5d41394000bfb81bf32582f5354605",
+    "base_revision_declared": "491124702b09b6b8bc9dac3364affbdc97899870",
     "clean_checkout_attested": false,
     "scope": "bounded-critical-source-and-test-fingerprints"
   },
   "status": "passed",
   "timings_seconds": {
-    "command": 22.2691,
-    "pytest": 19.95
+    "command": 22.0826,
+    "pytest": 19.78
   },
   "unexercised": [
     "browser-and-full-accessibility",

@@ -40,6 +40,8 @@ from lychd.domain.orchestration.policies import resolve_switch_policy
 from lychd.domain.web.fragments import build_fragment_registry
 from lychd.domain.web.projection import EventProjector
 from lychd.domain.web.tickets import TicketStore
+from lychd.interface.web.archive_derivation_factory import build_archive_derivation
+from lychd.interface.web.archive_semantic_factory import build_archive_semantic
 from lychd.system.services.queues import protect_run_queues
 from lychd.system.services.runtime import build_runtime_actuator
 
@@ -57,6 +59,7 @@ if TYPE_CHECKING:
     from lychd.domain.animation.services.adapters.contracts import PortalDefinition, SoulstoneRuntimeAdapter
     from lychd.domain.archive import ArchiveProfile, ArchiveService, ArchiveSubject
     from lychd.domain.archive.derivation_service import ArchiveDerivationService
+    from lychd.domain.archive.semantic_service import ArchiveSemanticService
     from lychd.domain.codex.ledger import ConsentLedger
     from lychd.domain.codex.local_access import LocalOperatorAccess
     from lychd.domain.codex.sigil import Sigil
@@ -105,6 +108,7 @@ class AltarServices:
     creation: InvestigationService | None = None
     archive: ArchiveService | None = None
     archive_derivation: ArchiveDerivationService | None = None
+    archive_semantic: ArchiveSemanticService | None = None
     delegates: DelegatedAgentCoordinator | None
     delegated_runtime_catalog: tuple[RegisteredDelegatedRuntime, ...]
     scout: ScoutWorkflowService | None = None
@@ -543,9 +547,8 @@ def build_altar_services(
     ledger = _build_run_ledger(profile, settings)
     bus = InProcessEventBus(ledger=ledger)
     dispatcher = Dispatcher(registry=registry, leases=leases, events=bus)
-    from lychd.interface.web.archive_derivation_factory import build_archive_derivation
-
     archive_derivation = build_archive_derivation(settings, registry, leases, default_sigil())
+    archive_semantic = build_archive_semantic(settings, registry, leases, default_sigil())
     switching = settings.orchestration.switching
     if soft_activation_guard is None:
         from lychd.system.constants import PATH_RUNTIME_GUARD_DIR
@@ -671,6 +674,7 @@ def build_altar_services(
         feed_admission=feed_admission,
         creation=creation,
         archive_derivation=archive_derivation,
+        archive_semantic=archive_semantic,
         registry=registry,
         dispatcher=dispatcher,
         orchestrator=orchestrator,

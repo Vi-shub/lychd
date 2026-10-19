@@ -5,6 +5,7 @@ from __future__ import annotations
 from lychd.interface.web.altar import AltarController
 from lychd.interface.web.archive import ArchiveController
 from lychd.interface.web.archive_derivation import ArchiveDerivationController
+from lychd.interface.web.archive_semantic import ArchiveSemanticController
 from lychd.interface.web.atlas import AtlasController
 from lychd.interface.web.bridge import BridgeController
 from lychd.interface.web.loom import LoomController
@@ -15,6 +16,7 @@ __all__ = [
     "AltarController",
     "ArchiveController",
     "ArchiveDerivationController",
+    "ArchiveSemanticController",
     "AtlasController",
     "BridgeController",
     "LoomController",

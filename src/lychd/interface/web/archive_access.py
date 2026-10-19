@@ -19,6 +19,7 @@ class LocalArchivePolicy:
     profile: ArchiveProfile
     caller: Sigil
     derivations: bool = False
+    semantic: bool = False
 
     def subject_for(self, caller: Sigil) -> ArchiveSubject:
         """Refuse persisted callers outside the exact composed bootstrap binding."""
@@ -48,4 +49,6 @@ class LocalArchivePolicy:
             }
             if request.action in purposes:
                 return request.purpose == purposes[request.action]
+        if request.action in {"semantic_recall", "semantic_resolve"}:
+            return self.semantic and request.purpose == "archive:answer"
         return request.action in {"recall", "resolve"} and request.purpose == "archive:answer"

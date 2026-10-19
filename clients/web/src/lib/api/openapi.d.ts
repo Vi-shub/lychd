@@ -277,6 +277,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/archive/semantic/recalls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Recall */
+        post: operations["recallArchiveSemanticNotes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/archive/semantic/recalls/inspect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Inspect */
+        post: operations["inspectArchiveSemanticRecall"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/archive/semantic/recalls/{receipt_id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolve */
+        post: operations["resolveArchiveSemanticRecall"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/atlas/projects": {
         parameters: {
             query?: never;
@@ -2161,6 +2212,116 @@ export interface components {
             /** @enum {null|string} */
             profile: "bazos-pc-title-link@1" | null;
         };
+        /** SemanticCoverage */
+        SemanticCoverage: {
+            eligible_notes: number;
+            promoted_notes: number;
+        };
+        /** SemanticQueryExecution */
+        SemanticQueryExecution: {
+            /** Format: uuid */
+            execution_id: string;
+            /** Format: uuid */
+            grant_id: string;
+            input_digest: string;
+            item_id: string;
+            /**
+             * @default embed_query
+             * @constant
+             */
+            operation: "embed_query";
+            profile_digest: string;
+            receipt_digest: string;
+            rendered_digest: string;
+            tokens: number;
+            vector_digest: string;
+        };
+        /** SemanticRecallItem */
+        SemanticRecallItem: {
+            selection: components["schemas"]["SemanticSelection"];
+            text: string;
+        };
+        /** SemanticRecallProjection */
+        SemanticRecallProjection: {
+            items: components["schemas"]["SemanticRecallItem"][];
+            receipt: components["schemas"]["SemanticRecallReceipt"];
+        };
+        /** SemanticRecallReceipt */
+        SemanticRecallReceipt: {
+            char_budget: number;
+            coverage: components["schemas"]["SemanticCoverage"];
+            /** Format: date-time */
+            created_at: string;
+            generation: components["schemas"]["GenerationRef"];
+            generation_version: number;
+            max_results: number;
+            min_cosine: number;
+            /** Format: uuid */
+            namespace_id: string;
+            omitted_for_budget: number;
+            policy_revision: string;
+            /**
+             * @default local-public-notes@1
+             * @constant
+             */
+            profile: "local-public-notes@1";
+            purpose: string;
+            query_digest: string;
+            query_execution: components["schemas"]["SemanticQueryExecution"];
+            receipt_digest: string;
+            /** Format: uuid */
+            receipt_id: string;
+            request_digest: string;
+            /** Format: uuid */
+            request_id: string;
+            /**
+             * @default postgres-exact-cosine@1
+             * @constant
+             */
+            retrieval_policy: "postgres-exact-cosine@1";
+            run_id: string | null;
+            /**
+             * @default 2
+             * @constant
+             */
+            schema_version: 2;
+            selected: components["schemas"]["SemanticSelection"][];
+            subject: components["schemas"]["ArchiveSubject"];
+        };
+        /** SemanticRecallRequest */
+        SemanticRecallRequest: {
+            /** @default 8000 */
+            char_budget: number;
+            generation: components["schemas"]["GenerationRef"];
+            /** @default 5 */
+            max_results: number;
+            min_cosine: number;
+            /** Format: uuid */
+            namespace_id: string;
+            query: string;
+            /** Format: uuid */
+            request_id: string;
+            run_id?: string | null;
+        };
+        /** SemanticRecallResult */
+        SemanticRecallResult: {
+            current_query_execution: components["schemas"]["SemanticQueryExecution"] | null;
+            receipt: components["schemas"]["SemanticRecallReceipt"];
+        };
+        /** SemanticSelection */
+        SemanticSelection: {
+            /** Format: uuid */
+            derivation_id: string;
+            projected_chars: number;
+            projection_digest: string;
+            reference: components["schemas"]["RecordRef"];
+            row_version: number;
+            score: number;
+            source_digest: string;
+            source_key: string;
+            source_revision: string;
+            vector_digest: string;
+        };
         /** SessionCreated */
         SessionCreated: {
             session: components["schemas"]["SessionView"];
@@ -2873,6 +3034,125 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ArchiveRunRecall"];
+                };
+            };
+            /** @description Bad request syntax or unsupported method */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                        extra?: null | {
+                            [key: string]: unknown;
+                        } | unknown[];
+                        status_code: number;
+                    };
+                };
+            };
+        };
+    };
+    recallArchiveSemanticNotes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SemanticRecallRequest"];
+            };
+        };
+        responses: {
+            /** @description Document created, URL follows */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SemanticRecallResult"];
+                };
+            };
+            /** @description Bad request syntax or unsupported method */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                        extra?: null | {
+                            [key: string]: unknown;
+                        } | unknown[];
+                        status_code: number;
+                    };
+                };
+            };
+        };
+    };
+    inspectArchiveSemanticRecall: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SemanticRecallRequest"];
+            };
+        };
+        responses: {
+            /** @description Document created, URL follows */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SemanticRecallReceipt"] | null;
+                };
+            };
+            /** @description Bad request syntax or unsupported method */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                        extra?: null | {
+                            [key: string]: unknown;
+                        } | unknown[];
+                        status_code: number;
+                    };
+                };
+            };
+        };
+    };
+    resolveArchiveSemanticRecall: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                receipt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArchiveResolveIntent"];
+            };
+        };
+        responses: {
+            /** @description Document created, URL follows */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SemanticRecallProjection"];
                 };
             };
             /** @description Bad request syntax or unsupported method */

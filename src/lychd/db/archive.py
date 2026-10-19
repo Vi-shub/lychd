@@ -110,6 +110,14 @@ async def _note(session: AsyncSession, namespace_id: UUID, record_id: UUID) -> A
 
 
 def _receipt(row: ArchiveRecall) -> RecallReceipt:
+    try:
+        schema = row.receipt.get("schema_version", 1)
+    except AttributeError:
+        msg = "receipt_schema"
+        raise ArchiveRefused(msg) from None
+    if schema != 1:
+        msg = "receipt_schema"
+        raise ArchiveRefused(msg)
     receipt = RecallReceipt.model_validate(row.receipt)
     if receipt.receipt_digest != row.receipt_digest or receipt.computed_digest() != row.receipt_digest:
         msg = "receipt_integrity"
