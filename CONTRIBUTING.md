@@ -394,9 +394,13 @@ answer profile, not an extension of the successful Archive receipt above. It add
 fresh scoped warm-Chat relay and private six-key `ProbeProfile` declaration, separately admitted
 through `LYCHD_SEMANTIC_ANSWER_CHAT_PROFILE` and
 `LYCHD_REQUIRE_SEMANTIC_ANSWER_NATIVE_PROOF=1`. It reserves four embedding operations/eight POSTs
-and two Chat calls with 256 output tokens each, no prior-history replay, and strict final `stop`
-completion. A known `length` fails; neither a useful text fragment nor successful Run transport
-relaxes that oracle. Admit the relay, actual model/readiness request allowance, shared leases,
+and an outer ceiling of two Chat calls with 256 output tokens each. The current
+`generated-answer-and-empty-recall-v2` case profile tightens its transport fence to one Chat call:
+A requires a source-attributed answer with strict final `stop`; B refuses revoked authority before
+Chat; C requires a labelled deterministic empty-recall outcome with no Chat grant, Context assembly
+or SDK suffix. There is no prior-history replay. A known `length` on the generated answer fails;
+neither a useful text fragment nor successful Run transport relaxes that oracle. Historical v1
+attempts and their spent allowances remain unchanged; the new case profile needs fresh admission. Admit the relay, actual model/readiness request allowance, shared leases,
 SQL owner and terminal cleanup before running it; the ordinary Archive command does not do so.
 Independent source/content review and physical settlement remain separate from test assertions.
 

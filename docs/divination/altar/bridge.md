@@ -394,8 +394,13 @@ rather than publishing a normal settled answer or new SDK message history. Text 
 is provisional and may remain in Run evidence. Open the linked Orb to inspect the failure; review
 the configured generation budget before making a new offering. There is no automatic retry or
 budget increase, and replaying the same admitted request does not create another inference.
-A successful recall with no eligible notes remains a retrieval miss, distinct from this output
-limit. A completed Run is not a certificate of answer truth or universal provider completeness.
+A successful current recall selecting no notes returns a labelled deterministic recall result
+without calling the answer-generation model. It explains whether no notes were searchable, the
+threshold selected none, or retrieved notes did not fit the character limit, together with the
+receipt's coverage at recall. Partial coverage is not an exhaustive search. Fresh query embedding
+still consumes its admitted work; the visible outcome adds no SDK message history. Source or
+service refusal remains a failed Run. A completed Run is not a certificate of answer truth or
+universal provider completeness.
 
 This revision has no tools and does not replay earlier conversation history. It resolves the
 same receipt again before outbound model work and settlement. The full escaped source envelope

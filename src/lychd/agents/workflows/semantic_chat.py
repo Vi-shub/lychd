@@ -132,6 +132,35 @@ async def _resolve_recall(state: SemanticChatState, services: WorkflowServices) 
     return projection
 
 
+def _empty_recall_answer(projection: SemanticRecallProjection) -> str:
+    """Describe the empty selection without turning historical coverage into answer support."""
+    receipt = projection.receipt
+    coverage = receipt.coverage
+    if coverage.promoted_notes == 0:
+        reason = "At recall, there were no promoted public notes."
+    elif coverage.eligible_notes == 0:
+        reason = "At recall, no promoted public notes were searchable in the configured generation."
+    elif receipt.omitted_for_budget:
+        reason = (
+            f"At recall, none of the {receipt.omitted_for_budget} shortlisted public notes "
+            "fit this request's character limit."
+        )
+    else:
+        reason = (
+            f"At recall, no searchable public notes met the configured similarity threshold ({receipt.min_cosine:g})."
+        )
+    historical = (
+        f"At recall, {coverage.eligible_notes} of {coverage.promoted_notes} promoted public notes "
+        "were searchable in the configured generation."
+    )
+    if coverage.eligible_notes < coverage.promoted_notes:
+        historical += " This was partial coverage of promoted public notes."
+    return (
+        "Deterministic recall result: no public notes were selected for this question. "
+        f"{reason} {historical} This recall cannot support an answer to the question."
+    )
+
+
 @dataclass
 class RecallSemanticNotes(BaseNode[SemanticChatState, WorkflowServices]):
     """Retain one deterministic recall request before any model grant is acquired."""
@@ -152,11 +181,15 @@ class RecallSemanticNotes(BaseNode[SemanticChatState, WorkflowServices]):
 
 @dataclass
 class AnswerSemanticNotes(BaseNode[SemanticChatState, WorkflowServices]):
-    """Resolve current sources and reject known output limits under the local model lease."""
+    """Prepare an empty recall outcome or generate from current sources under the local model lease."""
 
     async def run(self, ctx: GraphRunContext[SemanticChatState, WorkflowServices]) -> SettleSemanticAnswer:
         # Refuse stale recall before dispatch can request a hardware transition.
-        await _resolve_recall(ctx.state, ctx.deps)
+        projection = await _resolve_recall(ctx.state, ctx.deps)
+        if not projection.items:
+            ctx.state.answer = _empty_recall_answer(projection)
+            ctx.state.new_messages = []
+            return SettleSemanticAnswer()
 
         async def resolve() -> SemanticRecallProjection:
             return await _resolve_recall(ctx.state, ctx.deps)

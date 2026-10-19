@@ -266,6 +266,17 @@ preserves coverage and source attribution under [ADR21](21-context.md#explicit-a
 The answer consumer applies [ADR20’s completion rule](20-agents.md#semantic-answer-completion)
 before ordinary settlement: a known output-limit response refuses without automatic retry. A
 successful empty recall is distinct from incomplete model generation.
+
+After successful current resolution selects no sources, the answer node settles an explicitly
+labelled deterministic recall outcome without a Chat grant, context assembly, pre-count, request,
+stream or new SDK messages. It distinguishes zero eligible notes, no threshold selection and
+notes omitted for the character budget, and reports the receipt's historical coverage without
+claiming an exhaustive search or an answer unsupported by sources. Fresh query embedding remains
+counted work; this is zero additional Chat generation, not zero model work. Refused resolution is
+never an empty success. Settlement still revalidates the exact receipt under current authority;
+ordinary retained conversation turns may record the outcome while existing SDK history stays
+unchanged. Nonempty selections retain the generated-answer path and its completion checks.
+
 A generated answer can quote sources and persist; revocation blocks later use without erasing that
 prior influence. Retrieval conformance or a synthetic ranking trial cannot establish grounded
 answers, abstention, actual native execution or broad quality. State records those acceptances

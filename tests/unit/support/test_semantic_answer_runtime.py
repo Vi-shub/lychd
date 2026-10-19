@@ -86,15 +86,16 @@ def request(body: dict[str, Any], *, url: str = "http://127.0.0.1:32123/v1/chat/
     return httpx2.Request("POST", url, json=body)
 
 
-async def test_inert_supported_and_empty_bodies_are_observed_without_transport() -> None:
-    for case in ("A", "C"):
-        observer = boundary(case)
-        await observer.check(request(payload(case)))
-        assert observer.posts == 1
-        assert observer.observations[0]["case"] == case
+async def test_inert_supported_body_is_observed_without_transport() -> None:
+    observer = boundary()
+    await observer.check(request(payload()))
+    assert observer.posts == 1
+    assert observer.observations[0]["case"] == "A"
 
 
-@pytest.mark.parametrize("mutation", ["tools", "model", "stream", "output", "endpoint", "case_B", "third_post"])
+@pytest.mark.parametrize(
+    "mutation", ["tools", "model", "stream", "output", "endpoint", "case_B", "case_C", "second_post", "third_post"]
+)
 async def test_inert_transport_fence_refuses_before_send(mutation: str) -> None:
     observer = boundary()
     body = payload()
@@ -111,12 +112,26 @@ async def test_inert_transport_fence_refuses_before_send(mutation: str) -> None:
         url = "http://127.0.0.1:32124/v1/chat/completions"
     elif mutation == "case_B":
         observer.case = "B"
+    elif mutation == "case_C":
+        observer.case = "C"
+        body = payload("C")
+    elif mutation == "second_post":
+        observer.posts = 1
     else:
         observer.posts = 2
     before = observer.posts
     with pytest.raises(AssertionError, match="semantic_answer_model_post_refused"):
         await observer.check(request(body, url=url))
     assert observer.posts == before
+    assert observer.observations == []
+
+
+async def test_inert_empty_case_refuses_before_transport_even_with_no_prior_answer() -> None:
+    observer = boundary("C")
+    observer.previous_answer = None
+    with pytest.raises(AssertionError, match="semantic_answer_model_post_refused"):
+        await observer.check(request(payload("C")))
+    assert observer.posts == 0
     assert observer.observations == []
 
 
@@ -127,6 +142,17 @@ async def test_inert_unavailable_case_refuses_previous_answer_injection() -> Non
     with pytest.raises(AssertionError):
         await observer.check(request(body))
     assert observer.posts == 0
+    assert observer.observations == []
+
+
+async def test_inert_generated_answer_consumes_entire_current_post_allowance() -> None:
+    observer = boundary()
+    await observer.check(request(payload()))
+    observed = list(observer.observations)
+    with pytest.raises(AssertionError, match="semantic_answer_model_post_refused"):
+        await observer.check(request(payload()))
+    assert observer.posts == 1
+    assert observer.observations == observed
 
 
 async def test_inert_supported_case_refuses_changed_source_projection() -> None:
@@ -417,8 +443,9 @@ async def test_inert_semantic_response_retains_identity_and_finish_fences(change
     assert "opaque synthetic metadata" not in json.dumps(observed)
 
 
-async def test_terminal_absent_context_waits_for_observed_release() -> None:
-    record = SimpleNamespace(status=answer.RunStatus.FAILED)
+@pytest.mark.parametrize("status", [answer.RunStatus.FAILED, answer.RunStatus.DONE])
+async def test_terminal_absent_context_waits_for_observed_release(status: answer.RunStatus) -> None:
+    record = SimpleNamespace(status=status)
     releases: list[str] = []
 
     async def get_run(_run_id: str) -> Any:
@@ -440,7 +467,7 @@ async def test_terminal_absent_context_waits_for_observed_release() -> None:
         answer._terminal(services, "inert-refusal", asyncio.get_running_loop().time() + 2, releases)
     )
     try:
-        # A refusal may be terminal without ever having assembled Context.
+        # A refusal or deterministic outcome can be terminal without Context.
         await asyncio.sleep(0)
         assert not task.done()
         releases.append("inert-refusal")

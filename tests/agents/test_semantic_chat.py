@@ -17,6 +17,7 @@ import pytest
 from pydantic_ai.messages import ModelMessagesTypeAdapter, ModelRequest, ModelResponse, TextPart, UserPromptPart
 from pydantic_graph import GraphRunContext
 
+from lychd.agents.factory import AgentForge
 from lychd.agents.router import Intent
 from lychd.agents.workflows import semantic_chat
 from lychd.agents.workflows.nodes import PumpResult
@@ -33,7 +34,10 @@ from lychd.domain.animation.capabilities import CapabilityGrant, SourceKind
 from lychd.domain.animation.schemas.capability_family import CapabilityFamily
 from lychd.domain.archive import ArchiveRefused, ArchiveSubject
 from lychd.domain.archive.semantic import SemanticRecallProjection
+from lychd.domain.cortex.context import ContextOrchestrator
 from lychd.domain.cortex.semantic_answer import SemanticAnswerBinding
+from lychd.domain.web.schemas import BridgeTurn
+from lychd.domain.web.sessions import BridgeSessionStore
 from tests.agents.conftest import make_services
 from tests.agents.fakes import FakeConsents, FakeDispatcher, FakeEvents, FakeOrchestrator, FakeTurns
 from tests.agents.test_archive_context import _ProbeModel, _semantic_projection
@@ -86,6 +90,151 @@ def _case() -> tuple[Intent, SemanticChatState, Any, Any, Any, Any, _ProbeModel,
         archive_subject_provider=lambda: SUBJECT,
     )
     return intent, state, services, authority, store, core, provider, turns
+
+
+def _empty_selection(state: SemanticChatState, store: Any, *, promoted: int, eligible: int, omitted: int = 0) -> None:
+    request = semantic_recall_request(binding=state.semantic, run_id=state.run_id, prompt=state.prompt)
+    store.winner = receipt(
+        request,
+        coverage={"promoted_notes": promoted, "eligible_notes": eligible},
+        selected=(),
+        omitted_for_budget=omitted,
+    )
+    store.projection = SemanticRecallProjection(receipt=store.winner, items=())
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("promoted", "eligible", "omitted", "reason"),
+    [
+        (0, 0, 0, "At recall, there were no promoted public notes."),
+        (4, 0, 0, "At recall, no promoted public notes were searchable in the configured generation."),
+        (4, 2, 0, "At recall, no searchable public notes met the configured similarity threshold (-0.5)."),
+        (
+            4,
+            2,
+            2,
+            "At recall, none of the 2 shortlisted public notes fit this request's character limit.",
+        ),
+    ],
+    ids=["zero-promoted", "zero-eligible", "threshold-miss", "all-budget-omitted"],
+)
+async def test_empty_semantic_graph_preserves_recall_and_history_without_chat(  # noqa: PLR0915 - replay proof
+    promoted: int, eligible: int, omitted: int, reason: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    intent, state, services, _authority, store, core, provider, _turns = _case()
+    _empty_selection(state, store, promoted=promoted, eligible=eligible, omitted=omitted)
+    turns = BridgeSessionStore()
+    session = await turns.create_session()
+    intent = intent.model_copy(update={"session_id": session.id})
+    state.session_id = session.id
+    assert BRIDGE_CHAT_SEMANTIC.validate_state is not None
+    BRIDGE_CHAT_SEMANTIC.validate_state(intent, state)
+    history = ModelMessagesTypeAdapter.dump_python(
+        [ModelRequest.user_text_prompt("RETAINED_PROMPT"), ModelResponse(parts=[TextPart("RETAINED_ANSWER")])],
+        mode="json",
+    )
+    await turns.settle_agent_turn(
+        session.id,
+        BridgeTurn(role="agent", content="prior", run_id="prior-run", state="settled"),
+        new_messages=history,
+    )
+    services = replace(services, turns=turns)
+    state.new_messages = ModelMessagesTypeAdapter.dump_python(
+        [ModelResponse(parts=[TextPart("UNSETTLED_REPLY_FOR_THIS_RUN")])], mode="json"
+    )
+    cleanup_at_resolution: list[tuple[int, int, bool]] = []
+    store.on_resolve = lambda: cleanup_at_resolution.append((core.leases, core.closed, core.active))
+
+    def unexpected(*args: Any, **kwargs: Any) -> Any:
+        pytest.fail("An empty resolved selection must not perform Chat or Context work")
+
+    monkeypatch.setattr(services.dispatcher, "lease_grant", unexpected)
+    monkeypatch.setattr(ContextOrchestrator, "assemble", unexpected)
+    monkeypatch.setattr(AgentForge, "agent_for", unexpected)
+    monkeypatch.setattr(semantic_chat, "pump_agent_events", unexpected)
+    monkeypatch.setattr(semantic_chat, "limit_model_requests", unexpected)
+    async with SEMANTIC_CHAT_GRAPH.iter(inputs=RecallSemanticNotes(), state=state, deps=services) as run:
+        async for _ in run:
+            pass
+    assert run.output is not None
+    answer = run.output.answer
+    assert answer.startswith("Deterministic recall result: no public notes were selected for this question.")
+    assert reason in answer
+    expected_coverage = (
+        f"At recall, {eligible} of {promoted} promoted public notes were searchable in the configured generation."
+    )
+    assert expected_coverage in answer
+    assert ("This was partial coverage of promoted public notes." in answer) == (eligible < promoted)
+    assert answer.endswith("This recall cannot support an answer to the question.")
+    assert core.calls == core.leases == core.closed == store.completions == 1
+    assert not core.active
+    assert state.current_query_execution is not None
+    assert state.current_query_execution != store.winner.query_execution
+    assert state.receipt_id == store.winner.receipt_id
+    assert state.receipt_digest == store.winner.receipt_digest
+    assert state.new_messages == []
+    retained = await turns.get_session(session.id)
+    assert retained is not None
+    assert len(retained.turns) == 2
+    assert retained.turns[-1].content == answer
+    assert retained.turns[-1].state == "settled"
+    assert retained.message_history == history
+
+    # A restored whole-graph replay retains one winning receipt and one visible outcome.
+    restored = SemanticChatState.model_validate_json(state.model_dump_json())
+    BRIDGE_CHAT_SEMANTIC.validate_state(intent, restored)
+    async with SEMANTIC_CHAT_GRAPH.iter(inputs=RecallSemanticNotes(), state=restored, deps=services) as replay:
+        async for _ in replay:
+            pass
+    assert replay.output == run.output
+    assert restored.current_query_execution is None
+    assert restored.receipt_id == state.receipt_id
+    assert restored.receipt_digest == state.receipt_digest
+    assert restored.new_messages == []
+    assert core.calls == core.leases == core.closed == store.completions == 1
+    assert store.preflights == 2
+    assert cleanup_at_resolution == [(1, 1, False)] * 4
+    assert await turns.get_session(session.id) == retained
+    assert not services.dispatcher.calls
+    assert not services.orchestrator.calls
+    assert not services.events.events
+    assert provider.counted == provider.sent == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "boundary", ["before_answer", "during_answer_resolve", "before_settlement", "during_final_resolve"]
+)
+async def test_empty_semantic_selection_still_refuses_current_revocation(boundary: str) -> None:
+    _intent, state, services, authority, store, core, provider, turns = _case()
+    _empty_selection(state, store, promoted=4, eligible=2)
+    ctx = GraphRunContext(state=state, deps=services)
+    await RecallSemanticNotes().run(ctx)
+    if boundary in {"before_answer", "during_answer_resolve"}:
+        if boundary == "before_answer":
+            authority.allowed = False
+        else:
+            store.on_resolve = lambda: setattr(authority, "allowed", False)
+        with pytest.raises(ArchiveRefused):
+            await AnswerSemanticNotes().run(ctx)
+        assert state.answer is None
+    else:
+        next_node = await AnswerSemanticNotes().run(ctx)
+        assert isinstance(next_node, SettleSemanticAnswer)
+        if boundary == "before_settlement":
+            authority.allowed = False
+        else:
+            store.on_resolve = lambda: setattr(authority, "allowed", False)
+        with pytest.raises(ArchiveRefused):
+            await next_node.run(ctx)
+    assert not turns.added
+    assert state.new_messages == []
+    assert not services.dispatcher.calls
+    assert not services.orchestrator.calls
+    assert provider.counted == provider.sent == []
+    assert core.calls == core.closed == 1
+    assert not core.active
 
 
 @pytest.mark.asyncio
@@ -165,9 +314,12 @@ async def test_current_revocation_prevents_next_provider_or_settlement_effect(bo
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("empty", [False, True])
 @pytest.mark.parametrize("change", ["resolver", "subject", "manifest", "generation", "receipt"])
-async def test_changed_service_or_receipt_refuses_before_chat(change: str) -> None:
+async def test_changed_service_or_receipt_refuses_before_chat(change: str, *, empty: bool) -> None:
     _intent, state, services, _authority, store, _core, provider, turns = _case()
+    if empty:
+        _empty_selection(state, store, promoted=4, eligible=2)
     ctx = GraphRunContext(state=state, deps=services)
     await RecallSemanticNotes().run(ctx)
     if change == "resolver":

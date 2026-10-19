@@ -2052,6 +2052,19 @@ normal/unknown completion metadata, final-response ordering, one provider call a
 Other or absent metadata retains adapter compatibility without certifying completeness. Streamed
 text remains provisional evidence; this check adds no automatic retry or larger budget.
 
+A successful current resolution with no selected sources instead returns a labelled deterministic
+recall outcome before Chat, Context assembly, counting, forge or pump work. Component graph tests
+distinguish no promoted notes, no searchable notes, a threshold miss and character-budget omissions,
+with historical coverage and an explicit source-limited abstention. They retain actual query cleanup
+and winning-receipt versus caller-work accounting. A real in-memory session store proves unchanged
+prior SDK history, clearing of an unsettled SDK suffix, one visible outcome and replay without
+another embedding. Authority revoked before or during answer/final resolution still refuses. This
+branch currently has component evidence; the earlier SQL runs below do not qualify its new outcome.
+The prospective native case profile keeps one strictly completed generated answer, revoked-source
+refusal and an empty-recall outcome with zero Chat generation, Context assembly or new SDK messages.
+It remains unqualified until a
+fresh bounded run and independent settlement; earlier failed attempts remain failed.
+
 Actual PostgreSQL source-answer controls passed five cases in each of two bounded runs, with zero
 failures, errors or skips and independently confirmed physical settlement. A fresh fixture drives
 HTTP admission, retained idempotent binding and the actual worker through ordinary answer settlement.

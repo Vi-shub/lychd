@@ -1,11 +1,13 @@
 """Fixed opt-in public semantic answer through the full native application.
 
-Four real embedding operations and two real plain-text Chat POSTs qualify only
+Four real embedding operations and one real plain-text Chat POST qualify only
 this visible synthetic example. The original nodes, application assembly,
 registry, ledger, PostgreSQL queues, worker and Context remain the owners.
 The scheduling gate orders source revocation after B's real selection. It does
 not supply a result. Root separately admits the fresh warm-service relay and
-independently evaluates both retained answers against the frozen public oracle.
+independently evaluates the generated answer and deterministic empty-recall
+outcome against the frozen public oracle. The semantic-answer-v1 outer resource
+envelope remains unchanged; generated-answer-and-empty-recall-v2 uses less Chat.
 No browser, general quality, crash recovery or all-attempt spend claim follows.
 """
 
@@ -46,6 +48,7 @@ from pydantic_ai.models import override_allow_model_requests
 from scripts.local_model_probe import ProbeProfile
 
 from lychd.agents.services import default_sigil
+from lychd.agents.workflows import semantic_chat as semantic_chat_module
 from lychd.agents.workflows.semantic_chat import (
     ARCHIVE_ANSWER_PURPOSE,
     BRIDGE_CHAT_SEMANTIC,
@@ -87,6 +90,7 @@ _SOURCE = "Public synthetic fixture: the copper lantern kiosk opens at 14:20 on 
 _QUESTION = "When does the copper lantern kiosk open on Moonday?"
 _BASE = "31b39d03c389f09bbfe5d918f5f532cf636eb35b"
 _OPERATIONS, _POSTS, _TOKENS = 4, 8, 2044
+_CASE_PROFILE = "generated-answer-and-empty-recall-v2"
 _PROFILE_FIELDS = {"base_url", "model_id", "source_revision", "context_tokens", "max_tokens", "deadline_seconds"}
 _WIRE_RECEIPT_FIELDS = {
     "receipt_id",
@@ -153,7 +157,8 @@ def _warm_inventory(request: httpx.Request, profile: ProbeProfile, journal: list
     assert request.method == "GET", "warm_inventory_get_only"
     assert str(request.url) == profile.base_url + "/models", "warm_inventory_exact_endpoint"
     assert not request.content, "warm_inventory_no_body"
-    # One startup observation plus preflight and issue-time probes for A and C.
+    # Retain the separately admitted outer ceiling. Only A may acquire Chat;
+    # this inventory allowance does not authorize inference for B or C.
     assert len(journal) < 5, "warm_inventory_budget"
     entry: dict[str, Any] = {"method": request.method, "url": str(request.url)}
     journal.append(entry)
@@ -176,7 +181,7 @@ class _AnswerBoundary(bridge._ModelBoundary):
         allowed = (
             self.admitted
             and time.monotonic() < self.deadline
-            and self.posts < 2
+            and self.posts < 1
             and request.method == "POST"
             and str(request.url) == f"{self.profile.base_url}/chat/completions"
             and payload.get("model") == self.profile.model_id
@@ -186,7 +191,7 @@ class _AnswerBoundary(bridge._ModelBoundary):
             and payload[output[0]] == 256
             and payload.get("tools") in (None, [])
             and payload.get("tool_choice") in (None, "none")
-            and self.case in {"A", "C"}
+            and self.case == "A"
             and self.run_id is not None
         )
         if not allowed:
@@ -206,16 +211,10 @@ class _AnswerBoundary(bridge._ModelBoundary):
         assert envelope["receipt"] == {name: self.receipt[name] for name in _WIRE_RECEIPT_FIELDS}
         assert envelope["receipt"]["schema_version"] == 2
         assert not any(_SOURCE in json.dumps(item) for item in messages if item["role"] in {"system", "developer"})
-        if self.case == "A":
-            assert len(envelope["items"]) == 1
-            assert envelope["items"][0]["text"] == _SOURCE
-            selection = envelope["items"][0]["selection"]
-            assert (selection["source_key"], selection["source_revision"]) == (_SOURCE_KEY, _SOURCE_REVISION)
-        else:
-            assert envelope["items"] == []
-            assert _SOURCE not in json.dumps(messages)
-            assert self.previous_answer is not None
-            assert self.previous_answer not in json.dumps(messages)
+        assert len(envelope["items"]) == 1
+        assert envelope["items"][0]["text"] == _SOURCE
+        selection = envelope["items"][0]["selection"]
+        assert (selection["source_key"], selection["source_revision"]) == (_SOURCE_KEY, _SOURCE_REVISION)
         self.posts += 1
         self.observations.append({"case": self.case, "run_id": self.run_id, "payload": payload})
 
@@ -549,7 +548,9 @@ def _native_application(  # noqa: C901, PLR0912, PLR0915 - one fixed ordered HTT
     refusals: dict[str, str] = {}
     terminal_truth: set[str] = set()
     releases: list[str] = []
+    assembly_attempts: list[str] = []
     assemblies: list[dict[str, Any]] = []
+    chat_calls: list[dict[str, Any]] = []
     chat_attempts: list[str] = []
     chat_grants: list[dict[str, Any]] = []
     lease_grant = Dispatcher.lease_grant
@@ -569,6 +570,37 @@ def _native_application(  # noqa: C901, PLR0912, PLR0915 - one fixed ordered HTT
             yield grant
 
     monkeypatch.setattr(Dispatcher, "lease_grant", observe_grant)
+    # Observe original call boundaries without supplying SDK or provider results.
+    archive_model = semantic_chat_module.ArchiveModel
+    count_tokens, model_request = archive_model.count_tokens, archive_model.request
+    request_stream = archive_model.request_stream
+    pump = semantic_chat_module.pump_agent_events
+
+    def chat_call(operation: str) -> None:
+        chat_calls.append({"case": boundary.case, "run_id": boundary.run_id, "operation": operation})
+
+    async def observe_count(model: Any, *args: Any, **kwargs: Any) -> Any:
+        chat_call("count_tokens")
+        return await count_tokens(model, *args, **kwargs)
+
+    async def observe_request(model: Any, *args: Any, **kwargs: Any) -> Any:
+        chat_call("request")
+        return await model_request(model, *args, **kwargs)
+
+    @asynccontextmanager
+    async def observe_stream(model: Any, *args: Any, **kwargs: Any) -> AsyncGenerator[Any]:
+        chat_call("request_stream")
+        async with request_stream(model, *args, **kwargs) as response:
+            yield response
+
+    async def observe_pump(*args: Any, **kwargs: Any) -> Any:
+        chat_call("pump_agent_events")
+        return await pump(*args, **kwargs)
+
+    monkeypatch.setattr(archive_model, "count_tokens", observe_count)
+    monkeypatch.setattr(archive_model, "request", observe_request)
+    monkeypatch.setattr(archive_model, "request_stream", observe_stream)
+    monkeypatch.setattr(semantic_chat_module, "pump_agent_events", observe_pump)
     answer = AnswerSemanticNotes.run
     assemble, release = ContextOrchestrator.assemble, ContextOrchestrator.release
     set_status = DbRunLedger.set_status
@@ -582,6 +614,7 @@ def _native_application(  # noqa: C901, PLR0912, PLR0915 - one fixed ordered HTT
         return result
 
     def context_assemble(owner: ContextOrchestrator, **kwargs: Any) -> Any:
+        assembly_attempts.append(kwargs["run_id"])
         value = assemble(owner, **kwargs)
         grant = kwargs.get("grant")
         if grant is not None:
@@ -650,6 +683,11 @@ def _native_application(  # noqa: C901, PLR0912, PLR0915 - one fixed ordered HTT
         )
         assert receipt.generation == services.archive_semantic.reference
         assert receipt.coverage.promoted_notes == receipt.coverage.eligible_notes == (0 if case == "C" else 1)
+        if case != "C":
+            assert len(receipt.selected) == 1
+            selection = receipt.selected[0]
+            assert (selection.source_key, selection.source_revision) == (_SOURCE_KEY, _SOURCE_REVISION)
+            assert selection.source_digest == text_digest(_SOURCE)
         states[case], receipts[case] = ctx.state, receipt
         boundary.run_id, boundary.receipt = run.run_id, receipt.model_dump(mode="json")
         if case == "B":
@@ -698,6 +736,7 @@ def _native_application(  # noqa: C901, PLR0912, PLR0915 - one fixed ordered HTT
     monkeypatch.setattr(RecallSemanticNotes, "run", admitted_recall)
     result: dict[str, Any] = {
         "status": "failed",
+        "case_profile": _CASE_PROFILE,
         "public_oracle": {
             "source_key": _SOURCE_KEY,
             "source_revision": _SOURCE_REVISION,
@@ -775,9 +814,12 @@ def _native_application(  # noqa: C901, PLR0912, PLR0915 - one fixed ordered HTT
             result["derivation"] = client.blocking_portal.call(_sql_derivation, services, note, derivation)
             session_id = call("POST", "/api/v1/bridge/sessions")["session"]["id"]
             for case in ("A", "B", "C"):
+                history_before = client.blocking_portal.call(services.bridge_sessions.get_session, session_id)
+                assert history_before is not None
+                sdk_history_before = json.dumps(history_before.message_history, sort_keys=True)
                 boundary.case = case
                 boundary.deadline = time.monotonic() + profile.deadline_seconds
-                boundary.admitted = case != "B"
+                boundary.admitted = case == "A"
                 request_id = str(uuid4())
                 body = {"prompt": _QUESTION, "request_id": request_id}
                 if case == "B":
@@ -828,7 +870,14 @@ def _native_application(  # noqa: C901, PLR0912, PLR0915 - one fixed ordered HTT
                     "receipt": receipts[case].model_dump(mode="json"),
                     "current_query_execution": cast("Any", state.current_query_execution).model_dump(mode="json"),
                     "persisted_caller": {"name": finished.sigil_name, "scopes": sorted(finished.sigil_scopes)},
+                    "context_assembly_attempts": assembly_attempts.count(run_id),
+                    # This is an observed Run release callback, including when no
+                    # Context was assembled. It is not an invented assembly.
                     "context_released": True,
+                    "chat_attempts": chat_attempts.count(run_id),
+                    "chat_grants": sum(item["run_id"] == run_id for item in chat_grants),
+                    "chat_POSTs": sum(item["run_id"] == run_id for item in boundary.observations),
+                    "chat_calls": [item for item in chat_calls if item["run_id"] == run_id],
                 }
                 result["cases"][case] = entry
                 if case == "B":
@@ -847,6 +896,11 @@ def _native_application(  # noqa: C901, PLR0912, PLR0915 - one fixed ordered HTT
                     assert boundary.posts == 1
                     assert run_id not in chat_attempts
                     assert not any(item["run_id"] == run_id for item in chat_grants)
+                    assert run_id not in assembly_attempts
+                    assert entry["chat_calls"] == []
+                    history = client.blocking_portal.call(services.bridge_sessions.get_session, session_id)
+                    assert history is not None
+                    assert json.dumps(history.message_history, sort_keys=True) == sdk_history_before
                     entry["typed_refusal"] = {
                         "type": "ArchiveRefused",
                         "code": refusals[case],
@@ -875,9 +929,12 @@ def _native_application(  # noqa: C901, PLR0912, PLR0915 - one fixed ordered HTT
                     entry["answer"] = answer_text
                     assert answer_text == state.answer
                     history = client.blocking_portal.call(services.bridge_sessions.get_session, session_id)
-                    entry["response"] = {}
-                    _response(history.message_history, profile, run_id, answer=answer_text, observed=entry["response"])
+                    assert history is not None
                     if case == "A":
+                        entry["response"] = {}
+                        _response(
+                            history.message_history, profile, run_id, answer=answer_text, observed=entry["response"]
+                        )
                         assert re.search(r"14:20|2:20\s*p\.?m\.?", answer_text, re.IGNORECASE)
                         assert _SOURCE_KEY in answer_text
                         assert _SOURCE_REVISION in answer_text
@@ -894,18 +951,70 @@ def _native_application(  # noqa: C901, PLR0912, PLR0915 - one fixed ordered HTT
                         )
                         entry["replay_new_compute"] = 0
                     else:
-                        assert re.search(
-                            r"unavailable|insufficient|no (?:current |eligible |supported |source |available )*(?:source|support|note|information)|cannot|can't",
-                            answer_text,
-                            re.IGNORECASE,
-                        )
-                        assert not re.search(r"14:20|2:20\s*p\.?m\.?", answer_text, re.IGNORECASE)
+                        assert state.new_messages == []
+                        assert json.dumps(history.message_history, sort_keys=True) == sdk_history_before
+                        assert not any(message.get("run_id") == run_id for message in history.message_history)
+                        assert entry["chat_attempts"] == entry["chat_grants"] == entry["chat_POSTs"] == 0
+                        assert entry["chat_calls"] == []
+                        assert entry["context_assembly_attempts"] == 0
                         assert receipts[case].selected == ()
-            assert len(chat_grants) == len(chat_attempts) == 2
-            assert boundary.posts == 2
+                        assert receipts[case].coverage.eligible_notes == receipts[case].coverage.promoted_notes == 0
+                        # The public oracle checks meaning and observed historical
+                        # counts independently of the production outcome renderer.
+                        assert answer_text.startswith("Deterministic recall result:")
+                        assert "no public notes were selected for this question" in answer_text
+                        assert "At recall, there were no promoted public notes." in answer_text
+                        coverage = receipts[case].coverage
+                        assert (
+                            f"At recall, {coverage.eligible_notes} of {coverage.promoted_notes} promoted public notes "
+                            "were searchable in the configured generation."
+                        ) in answer_text
+                        assert "This recall cannot support an answer to the question." in answer_text
+                        assert boundary.previous_answer is not None
+                        assert boundary.previous_answer not in answer_text
+                        assert _SOURCE not in answer_text
+                        assert _SOURCE_KEY not in answer_text
+                        assert _SOURCE_REVISION not in answer_text
+                        assert not re.search(r"14:20|2:20\s*p\.?m\.?", answer_text, re.IGNORECASE)
+                        entry["deterministic_empty_recall"] = True
+                        entry["new_SDK_messages"] = 0
+                        counts = (
+                            len(wires),
+                            boundary.posts,
+                            len(chat_attempts),
+                            len(chat_grants),
+                            len(chat_calls),
+                            len(assembly_attempts),
+                        )
+                        assert (
+                            call("POST", f"/api/v1/bridge/sessions/{session_id}/messages", body, expected=200)["run_id"]
+                            == run_id
+                        )
+                        assert (
+                            len(wires),
+                            boundary.posts,
+                            len(chat_attempts),
+                            len(chat_grants),
+                            len(chat_calls),
+                            len(assembly_attempts),
+                        ) == counts
+                        replay_history = client.blocking_portal.call(services.bridge_sessions.get_session, session_id)
+                        assert replay_history is not None
+                        assert json.dumps(replay_history.message_history, sort_keys=True) == sdk_history_before
+                        assert (
+                            client.get(f"/api/v1/bridge/sessions/{session_id}").json()["session"]["turns"]
+                            == snapshot["turns"]
+                        )
+                        entry["replay_new_compute"] = 0
+            assert len(chat_grants) == len(chat_attempts) == 1
+            assert boundary.posts == 1
             assert actuator.calls == 0
             assert not boundary.violations
-            assert {item["run_id"] for item in assemblies} == {result["cases"][case]["run_id"] for case in ("A", "C")}
+            assert assembly_attempts == [result["cases"]["A"]["run_id"]]
+            assert [item["run_id"] for item in assemblies] == assembly_attempts
+            assert {item["run_id"] for item in chat_calls} == {result["cases"]["A"]["run_id"]}
+            assert sum(item["operation"] == "pump_agent_events" for item in chat_calls) == 1
+            assert sum(item["operation"] == "request_stream" for item in chat_calls) == 1
             assert not services.leases.active()
         assert disposal["status"] == "dispose_returned"
         assert disposal["calls"] == 1
@@ -934,7 +1043,10 @@ def _native_application(  # noqa: C901, PLR0912, PLR0915 - one fixed ordered HTT
             native_input_tokens=tokens,
             chat_POSTs=boundary.posts,
             assemblies=assemblies,
+            context_assembly_attempts=assembly_attempts,
+            chat_attempts=chat_attempts,
             chat_grants=chat_grants,
+            chat_calls=chat_calls,
             releases=releases,
             all_observed_clients_closed=True,
             substrate_unpublished=True,
@@ -973,6 +1085,7 @@ def _native_application(  # noqa: C901, PLR0912, PLR0915 - one fixed ordered HTT
         if cleanup_errors:
             result["status"] = "failed"
         resources["answer_workflow"] = {
+            "case_profile": _CASE_PROFILE,
             "observed_chat_POST_attempts": boundary.posts,
             "lifecycle_calls": actuator.calls,
             "status": result["status"],
@@ -1028,3 +1141,4 @@ def test_semantic_answer_native_runtime(
     assert receipt["status"] == receipt["cleanup"] == "passed"
     assert receipt["artifact_unchanged_after_cleanup"] is True
     assert receipt["proof"]["status"] == "passed"
+    assert receipt["proof"]["case_profile"] == _CASE_PROFILE

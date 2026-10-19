@@ -171,8 +171,8 @@ without bound.
 
 ### Semantic answer completion
 
-The semantic source-answer casting classifies the final SDK response before ordinary answer
-settlement. A known normalized `length` finish is an `answer_output_limit` refusal, even when the
+When the semantic source-answer casting generates an answer, it classifies the final SDK response
+before ordinary answer settlement. A known normalized `length` finish is an `answer_output_limit` refusal, even when the
 SDK returns a nonempty string and marks the received response `complete`. It must not assign that
 partial result as the normal answer or new settled message history. Already-streamed text remains
 provisional and may remain in Run evidence; refusal does not erase earlier observations.
@@ -183,7 +183,10 @@ response's completion metadata; an earlier response's limit is not the final res
 Absent or other finish metadata retains current adapter compatibility and proves no natural stop.
 A named qualification may require the stronger explicit `stop` criterion. RunDONE still records
 successful Graph termination under its implemented checks, rather than factual truth, groundedness
-or a universal output-completeness certificate. Other castings keep their own result contracts.
+or a universal output-completeness certificate. A successful current recall selecting no sources
+may instead settle the deterministic, source-limited abstention owned by [ADR27](27-memory.md#native-semantic-source-answer-consumer).
+That branch has no Chat response or SDK history suffix to classify; it cannot fabricate provider
+completion, usage, dispatch or token events. Other castings keep their own result contracts.
 
 ### Mechanical cognitive postures
 
