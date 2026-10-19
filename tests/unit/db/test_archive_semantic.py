@@ -12,23 +12,32 @@ from unittest.mock import AsyncMock, Mock
 from uuid import UUID
 
 import pytest
+from pgvector.sqlalchemy import VECTOR as PGVECTOR
 from pydantic import TypeAdapter
+from sqlalchemy.dialects.postgresql import dialect
 from sqlalchemy.exc import StatementError
 
 from lychd.db.archive import DbArchiveStore
-from lychd.db.archive_semantic import DbArchiveSemanticStore
-from lychd.db.models.archive import ArchiveNamespace, ArchiveRecall
-from lychd.db.models.archive_derivation import ArchiveEmbeddingGeneration
-from lychd.domain.animation.embeddings import EmbeddingBinding, embedding_digest, embedding_vector_digest
+from lychd.db.archive_semantic import DbArchiveSemanticStore, _selection  # pyright: ignore[reportPrivateUsage]
+from lychd.db.models.archive import ArchiveNamespace, ArchiveNote, ArchiveRecall
+from lychd.db.models.archive_derivation import ArchiveEmbeddingGeneration, ArchiveNoteEmbedding
+from lychd.domain.animation.embeddings import (
+    EmbeddingBinding,
+    canonical_float32_vector,
+    embedding_digest,
+    embedding_vector_digest,
+)
 from lychd.domain.archive.contracts import (
     ArchiveProfile,
     ArchiveRefused,
     ArchiveSubject,
+    NoteProposal,
     RecallRequest,
+    RecordRef,
     digest,
     text_digest,
 )
-from lychd.domain.archive.derivation import GenerationManifest, GenerationRef
+from lychd.domain.archive.derivation import DerivationReceipt, DerivationRequest, GenerationManifest, GenerationRef
 from lychd.domain.archive.semantic import (
     SemanticPrepared,
     SemanticQueryExecution,
@@ -129,6 +138,106 @@ def session_mock() -> AsyncMock:
     session.__aenter__.return_value = session
     session.begin = Mock(return_value=AsyncMock())
     return session
+
+
+def selected_source() -> tuple[ArchiveNote, ArchiveNoteEmbedding]:
+    """Build one valid physical source with the installed SQL codec's decimal view."""
+    content = "A public source with a decimal vector."
+    observed = datetime(2026, 10, 19, tzinfo=UTC)
+    proposal = NoteProposal(
+        namespace_id=ARCHIVE.namespace_id,
+        request_id=UUID(int=7),
+        source_key="decimal-source",
+        source_revision="one",
+        source_digest=text_digest(content),
+        text=content,
+        producer="operator",
+        observed_at=observed,
+    )
+    note = ArchiveNote(
+        id=UUID(int=8),
+        namespace_id=ARCHIVE.namespace_id,
+        source_key=proposal.source_key,
+        source_revision=proposal.source_revision,
+        source_digest=proposal.source_digest,
+        revision_digest=digest(proposal.source_binding()),
+        producer=proposal.producer,
+        observed_at=observed,
+        content=content,
+        lifecycle="promoted",
+        lifecycle_version=2,
+    )
+    source = RecordRef(record_id=note.id, revision_digest=note.revision_digest, lifecycle_version=2)
+    processor = PGVECTOR(1024).result_processor(dialect(), None)
+    decoded = cast("list[float]", processor("[0.6,0.8," + ",".join(["0"] * 1022) + "]"))
+    metadata = {
+        "item_id": str(UUID(int=9)),
+        "input_digest": proposal.source_digest,
+        "rendered_digest": text_digest(PROFILE.document_prefix + content),
+        "vector_digest": embedding_vector_digest(tuple(decoded)),
+        "tokens": 3,
+    }
+    receipt = DerivationReceipt.model_validate(
+        {
+            "profile_digest": PROFILE.digest,
+            "receipt_digest": embedding_digest(
+                {"profile": PROFILE.digest, "operation": "embed_document", "items": [metadata]}
+            ),
+            **metadata,
+        }
+    )
+    row = ArchiveNoteEmbedding(
+        id=UUID(int=9),
+        namespace_id=ARCHIVE.namespace_id,
+        note_id=note.id,
+        generation_id=REFERENCE.generation_id,
+        generation_manifest_digest=MANIFEST.digest,
+        generation_version=1,
+        source_revision_digest=source.revision_digest,
+        source_lifecycle_version=source.lifecycle_version,
+        source_digest=proposal.source_digest,
+        binding_digest=digest(
+            DerivationRequest(generation=REFERENCE, source=source).model_dump(mode="json", exclude={"run_id"})
+        ),
+        chunk_ordinal=0,
+        state="complete",
+        row_version=3,
+        attempt_version=1,
+        attempt_token=None,
+        expires_at=None,
+        started_at=observed,
+        completed_at=observed,
+        subject=SUBJECT.identity,
+        purpose="archive:derive",
+        vector=decoded,
+        vector_digest=receipt.vector_digest,
+        receipt=receipt.model_dump(mode="json"),
+    )
+    return note, row
+
+
+def test_selection_accepts_sql_codec_decimal_view_with_exact_float32_digest() -> None:
+    note, row = selected_source()
+    assert row.vector is not None
+    decoded = tuple(float(value) for value in row.vector)
+    canonical = canonical_float32_vector(decoded)
+    assert decoded != canonical
+    assert embedding_vector_digest(decoded) == embedding_vector_digest(canonical)
+    selected = _selection(MANIFEST, REFERENCE, 1, note, row, 0.75)
+    assert selected.reference.record_id == note.id
+    assert selected.vector_digest == row.vector_digest
+
+
+def test_selection_refuses_same_norm_sign_change_with_different_float32_digest() -> None:
+    note, row = selected_source()
+    assert row.vector is not None
+    original = canonical_float32_vector(tuple(float(value) for value in row.vector))
+    changed = (-original[0], *original[1:])
+    assert sum(value * value for value in changed) == sum(value * value for value in original)
+    assert embedding_vector_digest(changed) != row.vector_digest
+    row.vector = list(changed)
+    with pytest.raises(ArchiveRefused, match="source_integrity"):
+        _selection(MANIFEST, REFERENCE, 1, note, row, 0.75)
 
 
 @pytest.mark.asyncio

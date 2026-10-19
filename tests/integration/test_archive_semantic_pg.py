@@ -27,6 +27,7 @@ from lychd.domain.animation.embeddings import (
     EmbeddingInput,
     EmbeddingOperation,
     EmbeddingVector,
+    canonical_float32_vector,
     embedding_digest,
     embedding_vector_digest,
 )
@@ -73,7 +74,7 @@ def batch(operation: EmbeddingOperation, item: EmbeddingInput, vector: tuple[flo
 class Queries:
     def __init__(self) -> None:
         self.calls = self.closed = 0
-        self.vector = UNIT
+        self.vector: tuple[float, ...] = UNIT
         self.entered = asyncio.Event()
         self.release = asyncio.Event()
         self.release.set()
@@ -182,6 +183,36 @@ async def setup(
     await generation.register(notes.SUBJECT, generation.reference, purpose="manage")
     queries = Queries()
     return authority, generation, queries, consumer(factory, authority, generation, queries)
+
+
+async def test_decimal_float32_derivation_survives_sql_readback_recall_and_resolution(
+    factory: async_sessionmaker[AsyncSession],
+) -> None:
+    authority, generation, queries, semantic = await setup(factory)
+    vector = canonical_float32_vector((0.6, 0.8, *(0.0 for _ in range(1022))))
+    expected_digest = embedding_vector_digest(vector)
+    content = "A public source with a decimal vector."
+    note_id = await document(factory, authority, generation, "decimal", content, vector)
+    queries.vector = vector
+    result = await semantic.recall(notes.SUBJECT, request(generation), purpose="answer")
+    assert result.receipt.coverage.promoted_notes == result.receipt.coverage.eligible_notes == 1
+    assert len(result.receipt.selected) == 1
+    selected = result.receipt.selected[0]
+    assert selected.reference.record_id == note_id
+    assert selected.vector_digest == expected_digest
+    async with factory() as session:
+        row = await session.get(ArchiveNoteEmbedding, selected.derivation_id)
+        assert row is not None
+        assert row.receipt is not None
+        assert row.vector is not None
+        assert embedding_vector_digest(tuple(float(value) for value in row.vector)) == expected_digest
+        assert row.vector_digest == row.receipt["vector_digest"] == expected_digest
+    projection = await semantic.resolve_receipt(
+        notes.SUBJECT, result.receipt.receipt_id, result.receipt.receipt_digest, purpose="answer"
+    )
+    assert tuple(item.text for item in projection.items) == (content,)
+    assert projection.items[0].selection == selected
+    assert queries.calls == queries.closed == 1
 
 
 async def test_exact_filters_negative_inclusive_threshold_uuid_ties_and_final_coverage(

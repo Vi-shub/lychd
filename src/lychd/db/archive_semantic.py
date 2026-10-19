@@ -204,8 +204,7 @@ def _selection(
             record_id=note.id, revision_digest=note.revision_digest, lifecycle_version=note.lifecycle_version
         )
         native = DerivationReceipt.model_validate(row.receipt)
-        vector = tuple(float(value) for value in row.vector)
-        canonical = canonical_float32_vector(vector)
+        vector = canonical_float32_vector(tuple(float(value) for value in row.vector))
         metadata = native.model_dump(mode="json", exclude={"profile_digest", "operation", "receipt_digest"})
         if (
             note.namespace_id != manifest.archive.namespace_id
@@ -231,7 +230,6 @@ def _selection(
             or row.purpose is None
             or row.attempt_version < 1
             or len(vector) != VECTOR_DIMENSION
-            or vector != canonical
             or abs(math.sqrt(sum(v * v for v in vector)) - 1) > manifest.embedding.normalization_tolerance
             or row.vector_digest != embedding_vector_digest(vector)
             or native.profile_digest != manifest.embedding.digest
