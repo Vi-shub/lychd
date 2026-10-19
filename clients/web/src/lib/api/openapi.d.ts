@@ -260,6 +260,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/archive/runs/{run_id}/recall": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** RunRecall */
+        get: operations["getArchiveRunRecall"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/atlas/projects": {
         parameters: {
             query?: never;
@@ -1009,6 +1026,19 @@ export interface components {
         /** ArchiveResolveIntent */
         ArchiveResolveIntent: {
             receipt_digest: string;
+        };
+        /** ArchiveRunRecall */
+        ArchiveRunRecall: {
+            /**
+             * @default matching_retained_request
+             * @constant
+             */
+            capture: "matching_retained_request";
+            receipt: components["schemas"]["RecallReceipt"] | null;
+            /** Format: uuid */
+            run_id: string;
+            /** @enum {string} */
+            status: "not_applicable" | "not_recorded" | "recorded";
         };
         /** ArchiveSubject */
         ArchiveSubject: {
@@ -2806,6 +2836,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RecallProjection"];
+                };
+            };
+            /** @description Bad request syntax or unsupported method */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                        extra?: null | {
+                            [key: string]: unknown;
+                        } | unknown[];
+                        status_code: number;
+                    };
+                };
+            };
+        };
+    };
+    getArchiveRunRecall: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Request fulfilled, document follows */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArchiveRunRecall"];
                 };
             };
             /** @description Bad request syntax or unsupported method */

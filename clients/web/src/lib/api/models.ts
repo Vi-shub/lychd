@@ -41,3 +41,5 @@ export type NoteProposal = components["schemas"]["NoteProposal"];
 export type NoteRecord = components["schemas"]["NoteRecord"];
 export type NoteListPage = components["schemas"]["NoteListPage"];
 export type ArchiveLifecycleIntent = components["schemas"]["ArchiveLifecycleIntent"];
+
+export type ArchiveRunRecall = components["schemas"]["ArchiveRunRecall"];

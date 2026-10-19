@@ -83,6 +83,16 @@ def _recall_request_id(run_id: str) -> UUID:
     return uuid5(NAMESPACE_URL, f"lychd:archive-recall:{run_id}")
 
 
+def archive_recall_request(*, profile: ArchiveProfile, run_id: str, prompt: str) -> RecallRequest:
+    """Construct the exact Bridge3 request shared by execution and historical inspection."""
+    return RecallRequest(
+        namespace_id=profile.namespace_id,
+        request_id=_recall_request_id(run_id),
+        query=prompt,
+        run_id=UUID(run_id),
+    )
+
+
 async def _resolve_recall(state: ArchiveChatState, services: WorkflowServices) -> RecallProjection:
     service, subject = _archive_access(state, services)
     if state.receipt_id is None or state.receipt_digest is None:
@@ -110,12 +120,7 @@ class RecallNotes(BaseNode[ArchiveChatState, WorkflowServices]):
         service, subject = _archive_access(ctx.state, ctx.deps)
         receipt = await service.recall(
             subject,
-            RecallRequest(
-                namespace_id=ctx.state.archive.namespace_id,
-                request_id=_recall_request_id(ctx.state.run_id),
-                query=ctx.state.prompt,
-                run_id=UUID(ctx.state.run_id),
-            ),
+            archive_recall_request(profile=ctx.state.archive, run_id=ctx.state.run_id, prompt=ctx.state.prompt),
             purpose=ARCHIVE_ANSWER_PURPOSE,
         )
         ctx.state.receipt_id = receipt.receipt_id

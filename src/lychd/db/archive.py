@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
+from pydantic import ValidationError
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -342,14 +343,7 @@ class DbArchiveStore:
         purpose: str,
         check: AuthorizationCheck,
     ) -> RecallReceipt:
-        request_digest = digest(
-            {
-                "request": request.model_dump(mode="json"),
-                "subject": subject.model_dump(),
-                "purpose": purpose,
-                "profile": profile.model_dump(mode="json"),
-            }
-        )
+        request_digest = request.binding_digest(profile, subject, purpose)
         async with self._transaction() as session:
             await lock_archive_namespace(session, profile, create=True)
             check(request.request_id, request_digest)
@@ -436,6 +430,40 @@ class DbArchiveStore:
                 )
             )
             await session.flush()
+            check(receipt.receipt_id, receipt.receipt_digest)
+            return receipt
+
+    async def inspect_recall(
+        self, profile: ArchiveProfile, request: RecallRequest, check: AuthorizationCheck
+    ) -> RecallReceipt | None:
+        """Read only the one retained receipt; never initialize, search, or hydrate notes."""
+        async with self._transaction() as session:
+            present = await lock_archive_namespace(session, profile, missing_ok=True)
+            check(request.request_id, digest(request))
+            if not present:
+                return None
+            row = await session.scalar(
+                select(ArchiveRecall).where(
+                    ArchiveRecall.namespace_id == profile.namespace_id,
+                    ArchiveRecall.request_id == request.request_id,
+                )
+            )
+            check(request.request_id, digest(request))
+            if row is None:
+                return None
+            try:
+                receipt = _receipt(row)
+            except ValidationError:
+                msg = "receipt_integrity"
+                raise ArchiveRefused(msg) from None
+            if (
+                receipt.receipt_id != row.id
+                or receipt.namespace_id != row.namespace_id
+                or receipt.request_id != row.request_id
+                or receipt.request_digest != row.request_digest
+            ):
+                msg = "receipt_integrity"
+                raise ArchiveRefused(msg)
             check(receipt.receipt_id, receipt.receipt_digest)
             return receipt
 

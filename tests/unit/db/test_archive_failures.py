@@ -55,6 +55,10 @@ async def _invoke(store: DbArchiveStore, operation: str) -> None:
         await store.admit(PROFILE, proposal, check)
     elif operation == "transition":
         await store.transition(PROFILE, UUID(int=2), 1, Lifecycle.PROMOTED, check)
+    elif operation == "inspect_recall":
+        await store.inspect_recall(
+            PROFILE, RecallRequest(namespace_id=PROFILE.namespace_id, request_id=UUID(int=2), query=SOURCE), check
+        )
     elif operation == "recall":
         await store.recall(
             PROFILE,
@@ -68,7 +72,7 @@ async def _invoke(store: DbArchiveStore, operation: str) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("operation", ["admit", "transition", "recall", "resolve"])
+@pytest.mark.parametrize("operation", ["admit", "transition", "recall", "resolve", "inspect_recall"])
 @pytest.mark.parametrize("failure", ["statement", "authority"])
 async def test_archive_storage_failure_is_safe_and_still_rolls_back(
     operation: str, failure: Literal["statement", "authority"]
@@ -339,3 +343,110 @@ async def test_metadata_selects_only_bounded_columns_and_preserves_ties() -> Non
     assert "LIMIT 3" in str(statements[0].compile(compile_kwargs={"literal_binds": True}))
     assert "archive_note.created_at <" in str(statements[1])
     session.add.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("state", ["missing_namespace", "missing_receipt", "recorded"])
+async def test_historical_lookup_selects_only_exact_receipt_and_never_writes(state: str) -> None:
+    request = RecallRequest(namespace_id=PROFILE.namespace_id, request_id=UUID(int=2), query=SOURCE)
+    receipt = RecallReceipt(
+        receipt_id=UUID(int=3),
+        request_id=request.request_id,
+        namespace_id=PROFILE.namespace_id,
+        subject=SUBJECT,
+        purpose="answer",
+        policy_revision=PROFILE.policy_revision,
+        query_digest=text_digest(SOURCE),
+        request_digest=request.binding_digest(PROFILE, SUBJECT, "answer"),
+        run_id=None,
+        max_results=request.max_results,
+        char_budget=request.char_budget,
+        min_score=request.min_score,
+        selected=(),
+        omitted_for_budget=0,
+        created_at=datetime.now(UTC),
+        receipt_digest="0" * 64,
+    )
+    receipt = receipt.model_copy(update={"receipt_digest": receipt.computed_digest()})
+    row = ArchiveRecall(
+        id=receipt.receipt_id,
+        namespace_id=PROFILE.namespace_id,
+        request_id=request.request_id,
+        request_digest=receipt.request_digest,
+        receipt_digest=receipt.receipt_digest,
+        receipt=receipt.model_dump(mode="json"),
+    )
+    session = AsyncMock()
+    session.__aenter__.return_value = session
+    session.begin = Mock(return_value=AsyncMock())
+    namespace = ArchiveNamespace(
+        id=PROFILE.namespace_id, owner_subject=SUBJECT.identity, policy_revision=PROFILE.policy_revision
+    )
+    session.scalar.side_effect = (
+        [None] if state == "missing_namespace" else [namespace, row if state == "recorded" else None]
+    )
+    store = DbArchiveStore(cast("Any", lambda: session))
+    actual = await store.inspect_recall(PROFILE, request, allow_check)
+    assert actual == (receipt if state == "recorded" else None)
+    for call in session.scalar.await_args_list:
+        sql = str(call.args[0].compile(compile_kwargs={"literal_binds": True}))
+        assert "archive_note" not in sql
+        assert "content" not in sql
+        assert "search_vector" not in sql
+        assert "embedding" not in sql
+    if state != "missing_namespace":
+        sql = str(session.scalar.await_args_list[-1].args[0].compile(compile_kwargs={"literal_binds": True}))
+        assert "archive_recall.namespace_id =" in sql
+        assert "archive_recall.request_id =" in sql
+        assert session.scalar.await_args_list[-1].args[0].compile().params == {
+            "namespace_id_1": PROFILE.namespace_id,
+            "request_id_1": request.request_id,
+        }
+    session.add.assert_not_called()
+    session.flush.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("field", ["id", "request_id", "namespace_id", "request_digest", "receipt_digest", "receipt"])
+async def test_historical_lookup_validates_persisted_row_and_receipt_closure(field: str) -> None:
+    request = RecallRequest(namespace_id=PROFILE.namespace_id, request_id=UUID(int=2), query=SOURCE)
+    receipt = RecallReceipt(
+        receipt_id=UUID(int=3),
+        request_id=request.request_id,
+        namespace_id=PROFILE.namespace_id,
+        subject=SUBJECT,
+        purpose="answer",
+        policy_revision=PROFILE.policy_revision,
+        query_digest=text_digest(SOURCE),
+        request_digest=request.binding_digest(PROFILE, SUBJECT, "answer"),
+        run_id=None,
+        max_results=request.max_results,
+        char_budget=request.char_budget,
+        min_score=request.min_score,
+        selected=(),
+        omitted_for_budget=0,
+        created_at=datetime.now(UTC),
+        receipt_digest="0" * 64,
+    )
+    receipt = receipt.model_copy(update={"receipt_digest": receipt.computed_digest()})
+    values: dict[str, Any] = {
+        "id": receipt.receipt_id,
+        "namespace_id": PROFILE.namespace_id,
+        "request_id": request.request_id,
+        "request_digest": receipt.request_digest,
+        "receipt_digest": receipt.receipt_digest,
+        "receipt": receipt.model_dump(mode="json"),
+    }
+    values[field] = {} if field == "receipt" else ("1" * 64 if "digest" in field else UUID(int=99))
+    session = AsyncMock()
+    session.__aenter__.return_value = session
+    session.begin = Mock(return_value=AsyncMock())
+    session.scalar.side_effect = [
+        ArchiveNamespace(
+            id=PROFILE.namespace_id, owner_subject=SUBJECT.identity, policy_revision=PROFILE.policy_revision
+        ),
+        ArchiveRecall(**values),
+    ]
+    store = DbArchiveStore(cast("Any", lambda: session))
+    with pytest.raises(ArchiveRefused, match="receipt_integrity"):
+        await store.inspect_recall(PROFILE, request, allow_check)

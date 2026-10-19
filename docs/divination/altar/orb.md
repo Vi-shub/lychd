@@ -154,6 +154,37 @@ status above the graph remains current. Record spacing represents sequence, not 
 gaps, missing records, unretained tokens, and unloaded pages still limit the account. This is a
 record cursor, not full-workspace wall-clock replay or a configurable retention service.
 
+## Inspect a matching Archive selection
+
+In an exact Run's **Archive selection** inspector, choose **Read Archive selection**. Nothing is
+fetched until that gesture. **Refresh Archive selection** reads again; a failed read clears its
+protected result and offers **Retry Archive selection**. Run navigation aborts and fences old
+results independently of graph updates or playback. Read time and receipt creation time remain
+separate. Long identities and digests open through native disclosures.
+
+The separate same-host API read is
+`GET /api/v1/archive/runs/{run_id}/recall`. Use the authenticated local API under the configured
+Archive management authority; permission to view a Run alone does not disclose its source metadata.
+The retained Run must identify the supported exact Bridge Archive Pattern and its admitted profile.
+
+The response distinguishes `not_applicable`, `not_recorded` and `recorded`. A recorded receipt may
+have zero selected notes; that successful empty selection differs from a failed or denied read.
+It retains ordered source keys/revisions, exact record/lifecycle identities, scores, character and
+result bounds and `omitted_for_budget`. These describe that selection: its character bound covers
+selected note text, not the complete model Context or provider token accounting.
+
+Capture is `matching_retained_request`. Recall accepts caller-supplied identities, so an exactly
+matching receipt can exist before the workflow reaches recall. This read does not prove consumption
+or provider transmission, reconstruct the released Context cache, or expose the prompt, source body,
+answer or provider payload. Source names and digests remain protected local metadata.
+
+A later correction, archival or revocation does not rewrite the old receipt. Current source
+eligibility requires a separate authorized check; inspecting history neither resolves former
+content nor makes that revision eligible again. Storage and binding failures remain errors rather
+than an empty selection. [Memory](../../adr/27-memory.md) owns receipt authority and
+[Observability](../../adr/29-observability.md#exact-run-archive-selection-explanation) owns the
+capture boundary.
+
 ## Witness without possession
 
 A richer view can reveal more of the retained account. It cannot fill the missing part of a

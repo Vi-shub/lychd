@@ -124,6 +124,12 @@ An empty successful receipt remains a visible miss, distinct from service failur
 revisions do not receive this projection. This narrow local profile does not implement the
 general Privacy Cut or remote disclosure admission below.
 
+Archive's durable text-free receipt can explain a selection matching an exact admitted Run after
+Context-cache release. This separate authorized metadata view does not reconstruct the Stable
+Floor, total assembly budget, history, actual wire input or provider attention. A matching retained
+request is not proof of workflow consumption or transmission; omitted capture stays unknown.
+Current source eligibility is a separate check, not a revision of that historical selection.
+
 ## Stable history
 
 Completed messages group by LychD `run_id`. Legacy messages begin a new group at a user request

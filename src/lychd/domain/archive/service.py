@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Literal
 
 from lychd.domain.archive.authorization import authorization_check
 from lychd.domain.archive.contracts import (
+    POLICY,
     ArchiveProfile,
     ArchiveRefused,
     ArchiveSubject,
@@ -18,6 +19,7 @@ from lychd.domain.archive.contracts import (
     RecallReceipt,
     RecallRequest,
     digest,
+    text_digest,
 )
 
 if TYPE_CHECKING:
@@ -118,6 +120,52 @@ class ArchiveService:
         check = self._check(subject, request.namespace_id, "recall", purpose)
         check(request.request_id, digest(request))
         receipt = await self._store.recall(self.profile, subject, request, purpose, check)
+        check(receipt.receipt_id, receipt.receipt_digest)
+        return receipt
+
+    async def inspect_recall(
+        self,
+        subject: ArchiveSubject,
+        expected: RecallRequest,
+        *,
+        recall_purpose: str,
+        purpose: str,
+    ) -> RecallReceipt | None:
+        """Inspect matching historical selection only; this proves no runtime consumption.
+
+        Current management authority is independent of historical answer authority.
+        Source lifecycle and source bytes are deliberately outside this read.
+        """
+        check = self._check(subject, expected.namespace_id, "inspect", purpose)
+        binding = expected.binding_digest(self.profile, subject, recall_purpose)
+        check(expected.request_id, binding)
+        receipt = await self._store.inspect_recall(self.profile, expected, check)
+        # The final handoff follows every awaited transaction and session cleanup.
+        check(expected.request_id, binding)
+        if receipt is None:
+            return None
+        if receipt.computed_digest() != receipt.receipt_digest:
+            msg = "receipt_integrity"
+            raise ArchiveRefused(msg)
+        if (
+            receipt.namespace_id != expected.namespace_id
+            or receipt.request_id != expected.request_id
+            or receipt.run_id != expected.run_id
+            or receipt.subject != subject
+            or receipt.purpose != recall_purpose
+            or receipt.profile != self.profile.profile
+            or receipt.retrieval_policy != POLICY
+            or receipt.policy_revision != self.profile.policy_revision
+            or receipt.query_digest != text_digest(expected.query)
+            or receipt.request_digest != binding
+            or receipt.max_results != expected.max_results
+            or receipt.char_budget != expected.char_budget
+            or receipt.min_score != expected.min_score
+            or len(receipt.selected) + receipt.omitted_for_budget > expected.max_results
+            or sum(item.projected_chars for item in receipt.selected) > expected.char_budget
+        ):
+            msg = "receipt_binding"
+            raise ArchiveRefused(msg)
         check(receipt.receipt_id, receipt.receipt_digest)
         return receipt
 

@@ -1930,6 +1930,25 @@ namespace lists empty; changed retained bindings and storage failures refuse dis
 management authority is checked before storage, after namespace preparation and after session
 cleanup. Inspection grants no recall eligibility or automatic lifecycle retry.
 
+A separate authorized exact-Run read returns a bounded text-free Archive receipt only when the
+retained supported Bridge3 Pattern, complete admitted/current profile and exact expected recall
+request match. Current management authority is distinct from Run visibility and is rechecked after
+ledger, namespace and session preparation. The response distinguishes unsupported history, absent
+receipt, successful empty selection, budget omissions and failure. PostgreSQL tests execute the
+worker with a substituted model, observe terminal Context release and then read the same receipt
+through a fresh service and repeated HTTP reads without dispatch. Historical selection survives
+source supersession, archival and revocation; inspection reads no source table and creates no rows.
+Bridge3 uses live checkpoints; this is no durable-checkpoint deletion or crash-recovery proof.
+Orb now exposes that separate read in an explicit **Archive selection** inspector. It performs no
+request on mount or structural live updates; current failure clears protected metadata, and an
+exact-Run keyed child aborts and fences old responses on navigation. Selected source metadata is
+escaped and ordered, long digests use native disclosures, and read time stays separate from receipt
+creation. Component/transport tests cover empty, absent, unsupported, refused and malformed results,
+explicit retry, stale completion and preservation of Orb graph/history/SSE ownership.
+Capture remains `matching_retained_request`: a caller can preseed an exact public recall before
+workflow execution. It proves neither consumption nor provider transmission and reconstructs no
+complete historical Context.
+
 Bridge now supplies a **Public notes** focus at `/bridge?notes=manage|new|UUID`, using the generated
 management transport. It shows configured profile and a separately authorized actual-default/full-
 profile match, finite all-lifecycle pages and exact-record recovery. Explicit intake freezes the
@@ -1991,7 +2010,9 @@ Generated answers can quote sources; later revocation does not erase earlier out
 - **Verification:** [Metadata authority, cursor and column-selection tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/db/test_archive_failures.py) and [guarded metadata HTTP tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_archive_metadata.py); the PostgreSQL lifecycle and vertical tests above include retained metadata recovery and no-write reads.
 - **Source:** [Public-note focus](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/PublicNotes.svelte) and [framework-neutral recovery controller](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/archive/notes.ts)
 - **Verification:** [Recovery and unknown outcomes](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/archive/notes.test.ts), [controls and late-focus races](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/PublicNotes.test.ts), [transport/CSRF](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/api/archive.test.ts), [closed route dispatch](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/routes/bridge/page.test.ts), and [ordinary Bridge workspace preservation](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/BridgeShellNavigation.test.ts)
-- **Topic:** [Public-note answers](./divination/altar/bridge.md#public-note-answers)
+- **Source:** [Exact-Run Archive inspector](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/ArchiveRecallPanel.svelte); [inspector tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/ArchiveRecallPanel.test.ts) cover protected display and lifetime.
+- **Verification:** [Exact-Run recall binding, preseed and current-authority HTTP tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_archive_run_recall.py); the PostgreSQL lifecycle and vertical tests above cover terminal and historical metadata reads.
+- **Topic:** [Public-note answers](./divination/altar/bridge.md#public-note-answers) and [matching Archive selection](./divination/altar/orb.md#inspect-a-matching-archive-selection)
 - **Law:** [Memory](./adr/27-memory.md)
 
 ### Mirror identity {#mirror-identity}

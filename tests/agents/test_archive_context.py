@@ -394,3 +394,22 @@ def test_adapter_preparation_cannot_mutate_caller_messages() -> None:
 def test_nonpositive_budget_is_refused(max_chars: int) -> None:
     with pytest.raises(ValueError, match="positive character budget"):
         ArchiveModel(_ProbeModel(), resolver=_Resolver(_projection()), max_chars=max_chars)
+
+
+def test_bridge3_shared_request_factory_preserves_exact_workflow_defaults() -> None:
+    from uuid import NAMESPACE_URL, uuid5
+
+    from lychd.agents.workflows.archive_chat import archive_recall_request
+    from lychd.domain.archive import ArchiveProfile, RecallRequest
+
+    profile = ArchiveProfile(
+        namespace_id=UUID(int=10), owner_subject=ArchiveSubject(identity="owner"), policy_revision="one"
+    )
+    run_id = str(UUID(int=11))
+    prompt = " Exact UTF-8 fox: líška\n"
+    assert archive_recall_request(profile=profile, run_id=run_id, prompt=prompt) == RecallRequest(
+        namespace_id=profile.namespace_id,
+        request_id=uuid5(NAMESPACE_URL, f"lychd:archive-recall:{run_id}"),
+        query=prompt,
+        run_id=UUID(run_id),
+    )

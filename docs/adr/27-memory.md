@@ -84,7 +84,23 @@ budgets, selected revision and lifecycle identities, projection digests, and ord
 contains neither query nor note text. Resolving that receipt rechecks current authority and exact
 eligible revisions; it refuses revoked, archived, superseded, changed, or missing material rather
 than replacing the selection. A miss differs from infrastructure failure. Each later model request
-resolves the same receipt again. Context owns transient attributed data projection; retrieval
+resolves the same receipt again.
+
+Historical receipt metadata inspection is a separate current-authorized management read. It
+looks up one exact namespace and request identity, validates the retained receipt's integrity and
+its complete expected request, subject, answer purpose and profile binding, and returns no source
+text. It performs no recall, resolution, lifecycle transition or persistent write. Missing storage
+is not a miss; an absent receipt remains absent. Namespace owner/policy and current inspection
+authority are checked after awaited preparation and transaction/session cleanup. A valid historical
+selection remains inspectable after source correction, archival or revocation; that inspection
+neither claims current eligibility nor restores controlled content. Source names and digests are
+protected metadata under the configured local management authority, not anonymous public exports.
+
+A Run-linked explanation additionally requires the retained exact supported Pattern, admitted
+Archive/capability binding and complete expected recall request. Caller-supplied Run/request
+identities can preseed even that exact request. The explanation therefore establishes a retained
+selection matching the Run request, not that the workflow consumed it or sent it to a provider.
+A stronger execution claim requires a separately owned capture at the actual boundary. Context owns transient attributed data projection; retrieval
 never adds instructions or authority. The read-only Bridge revision uses no model tools or settled
 history replay, and retains only receipt references to retrieved material in Graph state. Generated replies may quote
 the notes: source revocation cannot erase that recorded influence.

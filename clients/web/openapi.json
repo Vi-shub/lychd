@@ -105,6 +105,45 @@
         "title": "ArchiveResolveIntent",
         "type": "object"
       },
+      "ArchiveRunRecall": {
+        "additionalProperties": false,
+        "properties": {
+          "capture": {
+            "const": "matching_retained_request",
+            "default": "matching_retained_request",
+            "type": "string"
+          },
+          "receipt": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RecallReceipt"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "run_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "not_applicable",
+              "not_recorded",
+              "recorded"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "receipt",
+          "run_id",
+          "status"
+        ],
+        "title": "ArchiveRunRecall",
+        "type": "object"
+      },
       "ArchiveSubject": {
         "additionalProperties": false,
         "properties": {
@@ -6192,6 +6231,76 @@
           }
         },
         "summary": "Resolve"
+      }
+    },
+    "/api/v1/archive/runs/{run_id}/recall": {
+      "get": {
+        "deprecated": false,
+        "operationId": "getArchiveRunRecall",
+        "parameters": [
+          {
+            "deprecated": false,
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArchiveRunRecall"
+                }
+              }
+            },
+            "description": "Request fulfilled, document follows",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "detail": "Bad Request",
+                      "extra": {},
+                      "status_code": 400
+                    }
+                  ],
+                  "properties": {
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    },
+                    "status_code": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Bad request syntax or unsupported method"
+          }
+        },
+        "summary": "RunRecall"
       }
     },
     "/api/v1/atlas/projects": {

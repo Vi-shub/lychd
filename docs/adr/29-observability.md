@@ -129,6 +129,21 @@ inside the browser.
 Viewing, filtering, and layout never change a Run. A future annotation is a separately authorized
 record, not an implicit retry, approval, cancellation, publication, or transition.
 
+### Exact-Run Archive selection explanation
+
+A separate Archive-authorized read may join one retained Run to its exact expected recall request.
+It requires the supported pinned Pattern and complete admitted/current Archive binding, then
+current local metadata-inspection authority; `altar:read` alone is insufficient. The bounded view
+contains historical receipt identities, selected source revisions, scores, character/result bounds
+and recorded budget omissions, with no prompt, source body, answer or provider payload.
+
+The capture class is a matching retained request. Public recall accepts caller-supplied identities,
+so even an exactly matching receipt may precede workflow execution. The view cannot claim actual
+consumption, provider transmission, complete Context, or restored process-local assembly. Missing,
+unsupported, denied, failed and successfully empty selections remain distinguishable. Later source
+revocation does not rewrite the old selection or grant access to its former content. This read
+neither appends structural evidence nor changes a Run; Archive owns its retained metadata.
+
 ### 6. The Physical Body and Pulse
 
 A future Resource Snapshot records the node, units, measurement method, age, errors, and freshness

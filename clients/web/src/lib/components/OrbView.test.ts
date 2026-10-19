@@ -12,12 +12,13 @@ vi.mock("$app/state", async () => {
 });
 vi.mock("$lib/api/client", () => ({
   getAtlasReferences: vi.fn().mockResolvedValue([]),
+  getArchiveRunRecall: vi.fn(),
   getOrbRun: vi.fn()
 }));
 
 import { page } from "$app/state";
 import { goto } from "$app/navigation";
-import { getOrbRun } from "$lib/api/client";
+import { getArchiveRunRecall, getOrbRun } from "$lib/api/client";
 import OrbView from "./OrbView.svelte";
 import { listenToOrb, type OrbLiveCallbacks } from "$lib/orb/live";
 vi.mock("$lib/orb/live", () => ({ listenToOrb: vi.fn(() => vi.fn()) }));
@@ -760,4 +761,33 @@ it("returns an app-owned Run to Scavenger without exposing a nonexistent Bridge 
   const link = await screen.findByRole("link", { name: "Scavenger market" });
   expect(link.getAttribute("href")).toBe(path);
   expect(screen.queryByRole("link", { name: "Bridge" })).toBeNull();
+});
+
+
+it("mounts an explicit Archive read by supplied Run and aborts it on navigation without restarting Orb ownership", async () => {
+  const pending = deferred<import("$lib/api/models").ArchiveRunRecall>();
+  vi.mocked(getArchiveRunRecall).mockReturnValueOnce(pending.promise);
+  const view = render(OrbView, { runId: "run-a" });
+  await screen.findByRole("region", { name: "Archive selection" });
+  expect(getArchiveRunRecall).not.toHaveBeenCalled();
+  await fireEvent.click(screen.getByRole("button", { name: "Read Archive selection" }));
+  expect(getArchiveRunRecall).toHaveBeenCalledWith("run-a", expect.any(AbortSignal));
+  const signal = vi.mocked(getArchiveRunRecall).mock.calls[0]![1]!;
+  const firstCallbacks = vi.mocked(listenToOrb).mock.calls[0]![2];
+  await act(() => firstCallbacks.onFrame({ schema_version: 1, run_id: "run-a", kind: "evidence", after_seq: 0, cursor: 0, snapshot: { ...snapshot, evidence: [] } }));
+  expect(signal.aborted).toBe(false);
+  expect(getArchiveRunRecall).toHaveBeenCalledTimes(1);
+  vi.mocked(getOrbRun).mockResolvedValue({ ...snapshot, run: { ...snapshot.run, run_id: "run-b" } });
+  await view.rerender({ runId: "run-b" });
+  expect(signal.aborted).toBe(true);
+  expect(screen.getByRole("region", { name: "Archive selection" }).textContent).toContain("Exact Run · run-b");
+  expect(screen.getByRole("button", { name: "Read Archive selection" })).toBeTruthy();
+  await act(() => pending.resolve({ run_id: "run-a", capture: "matching_retained_request", status: "not_recorded", receipt: null }));
+  expect(screen.queryByText(/Not recorded: no matching retained request/)).toBeNull();
+  expect(getArchiveRunRecall).toHaveBeenCalledTimes(1);
+  vi.mocked(getArchiveRunRecall).mockResolvedValueOnce({ run_id: "run-b", capture: "matching_retained_request", status: "not_applicable", receipt: null });
+  await fireEvent.click(screen.getByRole("button", { name: "Read Archive selection" }));
+  await screen.findByText(/Not applicable: this Run's pinned Pattern/);
+  expect(vi.mocked(getArchiveRunRecall).mock.calls[1]![0]).toBe("run-b");
+  view.unmount();
 });

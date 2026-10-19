@@ -60,6 +60,10 @@ class ArchiveStore(Protocol):
         check: AuthorizationCheck,
     ) -> RecallReceipt: ...
 
+    async def inspect_recall(
+        self, profile: ArchiveProfile, request: RecallRequest, check: AuthorizationCheck
+    ) -> RecallReceipt | None: ...
+
     async def resolve(
         self,
         profile: ArchiveProfile,

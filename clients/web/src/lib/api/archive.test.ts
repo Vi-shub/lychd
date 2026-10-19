@@ -23,3 +23,15 @@ it("retains typed safe status/code for presentation to close arbitrary server de
   browserRequests(); vi.stubGlobal("fetch", vi.fn(async () => Response.json({ detail: "arbitrary sensitive detail", extra: { code: "stale_version" } }, { status: 409 })));
   vi.resetModules(); const api = await import("./client"); await expect(api.getArchiveNote("00000000-0000-4000-8000-000000000001")).rejects.toMatchObject({ status: 409, code: "stale_version" });
 });
+it("reads exact Run recall metadata by GET with cancellation and no CSRF discovery or mutation", async () => {
+  browserRequests(); const requests: Request[] = [];
+  vi.stubGlobal("fetch", vi.fn(async (request: Request) => { requests.push(request); return Response.json({}); }));
+  vi.resetModules(); const api = await import("./client"); const controller = new AbortController();
+  const id = "00000000-0000-4000-8000-000000000001";
+  await api.getArchiveRunRecall(id, controller.signal);
+  expect(requests).toHaveLength(1);
+  expect(requests[0]!.url).toBe(`http://localhost/api/v1/archive/runs/${id}/recall`);
+  expect(requests[0]!.method).toBe("GET"); expect(requests[0]!.body).toBeNull();
+  expect([...requests[0]!.headers.keys()]).not.toContain("x-archive-csrf");
+  controller.abort(); expect(requests[0]!.signal.aborted).toBe(true);
+});

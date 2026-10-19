@@ -9,6 +9,7 @@
   import { loadedSubjects, subjectIdentity, attemptIdentity, conflictingStationAttempts } from "./orb-evidence";
   import { delegationStatusLabel } from "$lib/delegation/presentation";
   import DelegateMark from "./DelegateMark.svelte";
+  import ArchiveRecallPanel from "./ArchiveRecallPanel.svelte";
   import AtlasLinks from "./AtlasLinks.svelte";
   import CreationSummary from "./CreationSummary.svelte";
   import BridgePreferenceSummary from "./BridgePreferenceSummary.svelte";
@@ -624,6 +625,9 @@
     </section>
 
     <aside class="orb-inspector">
+      {#key runId}
+        <ArchiveRecallPanel {runId} />
+      {/key}
       {#if selectionNote}
         <section class="panel selection-note" role="status">
           <p class="inspector-copy">{selectionNote}</p>

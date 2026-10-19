@@ -6,8 +6,9 @@ from datetime import datetime
 from typing import Annotated, Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
+from lychd.domain.archive import RecallReceipt
 from lychd.domain.web.schemas import ConsentCard, LoomView, NexusBoard, SwapTicket
 
 
@@ -105,6 +106,29 @@ class ArchiveBridgeDefault(ClientContract):
 
     current_default: BridgeComposer | None
     requests_profile: bool | None
+
+
+class ArchiveRunRecall(ClientContract):
+    """Selection matching a retained request; model consumption/provider send are unproved.
+
+    An exact public preseed can match before the workflow reaches recall. This view
+    retains neither Context assembly nor source eligibility or current source content.
+    """
+
+    run_id: UUID
+    status: Literal["not_applicable", "not_recorded", "recorded"]
+    receipt: RecallReceipt | None
+    capture: Literal["matching_retained_request"] = "matching_retained_request"
+
+    @model_validator(mode="after")
+    def consistent_receipt(self) -> ArchiveRunRecall:
+        if (self.status == "recorded") != (self.receipt is not None):
+            msg = "Recorded status requires exactly one matching receipt."
+            raise ValueError(msg)
+        if self.receipt is not None and self.receipt.run_id != self.run_id:
+            msg = "Receipt belongs to another Run."
+            raise ValueError(msg)
+        return self
 
 
 class BridgeSnapshot(ClientContract):

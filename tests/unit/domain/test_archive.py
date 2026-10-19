@@ -307,3 +307,132 @@ async def test_metadata_query_namespace_refuses_before_authority_or_storage() ->
         await archive.list_notes(SUBJECT, NoteListRequest(namespace_id=uuid4()), purpose="archive:manage")
     assert authority.calls == []
     assert store.mock_calls == []
+
+
+def matching_receipt(request: RecallRequest) -> Any:
+    from lychd.domain.archive import RecallReceipt
+
+    receipt = RecallReceipt(
+        receipt_id=uuid4(),
+        request_id=request.request_id,
+        namespace_id=request.namespace_id,
+        subject=SUBJECT,
+        purpose="archive:answer",
+        policy_revision=PROFILE.policy_revision,
+        query_digest=text_digest(request.query),
+        request_digest=request.binding_digest(PROFILE, SUBJECT, "archive:answer"),
+        run_id=request.run_id,
+        max_results=request.max_results,
+        char_budget=request.char_budget,
+        min_score=request.min_score,
+        selected=(),
+        omitted_for_budget=0,
+        created_at=datetime.now(UTC),
+        receipt_digest="0" * 64,
+    )
+    return receipt.model_copy(update={"receipt_digest": receipt.computed_digest()})
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("run_id", uuid4()),
+        ("request_id", uuid4()),
+        ("namespace_id", uuid4()),
+        ("subject", ArchiveSubject(identity="other")),
+        ("purpose", "archive:manage"),
+        ("profile", "other"),
+        ("retrieval_policy", "other"),
+        ("policy_revision", "other"),
+        ("query_digest", "1" * 64),
+        ("request_digest", "1" * 64),
+        ("max_results", 4),
+        ("char_budget", 7_999),
+        ("min_score", 0.1),
+    ],
+)
+async def test_historical_receipt_requires_complete_expected_binding(field: str, value: Any) -> None:
+    request = RecallRequest(namespace_id=PROFILE.namespace_id, request_id=uuid4(), query="fox", run_id=uuid4())
+    receipt = matching_receipt(request).model_copy(update={field: value})
+    # A self-consistent foreign receipt still supplies no matching-request evidence.
+    receipt = receipt.model_copy(update={"receipt_digest": receipt.computed_digest()})
+    store = AsyncMock()
+    store.inspect_recall.return_value = receipt
+    archive = ArchiveService(profile=PROFILE, store=store, authorizer=Authority())
+    with pytest.raises(ArchiveRefused, match="receipt_binding"):
+        await archive.inspect_recall(SUBJECT, request, recall_purpose="archive:answer", purpose="archive:manage")
+    assert [call[0] for call in store.mock_calls] == ["inspect_recall"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "change", [{"query": "different"}, {"max_results": 4}, {"char_budget": 100}, {"min_score": 0.1}]
+)
+async def test_historical_request_digest_includes_default_budget_fields(change: dict[str, Any]) -> None:
+    request = RecallRequest(namespace_id=PROFILE.namespace_id, request_id=uuid4(), query="fox", run_id=uuid4())
+    store = AsyncMock()
+    store.inspect_recall.return_value = matching_receipt(request)
+    archive = ArchiveService(profile=PROFILE, store=store, authorizer=Authority())
+    with pytest.raises(ArchiveRefused, match="receipt_binding"):
+        await archive.inspect_recall(
+            SUBJECT, request.model_copy(update=change), recall_purpose="archive:answer", purpose="archive:manage"
+        )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("result", ["absent", "empty", "budget", "corrupt", "cleanup_denial", "storage"])
+async def test_historical_absence_empty_budget_failure_and_cleanup_are_distinct(result: str) -> None:
+    request = RecallRequest(namespace_id=PROFILE.namespace_id, request_id=uuid4(), query="fox", run_id=uuid4())
+    receipt = matching_receipt(request)
+    if result == "budget":
+        receipt = receipt.model_copy(update={"omitted_for_budget": 1})
+        receipt = receipt.model_copy(update={"receipt_digest": receipt.computed_digest()})
+    if result == "corrupt":
+        receipt = receipt.model_copy(update={"receipt_digest": "1" * 64})
+    authority = Authority()
+
+    async def inspect(*args: Any) -> Any:
+        args[-1](request.request_id, request.binding_digest(PROFILE, SUBJECT, "archive:answer"))
+        if result == "storage":
+            msg = "storage"
+            raise ArchiveRefused(msg)
+        if result == "cleanup_denial":
+            authority.allowed = False
+        return None if result == "absent" else receipt
+
+    store = AsyncMock()
+    store.inspect_recall.side_effect = inspect
+    archive = ArchiveService(profile=PROFILE, store=store, authorizer=authority)
+    if result in {"corrupt", "cleanup_denial", "storage"}:
+        code = {"corrupt": "receipt_integrity", "cleanup_denial": "authority", "storage": "storage"}[result]
+        with pytest.raises(ArchiveRefused, match=code):
+            await archive.inspect_recall(SUBJECT, request, recall_purpose="archive:answer", purpose="archive:manage")
+    else:
+        actual = await archive.inspect_recall(
+            SUBJECT, request, recall_purpose="archive:answer", purpose="archive:manage"
+        )
+        assert actual is (None if result == "absent" else receipt)
+        if actual is not None:
+            assert actual.selected == ()
+            assert actual.omitted_for_budget == (1 if result == "budget" else 0)
+    assert all(call.action == "inspect" and call.purpose == "archive:manage" for call in authority.calls)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("denial", ["subject", "authority", "namespace"])
+async def test_historical_inspection_refuses_before_storage(denial: str) -> None:
+    authority = Authority()
+    authority.allowed = denial != "authority"
+    subject = ArchiveSubject(identity="other") if denial == "subject" else SUBJECT
+    request = RecallRequest(
+        namespace_id=uuid4() if denial == "namespace" else PROFILE.namespace_id,
+        request_id=uuid4(),
+        query="fox",
+        run_id=uuid4(),
+    )
+    store = AsyncMock()
+    archive = ArchiveService(profile=PROFILE, store=store, authorizer=authority)
+    with pytest.raises(ArchiveRefused, match="namespace" if denial == "namespace" else "authority"):
+        await archive.inspect_recall(subject, request, recall_purpose="archive:answer", purpose="archive:manage")
+    assert store.mock_calls == []

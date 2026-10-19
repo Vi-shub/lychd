@@ -3,6 +3,7 @@ import createClient from "openapi-fetch";
 import type { components, paths } from "./openapi";
 import type {
   AltarStatus,
+  ArchiveRunRecall,
   AtlasCatalogue,
   AtlasCreate,
   AtlasMutation,
@@ -127,6 +128,12 @@ export async function listArchiveNotes(options: { sourceKey?: string; cursor?: s
     signal: options.signal, params: { query: { limit: 50, source_key: options.sourceKey, cursor: options.cursor } }
   }));
 }
+export async function getArchiveRunRecall(runId: string, signal?: AbortSignal): Promise<ArchiveRunRecall> {
+  return unwrap(await client.GET("/api/v1/archive/runs/{run_id}/recall", {
+    signal, params: { path: { run_id: runId } }
+  }));
+}
+
 export async function getArchiveNote(recordId: string, signal?: AbortSignal): Promise<components["schemas"]["NoteRecord"]> {
   return unwrap(await client.GET("/api/v1/archive/notes/{record_id}", { signal, params: { path: { record_id: recordId } } }));
 }

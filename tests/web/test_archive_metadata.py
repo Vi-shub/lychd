@@ -47,9 +47,15 @@ PROFILE = ArchiveProfile(
 
 
 def client(
-    store: AsyncMock, *, configured: bool = True, caller: Sigil | None = None, engine: object | None = None
+    store: AsyncMock,
+    *,
+    configured: bool = True,
+    caller: Sigil | None = None,
+    engine: object | None = None,
+    ledger: object | None = None,
+    policy: LocalArchivePolicy | None = None,
 ) -> httpx.AsyncClient:
-    policy = LocalArchivePolicy(profile=PROFILE, caller=default_local_sigil())
+    policy = policy or LocalArchivePolicy(profile=PROFILE, caller=default_local_sigil())
     archive = ArchiveService(profile=PROFILE, store=store, authorizer=policy)
 
     class CallerMiddleware(AbstractAuthenticationMiddleware):
@@ -60,6 +66,7 @@ def client(
     services = SimpleNamespace(
         archive=archive if configured else None,
         run_engine=engine,
+        ledger=ledger,
         # Deliberately disagreeing catalogue; it is not the admission default.
         workflows=BuiltinWorkflowRegistry(workflows=(BRIDGE_CHAT_ARCHIVE,)),
         substrate=SimpleNamespace(archive_subject_resolver=policy.subject_for if configured else None),

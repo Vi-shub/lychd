@@ -7,13 +7,16 @@ from uuid import UUID
 
 from litestar import Controller, Request, get, post
 from litestar.datastructures import State
-from litestar.exceptions import ValidationException
+from litestar.exceptions import NotFoundException, ValidationException
 from litestar.params import FromPath, FromQuery
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from lychd.agents.workflows import WorkflowRegistry
+from lychd.agents.workflows.archive_chat import ARCHIVE_ANSWER_PURPOSE, BRIDGE_CHAT_ARCHIVE, archive_recall_request
+from lychd.agents.workflows.base import pattern_snapshot_is_valid
 from lychd.domain.archive import (
     ArchiveProfile,
+    ArchiveRefused,
     NoteListPage,
     NoteListRequest,
     NoteProposal,
@@ -23,7 +26,7 @@ from lychd.domain.archive import (
     RecallRequest,
 )
 from lychd.domain.codex.guards import requires_scopes
-from lychd.domain.web.contracts import ArchiveBridgeDefault, BridgeComposer
+from lychd.domain.web.contracts import ArchiveBridgeDefault, ArchiveRunRecall, BridgeComposer
 from lychd.interface.web.archive_response import archive_result, require_archive_access
 
 
@@ -80,6 +83,44 @@ class ArchiveController(Controller):
                 and binding == profile
             )
         return ArchiveBridgeDefault(current_default=current, requests_profile=matches)
+
+    @get("/runs/{run_id:uuid}/recall", name="archive:run-recall", operation_id="getArchiveRunRecall")
+    async def run_recall(
+        self, run_id: FromPath[UUID], request: Request[Any, Any, Any], state: State
+    ) -> ArchiveRunRecall:
+        """Inspect exact retained selection after Context release, without proving consumption."""
+        service, subject = require_archive_access(request, state)
+        profile = await archive_result(service.discover_profile(subject, purpose="archive:manage"))
+        record = await state.services.ledger.get(str(run_id))
+        # Ledger preparation may await; recheck even for absence or unsupported history.
+        await archive_result(service.discover_profile(subject, purpose="archive:manage"))
+        if record is None:
+            raise NotFoundException(detail="Unknown run.")
+        snapshot = record.pattern_manifest
+        if record.run_id != str(run_id) or not pattern_snapshot_is_valid(snapshot):
+            return await archive_result(_refuse_run_binding())
+        if (snapshot["key"], snapshot["revision"]) != ("bridge_chat", "3"):
+            return ArchiveRunRecall(run_id=run_id, status="not_applicable", receipt=None)
+        if (
+            snapshot != BRIDGE_CHAT_ARCHIVE.manifest.snapshot()
+            or record.workflow_name != BRIDGE_CHAT_ARCHIVE.name
+            or record.source != "bridge"
+            or not isinstance(record.admitted_capability_key, str)
+            or not record.admitted_capability_key.strip()
+            or record.admitted_archive != profile
+            or getattr(getattr(state.services, "run_engine", None), "bridge_archive", None) != profile
+        ):
+            return await archive_result(_refuse_run_binding())
+        try:
+            expected = archive_recall_request(profile=profile, run_id=record.run_id, prompt=record.prompt)
+        except ValueError:
+            return await archive_result(_refuse_run_binding())
+        receipt = await archive_result(
+            service.inspect_recall(subject, expected, recall_purpose=ARCHIVE_ANSWER_PURPOSE, purpose="archive:manage")
+        )
+        return ArchiveRunRecall(
+            run_id=run_id, status="recorded" if receipt is not None else "not_recorded", receipt=receipt
+        )
 
     @get("/notes", name="archive:list", operation_id="listArchiveNotes")
     async def list_notes(
@@ -173,3 +214,9 @@ class ArchiveController(Controller):
         return await archive_result(
             service.resolve_receipt(subject, receipt_id, data.receipt_digest, purpose="archive:answer")
         )
+
+
+async def _refuse_run_binding() -> ArchiveRunRecall:
+    """Project only a stable refusal code, never retained prompt or admission bytes."""
+    msg = "run_recall_binding"
+    raise ArchiveRefused(msg)

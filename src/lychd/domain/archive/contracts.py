@@ -202,6 +202,17 @@ class RecallRequest(ArchiveValue):
     min_score: Annotated[float, Field(ge=0, le=1, allow_inf_nan=False)] = 0.0
     run_id: UUID | None = None
 
+    def binding_digest(self, profile: ArchiveProfile, subject: ArchiveSubject, purpose: str) -> str:
+        """Bind the complete request, including defaults, to its retained admission."""
+        return digest(
+            {
+                "request": self.model_dump(mode="json"),
+                "subject": subject.model_dump(),
+                "purpose": purpose,
+                "profile": profile.model_dump(mode="json"),
+            }
+        )
+
     @field_validator("query")
     @classmethod
     def valid_query(cls, value: str) -> str:

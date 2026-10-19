@@ -716,3 +716,45 @@ async def test_http_metadata_reload_retains_tombstones_and_never_initializes_on_
     async with disabled.client() as client:
         assert (await client.get("/api/v1/archive/profile")).status_code == 404
         assert (await client.get("/api/v1/archive/notes")).status_code == 404
+
+
+async def test_terminal_run_recall_survives_context_and_checkpoint_release(
+    pg_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    from lychd.agents.workflows.archive_chat import archive_recall_request
+
+    boot = PostgresArchiveBoot(pg_factory)
+    await promote(boot)
+    _, run_id = await admit(boot)
+    # Bridge3 uses native live checkpoints; it does not retain a PostgreSQL checkpoint.
+    assert await boot.checkpoints.load(run_id) is None
+    await boot.drive(run_id)
+    run = await boot.ledger.get(run_id)
+    assert run is not None
+    assert run.status is RunStatus.DONE
+    assert boot.substrate.context.get(run_id) is None
+    assert await boot.checkpoints.load(run_id) is None
+    wire_receipt = envelope(boot.outbound[0])["receipt"]
+    fresh = PostgresArchiveBoot(pg_factory)
+    assert fresh.archive is not None
+    request = archive_recall_request(profile=PROFILE, run_id=run_id, prompt=run.prompt)
+    receipt = await fresh.archive.inspect_recall(
+        PROFILE.owner_subject, request, recall_purpose="archive:answer", purpose="archive:manage"
+    )
+    assert receipt is not None
+    assert str(receipt.receipt_id) == wire_receipt["receipt_id"]
+    assert receipt.receipt_digest == wire_receipt["receipt_digest"]
+    async with fresh.client() as client:
+        for _ in range(2):
+            response = await client.get(f"/api/v1/archive/runs/{run_id}/recall")
+            assert response.status_code == 200
+            assert response.json() == {
+                "run_id": run_id,
+                "status": "recorded",
+                "receipt": receipt.model_dump(mode="json"),
+                "capture": "matching_retained_request",
+            }
+            assert "ARCHIVE_SOURCE_BYTES_SENTINEL" not in response.text
+            assert FIRST_ANSWER not in response.text
+    assert fresh.outbound == []
+    assert fresh.dispatcher.capability_key_calls == []

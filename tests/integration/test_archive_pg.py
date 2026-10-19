@@ -584,3 +584,92 @@ async def test_metadata_authority_revoked_at_session_cleanup(
     )
     with pytest.raises(ArchiveRefused, match="authority"):
         await getattr(archive, operation)(SUBJECT, arg, purpose=PURPOSE)
+
+
+@pytest.mark.asyncio
+async def test_historical_receipt_read_is_source_free_and_stable_across_lifecycle(
+    factory: async_sessionmaker[AsyncSession],
+) -> None:
+    from sqlalchemy import event
+
+    archive = service(factory)
+    request = query(run_id=uuid4())
+    assert await archive.inspect_recall(SUBJECT, request, recall_purpose=PURPOSE, purpose="archive:manage") is None
+    async with factory() as session:
+        for model in (ArchiveNamespace, ArchiveIntake, ArchiveRecall, ArchiveNote):
+            assert await session.scalar(select(func.count()).select_from(model)) == 0
+    first = await promote(archive)
+    receipt = await archive.recall(SUBJECT, request, purpose=PURPOSE)
+    assert receipt.selected
+    observed: list[str] = []
+
+    def observe(*args: Any) -> None:
+        observed.append(str(args[2]).lower())
+
+    async def read() -> None:
+        event.listen(factory.kw["bind"].sync_engine, "before_cursor_execute", observe)
+        try:
+            fresh = service(factory)
+            assert (
+                await fresh.inspect_recall(SUBJECT, request, recall_purpose=PURPOSE, purpose="archive:manage")
+                == receipt
+            )
+        finally:
+            event.remove(factory.kw["bind"].sync_engine, "before_cursor_execute", observe)
+        assert all("archive_note" not in statement for statement in observed)
+        assert all(
+            "insert " not in statement and "update " not in statement and "delete " not in statement
+            for statement in observed
+        )
+
+    await read()
+    corrected = await promote(archive, proposal(source_revision="2", text="A blue fox guards the archive."))
+    await read()  # Promotion superseded the selected historical revision.
+    await archive.archive(SUBJECT, corrected.reference.record_id, expected_version=2, purpose=PURPOSE)
+    await read()
+    await archive.revoke(SUBJECT, first.reference.record_id, expected_version=3, purpose=PURPOSE)
+    await read()
+    async with factory() as session:
+        assert await session.scalar(select(func.count()).select_from(ArchiveRecall)) == 1
+        assert await session.scalar(select(func.count()).select_from(ArchiveNamespace)) == 1
+        assert await session.scalar(select(func.count()).select_from(ArchiveNote)) == 2
+        assert await session.scalar(select(func.count()).select_from(ArchiveIntake)) == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("phase", ["preparation", "cleanup"])
+async def test_historical_authority_revoked_at_actual_awaited_boundaries(
+    factory: async_sessionmaker[AsyncSession],
+    phase: str,
+) -> None:
+    archive = service(factory)
+    await promote(archive)
+    request = query(run_id=uuid4())
+    await archive.recall(SUBJECT, request, purpose=PURPOSE)
+    authority = Authority()
+    if phase == "cleanup":
+
+        class RevokingSession(AsyncSession):
+            async def close(self) -> None:
+                await super().close()
+                authority.allowed = False
+
+        closing = async_sessionmaker[AsyncSession](factory.kw["bind"], class_=RevokingSession, expire_on_commit=False)
+        with pytest.raises(ArchiveRefused, match="authority"):
+            await service(closing, authority).inspect_recall(
+                SUBJECT, request, recall_purpose=PURPOSE, purpose="archive:manage"
+            )
+    else:
+        async with factory() as session, session.begin():
+            await session.scalar(
+                select(ArchiveNamespace).where(ArchiveNamespace.id == PROFILE.namespace_id).with_for_update()
+            )
+            task = asyncio.create_task(
+                service(factory, authority).inspect_recall(
+                    SUBJECT, request, recall_purpose=PURPOSE, purpose="archive:manage"
+                )
+            )
+            await asyncio.wait_for(authority.called.wait(), timeout=5)
+            authority.allowed = False
+        with pytest.raises(ArchiveRefused, match="authority"):
+            await task
