@@ -336,6 +336,59 @@ the test's basetemp directory for both proof and cleanup success. This qualifies
 against an externally started runtime; it does not prove Orchestrator activation or Archive
 semantic recall. The ordinary image cache and its shared helper lifetime remain operator-owned.
 
+### Native semantic memory proof
+
+The separate fixed Archive composition proof joins authenticated in-process ASGI, real
+PostgreSQL and that registered CPU embedding profile. It exercises candidate exclusion,
+promotion/derivation, source-attributed recall/resolution, correction/rederivation, revocation
+and historical replay. It makes at most eight embedding operations/16 POSTs/4,088 input tokens;
+it generates no answer. It needs the same quiescent public model/rootless cache above, the
+installed `container-test` dependencies, local Docker socket and the already cached PostgreSQL
+image `sha256:1963bc48febf543433baa1ce3edcc6cc08154de722e22495f86681cc9a849026`.
+It never pulls either image or selects a warm service.
+
+Admit one fresh occurrence and keep its terminal handle. Run from the intended checkout with its existing compatible `.venv` inside
+this trusted user-unit profile; use a fresh short basetemp under `/tmp`. The Python pytest process
+must be the unit MainPID, so the unit directly executes Python rather than a Make or uv wrapper. The helper refuses an
+unadmitted outer unit, aliased/reused roots, shared writable ancestors or an overlong PostgreSQL
+socket path. This example supplies the required unit profile; it is not a foreign-runtime cage.
+
+```bash
+proof_python="$PWD/.venv/bin/python"
+proof_id="$("$proof_python" -c 'import uuid; print(uuid.uuid4().hex)')"
+proof_unit="lychd-archive-native-${proof_id}.service"
+systemd-run --user --unit="$proof_unit" --collect --wait --pipe \
+  --property="WorkingDirectory=$PWD" --property=TasksMax=512 \
+  --property=RuntimeMaxSec=300 --property=TimeoutStopSec=30 \
+  --property=KillMode=control-group --property=Restart=no \
+  --property=LimitAS=8G --property=LimitCPU=180 --property=LimitNOFILE=512 \
+  --property=LimitFSIZE=16777216 --property=LimitCORE=0 --property=UMask=0077 \
+  env PYTHONPATH="$PWD/src:$PWD" PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 \
+  LYCHD_REQUIRE_ARCHIVE_SEMANTIC_NATIVE_PROOF=1 \
+  LYCHD_ARCHIVE_NATIVE_OUTER_UNIT="$proof_unit" \
+  LYCHD_EMBEDDING_FIXTURE=/absolute/path/Qwen3-Embedding-0.6B-Q8_0.gguf \
+  "$proof_python" -B -m pytest -m container -q \
+  --basetemp="/tmp/lsn-${proof_id:0:8}" \
+  tests/integration/test_archive_semantic_native_runtime.py
+```
+
+The helper owns one model container with no IP network/host port/GPU, one networkless
+PostgreSQL container with a fresh temporary Unix-socket bind and anonymous data, and one
+FD-pinned model-namespace loopback relay. PostgreSQL has observed512MiB/zero-swap/one-CPU/128PID
+cgroup limits. Model CPU/address-space bounds remain per process; the relay has separately
+observed fixed limits. The trusted outer caller needs ordinary Podman user-namespace setup;
+only the model's zero-capability/NoNewPrivileges state is asserted. These are no aggregate host
+or untrusted guest containment guarantees.
+
+Without the opt-in flag the case skips before artifact/tool access; with it, missing prerequisites
+fail. Inspect `archive-semantic-native/receipt.json` and retained workflow/fence journals beneath
+the fresh basetemp: proof, cleanup, closed clients and zero leases must all pass. Even after a
+failure, independently reconcile the exact recorded unit/PID groups/cgroups, owned model and PG
+containers, anonymous volume, listener and socket before admitting another occurrence. Preserve
+unrelated work, warm services, model bytes and retained data. The maintained receipt and ordinary
+inert/source-freshness tests qualify the named synthetic profile; neither ordinary CI nor this
+command proves semantic Bridge/browser delivery, general retrieval quality or autonomous operation.
+
 Scout's separate Linux x86-64 extraction proof requires an already installed Bubblewrap and a
 reviewed dedicated CPython installation. Outside the checkout, prepare a JSON profile with
 absolute `bwrap` and `python_root` paths plus a `libraries` array containing the individual
