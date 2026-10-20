@@ -17,10 +17,10 @@ their delivery interpretation.
 
 | Scenario | Answer now | Decisive limit |
 | --- | --- | --- |
-| CLI bootstrap | **Partial:** grammar, dry-run plans, transactional `init`/`bind`, bounded inspection, and guarded deletion have repository evidence. | No complete installed-host lifecycle receipt. See [CLI](#core-cli-rites) and [embodiment](#systemd-podman-embodiment). |
-| Local text chat | **Partial:** warm-vLLM profiles retain a native Bridge reply; a dated 0cc0988 installed profile also completes one Run. | Current-source installed qualification and real-browser acceptance remain pending. See [vLLM](#vllm-integration), [Bridge](#bridge-surface) and [persistence](#phylactery-first-light). |
+| CLI bootstrap | **Partial:** grammar, transactional initialization/binding and guarded lifecycle control have repository evidence; a trusted installed hybrid completes useful work, two native boots and signed stops. | Full generated rootless deployment and managed-model lifecycle remain unqualified. See [CLI](#core-cli-rites) and [embodiment](#systemd-podman-embodiment). |
+| Local text chat | **Partial:** source profiles retain a complete structured reply; trusted browser and installed-hybrid profiles also complete a bounded useful task. The dated 0cc0988 activation observation remains separate. | General answer quality, wider browser acceptance and full generated installed deployment remain pending. See [vLLM](#vllm-integration), [Bridge](#bridge-surface) and [persistence](#phylactery-first-light). |
 | Browser safety | **Loopback only:** a dedicated local credential precedes the fixed Sigil; Host, Origin, CORS, CSRF, and generated bind policy are bounded locally. | Remote IAM and hostile-browser acceptance remain unsupported. |
-| PostgreSQL lifecycle | **Named warm-model receipts:** factory, PostgreSQL, SAQ, Graph and vLLM retain one structured Bridge reply across sequential application processes, including a source-CLI/Granian TCP trial. | Test-local two-boot assembly and a refusing host actuator; no installed restart, crash or browser proof. |
+| PostgreSQL lifecycle | **Named restart receipts:** source TCP, trusted source-browser and installed-hybrid profiles retain complete structured Bridge history across normal sequential native boots. | Each profile retains its explicit test or hybrid dependency scope; checkpoint-plus-consent recovery, process crash and full generated deployment remain unqualified. |
 | Major blockers | Authenticated caller authority, privacy-safe egress, artifact custody, managed host/model lifecycle receipts, native Oculus, and resource-aware scheduling. | Remote transport, federation, executable evolution, durable recall, and vision/audio bytes remain Partial or Designed. |
 
 ## How to read this page
@@ -49,7 +49,7 @@ Each state describes only its written boundary:
 
 Project maturity and delivery state are different. An accepted ADR does not prove implementation.
 
-## Current evidence envelope
+## Current evidence envelope {#current-evidence-envelope}
 
 One maintained warm-model profile joins the real application factory, disposable PostgreSQL,
 in-process SAQ, Graph, Dispatcher, Context and streamed vLLM output through TestClient HTTP. It
@@ -70,6 +70,15 @@ readiness and one Bridge Run with repeated same-boot API history and Orb reads. 
 source and remaining boundary are recorded under [vLLM](#vllm-integration); it does not qualify
 the current checkout or extend the preceding restart receipts.
 
+The 20 October current-source TCP renewal retains the unchanged native test and complete SDK
+final-result oracle: one model POST used 511 prompt and 143 generated tokens, followed by a
+second normal boot without inference. Independent terminal acceptance verifies all 18 physical,
+source/runtime and protected-state checks. The older ASGI and spawned-process receipts remain
+immutable dated observations. Current shared-chain coverage requires the exact accepted TCP
+artifact and all 75 current critical source hashes, including both historical input subsets;
+that join does not rerun their transports or refresh their old observed facts. Maintained receipt
+projection and its offline validators must accompany this delivery interpretation.
+
 The disposable developer fixture supplies a separate read-only backend for source-client work.
 It enters its own lifespan and uses the real controllers and security with memory services.
 One labelled synthetic failed Run is shared by the Bridge and Orb projections and identifies
@@ -77,10 +86,36 @@ its exact registered Pattern revision in Loom. Focused tests cover startup, refu
 and execution, and cleanup; the sample records no graph, model, or host execution. Memory state
 ends with the process.
 
-For startup commands and the pending manual browser check, see “Browser development and its
-backend” in [CONTRIBUTING](https://github.com/hexanomicon/lychd/blob/main/CONTRIBUTING.md). Browser
-login, credential reuse, and the interactive Bridge–Orb–Loom journey remain unqualified. This fixture establishes
-neither Linux host qualification nor production macOS support.
+For startup commands and the developer fixture's manual check, see “Browser development and its
+backend” in [CONTRIBUTING](https://github.com/hexanomicon/lychd/blob/main/CONTRIBUTING.md). That
+fixture establishes neither Linux host qualification nor production macOS support.
+
+A separate 20 October [trusted source-browser receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/animator/local-bridge-browser-2026-10-20.json)
+records actual source CLI/Granian TCP, compiled Altar and sandbox-enabled Chrome with explicit
+Settings/Rune/request-hook fixtures and a refusing host actuator. Authentication and four API
+security refusals precede a controlled local503 Run with zero upstream POSTs. A later offered
+Run completes the fixed useful answer with one real model POST and the unchanged complete SDK
+final-result oracle. Keyboard Bridge→Orb→exact `bridge_chat@2` Loom→Bridge navigation and a
+second normal native boot/browser reload preserve the same history without new inference.
+Independent raw/visible review and Root physical terminal acceptance passed. Reloaded cards may
+read **Retained reply**: failed text survives, but not every live activity badge. Its
+[offline receipt validator](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/animation/test_local_bridge_browser_receipt.py)
+owns the bounded current critical-source/dependency check and dated asset evidence. This is a fixed trusted fixture, not
+ordinary installed runtime, hostile-browser acceptance, general usability/accessibility, all Chrome
+traffic observation or managed-model lifecycle. Pids/wall/effective per-process bounds and
+sampled RSS/CPU do not establish aggregate native RAM/CPU caps. Full generated deployment remains unqualified.
+
+A separate 20 October [trusted installed-hybrid receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/animator/local-bridge-installed-hybrid-2026-10-20.json) qualifies a
+noneditable installation of source `3e30a84` with 548 matching package files, 91 dependency versions, 20
+migrations and a matching migration image. The actual installed CLI and production factory
+complete one useful attributed Bridge reply; two normal native boots retain identical complete
+SDK history, durable Intent capability and exact Pattern manifest without replay. Two signed
+stops and private-manager exit are normal; fresh-secret and exact physical resource closure
+have independent terminal acceptance. Its [offline validator](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/animation/test_local_bridge_installed_hybrid_receipt.py) binds the retained
+profile and current critical source. Plain private Docker PostgreSQL/migration units, inert
+owned model units and a borrowed warm local vLLM remain explicit. This does not qualify the full
+generated rootless graph, managed-model lifecycle, crash recovery or aggregate native-resource
+or hostile containment. Broader CLI, embodiment and persistence delivery remain partial.
 
 - **Source:** [Application factory](https://github.com/hexanomicon/lychd/blob/main/src/lychd/app.py), [Developer fixture](https://github.com/hexanomicon/lychd/blob/main/src/lychd/developer.py)
 - **Verification:** [Two-boot lifecycle](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_production_wiring.py), [Developer fixture tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_developer_fixture.py)
@@ -171,6 +206,12 @@ tests exercise the admission and reference ports without importing the applicati
 These manager cases use an explicit inert application and synthetic dependencies. The image
 entrypoint shares the runner, but no rebuilt image or caged TCP receipt is claimed.
 
+Current-source package/image agreement is separate from installed lifecycle acceptance. The
+[trusted installed-hybrid profile](#current-evidence-envelope) adds one useful Run, two normal
+starts and signed stops, fresh-secret custody and physical terminal acceptance under its named
+private-manager/Docker/borrowed-model limits. Failed private-harness occurrences remain failed;
+this does not qualify a full generated rootless deployment or broaden the CLI's partial state.
+
 A separate [production retained Scavenger case](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/scout/native-owned-stop-restart-2026-10-18.json)
 now uses unchanged CLI assembly in that private manager: two distinct native boots, two real signed
 stops and held clean Vessel exit records within one pinned binding/startup generation. Both whole
@@ -183,10 +224,12 @@ both native stops. Four task-cancellation warnings remain; the private manager i
 **Boundary — Not yet:** Status omits full readiness and durable-run health; no run-operation command
 or authenticated Run submission route is delivered; active caged or mixed `stop` still refuses;
 deletion preserves objects whose creation provenance is not owned.
-Unknown unit or mount truth blocks instead of guessing. The dated production case qualifies idle
-retained readback and native Vessel stop/restart only; active-work shutdown, execution of new work
-and installed operation remain unqualified. No maintained installed systemd/Podman lifecycle or
-GPU receipt exists.
+Unknown unit or mount truth blocks instead of guessing. The dated Scavenger case qualifies idle
+retained readback and native Vessel stop/restart only. The separate
+[trusted installed-hybrid profile](#current-evidence-envelope) qualifies one new useful Run and
+two normal native boots/signed stops with private-manager and plain Docker dependencies.
+Active-work shutdown, full generated rootless lifecycle and managed GPU/model operation remain
+unqualified by that receipt.
 
 **Evidence**
 
@@ -293,6 +336,11 @@ The dated 0cc0988 installed startup/activation observation is scoped under
 [vLLM](#vllm-integration). A changed compiler or loaded-graph attestor needs a new same-source
 installed profile; that observation contains no Coven and does not qualify the current checkout.
 
+The separate [trusted installed-hybrid profile](#current-evidence-envelope) qualifies its private
+manager, installed native CLI, plain Docker PostgreSQL/migrator dependencies and borrowed warm
+model with inert owned model units. It does not execute the full generated rootless graph or
+qualify managed-model lifecycle.
+
 **Receipt needed:** Name the Linux, systemd and Podman versions, generated targets and conflicts,
 loaded-source attestation, forward switch, compensation, crash recovery, startup, and shutdown.
 GPU and model proof remains separate. Include image account, actual UID/GID maps, mounted secret
@@ -331,6 +379,11 @@ ritual.
 **Do not expect yet:** There is no Tomb queue, executor, credential policy, Landlock, or `nono`
 integration.
 
+The current operator trial's mandatory hostile-constructor enforcement is externally blocked
+under the operator's administrative-test deferral. Trusted candidate-byte
+custody is not that enforcement. Positive candidate adoption and fresh-generation activation
+remain separate undelivered implementation work; an external prerequisite does not complete them.
+
 **Evidence**
 
 - **Law:** [Security](./adr/09-security.md)
@@ -361,9 +414,11 @@ access, repeatable bootstrap, and preservation of unrelated existing ownership.
 memory-profile/PostgreSQL repository parity is incomplete; no general record-retention or
 compaction path, partition policy, tablespace lifecycle, automatic capacity expansion, or sharding
 path is delivered; persistent same-boot containment failure has no durable watchdog. The lifecycle
-test substitutes offline collaborators after startup. The separate warm-model profiles use
-explicit test composition and do not exercise checkpoint-plus-consent recovery, process crash,
-an installed caged body, or the browser.
+test substitutes offline collaborators after startup. The source ASGI, spawned-process and TCP
+warm-model profiles use explicit test composition. Distinct
+[trusted browser and installed-hybrid profiles](#current-evidence-envelope) qualify their named
+normal-restart/readback paths; none establishes checkpoint-plus-consent recovery, process crash
+or a full generated installed deployment.
 
 **Evidence**
 
@@ -915,6 +970,12 @@ This qualifies the named TCP and clean-restart conjunction, without installed ca
 managed-model, model-byte, crash, cancellation, browser, autonomy or aggregate-native-resource
 qualification.
 
+The separate [trusted installed-hybrid profile](#current-evidence-envelope) uses the installed
+local vLLM adapter and a borrowed warm model for one useful attributed reply retained across two
+normal native boots and signed stops. Complete SDK history and exact durable capability/Pattern
+are verified; inert owned model units do not activate the model. This bounded profile does not
+satisfy full generated deployment or managed-model lifecycle requirements below.
+
 A closed model-local `qwen3.8-non-thinking` generation policy now compiles through the frozen
 capability grant to the exact Qwen chat-template request field. Unsupported bindings, runtime
 and Soulstone defaults, Portals and Responses refuse it; omitted settings remain unchanged.
@@ -1215,7 +1276,11 @@ The opt-in [Scout public-page workflow](#scout-web-acquisition) supplies an owne
 review, atomic preparation/Consent custody, and current authority checks before acquisition and
 local inference. Its deployment and mechanism qualification limits remain those of Scout.
 
-**Boundary — Not yet:** There is no production-browser plus inference-engine receipt, durable cross-process event/token
+The [trusted source-browser profile](#current-evidence-envelope) separately qualifies its fixed
+controlled-failure/useful-reply, exact Orb/Loom journey and retained reload. It does not extend
+Consent, other castings or public-note browser acceptance.
+
+**Boundary — Not yet:** There is no ordinary installed production-browser receipt, durable cross-process event/token
 delivery, general multi-approval, Attention, or notification channel. Text is the only command
 modality, and no focused Circle workspace composes Scroll, active Spell placement,
 Context/authority, capability, and evidence projections.
@@ -1284,6 +1349,10 @@ digest even when two revisions declare the same topology; it remains a view, not
 surface, independent Spell identity or catalogue, compatibility or teaching surface, drafting
 canvas, inert unresolved-Spell projection, or Suite executor. The shared renderer's cross-engine
 forced-collection qualification and complete production-browser acceptance remain unproved.
+
+The [trusted source-browser profile](#current-evidence-envelope) covers only its keyboard link
+to the exact `bridge_chat@2` score and return to the same Run. It does not discharge renderer
+lifecycle, graph-failure, editor or general accessibility acceptance.
 
 **Evidence**
 
@@ -1512,6 +1581,10 @@ There is no wall-clock workspace replay, configurable retention, continuous mode
 or historical Animator availability projection.
 The shared renderer's cross-engine forced-collection qualification remains under verification.
 
+The [trusted source-browser profile](#current-evidence-envelope) separately verifies the fixed
+Bridge→Orb→exact Loom→Bridge route and retained failed/useful Runs across a normal reload.
+It supplies no complete event capture, continuous runtime activity or general renderer receipt.
+
 **Evidence**
 
 - **Source:** [Orb controller](https://github.com/hexanomicon/lychd/blob/main/src/lychd/interface/web/orb.py), [Run catalogue queries](https://github.com/hexanomicon/lychd/blob/main/src/lychd/domain/cortex/ledger.py), [parallel field](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/OrbField.svelte), and [selected-Run client](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/OrbView.svelte)
@@ -1640,7 +1713,9 @@ tests verify this security configuration against memory services without enterin
 
 **Boundary — Not yet:** Admitted requests still receive the fixed local Sigil. No hostile-browser receipt,
 security-header contract, or remote principal exists. The developer fixture's configured loopback
-Vite proxy has a bounded development exception; authenticated browser acceptance is still pending.
+Vite proxy has a bounded development exception. The [trusted source-browser profile](#current-evidence-envelope)
+has bounded authenticated journey/security-refusal evidence; it does not qualify that Vite
+fixture, installed startup, hostile browser or general browser security.
 Production access through a proxy, tunnels, non-loopback access, and untrusted-browser use remain
 unsupported.
 
@@ -2084,10 +2159,10 @@ with zero Chat or Context assembly. C returned a labelled source-limited determi
 result with no selected/promoted/searchable notes, zero Chat, zero Context assembly and zero new
 SDK messages; the normal terminal release was recorded. A and C recorded replay with no new
 compute. Four embedding operations/eight POSTs used 118 input tokens; one Chat POST matched the
-independent warm-counter delta of 1,018 prompt and 239 generated tokens. All observed clients
+independent warm-counter delta of 1,029 prompt and 239 generated tokens. All observed clients
 closed, no leases remained, and application SQL disposal returned once after service close.
 An independent retained visible-output review passed these fixed cases and recorded operation
-evidence; Root's separate terminal audit passed six physical checks and recorded 20 raw custody
+evidence; Root's separate 20 October terminal audit passed 23 physical checks and recorded 20 raw custody
 pairs. These are attributed retained observations. Raw SDK text equality, retained input/state
 exclusion, history equality, replay identity and revocation timing remain test-backed reports,
 not independently reconstructed from the sanitized receipt. Its raw `semantic-answer-v1` outer
@@ -2493,6 +2568,10 @@ attestation plane, canonical source on Radicle, Radicle node topology or downstr
 **Proved now:** The inactive `host-opaque-candidate@1` Ward foundation and a separately composed closed native-candidate consumer have a fresh combined disposable-PostgreSQL observation: 23 tests passed, comprising 18 Ward cases and five current-authority passage cases. Ward exercises the full real bootstrap/HBA and Alembic chain, including 0019↔0020 and restricted-runtime DML/DDL refusals. The native fixture instead creates isolated Ward/Creation tables through metadata DDL; its five passes qualify the declared authority/custody passage, not a second full migration-chain receipt. That passage binds exact retained candidate bytes and plan, an independent attributed assessment and inactive hold/reject decisions; it exercises actual Principal-lock waiting and committed revocation, database-clock expiry after real staging, serialized shutdown, exact retained-identity reconciliation after injected post-commit acknowledgement loss, and refusal of mapper/table/prebound-connection escapes before effects. Three cached PG objects and their anonymous volumes settled; Root separately recorded retained process/cgroup absence and protected warm/model-state preservation. The earlier Ward-only failed-then-passed receipt remains separate historical evidence. The new offline architecture oracle checks the new admission's critical source pins and selected lock versions; it does not rerun PostgreSQL.
 
 **Do not expect yet:** This isolated trusted-host passage is unregistered in the application. It supplies no installed body/CLI, foreign-constructor execution or containment, remote IAM/device enrollment, production activation, positive OwnerAdmission/promotion, repository write, general owned-content integration, genuine application/database-process restart, shared filesystem/database transaction, exactly-once effect or native/hostile aggregate containment. Reopening a service is not process-restart evidence. Acknowledgement faults are injected after actual commit; no physically broken database connection is proved. Ward's conservative eligible publication audit remains unknown. Remote identity and general activation remain Designed.
+
+The current remote/device trial has no second device, so that physical roundtrip is externally
+blocked. This does not qualify enrollment or remote IAM, and does not discharge the separate
+implementation gaps above.
 
 **Evidence**
 

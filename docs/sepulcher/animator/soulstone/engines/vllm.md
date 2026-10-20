@@ -132,11 +132,35 @@ identical settled turns and model history without another model POST. Missing ch
 nonzero exit, forced termination, an unreaped child or incomplete database cleanup blocks a pass.
 Both children still use TestClient HTTP, rather than a Granian TCP listener.
 
-Crash recovery, the real browser, installed Vessel, model bytes, managed activation/shutdown,
-shared load and general tool execution require their own trials.
+A separately admitted [native TCP selection](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_local_bridge_native_tcp.py)
+invokes the source CLI and owned Granian launcher over loopback. Two distinct processes must
+exit normally; authenticated readiness and wrong/absent credential, foreign-Origin and
+missing-CSRF refusals precede the one admitted reply. The second boot retains identical turns
+and complete SDK history without another model POST. Its
+[maintained receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/animator/local-bridge-vllm-native-tcp.json)
+and [offline scope/freshness owner](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/animation/test_local_bridge_native_tcp_receipt.py)
+record the exact executed source, selected dependencies, independent terminal settlement and
+limits. Settings/Runes, a production-lifespan wrapper and the refusing host actuator remain test
+composition; supplemental engine disposal is test cleanup. The occurrence's native limits are
+per process; its separately observed PostgreSQL limits do not establish aggregate native RAM/CPU
+containment. New execution requires fresh source/runtime custody and finite admission.
+
+A separate [trusted installed-hybrid profile](../../../../state-of-the-work.md#current-evidence-envelope)
+uses the installed local vLLM adapter and a borrowed warm model for one useful attributed reply.
+Complete SDK history, exact durable capability/Pattern and settled turns survive two normal
+native boots without inference replay; both signed stops and the private manager exit normally.
+The inert owned model units do not start that borrowed model. Plain Docker dependencies and
+per-process/pids/monitored limits do not qualify generated rootless deployment, managed-model
+lifecycle, aggregate native caps or model bytes.
+
+A separate [trusted source-browser journey](../../../../state-of-the-work.md#current-evidence-envelope)
+qualifies its fixed keyboard/failure/useful-reply/reload profile. Crash recovery, full generated installed deployment,
+model bytes, managed activation/shutdown, shared load and general tool execution require their own trials.
 The [maintained result](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/animator/local-bridge-vllm-runtime.json)
 and the separate [clean process-restart result](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/animator/local-bridge-vllm-process-restart.json)
-have source/dependency freshness checks. Copy the latter's `local-bridge-process-restart/receipt.json`
+retain their original dated observations. Any shared current-chain freshness join must preserve
+their complete historical bytes and require a separately accepted current TCP proof covering all
+their critical inputs; it does not rerun their TestClient transports. Copy the latter's `local-bridge-process-restart/receipt.json`
 from basetemp before cleaning the documentation cache as well.
 
 See [Soulstone Disciplines](../disciplines.md#i-the-kinetic-vllm), [vLLM](https://docs.vllm.ai/),

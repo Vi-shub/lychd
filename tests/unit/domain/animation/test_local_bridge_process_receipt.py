@@ -9,7 +9,6 @@ import json
 import re
 import sys
 import tomllib
-from hashlib import sha256
 from importlib.metadata import version
 
 import pytest
@@ -17,6 +16,7 @@ from scripts.local_model_probe import ProbeProfile
 
 from lychd.config.settings.root import SettingsSnapshot
 from tests.integration import test_local_bridge_process_restart as runtime
+from tests.support.local_bridge_receipt_freshness import read_historical_receipt, require_current_tcp_coverage
 from tests.unit.domain.animation import test_local_bridge_receipt as historical
 
 _ROOT = historical._ROOT
@@ -26,7 +26,7 @@ _PROCESS_TEST = "tests/integration/test_local_bridge_process_restart.py"
 
 def test_process_receipt_preserves_qualification_and_privacy_boundary() -> None:
     text = _RECEIPT.read_text()
-    receipt = json.loads(text)
+    receipt = read_historical_receipt(_RECEIPT)
     assert receipt["schema"] == "local-bridge-vllm-process-restart@1"
     assert receipt["qualification_date"] == "2026-10-19"
     assert receipt["status"] == "passed"
@@ -140,7 +140,7 @@ def test_process_receipt_preserves_qualification_and_privacy_boundary() -> None:
 
 
 def test_process_receipt_matches_qualified_sources_and_provenance() -> None:
-    receipt = json.loads(_RECEIPT.read_text())
+    receipt = read_historical_receipt(_RECEIPT)
     assert set(receipt["source_fingerprints"]) == historical._SOURCES | {_PROCESS_TEST}
     evidence = receipt["qualification_evidence"]
     assert evidence["process_test_sha256_before_trial"] == receipt["source_fingerprints"][_PROCESS_TEST]
@@ -162,12 +162,11 @@ def test_process_receipt_matches_qualified_sources_and_provenance() -> None:
     )
     for digest in evidence.values():
         assert re.fullmatch(r"[0-9a-f]{64}", digest)
-    for path, digest in receipt["source_fingerprints"].items():
-        assert sha256((_ROOT / path).read_bytes()).hexdigest() == digest, path
+    require_current_tcp_coverage(_ROOT, historical._SOURCES, historical._SOURCES | {_PROCESS_TEST})
 
 
 def test_process_receipt_matches_selected_dependencies() -> None:
-    receipt = json.loads(_RECEIPT.read_text())
+    receipt = read_historical_receipt(_RECEIPT)
     dependencies = {name: version(name) for name in historical._CORE_DEPENDENCIES}
     # Container SDKs stay optional in ordinary CI; their exact lock entries still bind this trial.
     locked = tomllib.loads((_ROOT / "uv.lock").read_text())

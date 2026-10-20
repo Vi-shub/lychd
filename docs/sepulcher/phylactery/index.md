@@ -57,15 +57,24 @@ choice becomes necessary.
 
 ## Read the evidence before claiming continuity
 
-First-light persistence is **Partial**. The maintained [receipt](../../state-of-the-work.md#phylactery-first-light)
-proves a PostgreSQL lifecycle with offline collaborators. It does not establish a
-Consent-plus-Checkpoint restart or a real host, model or browser journey. General retention, compaction, and physical
-tiering are incomplete. The bounded [public-note Archive](../../state-of-the-work.md#karma-semantic-memory)
-adds explicit intake, lifecycle and lexical recall; old Karma rows remain inert. The independently
+First-light persistence is **Partial**. The [named receipts](../../state-of-the-work.md#phylactery-first-light)
+separate the lifecycle test with offline collaborators from actual warm-model reply/history
+retention, including two normal source-CLI/native TCP boots. These source-profile receipts do not establish a
+Consent-plus-Checkpoint restart, current installed body or crash recovery. A separate
+[trusted source-browser journey](../../state-of-the-work.md#current-evidence-envelope) retains its
+fixed useful reply after normal restart; its test composition remains explicit. The separate
+[trusted installed-hybrid receipt](../../state-of-the-work.md#current-evidence-envelope) retains
+identical complete SDK history, Intent capability and exact Pattern manifest across two normal
+installed native boots; its private Docker and borrowed-model scope remains binding. General
+retention, compaction and physical tiering are incomplete. The bounded
+[public-note Archive](../../state-of-the-work.md#karma-semantic-memory) adds explicit intake,
+lifecycle and lexical recall; old Karma rows remain inert. The independently
 selected [derivation path](../../adr/27-memory.md#explicit-local-derivation) retains bounded vectors
 and their invalidation fences. Its durable status reports only the latest attempt; expired work
-requires an explicit retry. It does not supply semantic retrieval, automatic curation, sharing
-or a formation path.
+requires an explicit retry. Separately selected semantic recall and Bridge revision 5 have fixed
+native lifecycle and attributed-answer/empty-recall observations. Their exact model, authority
+and source scopes remain binding; they do not establish general retrieval quality, automatic
+curation, sharing or a formation path.
 
 Follow [Ghouls](../vessel/ghouls.md) to see the workers that write these records, or
 [Reanimation](reanimation.md) to cross the death of their process.

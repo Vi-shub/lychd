@@ -1,15 +1,15 @@
 {
   "record_kind": "sanitized_public_maintained_native_semantic_answer_qualification",
-  "observed_on": "2026-10-19",
+  "observed_on": "2026-10-20",
   "status": "passed",
   "cleanup": "passed",
   "qualification": "semantic-answer-v1",
   "case_profile": "generated-answer-and-empty-recall-v2",
   "evidence_boundary": "Authenticated in-process ASGI + actual registered CPU model + actual PG; no deployed Vessel/CLI/browser or general quality claim.",
   "source_observation": {
-    "head": "151b0cf408772212b3e9cab0fbdd9cf75345ed58",
-    "manifest_sha256": "1ddb7be311e647a2c12a6579760b95883bc816627af23bfe2c3f8ddaca383b7e",
-    "role": "Actual admitted source head; distinct from the fixed Chat-profile fixture revision."
+    "head": "d260ca552fad5c5d9503ea9efc092959dfc57968",
+    "manifest_sha256": "fd252c59c3e7b3c8ee73eeb1d831709f11c1f43c41ceca50cbcabd219048788d",
+    "role": "Actual declared dirty base plus complete source/SDK freeze; distinct from the fixed historical Chat profile revision. Critical hashes below come from this execution."
   },
   "source_sha256": {
     "domain/animation/embeddings.py": "a80d6def54bf29d8c1be10b3e34f4d0da7ac449afefdc86811f053ec6c74ed94",
@@ -47,7 +47,7 @@
     "tests/conftest.py": "ee6a7991363a5681b647635b7ff3a8ffa0cefb8a3c2a771ae1994d6381da5dc7",
     "src/lychd/config/settings/__init__.py": "30a4cf7be568e87b346657d78d57303a991e470a16c6bbb4d554fe95f928923e",
     "src/lychd/config/settings/archive.py": "0b1177e6c47e9094f325e4ea3727d925c31352e15fcf040614442fee61ddb6a8",
-    "src/lychd/config/settings/root.py": "a8c179f5f52a0a2260680b164958a9138fd5a75b7202f90bbe0ad1a5ccb2d0bf",
+    "src/lychd/config/settings/root.py": "a4d864782953c1756b1596a74575bd6961963186e4fc8673d29ada851d54159f",
     "src/lychd/config/settings/server.py": "60a02e500070ad6b07af5ec25aed2e0772b42b46c9f2255ce18dbfd08f475825",
     "src/lychd/domain/codex/middleware.py": "9853769b5b5cacb9817395896d6dc6cea42533370d3febddf73226cee752496c",
     "src/lychd/domain/codex/local_access.py": "4617db35469740582fb947ff96a98d6c5b7c90a85af027c4b8f115c715d68de3",
@@ -146,7 +146,6 @@
     "native_input_tokens": 2044,
     "chat_POSTs": 1,
     "chat_output_tokens": 256,
-    "warm_inventory_GETs": 5,
     "retry": false
   },
   "proof": {
@@ -194,15 +193,15 @@
       "selected_count": 1,
       "omitted_for_budget": 0,
       "normal_terminal_release_recorded": true,
-      "answer": "\n\nThe copper lantern kiosk opens at **14:20** on Moonday.\n\nSource: `copper-lantern-hours` / `public-fixture-1` (cosine 0.832). Note: the record is explicitly labelled a public synthetic fixture, so treat the value as fixture data rather than a live operational schedule.\n\nCoverage: 1 eligible vector, 1 promoted, 0 omitted for budget — full coverage of the eligible set for this query.",
+      "answer": "\n\nThe copper lantern kiosk opens at **14:20** on Moonday.\n\nSource: `copper-lantern-hours` / `public-fixture-1` (cosine 0.832). Note the text is explicitly labelled a *public synthetic fixture*, so treat the value as fixture data rather than a live operational schedule.\n\nCoverage: 1 eligible vector, 1 promoted, 0 omitted for budget — full coverage of the eligible set for this query.",
+      "replay_new_compute": 0,
       "response": {
         "response_count": 1,
         "model": "Qwen3.8-27B",
         "state": "complete",
         "finish_reason": "stop",
         "provider_finish_reason": "stop"
-      },
-      "replay_new_compute": 0
+      }
     },
     "B": {
       "status": "failed",
@@ -246,69 +245,79 @@
   },
   "artifact_unchanged_after_cleanup": true,
   "independent_terminal_audit": {
-    "attribution": "Root independent retained terminal audit; no fresh physical observation by this receipt editor or visible-output reviewer.",
+    "attribution": "Root actual independent observation-only terminal audit of this new occurrence; original live fingerprints captured before release; all exact owned handles reconciled",
     "physical_settled": true,
     "workflow_passed": true,
     "checks": {
-      "unit_processes_cgroups": true,
-      "listener_socket": true,
-      "containers_volumes_caches": true,
-      "source_SDK_tools_model_raw": true,
-      "original_warm": true,
-      "relay_and_warm": true
+      "exact_user_unit_names_invocation_IDs_MainPIDs_cgroup_paths_devices_inodes_recorded": true,
+      "live_self_and_Root_observed_unit_fingerprints_match_before_proof_release": true,
+      "every_stop_matches_original_fingerprint_or_preserves_UNKNOWN_no_reused_name_stop": true,
+      "exact_units_collected_cgroups_absent_or_empty": true,
+      "all_test_model_conmon_PG_relays_and_supervisor_PID_start_ticks_absent": true,
+      "all_recorded_process_groups_empty_no_unowned_process_signal": true,
+      "exact_model_name_ID_owner_token_and_PG_name_ID_label_absent": true,
+      "all_exact_anonymous_PG_volume_IDs_absent_protected_volume_untouched": true,
+      "partial_create_reconciled_by_exact_occurrence_identity_no_blanket_cleanup": true,
+      "all_recorded_host_listeners_IPC_paths_closed_or_absent": true,
+      "namespace_FDs_pidfds_and_child_descriptors_closed": true,
+      "model_CPU_AS_noGPU_network_mount_log_timeout_profile_observed": true,
+      "PG_effective_kernel_memory_swap_CPU_pids_caps_observed": true,
+      "GGUF_metadata_size_digest_unchanged": true,
+      "complete_source_SDK_helper_membership_and_bytes_unchanged": true,
+      "warm_unit_invocations_containers_PIDs_namespace_inodes_preserved": true,
+      "protected_credential_metadata_backups_volume_preserved_no_contents_read": true,
+      "model_idle_complete_counters_monotonic_allowance_exact_POST_wire_count": true,
+      "all_public_source_correction_revocation_current_authority_oracles_passed": true,
+      "answer_A_final_stop_attributed_answer_B_refused_C_empty_no_BC_Chat_or_archive_no_Chat": true,
+      "leases_clients_substrate_application_loop_engine_disposal_settled": true,
+      "raw_logs_receipts_complete_private_artifact_bytes_custodied": true,
+      "independent_Root_readback_complete_no_late_effect_or_retry": true
     },
     "errors": [],
-    "raw_custody_pairs": 20,
-    "warm_quiescent": true,
-    "unchanged_source_files": 1529,
-    "unchanged_selected_sdk_files": 2198,
-    "unchanged_original_files": 1358,
-    "unchanged_pinned_files": 3760
+    "source_files_unchanged": 1546,
+    "full_SDK_files_unchanged": 44420,
+    "full_SDK_symlinks_unchanged": 1052,
+    "recorded_process_identities_absent": 8,
+    "raw_artifact_hashes": 20,
+    "source_byte_closure_sha256": "fd252c59c3e7b3c8ee73eeb1d831709f11c1f43c41ceca50cbcabd219048788d",
+    "warm_and_retained_preserved": true
   },
   "independent_warm_observation": {
     "same_recorded_model_identity": true,
     "quiescent_before": true,
     "quiescent_after": true,
     "delta": {
-      "prompt_tokens": 1018,
-      "generated_tokens": 239,
-      "successful_requests": 1
+      "prompt_tokens": 1029.0,
+      "generated_tokens": 239.0,
+      "successful_requests": 1.0
     },
-    "observer_GETs": [
-      2,
-      2
-    ],
-    "observer_model_POSTs": [
-      0,
-      0
-    ],
-    "observer_mutations": [
-      0,
-      0
-    ],
+    "observer_model_POSTs": 0,
+    "observer_mutations": 0,
     "relay_controller_GETs": 4
   },
   "independent_visible_review": {
     "verdict": "passed_fixed_cases_and_recorded_operations",
-    "report_sha256": "4baadcb1f4a662882c2b8c0c828d0e7f60a1afba764aba31ffaeb86d8bf01260",
-    "attribution": "Independent source/text review of retained visible answers, strict completion summaries and recorded operation/lifecycle evidence; no new physical audit or runtime."
+    "report_sha256": "fd8d895e02d2dc2b06f28ec31791c59a4fce9053cde1b0d7b3359437a21a6b9e",
+    "attribution": "Root independent retained text/operation and physical audit"
   },
   "input_sha256": {
-    "prospective_oracle_v2": "54de8c209d4b179de5bde9b17d7ae33040c78bf7e7aaaba3f975ce87e163d772",
-    "raw_receipt": "7f50542413eac148ed7b384e116ef4d07d949783b616360d03cb242831f4776a",
-    "answer_workflow": "e8dbdabef30628caaa799f72af8fa2c28199c7f45b554ff31603e185ddf59fb9",
-    "root_terminal_audit": "fa34a00b8bf4cf76b668c06bbf2fbc1194c3f98fecc060a4bbc6a1dbad6fdfcd",
-    "root_runtime_result": "29e5aeae52ebab58ba5851918c036087b9c72380b44a10739121bb51dfbc25c7",
-    "runtime_admission": "9ca965c21acc9501f76f54ed52d12c0693e9996d3da7c9b383546d42cf612f2d",
-    "warm_before": "69fea44a3406f93ccd369079a799de11c6229a44fe1ba2a76acc08714f9324c7",
-    "warm_after": "02d989cd946e9987bfff3ce1efaf74eb35276072315e8184890f23b8ab1d4719"
+    "admission": "8c457c14a94efcae69a45fc166f294d014a1d6f91a649d583b98a07731c3cefc",
+    "controller_result": "bf41eac2ed32ec4798b138110489e3a156d6fef85591da33a7e2f4836a12a12a",
+    "root_terminal": "560d91e1da7c0f7cc4d8a9881792979bed1107fdfde66130a7aa7f077f3a4b80",
+    "root_inventory": "a96fae61d31e2f37287e7e82905d7decc4e9903e384a5093ee92f5ece98db98d",
+    "terminal_acceptance": "405dcef5859b0387c2879ee709e140d1e0965f8dfc84c2a5d462a2dc3f0b9e14",
+    "source_SDK_manifest": "fd252c59c3e7b3c8ee73eeb1d831709f11c1f43c41ceca50cbcabd219048788d",
+    "raw_receipt": "8d40ce881b1be4dae293516e1138493d51f49f2945bcfd8b4570b08182ca0c5f",
+    "warm_before": "533c94c0aca435ec6621eb593bde3e1f649628901c37926e5b78c98f35469c0b",
+    "warm_after": "ea6ae1859ca6f9ebbc1c668f5da9a8eaaad65809f8a9cc092fc342538473c113",
+    "previous_maintained_receipt": "d3beed0657648fb49e11be289c0867d16ff0873c61f6fe5507f3a563bab358ea",
+    "answer_workflow": "2bce4bf57b3d05108670fc278eff8a6c4bb8cf133f72b16e498a083ace4194fb"
   },
   "caveats": [
     "One public synthetic note and fixed question under the exact native ASGI/SQL/model/workflow profile; no general grounding, retrieval-quality, conflicting-source, adversarial-source or partial-coverage qualification.",
     "The raw helper semantic-answer-v1 and outer two-Chat ceiling are preserved; active v2 admission allowed one Chat POST and observed one. Earlier failed v1 occurrences and spent allowances remain unchanged.",
-    "Visible-answer/SDK str equality, source-envelope exclusion from retained input/state, B authenticated-revocation timing and call ordering, SDK-history equality and exact replay Run/turn identity are test-backed reports, not independently reconstructed from the selected raw artifacts.",
     "C normal release, zero new SDK messages and replay zero compute are recorded observations; no Context assembly is claimed for C.",
-    "The visible reviewer inspected Root physical-audit records and recomputed warm deltas but did not freshly inspect physical state, each custody pair or preserved source trees.",
-    "No installed startup, browser/CLI delivery, automatic worker-death recovery, private-material, autonomous-deployment or aggregate user-subtree CPU/RAM containment claim."
+    "No installed startup, browser/CLI delivery, automatic worker-death recovery, private-material, autonomous-deployment or aggregate user-subtree CPU/RAM containment claim.",
+    "Root separately observed current physical settlement and complete frozen source/SDK custody; visible text and recorded lifecycle review remain fixed-case evidence. The new occurrence does not requalify old failed attempts."
   ]
 }

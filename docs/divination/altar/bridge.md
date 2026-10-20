@@ -100,6 +100,12 @@ about the text's provenance. A retained agent turn from the session snapshot rep
 projection when it becomes available. Orb reports failure presence; it does not expose private
 diagnostic reasons or authorize an automatic retry.
 
+After reload or restart, a turn may be presented as **Retained reply** rather than its former
+live activity card. Failed text can remain in history without retaining every live status badge.
+Use the exact Run in Orb for canonical status. The fixed trusted source-browser journey has a
+separate [evidence boundary](../../state-of-the-work.md#current-evidence-envelope); it does not
+qualify every casting, Consent interaction or ordinary installed browser profile.
+
 Incoming text preserves your place when you scroll into older work. **Latest turn** returns to
 the conversation's end and releases a linked Run focus without changing your draft.
 

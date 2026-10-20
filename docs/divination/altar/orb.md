@@ -120,6 +120,11 @@ manifest validates and equals the entire registered revision. The graph uses tha
 declared score when available. Its Run and selected-event query preserves the return destination; neither
 changes Pattern identity.
 
+The fixed trusted source-browser [journey](../../state-of-the-work.md#current-evidence-envelope)
+checks this exact Run→Pattern→Run relation and retained failed/useful history across a normal
+reload. It does not establish complete trace capture, every evidence interaction or general
+browser/accessibility acceptance.
+
 A selected consent record with a retained reference offers **Open exact consent in Bridge**.
 The reference records the historical wait; it does not establish that the request is still pending
 or that you may judge it. Bridge focuses only the exact request for that Run in its current

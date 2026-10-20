@@ -1,0 +1,517 @@
+{
+  "evidence_sha256": {
+    "01-fault-running_dom": "5c8073c86816b77b5091cd81fd9191ac0a2904de3d5d8a7c9a642232b12a3660",
+    "01-fault-running_image": "8f605b058bc55fd4f163b88954c4412707d458b42ffce1d98a06d19a87f436ad",
+    "02-visible-failure_dom": "d93706ee183445017dcbc77a0e9fb08b4f4fb985d0634259cbd30b64556b32e6",
+    "02-visible-failure_image": "cadb62e1ec0be80e4448b935e3d75684cb13c78f75f161e1ef70f2ee2a68c373",
+    "03-retained-running-orb_dom": "bf87b49487bdd9b4a50207ba519a365e617c5a2958369e66739550e8668916aa",
+    "03-retained-running-orb_image": "de135e6db02e1d2a93700fd0242e739def60884fd9522575690c4aba3e0e4d7b",
+    "04-exact-pattern-loom_dom": "95c1538b62c726e6f1db62e2ddfbf5e0e6e497bdbf4cef3a1fae8d35ccbb24fb",
+    "04-exact-pattern-loom_image": "de8f80a7ace879b2c946049e62ffe8d236c7520768cc375555eedcda0d74b557",
+    "05-useful-settled_dom": "dca8bd0b60d4ce3eadc8f56b4b76313310c73ef1ecae82bf37d2bdc5b7ec34f7",
+    "05-useful-settled_image": "a960e541a8f335ddf44fa07f8b7f3b50d28de64d15f53a12f0a04ecc04c53197",
+    "06-restart-reload-retained_dom": "43a1dbb559e2892a6b0b4909c435d4fd224527ef0a4947c117fc30491d84388b",
+    "06-restart-reload-retained_image": "474ce9f9f73df6207e9d199c1a66013f891dfc982a37c41f6f0893dd73689581",
+    "actual_body_wait": "43f08f0e25923dcf5476813410193250f6503b8e18ed5b73843bd6827fbafefb",
+    "actual_input_freeze": "16b571693cea5d8da2084402ae95411520db46151d100df4a086ab69742388de",
+    "body_effective_controls": "914dc812c491ef768676ffef118c40bb299001f8a62489e743284c8e08cc5258",
+    "body_stop_observation": "a00b78fdf5f559449e6444d29756148960b55883993402c7c9303765d15e4040",
+    "browser_group_settlement": "7a447b4f13d73e99bcddda7a0ebf5e1af7987f8b5ec8e0ad7837ae9ed48eba6d",
+    "browser_normal_close": "4b041cf4327e4856d37cb519abde50a82f17d7dca067dc4cf03c392c55a96d3d",
+    "browser_result": "4fefd9ef1531b545c4af1b28ea0ebfa7b137ae4356ec3edf2f0313cd37ce9fec",
+    "case_controller": "63cc1f3d408015923303abc70e6d4febc09cef9c53d13645822bd0831b8092d4",
+    "fault_admitted": "0247815e06e9d4e65882a0d9517346a1666556aae3fee8641df5549df808589b",
+    "fault_server_security": "71ebc3ffa59b082d9cff7479953d6c5e0f0e577410e4fbe8f553e6932c714460",
+    "first_boot_settled": "36cff3055027f594be509e4ecabceeb79595da9354d06f776fb037bbc53a4312",
+    "independent_visual_raw_review": "5c551518a1f55a9a735fe54f8878db44acae9d00b318648d3281e09918adb7fb",
+    "postgres_terminal": "7d28e102530afcf5689ed6db7985e56f240a3068dfcbb7ae9e6c4b081efed934",
+    "relay_effective_controls": "735665346c38ef81e44733a687ac97a1a8487a27ba2b7e32b9bf274266f8e9b0",
+    "relay_stop_observation": "695e50322ad42770d539977518a7d77736bbe422b7f0304c8e51938b07330147",
+    "relay_terminal": "358503a02574f8446e921ff3f8bbcf419c31371935bdf23037101dd95c59b40a",
+    "root_accepted": "01468f2dd18ee456b1f80a3d6c732043384fc50491b1fd71a1b2cd62b42bef30",
+    "root_interim": "0d939fafbf1cd22b0db92cd46b6e5cdbbb662606751b5e3dbd448687ac012791",
+    "second_boot_ready": "36cff3055027f594be509e4ecabceeb79595da9354d06f776fb037bbc53a4312",
+    "short_scratch_terminal": "c4c561cad8e8f7cde9f9baab98ad23d4452a0f03951364f09900b44d1b6fc278",
+    "success_admitted": "f3b510270855186492ec2a8761e3d6fa9142d35cea7f0f13ef8d55dfb25d2d2b",
+    "success_server_security": "b15bb6f6744fa048fd3379c2845c14ff5380b2b0a6349c33aaf2651ae45b762e",
+    "warm_terminal": "27b7d20fb9733660cd7165a34423027946f351418276d4014d56c144ea08b1c7"
+  },
+  "facts": {
+    "authentication": {
+      "both_admitted_responses_status": 200,
+      "both_requests_correlated_to_actual_run_and_request": true,
+      "csrf_header_name": "x-csrftoken",
+      "first_browser_unauthenticated_status": 401,
+      "negative_message_admissions": {
+        "foreign_origin": 403,
+        "missing_csrf": 403,
+        "no_auth": 401,
+        "wrong_auth": 401
+      },
+      "playwright_authorization_presence_diagnostic": false,
+      "playwright_csrf_presence_diagnostic": true,
+      "server_authenticated": true,
+      "server_authorization_present": true,
+      "server_csrf_present": true,
+      "server_csrf_validated": true,
+      "server_observation_owner": "actual-ASGI-scope-after-unchanged-production-auth-and-CSRF-response"
+    },
+    "closure": {
+      "application_postgres_and_relay_listeners_absent": true,
+      "exact_owned_postgres_container_volume_network_absent": true,
+      "exact_owned_short_scratch_identity_removed": true,
+      "full_actual_source_and_runtime_freeze_verified_and_released": true,
+      "namespace_FDs_closed": true,
+      "next_occurrence_authorized": false,
+      "original_units_processes_groups_and_cgroups_settled": true,
+      "protected_baseline_preserved": true,
+      "root_independent_terminal_accepted": true,
+      "root_initial_pending_record_preserved": true,
+      "shared_warm_model_metadata_preserved": true,
+      "terminal_warm_idle": true
+    },
+    "execution": {
+      "SQL": "real-owned-PostgreSQL",
+      "application": "production-source-CLI-two-native-TCP-boots",
+      "browser": "headless-Chrome-normal-sandbox-Playwright",
+      "fixture_hooks": [
+        "fixed-SettingsSnapshot-and-RuneRegistry",
+        "fixture-ModelBoundary-and-request-hook",
+        "refusing-host-runtime-actuator",
+        "test-local-wrapper-yields-production-lifespan",
+        "supplemental-engine-disposal-after-normal-CLI-return",
+        "transparent-private-ASGI-security-observer"
+      ],
+      "installed_body": false,
+      "observer_forwards_receive_send_once_unchanged": true,
+      "observer_installed_before_ready": true,
+      "observer_request_and_response_limit_bytes": 65536,
+      "observer_retains_header_values": false,
+      "production_security_stack_unchanged": true,
+      "projection": "actual-generated-Altar-assets",
+      "server": "Granian-embedded-owned-native-launcher",
+      "source_cli_original_launcher": true
+    },
+    "limits": [
+      "trusted-source-fixture-not-installed-F1",
+      "not-full-generated-rootless-deployment",
+      "not-hostile-constructor-or-process-containment",
+      "not-general-network-egress-enforcement",
+      "not-managed-model-lifecycle",
+      "not-remote-Ward-or-positive-adoption-activation",
+      "not-F2-physical-enforcement",
+      "not-autonomous-labor-general-tools-or-crash-recovery",
+      "not-general-browser-responsive-layout-accessibility-or-device-coverage",
+      "reloaded-failure-text-retained-but-all-live-failure-badges-not-shown",
+      "screenshots-retain-scroll-and-sticky-navigation-layout",
+      "hash-or-metadata-only-update-does-not-requalify-changed-inputs"
+    ],
+    "model": {
+      "deadline_seconds": 30,
+      "id": "Qwen3.8-27B",
+      "local_fault_before_release": true,
+      "managed_model_lifecycle_exercised": false,
+      "max_context_tokens": 4096,
+      "max_output_tokens": 256,
+      "shared_warm_model": true,
+      "success_held_until_visible_running_Orb_and_Loom": true
+    },
+    "outcome": {
+      "boundary_violations": [],
+      "browser_page_errors": [],
+      "browser_passed": true,
+      "controlled_fault_counter_delta_zero": true,
+      "controlled_fault_run_status": "FAILED",
+      "controlled_fault_upstream_calls": 0,
+      "controlled_local_fault_calls": 1,
+      "expected_answer": "Leave at 14:10; queue at the north gate.",
+      "external_compute_unknown": false,
+      "external_generated_token_delta": 136,
+      "external_prompt_token_delta": 559,
+      "external_total_token_delta": 695,
+      "fault_completed_model_history_empty": true,
+      "fragments": [],
+      "lifecycle_calls_by_boot": [
+        0,
+        0
+      ],
+      "local_model_attempts_by_boot": [
+        2,
+        0
+      ],
+      "model_responses": 1,
+      "model_success_delta": 1,
+      "no_automatic_retry": true,
+      "pattern_id": "bridge_chat",
+      "pattern_revision": "2",
+      "real_forwarded_calls": 1,
+      "retained_history_identical": true,
+      "retained_turns_identical": true,
+      "second_boot_inference_calls": 0,
+      "structured_output_name": "final_result",
+      "synthetic_task": "opening-time-minus-ten-minute-walk-and-north-gate",
+      "useful_run_status": "DONE",
+      "wire_finish_reason": "tool_calls"
+    },
+    "processes": {
+      "actual_body_wait_returncode": 0,
+      "authenticated_host_stop_exercised": false,
+      "browser_forced_termination": false,
+      "browser_groups_absent": true,
+      "browser_normal_close": true,
+      "browser_peer_reaped": true,
+      "distinct_original_identities_checked": true,
+      "engines_disposed": [
+        true,
+        true
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "forced_termination": [
+        false,
+        false
+      ],
+      "groups_absent": [
+        true,
+        true
+      ],
+      "joined": [
+        true,
+        true
+      ],
+      "listeners_closed": [
+        true,
+        true
+      ],
+      "native_children": 2,
+      "normal_CLI_return": [
+        true,
+        true
+      ],
+      "normal_collection_race_reconciled": false,
+      "original_unit_collected": true,
+      "production_lifespan_closed": [
+        true,
+        true
+      ],
+      "reaped": [
+        true,
+        true
+      ],
+      "start_method": "spawn",
+      "substrate_unpublished": [
+        true,
+        true
+      ]
+    },
+    "profile": {
+      "Chrome_normal_sandbox": true,
+      "aggregate_host_memory_or_CPU_kernel_cap_claim": false,
+      "authenticated_context_same_origin_routes_only": true,
+      "body_unit": {
+        "monitored_RSS_ceiling_bytes": 4294967296,
+        "monitored_cgroup_CPU_microseconds": 120000000,
+        "per_process_CPU_seconds": [
+          140,
+          140
+        ],
+        "per_process_address_space_limit": false,
+        "per_process_core_bytes": [
+          0,
+          0
+        ],
+        "per_process_file_bytes": [
+          16777216,
+          16777216
+        ],
+        "per_process_open_files": [
+          512,
+          512
+        ],
+        "pids_max": 512,
+        "wall_seconds": 130
+      },
+      "browser_close_seconds": 3,
+      "browser_default_action_seconds": 6,
+      "browser_default_navigation_seconds": 6,
+      "browser_lifetime_seconds": 60,
+      "browser_soft_deadline_seconds": 55,
+      "context_downloads_disabled": true,
+      "context_service_workers_blocked": true,
+      "fixture_authentication_via_stdin": true,
+      "minimal_peer_environment": true,
+      "name": "trusted-fixed-source-browser-with-monitored-host-resources",
+      "native_Chrome_background_traffic_observed": false,
+      "native_children_after_module_startup": {
+        "CPU_seconds": [
+          90,
+          100
+        ],
+        "address_space_bytes": [
+          3221225472,
+          3221225472
+        ],
+        "core_bytes": [
+          0,
+          0
+        ],
+        "file_bytes": [
+          8388608,
+          8388608
+        ],
+        "open_files": [
+          256,
+          256
+        ]
+      },
+      "network_egress_containment_claim": false,
+      "owned_postgres_network": "ordinary-owned-bridge-with-verified-loopback-publication-and-host-SCRAM-query",
+      "postgres_kernel": {
+        "CPU_quota_cores": 1,
+        "memory_bytes": 536870912,
+        "pids_max": 128,
+        "swap_bytes": 0
+      },
+      "relay": "exact-namespace-FD-loopback-bounded-request-and-response",
+      "relay_only_one_real_Chat_POST": true,
+      "relay_unit": {
+        "monitored_RSS_ceiling_bytes": 268435456,
+        "monitored_cgroup_CPU_microseconds": 30000000,
+        "per_process_CPU_seconds": [
+          30,
+          30
+        ],
+        "per_process_address_space_bytes": [
+          536870912,
+          536870912
+        ],
+        "per_process_core_bytes": [
+          0,
+          0
+        ],
+        "per_process_file_bytes": [
+          16777216,
+          16777216
+        ],
+        "per_process_open_files": [
+          512,
+          512
+        ],
+        "pids_max": 32,
+        "wall_seconds": 170
+      },
+      "sampled_monitors_can_overshoot_between_samples": true
+    }
+  },
+  "freshness_check": "offline-critical-source-and-selected-dependency-metadata-only",
+  "historical_browser_tools": {
+    "Chrome_version": "not-separately-reported-full-installed-tree-frozen",
+    "node": "24.20.0",
+    "playwright": "1.62.1",
+    "playwright_core": "1.62.1"
+  },
+  "qualification_date": "2026-10-20",
+  "record_kind": "sanitized_public_trusted_source_browser_qualification",
+  "retained_history_sha256": "86fc97f86173478bc25f5070c0152665735ebf8483b4b8f4f8d3ea8b42c9ad49",
+  "retained_turns_sha256": "2c43de07d0a7a3e590e00270c24c5b02e356581dbd2bb6631754c490b1c1c45f",
+  "schema": "local-bridge-browser@1",
+  "selected_dependency_versions": {
+    "granian": "2.8.2",
+    "httpx2": "2.12.0",
+    "litestar": "2.24.0",
+    "openai": "3.28.0",
+    "psycopg": "3.3.6",
+    "pydantic": "2.14.0",
+    "pydantic-ai-slim": "2.55.0",
+    "pydantic-graph": "2.55.0",
+    "saq": "0.26.4",
+    "sqlalchemy": "2.0.54"
+  },
+  "source_fingerprints": {
+    "clients/web/package-lock.json": "dbae9a147f1c9d5c4fcbe819c4c2221c32386f1d389f55775b2591aa52196dd6",
+    "clients/web/package.json": "26cc9f65c63717eb20e5354afe3489cc32d71dacd6d1484fb3a26b28f87839cb",
+    "clients/web/src/app.css": "ec93e854196f64fe74722f8c7d077eeb9cdd8afc27cd8dfb5a27b513b1e8f616",
+    "clients/web/src/lib/api/client.ts": "f27b8b9664f6f1ca6b86703ff43869609bd60a00f1bef9c9f3565d5b6b835847",
+    "clients/web/src/lib/api/csrf.ts": "5f1a222e270a7774bcb37c34beeb3e7e03696425c6e2ee0039a2d14ccb0b18b5",
+    "clients/web/src/lib/api/models.ts": "606ec285738a2c0a929f8fab66b1c3c9f63b0b6171d94cc84334352c70234d46",
+    "clients/web/src/lib/api/openapi.d.ts": "14c4513988f27f3eb689952422c76ad640f16710eed8f5fa0e075f4f127edeb5",
+    "clients/web/src/lib/api/run-stream.ts": "eee0ecf20e858b5588fb9beaf1a2e9196415e65f31d58ffad71cab7f51d73a93",
+    "clients/web/src/lib/api/runtime.ts": "6ffb3ff703f7ad833ccd6fe2667400c9fbc3cf5222a0895b7d8b1171c936d3a1",
+    "clients/web/src/lib/atlas/navigation.ts": "c944e08d6acb645a78b881a9dd7339290452bf5ac3a4009614e06a1e3c928aff",
+    "clients/web/src/lib/bridge/projection.ts": "7a4e7c2349c578cec2210f859662a9fe0b8d8f95faa5507b9ec9698c0e8092d9",
+    "clients/web/src/lib/bridge/workspace.svelte.ts": "23d2385c4415a575fb6cdc01e4accbe9aa7d321983691dbf4a3c3e4c4685ed64",
+    "clients/web/src/lib/components/AltarShell.svelte": "4e99daf6b27ea0dd94ec360003d035c0867deefc8b12886980ef21f769ca488e",
+    "clients/web/src/lib/components/AltarWelcome.svelte": "6126953df77f80464e98954442092be5558811ae4f4e025b3db16bad4d02076d",
+    "clients/web/src/lib/components/AnimatorRail.svelte": "50b0975636b1fb252704fffbafc07e12077ef0346bcf56a1e66d302e843bc39c",
+    "clients/web/src/lib/components/ArchiveRecallPanel.svelte": "9c0ee441578c6b5e0dffb5a055ef0f3e8f3ff4346d937dc42b44e3d4c67741b7",
+    "clients/web/src/lib/components/AtlasLinks.svelte": "961c570f1930f0025d2c71631ab5fd73f518bbcc449326705ee7a4ec87974d89",
+    "clients/web/src/lib/components/BridgePreferenceSummary.svelte": "d8a395ad4bc1588e5ecb732c4cc987b6ee03b31ba99f8458e66bb9562d8eced0",
+    "clients/web/src/lib/components/BridgeView.svelte": "7b37140d125ca1c7e5d0a4ca3ab36124ad5dba88ed42cbd7a8f7c025a6d64972",
+    "clients/web/src/lib/components/CircleRun.svelte": "60f831f6f97d79d8c4378f23ec61a7b214e557974c9df6a2b5810a3e52454b1d",
+    "clients/web/src/lib/components/ConsentCard.svelte": "076314962dca39d0bdb4802bd06a080bdbab9cccfbda3e15f29fb711fcea3972",
+    "clients/web/src/lib/components/CreationSummary.svelte": "341ac5b4126c2b3ca6aee2eebfce27fb071eae736980735eaca4d1dc0f775f85",
+    "clients/web/src/lib/components/DelegateMark.svelte": "c7388f03ce22d565f7c5dad2b398164bdb4f2cddfb746f1c4c5926765ec96d79",
+    "clients/web/src/lib/components/GenUI.svelte": "042d66067c1a00fadf2d187e3595dac7e19753c1fa38949cdfb1c2e8f170b7d0",
+    "clients/web/src/lib/components/LoomView.svelte": "d4cbe5011312ccea617e8f632bea050ae652b6724bf67b84d4dcd3767e4c1dfc",
+    "clients/web/src/lib/components/OrbField.svelte": "da86e15532596ef50db2d78b15279a9c569527c85467fcb02e88691718b1ebb3",
+    "clients/web/src/lib/components/OrbView.svelte": "93461cec7904aeff6511469d04958c292a38be003b75ea84ea3d4631a62492ce",
+    "clients/web/src/lib/components/graph/FlowEdge.svelte": "f91eab5495069fb3965122b48b6d531e5ebe7a952a52d588d183b5f248b20910",
+    "clients/web/src/lib/components/graph/FlowNode.svelte": "c21d6671a3b7bfb5c742fa449a8ce0f1fe024d81b154fed017dfc1ec7d6d5e90",
+    "clients/web/src/lib/components/graph/FlowSurface.svelte": "42c7875d1d58ebd90c5ee7ad7d1d09ece4696d2853ccd41fb447843075ef12d9",
+    "clients/web/src/lib/components/graph/GraphCanvas.svelte": "2e7afaf7deae494ad677d9f160a189ad204907231a62556896320d3f889c12bd",
+    "clients/web/src/lib/components/graph/layout.ts": "086c6f29f1ab361741d24d24353e8cd14ab3296f3cfa78a02fcbe23f7d59456b",
+    "clients/web/src/lib/components/orb-evidence.ts": "a4ac8c99213a12429836dd936da4ddb8411f6bea79602ed1a3c437d96934eefd",
+    "clients/web/src/lib/delegation/presentation.ts": "170d2814b25e12c70c85ada4d0efbfbd43298e5022f39b3d16ac3bf23757b16f",
+    "clients/web/src/lib/graph/loom.ts": "65dead5f13658625ed757e9320a49b1b5c3058f5d1b027bd42b4cf7f7fdf37dc",
+    "clients/web/src/lib/graph/model.ts": "d70e2e61759734577268ae9722d1a33adbb5cd71983816e462d0f16717abb535",
+    "clients/web/src/lib/graph/orb.ts": "5992db1862eab7453a6b2e5e1acf24677182ba470b3b73372596941ee6b76672",
+    "clients/web/src/lib/navigation/instruments.ts": "c2f52f41aa67a56de56f9921bee2962ec38fed7d83b4e2fcf469b1c2b762f8fe",
+    "clients/web/src/lib/orb/live.ts": "d7dcc55641556f04f125b1f61444b61710c47a1bdf0308eeb1e61361cfc3815f",
+    "clients/web/src/lib/orb/playback.ts": "4871b9abe2f89f0a447ed1985ebaa0c0eafd7cb23efa1fb6a30461d8020dcdf9",
+    "clients/web/src/routes/+layout.svelte": "c1abe8ed428f1332e7c6174ab1186d9869dcc812f804fd412c7d1d6dc151ac63",
+    "clients/web/src/routes/+layout.ts": "58ca28942740b2ff08d6416473a2e8038f8a660017ce0b8b0d9ab3bb44453659",
+    "clients/web/src/routes/bridge/+page.svelte": "0ff35ddb653220cc25c7337d8a362b449030fe7c36ea24f43798cb1e3b3543a5",
+    "clients/web/src/routes/bridge/[session_id]/+page.svelte": "870b3d26b80c3dcd95dd5e5050cf074dec5001a730c3e261007bed1e57cc207f",
+    "clients/web/src/routes/loom/+page.svelte": "fe8bfdd41283fad2f69c6488535316864ac008c505917daa4f8ca8e2e305de2c",
+    "clients/web/src/routes/loom/[pattern_id]/[revision]/+page.svelte": "56558b22ecb64eadf25d12cde35d91c633c1b1674ba503a8253314ff8ef31bdd",
+    "clients/web/src/routes/orb/+page.svelte": "23ccbdf3d021e743f3544f82661259f019673bce4557657af083d601c7f33ea3",
+    "clients/web/src/routes/orb/[run_id]/+page.svelte": "b6828021295ce45768c7cfac5e4930c9e9d00161c7f51e801555fc73a98658c5",
+    "scripts/local_model_probe.py": "a8904d9e1b777e880d63a8e455cd07bff8819d9ff1edeb211b693e9eeb8957c5",
+    "src/lychd/__main__.py": "36b6041bde1c2f6c6bb0c3e1349ee924f9dbaaaf6442df52d5c4aa6cc4177e39",
+    "src/lychd/agents/context_limits.py": "dd283fd293c2caf3d521d4e23cd33fd509fb82a2624f213b9d3a49530f92bdd4",
+    "src/lychd/agents/factory.py": "d7a13138d4681dbd1752aff0e46ba062c843b9f1238e67c184d553d76a77c6d4",
+    "src/lychd/agents/outputs.py": "28a678975950b6b9b63b798142be6feccb823f0d3b8f5d1e68b6b9cb1aeea16f",
+    "src/lychd/agents/router.py": "70d7542efae89c6200d4d2afc9d4052b234098931b04565f011570b99638aa2e",
+    "src/lychd/agents/the_first_one.py": "18ff57c6305edd1a1bdd7c2a9eb096a91ec28e9699bd2e8f3d4e099fc82e9b98",
+    "src/lychd/agents/workflows/__init__.py": "1614b4cba883faff032cc10d90988f38de107962b292db966f9fd82c18fafb3c",
+    "src/lychd/agents/workflows/_legacy_inline.py": "7d7aa5c2029066166f08b33f08477923e10910b9d8ca52e367b299e59bf6128b",
+    "src/lychd/agents/workflows/base.py": "509f7a771778d777078f1335f011ba12c91d6420f0e8070c4239b9b04d54d013",
+    "src/lychd/agents/workflows/bridge_chat.py": "40d720afee98c0abd046d676e62ed1c154736fd9df7d48913ab02013a9c9ab85",
+    "src/lychd/agents/workflows/nodes.py": "7b8bb849280495e295300cef7cffff7f351966004d7c0f1d016b8217bfc68b92",
+    "src/lychd/app.py": "6515063f5d46620bd0665a2a76ea4f9970eaee974fc29a977633e58216619c6a",
+    "src/lychd/cli/base.py": "de2287c2bdafd87d0642bea1c83c1abf8f56cd38b64fc03029eca3585edbe10f",
+    "src/lychd/cli/commands.py": "45c49a1c98afdcc32736e81a6e061d3b8839a46352091b73f8cf367ed4930b45",
+    "src/lychd/cli/operator.py": "af6a16996eeaf701aa2b81368e1ba71d239d6137750711d602cc3b7fe75f47e7",
+    "src/lychd/compositions/creation/schemas.py": "b111d69523df2b5f84c7cce9fe81a8ede9f5d4b92bdcbc323a54a4c024514584",
+    "src/lychd/compositions/creation/services.py": "4bdeceb2dd6905351b5c0daedc8e6b13d479f2aff3f425953a4dd7604399a3b6",
+    "src/lychd/config/components.py": "fb35c47ba9ee2cf9cec20b955120da279610579aeddaa81ce78c2b9885f005f7",
+    "src/lychd/config/constants.py": "b9d3f3e91466a0e8e2f65f491ca471d39f70b87d231a0ce9b5008c379c11cb7c",
+    "src/lychd/config/settings/root.py": "a4d864782953c1756b1596a74575bd6961963186e4fc8673d29ada851d54159f",
+    "src/lychd/config/settings/server.py": "60a02e500070ad6b07af5ec25aed2e0772b42b46c9f2255ce18dbfd08f475825",
+    "src/lychd/config/settings/weaver.py": "c0410932c1d79d4080e384499a5dda1fcb10da0edc22d128a307bb5a3b9d32ec",
+    "src/lychd/db/authority.py": "a9427aef7ec1fef5dc919dbee9c45cd82945d1176b6935a2498e3c9b613d60a3",
+    "src/lychd/db/bootstrap.py": "d73ba53c4d6541b96899b436beb6b9b8e9c926fa400f677b1956c168b5517d86",
+    "src/lychd/db/engine.py": "18e2b6b4c6d84d0085d151a4eb79de6179e150fa696f5e2ce02f42a28655cede",
+    "src/lychd/db/migrations/versions/0016_creation_investigation.py": "81b1c0778b64314281d9ab9d5db8821d05e26b962d8970150610c720b237c72c",
+    "src/lychd/db/migrations/versions/0018_creation_successor.py": "17d7cc2f56dbcfd70b9ffc1e936c954db237eaaeee724b808428beab20bf37b1",
+    "src/lychd/db/models/__init__.py": "bca42f7776d8f0e2a62f5325cd9dc5681ad9a379fe7fe99be0faa067ad1ed8e6",
+    "src/lychd/db/models/creation.py": "f9e23752ec4234e1b011c61ecc2531cdd0c2927fe5be6bd6ae7b84caf2d8033c",
+    "src/lychd/db/sessions.py": "64bd8cb6f056b20051c8140ed166cc46b35388b092684ee32e442233bdbcb1c3",
+    "src/lychd/domain/animation/capabilities.py": "a75cbdaf10f1fc7a1a484876b4b03f137b1fb236d921001766a49592b2dd7a8e",
+    "src/lychd/domain/animation/model_factory.py": "be6e37f960fd470ed886d11a25bd237201b165f2326d609d193a1af42a1e69a2",
+    "src/lychd/domain/animation/schemas/generation.py": "54ad9d644974d9b7da13700f3f836c8e97a084fa44b63dd6002a3a84a844d6ed",
+    "src/lychd/domain/animation/schemas/runes/animators.py": "dd2643c0101852f946a7f898a7ce4ab098d1b3ed18cfe2a8e05eb77c54c1e434",
+    "src/lychd/domain/animation/schemas/runes/models.py": "5fb0d561e8bfc0fee68192af23048a333eb03940b567f12859daf1d29df438d9",
+    "src/lychd/domain/animation/services/adapters/catalog.py": "f500a7f3b3f958904f621840df187320c80e69390d4d1a989ad81ac094d8c61d",
+    "src/lychd/domain/animation/services/adapters/runtimes/openai_compat.py": "cdda6ad24da8854e7d4a2ed72195aa9b2597eeb8cf95be3ab20a207a506ba133",
+    "src/lychd/domain/animation/services/adapters/surfaces.py": "303e29dc2f2a7b80b40d22f7df699fc1d2e374aee18180b68bebf78c75b41468",
+    "src/lychd/domain/animation/services/loader.py": "79943e09b7b0c1a7e80b6051e40a97f5b31ed612cc772c56f8c01998b7bc155f",
+    "src/lychd/domain/animation/services/registry.py": "7c55001fccf1cbaaacb7536d328b6a06d7cbaacce65ab7a5c1a2e7e97bb3c797",
+    "src/lychd/domain/codex/local_access.py": "4617db35469740582fb947ff96a98d6c5b7c90a85af027c4b8f115c715d68de3",
+    "src/lychd/domain/codex/middleware.py": "9853769b5b5cacb9817395896d6dc6cea42533370d3febddf73226cee752496c",
+    "src/lychd/domain/cortex/bridge_preference.py": "0f8754465af54823e82ce76cb24977bb6334852b134991e51341bcf1a74da75b",
+    "src/lychd/domain/cortex/context.py": "89eec82da27f308363e6ffe2495ee7660945bf6c0b7cea768d6da3aadf14400d",
+    "src/lychd/domain/cortex/dispatcher.py": "648b0b36315622b54bae87f4342d66d2db187c0e15ca6563659316b016575713",
+    "src/lychd/domain/cortex/engine.py": "92ff4d9cd09f2874a12585f814630e4f86de8c86d77dbb7f660be24a7ab5b823",
+    "src/lychd/domain/cortex/execution_context.py": "c0af3d3f852ea8bf6a5f7b13f6d325ac8ba04b8229a363077e12e5789f96ab51",
+    "src/lychd/domain/cortex/graph.py": "af2010462945f6ecbe5500f00cdecfb56dab011c5feb72cc689198b9dec44aa7",
+    "src/lychd/domain/cortex/graph_runner.py": "3362590fcd682f1124a92fc7375358084782b1cc71a651201d8d5b1e1676a239",
+    "src/lychd/domain/cortex/leases.py": "29a1fc205fedd317b1814e635e7198b3cfc66fa6d7e2cfa64357c3ca21d8bbf2",
+    "src/lychd/domain/cortex/ledger.py": "8a20a5827713ba4be001401b96992c554df6d095ac7bd5e6574d2f6a564dcfb1",
+    "src/lychd/domain/cortex/runs.py": "382f46128fc129b00a683f8c3b19b9dc596a3c2d0aac03f46ab752b424362fc5",
+    "src/lychd/domain/cortex/stasis.py": "03ee28363821c73b62ace06cc84d6d2940019f74f24aa635b65a9800dc0afa9e",
+    "src/lychd/domain/web/contracts.py": "da2c3e2c7f635aec4839e35ff5b919d7042d5666e9102059d7d85fe06837576e",
+    "src/lychd/domain/web/orb.py": "132a255af0ed71035e437c984cbef0e76f8de54a64ef1ceac994e8f28537d47a",
+    "src/lychd/domain/web/projection.py": "a4977d59173d3a56007658e41851781f69540b21fa91e64bd66d420c7f97aace",
+    "src/lychd/domain/web/schemas.py": "0ec38d307facafdcd5ef307d65036d5a2b737616f266aff4e850baa027f578f6",
+    "src/lychd/extensions/builtin/animator/soulstones/vllm.py": "0c51c18cab31a9b7fe798ad83a7df9809d0cbf6f206345df5e0bc30de453c1b8",
+    "src/lychd/extensions/builtin/animator/vllm/register.py": "3eeca6c19c3be7e85d9fead659a03c4cd4d35b79357d207ba5decba8af029839",
+    "src/lychd/extensions/context.py": "3a5bff1bc1e14ace4310cf713bf76a97d8e539171b35dc2c55baa17dd7102e27",
+    "src/lychd/extensions/manager.py": "750a4f2ec7034a75940c318a8e4e21c36e83fc3e1b357aff9772b311bbdda52d",
+    "src/lychd/ghouls/runs.py": "97d0fa8d33c541c180ffcd31ff32128ce31081cd8910ac28fc9bfec6d69fd1ed",
+    "src/lychd/interface/api/creation.py": "8bdf671a9d3eef5affa05868cbc96a6b95650675cf4c5762b15d95e603ce3480",
+    "src/lychd/interface/api/lifecycle.py": "a8feea8caefba3c640360851ade444349ec0c4b93f334092384a6d00d19aa98a",
+    "src/lychd/interface/server.py": "5d029ab483fb477472369c65f04e217f77b087ce21e65e502ffde3009becaafa",
+    "src/lychd/interface/server_policy.py": "702ff8945dd1ac9f1907b3f0f6ffa5b697446b3af1312fb6e33e0b16b3cbcd74",
+    "src/lychd/interface/web/altar.py": "71b8684ac995b8a218edca3283a53d4c955074c4410bacedb95528c62cad88ee",
+    "src/lychd/interface/web/altar_services.py": "3e7d0fa59685efa90be2cb5539b42d64ef32d8dbbf131beea8e1053087731029",
+    "src/lychd/interface/web/bridge.py": "961ee4150d0fc46fcb49c440a1e86486bc4bad9b5a8856774d98811e2283a8f8",
+    "src/lychd/interface/web/bridge_stream.py": "51c4d5c96cf3d3edc2f5574ed29e4ce35b8fb7facd5179486a948157226f4686",
+    "src/lychd/interface/web/lifespan.py": "bdf5a29ad35e6ed4134f94b30f88db882f6e05b210c072f76c85a1c362907979",
+    "src/lychd/interface/web/loom.py": "200950f3f9019012579efc0bd58905a06fb3c007496fe926d663e2ee73ac4d20",
+    "src/lychd/interface/web/orb.py": "06dc25a9bfcf53e570f8fe431e4939383893731e217d67128779b42dbdcb3c76",
+    "src/lychd/system/constants.py": "e01e7a33df7f4e72cafb57097def0e6998a319ba1d57dea34427f7ab3e177dcf",
+    "src/lychd/system/operator/__init__.py": "b4df3abb6a07d0d1c2fa480e3443e86a671ed07c4d2551ba8e210cc1f345a427",
+    "src/lychd/system/operator/admission.py": "8312e98209e267ed7bcbeeb990416cbafd36b1127c6436ef0db701d94b0c1f3b",
+    "src/lychd/system/operator/composition.py": "93b13c0aedeaccbaa98d5b040c655166d4c1b6bd771bebb632a9e42313ee0bdd",
+    "src/lychd/system/operator/control.py": "d2f96257a34791342ed04baaee4c8809d6b12690e2b6987d875cc30859634f62",
+    "src/lychd/system/operator/models.py": "202ee54fc6d4770ae49f4d08f4b5063f85e95ce33ace9426a7aa9045a2f99565",
+    "src/lychd/system/services/queues.py": "cf87c902cb93be042b9c30417a70fe85158966435eb0566cd627422344d46b76",
+    "tests/conftest.py": "ee6a7991363a5681b647635b7ff3a8ffa0cefb8a3c2a771ae1994d6381da5dc7",
+    "tests/integration/test_local_bridge_native_tcp.py": "7cc36a27ccc473f5cd374655c2ee6aedf002d85ddf676e297c585b2de11a9454",
+    "tests/integration/test_local_bridge_process_restart.py": "9621a9209499c7f552b024e18a1621f132964b87e9d7f0f9d38bbb780515eaa9",
+    "tests/integration/test_local_bridge_runtime.py": "00e24103a907b1aa4d1b518d7bd38267a3b2d5cdd4fce1db923f6f239d11c7d2",
+    "tests/integration/test_production_wiring.py": "e06fa6964a77546f6106b231fbd6c70e9df2902b86304f340e42cb14372500d0",
+    "tests/integration/test_server_process.py": "1d31a014d21158c749cf3cd05f7f043208af14fc5fc7c48b6012c34caebb522c",
+    "tests/unit/domain/animation/test_local_bridge_native_tcp.py": "b902b6be41e48e22950d5776b3447d1e47b7718cf5b2536cdb284e649c163873"
+  },
+  "source_identity": {
+    "actual_absent_source_paths": 22,
+    "actual_generated_assets_file_count": 54,
+    "actual_generated_assets_manifest_sha256": "6c6c909911a1f97a1b0e2acba5c3a6761e928d46ffb23df486d0a60e042a5239",
+    "actual_helper_tool_count": 17,
+    "actual_runtime_and_assets_file_count": 49709,
+    "actual_runtime_and_assets_symlink_count": 1062,
+    "actual_source_path_count": 1571,
+    "critical_source_count": 136,
+    "current_check_scope": "exact-bounded-TCP-native-and-browser-projection-source-fingerprints",
+    "generated_assets_hash_scope": "historical-actual-assets-not-an-ordinary-CI-rebuild-claim",
+    "revision_observed": "3e30a84c4340efca94270f1ab429ca6f5c6341a6",
+    "whole_final_checkout_qualified": false
+  },
+  "status": "passed",
+  "visible_journey": [
+    {
+      "DOM_sha256": "5c8073c86816b77b5091cd81fd9191ac0a2904de3d5d8a7c9a642232b12a3660",
+      "image_sha256": "8f605b058bc55fd4f163b88954c4412707d458b42ffce1d98a06d19a87f436ad",
+      "phase": "01-fault-running"
+    },
+    {
+      "DOM_sha256": "d93706ee183445017dcbc77a0e9fb08b4f4fb985d0634259cbd30b64556b32e6",
+      "image_sha256": "cadb62e1ec0be80e4448b935e3d75684cb13c78f75f161e1ef70f2ee2a68c373",
+      "phase": "02-visible-failure"
+    },
+    {
+      "DOM_sha256": "bf87b49487bdd9b4a50207ba519a365e617c5a2958369e66739550e8668916aa",
+      "image_sha256": "de135e6db02e1d2a93700fd0242e739def60884fd9522575690c4aba3e0e4d7b",
+      "phase": "03-retained-running-orb"
+    },
+    {
+      "DOM_sha256": "95c1538b62c726e6f1db62e2ddfbf5e0e6e497bdbf4cef3a1fae8d35ccbb24fb",
+      "image_sha256": "de8f80a7ace879b2c946049e62ffe8d236c7520768cc375555eedcda0d74b557",
+      "phase": "04-exact-pattern-loom"
+    },
+    {
+      "DOM_sha256": "dca8bd0b60d4ce3eadc8f56b4b76313310c73ef1ecae82bf37d2bdc5b7ec34f7",
+      "image_sha256": "a960e541a8f335ddf44fa07f8b7f3b50d28de64d15f53a12f0a04ecc04c53197",
+      "phase": "05-useful-settled"
+    },
+    {
+      "DOM_sha256": "43a1dbb559e2892a6b0b4909c435d4fd224527ef0a4947c117fc30491d84388b",
+      "image_sha256": "474ce9f9f73df6207e9d199c1a66013f891dfc982a37c41f6f0893dd73689581",
+      "phase": "06-restart-reload-retained"
+    }
+  ]
+}

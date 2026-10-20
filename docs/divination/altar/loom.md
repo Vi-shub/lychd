@@ -64,6 +64,10 @@ Orb can open a score with `?run={run_id}` attached. That query supplies review c
     current-revision shortcut is `/api/v1/loom/source/workflows/{workflow}`. Their separate source
     namespace keeps `/api/v1/loom/{pattern_id}/{revision}` legal, including a revision named `source`.
 
+The fixed trusted source-browser [journey](../../state-of-the-work.md#current-evidence-envelope)
+checks the exact `bridge_chat@2` score and keyboard return to its Run. It does not qualify the
+planned editor, every graph interaction or the shared renderer's cross-engine lifecycle gate.
+
 ## The planned editor {#where-charcoal-must-wait}
 
 Editing, proposal, publication, execution, and layout changes belong to the future design. The [Loom workflow views record](../../state-of-the-work.md#loom-workflow-views) tracks which parts of that design have been implemented.

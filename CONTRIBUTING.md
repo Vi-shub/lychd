@@ -247,11 +247,19 @@ default. A rootless compatibility environment may deliberately opt in with
 `TESTCONTAINERS_RYUK_PRIVILEGED=true make test-containers`; do not export that setting as a normal
 repository default.
 
+The maintained [Ward/native-authority PostgreSQL profile](docs/state-of-the-work.md#remote-iam)
+records 23 cases: 18 Ward migration/runtime cases and five isolated inactive candidate-authority
+cases. This does not turn ordinary CI into a live database test or qualify installed activation.
+
 The separate opt-in [warm-model Bridge proof](docs/sepulcher/animator/soulstone/engines/vllm.md#join-one-reply-to-durable-bridge)
 joins streaming inference, SAQ, PostgreSQL and retained history across two application boots.
 Its separate Linux process-restart selection uses two sequential spawn children. Both need an
 explicit external loopback profile and never start the model; the page owns bounded commands
 and receipt requirements.
+Its separately admitted source-CLI/native TCP selection records two normal process boots,
+four refused message admissions, one complete SDK reply and identical retained state without
+second-boot inference. It has its own [scope and receipt](docs/state-of-the-work.md#vllm-integration);
+neither that source fixture nor the historical TestClient receipts qualify installed startup.
 
 Real private-manager tests require a fresh task-owned delegated user service. A private bus and
 HOME alone do not isolate cgroups: another manager could migrate unrelated processes from its
@@ -413,7 +421,7 @@ neither a useful text fragment nor successful Run transport relaxes that oracle.
 attempts and their spent allowances remain unchanged; every new occurrence needs fresh admission.
 The maintained occurrence used four embedding operations/eight POSTs/118 input tokens and one
 Chat POST; an independent retained visible-output review passed its fixed A/B/C cases, and Root's
-separate terminal audit passed all six physical checks. This qualifies authenticated in-process
+separate terminal audit passed all 23 terminal checks. This qualifies authenticated in-process
 ASGI, actual PostgreSQL, the named CPU embedding and warm Qwen3.8-27B profile with `bridge_chat@5`.
 It does not qualify installed startup, browser delivery, automatic crash recovery, general answer
 quality or aggregate containment. Raw SDK state/history and replay equality remain test-backed
@@ -615,13 +623,18 @@ sample data for Bridge, Orb, and the exact Pattern revision in Loom. The failed 
 no graph, model, or host execution. All mutations are refused, including requests with valid
 credentials and CSRF.
 
-Browser login, credential reuse, and the interactive Bridge–Orb–Loom journey remain unqualified.
-The pending manual acceptance check uses a dedicated local browser profile: open
+This developer fixture's manual browser check uses a dedicated local browser profile: open
 `http://127.0.0.1:5173/api/v1/altar/status`, authenticate with the terminal credentials, then open
 `http://127.0.0.1:5173/bridge` and follow the synthetic Run into Orb and its exact Pattern in
 Loom. Check that authentication carries across those reads. These commands and backend tests
 alone do not qualify that browser workflow; [State of Work](docs/state-of-the-work.md#current-evidence-envelope)
 records the evidence boundary.
+
+A separate trusted source-browser receipt qualifies one fixed authenticated keyboard journey,
+controlled failure, useful reply and retained reload against source CLI/Granian and the compiled
+Altar. Its explicit fixtures and independent review are recorded in that same State envelope;
+it does not qualify this Vite fixture or ordinary installed startup. Reloaded replies may use
+generic **Retained reply** cards; retained failed text does not imply every live badge survives.
 
 The fixture admits the exact Vite origin through the normal Host, CORS, Origin, authentication,
 and CSRF boundaries. Keep credentials out of Vite configuration, URLs, environment variables,

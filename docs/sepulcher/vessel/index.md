@@ -41,8 +41,15 @@ retirement; the user manager's outer timeout still decides whether a stuck proce
 Generated native services use hidden `lychd serve` with its closed loopback listener grammar.
 Managed images select a separate fixed internal listener through the same launcher; they must be
 rebuilt to acquire it. Unsupported upstream server tuning is refused rather than silently ignored.
-This launcher mechanism does not itself prove installed-unit settlement or make public active
-`stop` available; follow the current [CLI boundary](../../state-of-the-work.md#core-cli-rites).
+The launcher mechanism alone does not prove installed-unit settlement. The exact owned native
+profile has authenticated stop admission and separate lifecycle evidence; active caged or mixed
+stop remains unsupported. Follow the current [CLI boundary](../../state-of-the-work.md#core-cli-rites)
+before treating a particular installation as qualified.
+
+The [trusted installed-hybrid profile](../../state-of-the-work.md#current-evidence-envelope)
+adds two normal installed native boots and signed stops with a normal private-manager exit.
+Its Docker dependencies, inert model units and borrowed warm model remain a distinct profile;
+it does not qualify the full generated rootless graph or managed-model lifecycle.
 
 Shutdown stops workers before their collaborators and queues. Process death loses active tasks,
 subscribers, leases, and other volatile state. Only records committed through the

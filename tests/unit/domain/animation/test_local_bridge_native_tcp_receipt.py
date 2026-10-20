@@ -8,32 +8,15 @@ from __future__ import annotations
 import json
 import re
 import tomllib
-from hashlib import sha256
 from importlib.metadata import version
 
+from tests.support.local_bridge_receipt_freshness import NATIVE_SOURCES, require_current_tcp_coverage
 from tests.unit.domain.animation import test_local_bridge_receipt as historical
 
 _ROOT = historical._ROOT
 _RECEIPT = _ROOT / "tests/fixtures/animator/local-bridge-vllm-native-tcp.json"
 _NATIVE_TEST = "tests/integration/test_local_bridge_native_tcp.py"
-_NATIVE_SOURCES = {
-    "src/lychd/__main__.py",
-    "src/lychd/cli/base.py",
-    "src/lychd/cli/commands.py",
-    "src/lychd/config/settings/server.py",
-    "src/lychd/cli/operator.py",
-    "src/lychd/system/operator/__init__.py",
-    "src/lychd/system/operator/models.py",
-    "src/lychd/system/operator/composition.py",
-    "src/lychd/system/operator/control.py",
-    "src/lychd/interface/server.py",
-    "src/lychd/interface/web/altar.py",
-    "src/lychd/interface/web/orb.py",
-    "tests/integration/test_local_bridge_process_restart.py",
-    _NATIVE_TEST,
-    "tests/integration/test_server_process.py",
-    "tests/unit/domain/animation/test_local_bridge_native_tcp.py",
-}
+_NATIVE_SOURCES = NATIVE_SOURCES
 _NATIVE_DEPENDENCIES = (*historical._CORE_DEPENDENCIES, "click", "granian", "python-dotenv")
 
 
@@ -48,14 +31,14 @@ def test_native_tcp_receipt_preserves_its_observed_scope_and_privacy() -> None:
     assert "Creation investigation was omitted." in receipt["identity_boundary"]
     assert "The separate root independent physical-settlement receipt is required" in receipt["identity_boundary"]
     assert receipt["source_identity"] == {
-        "revision_observed": "ebe4f7e72128cf54075efb3fc8d64d218c98c006",
-        "source_base_tree": "454bbce20e3bf9a562b65fe4cb12109f1196a1c5",
-        "candidate_manifest_sha256": "b08e641df251d6f42abad933e60a57a09031324c19c364126e20df5c63d9991e",
-        "source_path_count": 1532,
-        "deleted_path_count": 0,
-        "clean_checkout_observed": False,
         "atomic_transitive_closure_attested": False,
+        "candidate_manifest_sha256": "64b57438bb2f30d325505bbb1d02c820383c1d691e9c2bc634d1fdd4ee1dea29",
+        "clean_checkout_observed": False,
+        "deleted_path_count": 22,
+        "revision_observed": "3e30a84c4340efca94270f1ab429ca6f5c6341a6",
         "scope": "bounded-critical-source-and-test-fingerprints",
+        "source_base_tree": "9f89de06ae91409e727f506058a1fc4bfe14c918",
+        "source_path_count": 1570,
     }
     execution = receipt["execution"]
     assert execution["application"] == "production-source-CLI-two-native-TCP-boots"
@@ -132,8 +115,8 @@ def test_native_tcp_receipt_requires_normal_processes_and_identical_retained_sta
     assert outcome["boots"] == 2
     assert outcome["model_posts_by_boot"] == [1, 0]
     assert outcome["model_posts"] == outcome["model_responses"] == outcome["structured_output_calls"] == 1
-    assert outcome["external_generated_token_delta"] == 151
-    assert outcome["external_prompt_token_delta"] == 516
+    assert outcome["external_generated_token_delta"] == 143
+    assert outcome["external_prompt_token_delta"] == 511
     assert outcome["external_successful_request_delta"] == 1
     assert outcome["settled_turns"] == 2
     assert outcome["run_status"] == "DONE"
@@ -196,11 +179,13 @@ def test_native_tcp_receipt_keeps_model_resource_and_cleanup_limits_explicit() -
     assert database["removed_after_two_observed_absent_native_groups"] is True
     runner = receipt["runner"]
     assert runner["pytest_selected"] == runner["pytest_passed"] == 1
+    assert receipt["timings_seconds"] == {"pytest": 20.39, "coordinator": 22.991247455007397}
     assert runner["outer_timeout_seconds"] == 250
     assert runner["operator_unit_stop_timeout_seconds"] == 5
-    assert runner["coordinator_deadline_seconds"] == 240
-    assert runner["test_wait_seconds"] == 210
-    assert runner["coordinator_cleanup_reserve_seconds"] == 30
+    assert runner["coordinator_deadline_seconds"] == 285
+    assert runner["relay_runtime_seconds"] == 300
+    assert runner["maximum_admitted_model_POST_attempts"] == 1
+    assert runner["profile"] == "local-bridge-native-current-C1-cached-PG-one-POST-relay-owned-resource-launcher"
     assert runner["ryuk_disabled_in_runner_process"] is True
     assert runner["default_make_ryuk_profile"] is False
     assert runner["native_test_removal_guard_exercised"] is True
@@ -238,36 +223,40 @@ def test_native_tcp_receipt_keeps_model_resource_and_cleanup_limits_explicit() -
 def test_native_tcp_receipt_matches_qualified_sources_and_provenance() -> None:
     receipt = json.loads(_RECEIPT.read_text())
     assert set(receipt["source_fingerprints"]) == historical._SOURCES | _NATIVE_SOURCES
+    assert len(receipt["source_fingerprints"]) == 75
     evidence = receipt["qualification_evidence"]
     assert evidence["native_test_sha256_before_trial"] == receipt["source_fingerprints"][_NATIVE_TEST]
+    assert evidence["candidate_manifest_sha256"] == receipt["source_identity"]["candidate_manifest_sha256"]
     assert evidence == {
-        "application_receipt_sha256": "f6b6288102ab14db8af5bccae23499179f208556fa11bd067bc27104af7c312a",
-        "candidate_manifest_sha256": "b08e641df251d6f42abad933e60a57a09031324c19c364126e20df5c63d9991e",
-        "coordinator_receipt_sha256": "4ed83a12932f7b3450c7f310b45c37bf99928ae658e348455750deea430603ca",
-        "coordinator_source_sha256": "ba217b1f8419df81f7e8c15133de78822e87eb42135c6d98673814172b88dc23",
-        "driver_result_receipt_sha256": "1f7233e1d8ddb22bb0022fa943184f7f51d24b768355ddd048d74037c4f80218",
-        "driver_source_sha256": "74c084a7f0265bd3e4648dc437331298392d90e67636939641e85c0b1a5b0b60",
-        "input_binding_sha256": "0378b16af0a38a737bb0e3db2820b30dac8ac0c52b769fabeb3754f12fd14b0f",
-        "model_profile_sha256": "caf5ba25dfea7fe8417f4f7849fd2c789a3df999c3f60d23ce03a25d08015abb",
+        "application_receipt_sha256": "3f564d1639fa1a961528e5d4aaf506e88e8b4e7efb34bf6eaed349f2d9928d21",
+        "candidate_manifest_sha256": "64b57438bb2f30d325505bbb1d02c820383c1d691e9c2bc634d1fdd4ee1dea29",
+        "coordinator_receipt_sha256": "91ef1140949e22fddb1a720828ea99fd08968deadac746aa42647b3486817565",
+        "coordinator_source_sha256": "39161ed25ab36eb9e342b0fd8377cf0ae8c03333d2d81d439a14798fe96756b8",
+        "driver_result_receipt_sha256": "68f83a8997fb50abf00a73a6ac9fbc93dfed9b48ba9e05daa927732752d294a0",
+        "driver_source_sha256": "57fcb708085d133cea915d4cf333136afb1add929a46730efe743be159ce447f",
+        "input_binding_sha256": "b65b730d94a38594f31da75e2791859346717441fa76bc2a62307d0ee66075ba",
+        "model_profile_sha256": "1dce7be8e55ec67a3b72be7dcd360f9d19d37fc49551987f3e7e2d411ed58878",
         "native_test_sha256_before_trial": receipt["source_fingerprints"][_NATIVE_TEST],
-        "outer_receipt_sha256": "a23fecf1186c924fffb37aa62f553ae2087e5ded09ff41d62e7288ff1847b1c0",
-        "pytest_log_sha256": "741bd1d3e9c0a99fd9ffd946043917e48608d7f209309411e8aae87550c5b7d8",
-        "resource_launcher_source_sha256": "292e8a9a90c129ccd7af863f21f243702126ad1f35d175375f8c4c025c3ca7e3",
-        "resource_receipt_sha256": "9d5403b9911b573892745e9d41175ca3b553c1047d83ca9270e19b78d430904a",
-        "root_independent_settlement_sha256": "400d5d26929203952f2ea7727cb9dbfbce142f4633dd3cdb26716bc0f4627173",
-        "sdk_manifest_sha256": "bfe43b2369923a189c9f53a6228ec14940471fecf218e4eefb5d49aba4e9d01f",
-        "source_manifest_sha256": "b73451ca6345d4683d17250c7c29da9b287fe57e35d93f86e3aa0f36af3a4cdd",
-        "source_patch_sha256": "f4ae9a44fb17058a5312581189904cb2574a0cc0e498d11b4f5d4dea04bb1b7b",
+        "one_POST_relay_terminal_sha256": "270a066836073ba577f3671a84eb94eaf3f65959aaac4696e879ee4d117f82e7",
+        "outer_receipt_sha256": "fcf027c11997405a3c88281ab38d5cc8c23da401b6a70f70716d1fe329f0228a",
+        "physical_inventory_sha256": "671c57a6333e2b6830467b3beda90b1f49d60b5b88c898a61f214a2fcfeae8e4",
+        "pytest_log_sha256": "079c148c2705949946354d5174c53ac09d3397d8b73eb3e402eafac6ae79bebc",
+        "resource_launcher_source_sha256": "a547a5e4057e5ec3e09ffe18f741ac8327c3d394d371c06f61ab3f38064b2c65",
+        "resource_receipt_sha256": "049effd951742fde8d8d12e102aeca1b496ff5f4a7a6c30766be692f41eb322c",
+        "root_PG_live_sha256": "4644f583a104ed803e14ce623e788b7b0c6f27ccf1480dc0b3bec58c9cab7d3a",
+        "root_independent_acceptance_sha256": "b16abf4a1e3c0252d9e502e5f189bcc5ed4a9647d6b658c366e20180be244f6c",
+        "root_independent_settlement_sha256": "507f9124f9b48c7bcd5b0e23d8ffb37fcd6bf653bf2b5c21d48088b2cb8ad20b",
+        "sdk_manifest_sha256": "ba5c38a75127bfdd30756da83202dce8518165fd4c3e57aefb5309e31c746370",
+        "source_manifest_sha256": "27c3951856be693f154243403861f576c2830c85cb29cb2267dd8cc5840118ae",
     }
-    assert evidence["coordinator_source_sha256"] == "ba217b1f8419df81f7e8c15133de78822e87eb42135c6d98673814172b88dc23"
+    assert evidence["coordinator_source_sha256"] == "39161ed25ab36eb9e342b0fd8377cf0ae8c03333d2d81d439a14798fe96756b8"
     assert (
         evidence["resource_launcher_source_sha256"]
-        == "292e8a9a90c129ccd7af863f21f243702126ad1f35d175375f8c4c025c3ca7e3"
+        == "a547a5e4057e5ec3e09ffe18f741ac8327c3d394d371c06f61ab3f38064b2c65"
     )
     for digest in evidence.values():
         assert re.fullmatch(r"[0-9a-f]{64}", digest)
-    for path, digest in receipt["source_fingerprints"].items():
-        assert sha256((_ROOT / path).read_bytes()).hexdigest() == digest, path
+    require_current_tcp_coverage(_ROOT, historical._SOURCES, historical._SOURCES | _NATIVE_SOURCES)
 
 
 def test_native_tcp_receipt_matches_selected_dependencies() -> None:

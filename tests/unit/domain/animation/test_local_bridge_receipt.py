@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import json
 import tomllib
-from hashlib import sha256
 from importlib.metadata import version
 from pathlib import Path
+
+from tests.support.local_bridge_receipt_freshness import read_historical_receipt, require_current_tcp_coverage
 
 _ROOT = Path(__file__).resolve().parents[4]
 _RECEIPT = _ROOT / "tests/fixtures/animator/local-bridge-vllm-runtime.json"
@@ -95,7 +95,7 @@ _CORE_DEPENDENCIES = (
 
 
 def test_maintained_local_bridge_receipt_keeps_its_exact_boundary() -> None:
-    receipt = json.loads(_RECEIPT.read_text())
+    receipt = read_historical_receipt(_RECEIPT)
     assert set(receipt) == {
         "schema",
         "record_kind",
@@ -232,7 +232,7 @@ def test_maintained_local_bridge_receipt_keeps_its_exact_boundary() -> None:
 
 
 def test_maintained_local_bridge_receipt_matches_critical_sources() -> None:
-    receipt = json.loads(_RECEIPT.read_text())
+    receipt = read_historical_receipt(_RECEIPT)
     assert set(receipt["source_fingerprints"]) == _SOURCES
     evidence = receipt["qualification_evidence"]
     assert set(evidence) == {
@@ -258,12 +258,11 @@ def test_maintained_local_bridge_receipt_matches_critical_sources() -> None:
     for digest in evidence.values():
         assert len(digest) == 64
         assert set(digest) <= set("0123456789abcdef")
-    for path, digest in receipt["source_fingerprints"].items():
-        assert sha256((_ROOT / path).read_bytes()).hexdigest() == digest, path
+    require_current_tcp_coverage(_ROOT, _SOURCES, _SOURCES)
 
 
 def test_maintained_local_bridge_receipt_matches_selected_dependencies() -> None:
-    receipt = json.loads(_RECEIPT.read_text())
+    receipt = read_historical_receipt(_RECEIPT)
     dependencies = {name: version(name) for name in _CORE_DEPENDENCIES}
     # Core CI need not install the optional container SDK. Its locked versions
     # still belong to this profile; unrelated lockfile edits do not stale it.
