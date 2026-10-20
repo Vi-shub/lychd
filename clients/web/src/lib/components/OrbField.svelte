@@ -4,7 +4,7 @@
   import { getOrbRun } from "$lib/api/client";
   import type { OrbRunPage, OrbRunSnapshot } from "$lib/api/models";
   import { getOrbCatalogue, listenToOrb, orbSnapshotSchema, type OrbConnection } from "$lib/orb/live";
-  import { matchesOrbPattern, mergeOrbEvidence, projectOrbField, type OrbDetailLevel, type OrbFieldLens } from "$lib/graph/orb";
+  import { matchesOrbPattern, mergeOrbEvidence, mergeOrbGaps, projectOrbField, type OrbDetailLevel, type OrbFieldLens } from "$lib/graph/orb";
   import GraphCanvas from "./graph/GraphCanvas.svelte";
   import AnimatorRail from "./AnimatorRail.svelte";
 
@@ -134,7 +134,7 @@
             if (!current()) return;
             updateLens(id, (lens) => {
               const all = mergeOrbEvidence(lens.snapshot.evidence, frame.snapshot.evidence);
-              const gaps = [...new Map([...lens.snapshot.gaps, ...frame.snapshot.gaps].map((gap) => [`${gap.start_seq}:${gap.end_seq}`, gap])).values()].slice(-100);
+              const gaps = mergeOrbGaps(lens.snapshot.gaps, frame.snapshot.gaps).slice(-100);
               return { ...lens, snapshot: { ...frame.snapshot, evidence: all.slice(-100), gaps },
                 pattern: frame.snapshot.workflow && matchesOrbPattern(frame.snapshot, frame.snapshot.workflow) ? frame.snapshot.workflow : null,
                 trimmed: lens.trimmed || all.length > 100 };

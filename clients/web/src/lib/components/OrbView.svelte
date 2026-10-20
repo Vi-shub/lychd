@@ -15,7 +15,7 @@
   import BridgePreferenceSummary from "./BridgePreferenceSummary.svelte";
   import GraphCanvas from "./graph/GraphCanvas.svelte";
   import AnimatorRail from "./AnimatorRail.svelte";
-  import { projectOrb, orbEvidenceNodeId, matchesOrbPattern, mergeOrbEvidence } from "$lib/graph/orb";
+  import { projectOrb, orbEvidenceNodeId, matchesOrbPattern, mergeOrbEvidence, mergeOrbGaps } from "$lib/graph/orb";
   import { listenToOrb, type OrbConnection } from "$lib/orb/live";
   import { bridgeConsentHref, bridgeRunHref, loomOriginHref, scavengerRunHref } from "$lib/navigation/instruments";
 
@@ -63,10 +63,9 @@
   let snapshot = $derived.by((): OrbRunSnapshot | null => {
     if (!history) return null;
     const latest = livePage ?? history;
-    const gaps = new Map([...history.gaps, ...liveGaps].map((gap) => [`${gap.start_seq}:${gap.end_seq}`, gap]));
     return { ...history, ...latest,
       evidence: mergeOrbEvidence(history.evidence, liveRecords, pinnedEvidence ? [pinnedEvidence] : []),
-      gaps: [...gaps.values()],
+      gaps: mergeOrbGaps(history.gaps, liveGaps),
       has_more: history.has_more || (liveDropped > 0 && latest.ledger_head_seq > (history.page_end_seq ?? -1)),
       page_end_seq: history.page_end_seq,
       next_after_seq: history.next_after_seq ?? history.page_end_seq
@@ -259,7 +258,7 @@
       history = {
         ...next,
         evidence: mergeOrbEvidence(current.evidence, next.evidence),
-        gaps: [...new Map([...current.gaps, ...next.gaps].map((gap) => [`${gap.start_seq}:${gap.end_seq}`, gap])).values()]
+        gaps: mergeOrbGaps(current.gaps, next.gaps)
       };
       if (liveVersion === metadataVersion) livePage = next;
     } catch (cause) {
@@ -358,7 +357,7 @@
         const records = mergeOrbEvidence(liveRecords, frame.snapshot.evidence);
         liveDropped += Math.max(0, records.length - 100);
         liveRecords = records.slice(-100);
-        liveGaps = [...new Map([...liveGaps, ...frame.snapshot.gaps].map((gap) => [`${gap.start_seq}:${gap.end_seq}`, gap])).values()].slice(-100);
+        liveGaps = mergeOrbGaps(liveGaps, frame.snapshot.gaps).slice(-100);
         const last = frame.snapshot.evidence.at(-1);
         if (last && following && playbackCursor === null) { focusId = orbEvidenceNodeId(last, pattern); focusRevision++; }
       }

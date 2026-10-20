@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { fixtureRun, pattern } from "$lib/orb/__fixtures__/snapshot";
-import { matchesOrbPattern, mergeOrbEvidence, orbEvidenceNodeId, projectOrb, projectOrbField } from "./orb";
+import { matchesOrbPattern, mergeOrbEvidence, mergeOrbGaps, orbEvidenceNodeId, projectOrb, projectOrbField } from "./orb";
 
 describe("Orb semantic graph", () => {
   it("keeps declared permissions distinct from supplied records, including a return edge", () => {
@@ -45,6 +45,23 @@ describe("Orb semantic graph", () => {
   it("deduplicates replayed immutable identities and keeps supplied sequence order", () => {
     const event = fixtureRun().evidence[0]!;
     expect(mergeOrbEvidence([event], [{ ...event, event_id: "second", seq: 1 }, event]).map((item) => item.event_id)).toEqual([event.event_id, "second"]);
+  });
+
+  it("merges exact gap intervals without sorting or mutating supplied pages", () => {
+    const first = Object.freeze({ start_seq: 8, end_seq: 9, classification: "unknown_or_omitted" as const });
+    const earlier = Object.freeze({ start_seq: 1, end_seq: 2, classification: "unknown_or_omitted" as const });
+    const replacement = Object.freeze({ ...first });
+    const overlapping = Object.freeze({ ...first, end_seq: 10 });
+    const history = Object.freeze([first, earlier]);
+    const next = Object.freeze([replacement, overlapping]);
+
+    const merged = mergeOrbGaps(history, next);
+
+    expect(merged).toEqual([replacement, earlier, overlapping]);
+    expect(merged[0]).toBe(replacement);
+    expect(history).toEqual([first, earlier]);
+    expect(history[0]).toBe(first);
+    expect(next).toEqual([replacement, overlapping]);
   });
 
   it.each(["runs", "stations", "occurrences", "records"] as const)("labels unloaded evidence at %s depth without changing Run identity or status", (level) => {

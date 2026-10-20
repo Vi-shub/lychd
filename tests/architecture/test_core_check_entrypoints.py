@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import os
+import shlex
 import signal
 import subprocess
 import time
 from pathlib import Path
+from typing import Any, cast
 
 import pytest
+import yaml
 
 ROOT = Path(__file__).parents[2]
 WRAPPER = ROOT / "scripts" / "container_checks.sh"
@@ -84,10 +87,23 @@ def test_wrapper_rejects_an_engine_command_or_arbitrary_make_target() -> None:
 
 
 def test_core_ci_uses_both_source_bound_oci_interpreters() -> None:
-    workflow = (ROOT / ".github" / "workflows" / "core-checks.yml").read_text(encoding="utf-8")
-    assert 'python-version: ["3.14.8", "3.15.0"]' in workflow
-    assert "bash scripts/container_checks.sh lint format-check type-check test-ci" in workflow
-    assert "setup-uv" not in workflow
+    path = ROOT / ".github" / "workflows" / "core-checks.yml"
+    workflow = cast("dict[str, Any]", yaml.safe_load(path.read_text(encoding="utf-8")))
+    core: dict[str, Any] = workflow["jobs"]["core"]
+    assert sorted(core["strategy"]["matrix"]["python-version"]) == ["3.14.8", "3.15.0"]
+    assert core["env"]["LYCHD_TEST_PYTHON"] == "${{ matrix.python-version }}"
+    steps: list[dict[str, object]] = core["steps"]
+    commands: list[list[str]] = []
+    for step in steps:
+        action: object = step.get("uses")
+        if action is not None:
+            assert isinstance(action, str)
+            assert "setup-uv" not in action
+        command: object = step.get("run")
+        if command is not None:
+            assert isinstance(command, str)
+            commands.append(shlex.split(command, comments=True))
+    assert ["bash", "scripts/container_checks.sh", "lint", "format-check", "type-check", "test-ci"] in commands
     containerfile = (ROOT / "Containerfile.tests").read_text(encoding="utf-8")
     assert "python:${PYTHON_VERSION}-slim-trixie" in containerfile
     assert "uv:0.13.0" in containerfile

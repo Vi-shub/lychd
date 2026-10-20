@@ -1,4 +1,4 @@
-"""Preserve the exact trusted OCI observation and its current source boundary."""
+"""Seal dated OCI observations and bind the latest production recheck to its inputs."""
 
 from __future__ import annotations
 
@@ -7,17 +7,40 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Any, cast
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[2]
 RECEIPT = ROOT / "tests/fixtures/runtime/container-only-2026-10-20.json"
 RECEIPT_SHA256 = "487fd1dbc3764050e8d6eb2476f17e163f401967718a6788db36137be37a7b28"
+CURRENT_RECEIPT = ROOT / "tests/fixtures/runtime/container-recheck-2026-10-21.json"
+CURRENT_RECEIPT_SHA256 = "97832fa27168e3e6b03069346ffa7ae0699df8b21e8c9c01ace03abd3fb5f32c"
 
 
-def test_exact_container_observation_and_current_inputs() -> None:
+def test_exact_container_observation_and_unchanged_ward_inputs() -> None:
     raw = RECEIPT.read_bytes()
     assert sha256(raw).hexdigest() == RECEIPT_SHA256
     receipt = cast("dict[str, Any]", json.loads(raw))
     assert receipt["schema"] == "lychd.container-only-qualification.v1"
     assert receipt["observed_on"] == "2026-10-20"
+    build = receipt["production_inputs"]
+    assert build["count"] == 553
+    assert build["sha256"] == "b03f0df6e78572391227d34b46e69d8d0922bc3134d33504b332ccd5b1cabe5b"
+    assert build["clean_checkout_attested"] is False
+    assert build["atomic_transitive_closure_attested"] is False
+    for name, expected in receipt["ward_candidate"]["source_fingerprints"].items():
+        assert sha256((ROOT / name).read_bytes()).hexdigest() == expected, name
+
+
+def test_current_container_production_inputs() -> None:
+    raw = CURRENT_RECEIPT.read_bytes()
+    assert sha256(raw).hexdigest() == CURRENT_RECEIPT_SHA256
+    receipt = cast("dict[str, Any]", json.loads(raw))
+    assert receipt["schema"] == "lychd.container-production-recheck.v1"
+    assert receipt["observed_on"] == "2026-10-21"
+    assert receipt["predecessor_receipt"] == {
+        "path": str(RECEIPT.relative_to(ROOT)),
+        "sha256": RECEIPT_SHA256,
+    }
     build = receipt["production_inputs"]
     paths = {ROOT / path for path in build["roots"]}
     paths.update(
@@ -26,16 +49,15 @@ def test_exact_container_observation_and_current_inputs() -> None:
         if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc"
     )
     manifest = {str(path.relative_to(ROOT)): sha256(path.read_bytes()).hexdigest() for path in paths}
-    assert len(manifest) == build["count"] == 553
+    assert len(manifest) == build["count"]
     assert sha256(json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode()).hexdigest() == build["sha256"]
     assert build["clean_checkout_attested"] is False
     assert build["atomic_transitive_closure_attested"] is False
-    for name, expected in receipt["ward_candidate"]["source_fingerprints"].items():
-        assert sha256((ROOT / name).read_bytes()).hexdigest() == expected, name
 
 
-def test_container_observation_keeps_runtime_and_effect_limits() -> None:
-    receipt = cast("dict[str, Any]", json.loads(RECEIPT.read_bytes()))
+@pytest.mark.parametrize("receipt_path", [RECEIPT, CURRENT_RECEIPT])
+def test_container_observation_keeps_runtime_and_effect_limits(receipt_path: Path) -> None:
+    receipt = cast("dict[str, Any]", json.loads(receipt_path.read_bytes()))
     production = receipt["production"]
     assert production["command"] == ["python", "-m", "lychd.interface.server", "--caged"]
     assert production["runtime_uid"] == 1001
@@ -64,6 +86,13 @@ def test_container_observation_keeps_runtime_and_effect_limits() -> None:
         assert boot["exit_code"] == 0
         assert boot["oom_killed"] is False
     assert production["all_owned_containers_volumes_network_absent"] is True
+    assert set(receipt["effects"].values()) == {0}
+    assert len(receipt["unproved"]) == 6
+    assert "Public CLI active container start/stop completion" in receipt["unproved"]
+
+
+def test_container_ward_observation_keeps_its_dated_limits() -> None:
+    receipt = cast("dict[str, Any]", json.loads(RECEIPT.read_bytes()))
     ward = receipt["ward_candidate"]
     assert (ward["passed"], ward["failed"], ward["skipped"], ward["pytest_exit_code"]) == (23, 0, 0, 0)
     assert len(set(ward["test_nodes"])) == 23
@@ -82,6 +111,3 @@ def test_container_observation_keeps_runtime_and_effect_limits() -> None:
         "parent_removed",
     ):
         assert ward[key] is True
-    assert set(receipt["effects"].values()) == {0}
-    assert len(receipt["unproved"]) == 6
-    assert "Public CLI active container start/stop completion" in receipt["unproved"]

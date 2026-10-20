@@ -3,6 +3,7 @@ import type { GraphNode, GraphProjection } from "./model";
 import { animatorAccent, evidenceAt } from "$lib/orb/playback";
 
 type Evidence = OrbRunSnapshot["evidence"][number];
+type Gap = OrbRunSnapshot["gaps"][number];
 
 /** Only explicit node subjects can annotate an exact declared station. */
 export function orbEvidenceNodeId(record: Evidence, pattern: LoomView | null): string {
@@ -76,6 +77,13 @@ export function mergeOrbEvidence(...pages: readonly Evidence[][]): Evidence[] {
   const byId = new Map<string, Evidence>();
   for (const page of pages) for (const record of page) byId.set(record.event_id, record);
   return [...byId.values()].sort((a, b) => a.seq - b.seq);
+}
+
+/** Supplied intervals keep first-seen order and the latest value for each interval. */
+export function mergeOrbGaps(...pages: readonly (readonly Gap[])[]): Gap[] {
+  const byInterval = new Map<string, Gap>();
+  for (const page of pages) for (const gap of page) byInterval.set(`${gap.start_seq}:${gap.end_seq}`, gap);
+  return [...byInterval.values()];
 }
 
 export type OrbDetailLevel = "runs" | "stations" | "occurrences" | "records";

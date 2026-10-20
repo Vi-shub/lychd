@@ -6,6 +6,7 @@
   import { onDestroy, tick } from "svelte";
   import { MediaQuery } from "svelte/reactivity";
   import { loomProjection } from "$lib/graph/loom";
+  import { matchesOrbPattern } from "$lib/graph/orb";
 
   import { getLoomCatalogue, getLoomPatternRevision, getOrbRun } from "$lib/api/client";
   import type {
@@ -141,12 +142,10 @@
       view = next;
       selectedKey = next.nodes.find((node) => node.key === next.entry_node)?.key ?? next.nodes[0]?.key ?? null;
       const originMatches =
-        origin?.run.run_id === requestedRun &&
-        origin?.pattern.exact === true &&
+        origin !== null &&
+        origin.run.run_id === requestedRun &&
         origin.pattern.loom_path !== null &&
-        origin.pattern.pattern_id === next.pattern_id &&
-        origin.pattern.revision === next.revision &&
-        origin.pattern.digest === next.digest;
+        matchesOrbPattern(origin, next);
       sourceRun = originMatches ? origin : null;
       if (requestedRun && !originMatches) {
         sourceContextError = "Run context unavailable — this Run could not be verified against the displayed Pattern revision.";

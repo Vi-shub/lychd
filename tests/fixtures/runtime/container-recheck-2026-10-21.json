@@ -1,0 +1,112 @@
+{
+  "schema": "lychd.container-production-recheck.v1",
+  "observed_on": "2026-10-21",
+  "observation_timezone": "Europe/Bratislava",
+  "observed_at_utc": "2026-10-20T22:16:22.854827373Z",
+  "base_revision": "fba27f2dbdfde246abe433dfa0d03124360b4a8a",
+  "profile": "Trusted operator-owned OCI production recheck after Altar reuse and test-value repairs; no hostile containment attestation",
+  "predecessor_receipt": {
+    "path": "tests/fixtures/runtime/container-only-2026-10-20.json",
+    "sha256": "487fd1dbc3764050e8d6eb2476f17e163f401967718a6788db36137be37a7b28"
+  },
+  "production_inputs": {
+    "scope": "Nine named build roots and all regular src files, excluding Python caches",
+    "roots": [
+      ".containerignore",
+      "Containerfile",
+      "LICENSE",
+      "README.md",
+      "THIRD_PARTY_NOTICES.md",
+      "pyproject.toml",
+      "uv.lock",
+      "clients/web/static/THIRD_PARTY_NOTICES.txt",
+      "scripts/generate_python_third_party_notices.py"
+    ],
+    "count": 553,
+    "sha256": "99b79af19ab0250deba4a18af81bb6de65197a044f47e5856bc98e1129768e44",
+    "clean_checkout_attested": false,
+    "atomic_transitive_closure_attested": false
+  },
+  "production": {
+    "image": "sha256:0c0cffbfb99494cded9588a85122ae24748450ddab4bb76f9576661af2f1390d",
+    "python": "3.14.8",
+    "command": [
+      "python",
+      "-m",
+      "lychd.interface.server",
+      "--caged"
+    ],
+    "database_bootstrap_exit_code": 0,
+    "alembic_head": "0020",
+    "bootstrap_driver": "plain psycopg with system libpq",
+    "runtime_uid": 1001,
+    "read_only_rootfs": true,
+    "cap_drop": [
+      "ALL"
+    ],
+    "no_new_privileges": true,
+    "kernel": {
+      "memory.max": "2147483648",
+      "memory.swap.max": "0",
+      "cpu.max": "200000 100000",
+      "pids.max": "256"
+    },
+    "boots": [
+      {
+        "authenticated_status": 200,
+        "http": {
+          "schema": 200,
+          "no_auth": 401,
+          "wrong_auth": 401,
+          "foreign_host": 400,
+          "foreign_origin": 403,
+          "missing_csrf": 403
+        },
+        "exit_code": 0,
+        "oom_killed": false
+      },
+      {
+        "authenticated_status": 200,
+        "http": {
+          "schema": 200,
+          "no_auth": 401,
+          "wrong_auth": 401,
+          "foreign_host": 400,
+          "foreign_origin": 403,
+          "missing_csrf": 403
+        },
+        "exit_code": 0,
+        "oom_killed": false
+      }
+    ],
+    "fixture": "Fresh task bridge, literal 127.0.0.1 publication, synthetic mounted credentials, empty owned Reactor directories; fixture ownership initializer UID0 touches only the fresh named volume; Core stays UID1001",
+    "all_owned_containers_volumes_network_absent": true,
+    "runtime_user": "lich",
+    "runtime_uid_source": "Actual image USER lich; source-bound Containerfile creates lich with UID/GID 1001"
+  },
+  "effects": {
+    "model_calls": 0,
+    "image_pulls_during_runtime": 0,
+    "operator_credential_reads": 0,
+    "warm_service_mutations": 0,
+    "retained_data_mutations": 0
+  },
+  "private_evidence_sha256": {
+    "run-production-image-build-02.py": "4b59496871c9487d1b7e7a77a15b1b1a4a27c5a1f60495aa36e453a95b649fd3",
+    "production-image-build-02/admission.json": "de1e47d9af4a6c9d79af04144c0d0cb55294a2873836cfb921d3da2fb79b4080",
+    "production-image-build-02/terminal.json": "b4a2bf7739482a60cebb8b1744a49a2a3c5a7141847f09d4dbdf92fb120b9753",
+    "production-boot-02.py": "5e4c7df1e3ddb3927cbeb72492cfcd7eee0087648f1985a2110b354641f9671d",
+    "production-boot-02/admission.json": "358489a703e6410859fb6f4b7bab342be13142b2c4c5bae7ca5315e617b77d5b",
+    "production-boot-02/terminal.json": "cc0608a8620447c2581126ef0f835f88b1a562b0f9291f1469c1a60c25300c34",
+    "production-boot-02/migration.log": "9ba8ec6fb700f10981e47f76b8d6a2bff5bf5592195d4ca31ecaab940a71c9c3",
+    "production-boot-02/core.log": "6eed2dc3c3b76332c2566fc379018003b880ea6e55de3243fecbe8e93d691c7e"
+  },
+  "unproved": [
+    "Public CLI active container start/stop completion",
+    "Full generated rootless body and managed-model lifecycle",
+    "Real Host Reactor transitions",
+    "Useful model workload or browser acceptance under this image",
+    "Foreign-constructor hostile containment and enrolled peer roundtrip",
+    "Crash recovery, exactly-once effects and shared filesystem/database atomicity"
+  ]
+}

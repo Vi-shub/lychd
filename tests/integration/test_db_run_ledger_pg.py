@@ -1514,19 +1514,38 @@ async def test_reconcile_orphaned_running_lands_terminal_step(
 
 @pytest.mark.asyncio
 async def test_append_event_persists_seq_verbatim(pg_factory: async_sessionmaker[AsyncSession]) -> None:
-    """Seq fidelity: Step.seq equals the RunEvent.seq (no insert-time allocation)."""
+    """Retain exact sequences and event fields through paged and kind-filtered reads."""
     from sqlalchemy import select
 
     ledger = DbRunLedger(session_factory=pg_factory)
     run_id = await _seed(ledger)
-    for seq, kind in ((4, RunEventKind.STATUS), (9, RunEventKind.NODE), (20, RunEventKind.DONE)):
-        await ledger.append_event(RunEvent(run_id=run_id, seq=seq, kind=kind, data="x"))
+    occurred_at = datetime(2026, 1, 1, tzinfo=UTC)
+    events = [
+        RunEvent(
+            run_id=run_id,
+            seq=seq,
+            kind=kind,
+            data=f"retained {kind.value}",
+            meta={"source": f"event-{seq}"},
+            ts=occurred_at + timedelta(seconds=seq),
+        )
+        for seq, kind in ((4, RunEventKind.STATUS), (9, RunEventKind.NODE), (20, RunEventKind.DONE))
+    ]
+    for event in events:
+        await ledger.append_event(event)
 
     async with pg_factory() as session:
         from uuid import UUID
 
         rows = (await session.execute(select(Step.seq).where(Step.run_id == UUID(run_id)).order_by(Step.seq))).scalars()
         assert list(rows) == [4, 9, 20]
+
+    assert await ledger.list_events(run_id) == events
+    assert await ledger.list_events(run_id, after_seq=4, limit=1) == events[1:2]
+    assert await ledger.list_events(run_id, after_seq=20) == []
+    for event in events:
+        assert await ledger.latest_event(run_id, event.kind) == event
+    assert await ledger.latest_event(run_id, RunEventKind.LOG) is None
 
 
 @pytest.mark.asyncio
