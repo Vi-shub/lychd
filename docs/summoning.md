@@ -323,29 +323,12 @@ an absolute host path outside Codex, Crypt, systemd-unit, and Reactor control ro
 external secret only under its exact reported name. Edit the Rune or settings that produced the
 generated units; LychD will regenerate the files from those declarations.
 
-### Explicit native-only binding candidate
+### Retired host-native bindings
 
-For a separately prepared installation with existing runtime Podman secrets, the opt-in profile
-previews one native Vessel while retaining PostgreSQL and the image-owned migration gate:
-
-```bash
-LYCHD_RUNTIME_SECRETS=podman-core@1 lychd bind --native-only --dry-run
-LYCHD_RUNTIME_SECRETS=podman-core@1 lychd bind --native-only
-```
-
-Use the installed executable from the recorded environment, with a migration image from the same
-source and lock. The three runtime secret references must already resolve through the
-[explicit native source](adr/12-configuration.md#explicit-native-core-credential-source).
-Unavailable credentials refuse; do not supply bootstrap or Phoenix passwords to this native
-process. The image-owned PostgreSQL/migration units retain their separate administrative secrets.
-Portal or Soulstone control credentials needing Podman mounts are refused by this profile.
-
-The desired set contains `lychd-uncaged-vessel.service`, no `lychd-vessel.container`, and no Pod
-publication of the application port. It preserves the database publication and declared services.
-`--uncaged` retains its separate additive dual behavior and cannot be combined with `--native-only`.
-An existing caged or mixed generation refuses; these commands provide no conversion procedure.
-Bind only inscribes and reloads. Installed startup, useful work, restart and complete shutdown
-still require their own host qualification; this candidate does not establish those outcomes.
+Core binds one managed container Vessel. The former `--native-only` and `--uncaged` options
+refuse before host inspection or effects. Existing native bindings remain preserved and block
+mutation; removal of support grants no conversion, stop or deletion authority. Reconcile such
+an installation separately under its actual ownership.
 
 ## The Awakening — draw the Circle and make the First Invocation {#the-awakening}
 
@@ -455,31 +438,14 @@ activation path and obscure the failure you are trying to observe.
 
 ## Close the rite
 
-For an exact Scribe-owned uncaged native Vessel using the current owned launcher, use:
+Current active container lifecycle completion remains unavailable. `lychd stop` refuses an
+active Vessel until its authenticated container admission and exact settlement are implemented
+and qualified. Historical native signed-stop receipts do not establish this contract.
 
-```bash
-lychd stop
-```
-
-The host authenticates installation intent, verifies the same user manager on both control
-connections, and retains native exit evidence until clean closure permits dependent stop.
-Keep a valid private `XDG_RUNTIME_DIR` and a running user bus. On shutdown failure or uncertain
-evidence it preserves dependencies and reports the stage reached; inspect status and logs before
-reconciling. Do not blindly repeat an uncertain stop.
-
-Active caged or mixed ownership still refuses. The real native manager regression uses an inert
-application and synthetic dependencies; it does not qualify an installed graph or older image.
-[State of Work](state-of-the-work.md#core-cli-rites) owns that evidence boundary. For the caged
-acceptance procedure above, the explicit host fallback remains:
-
-```bash
-systemctl --user stop \
-  lychd-atelier.service \
-  lychd-vessel.service \
-  lychd-phylactery.service \
-  lychd-reactor.path \
-  lychd-pod.service
-```
+There is no automatic direct-manager fallback. Any separately authorized operator reconciliation
+must retain exact unit/container ownership, close admission, classify terminal state and preserve
+dependencies when the outcome is unknown. [State of Work](state-of-the-work.md#core-cli-rites)
+owns the qualification boundary; the rite above does not certify production lifecycle.
 
 Stopping leaves configuration and history in place. You can inspect the destructive plan without
 applying it:

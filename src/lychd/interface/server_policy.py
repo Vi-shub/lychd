@@ -82,34 +82,7 @@ _LONG_RELOAD_VALUE_OPTIONS = (
 )
 _SHORT_RELOAD_VALUE_OPTIONS = ("-R", "-I", "-E")
 _PORT_OPTIONS = frozenset({"-p", "--port"})
-_HOST_OPTIONS = frozenset({"-H", "--host"})
-_ALTERNATE_LISTENER_OPTIONS = frozenset(
-    {
-        "-F",
-        "--fd",
-        "--file-descriptor",
-        "-U",
-        "--uds",
-        "--unix-domain-socket",
-    }
-)
-_LONG_ALTERNATE_LISTENER_OPTIONS = (
-    "--fd",
-    "--file-descriptor",
-    "--uds",
-    "--unix-domain-socket",
-)
-_SHORT_ALTERNATE_LISTENER_OPTIONS = ("-F", "-U")
-_NATIVE_SHORT_FLAGS = frozenset({"-d", "-P", "-r"})
-_NATIVE_SHORT_VALUE_OPTIONS = frozenset(
-    {"-H", "-p", "-W", *_SHORT_RELOAD_VALUE_OPTIONS, *_SHORT_ALTERNATE_LISTENER_OPTIONS}
-)
-_LOOPBACK_LISTENER_HOSTS = frozenset({"127.0.0.1", "::1"})
-_DEFAULT_NATIVE_LISTENER_HOST = "127.0.0.1"
 _MAX_TCP_PORT = 65535
-_NATIVE_DEBUG_OPTIONS = frozenset({"-d", "--debug"})
-_NATIVE_PDB_OPTIONS = frozenset({"-P", "--pdb", "--use-pdb"})
-_NATIVE_VALUE_OPTIONS = _WORKER_OPTIONS | _PORT_OPTIONS | _HOST_OPTIONS | {"--metrics-address"}
 
 
 class ServerRuntimePolicyError(ValueError):
@@ -121,147 +94,28 @@ class ServerRuntimePolicy:
     """Validated server facts needed by application assembly."""
 
     listener_port: int | None
-    listener_host: str | None
-    debug: bool = False
-    pdb: bool = False
-
-
-@dataclass(frozen=True, slots=True)
-class _NativeServerArguments:
-    listener_port: int | None = None
-    listener_host: str | None = None
-    debug: bool = False
-    pdb: bool = False
-    metrics_enabled: bool | None = None
 
 
 def evaluate_server_runtime_policy(
     *,
     environment: Mapping[str, str],
     default_listener_port: int | None = None,
-    server_arguments: Sequence[str] | None = None,
     argv: Sequence[str] = (),
     original_argv: Sequence[str] = (),
 ) -> ServerRuntimePolicy:
-    """Validate process and native listener policy, resolving listener authority.
+    """Validate shared single-process controls and resolve the observed port.
 
-    ``server_arguments`` is the explicit server tail used by ``lychd serve``.
-    When omitted, process arguments are admitted only for a detected Litestar or
-    Granian entrypoint, keeping unrelated Python arguments inert. Listener-port
-    precedence is explicit arguments, ``LITESTAR_PORT``, ``GRANIAN_PORT``, then
-    ``default_listener_port``.
+    Detectable direct framework launch arguments remain subject to worker and
+    reload refusal. Managed entrypoints own their fixed internal listeners.
     """
-    arguments = (
-        tuple(server_arguments)
-        if server_arguments is not None
-        else _detected_server_arguments(argv=argv, original_argv=original_argv)
-    )
-    native_serve = server_arguments is not None
-    native = _parse_native_arguments(arguments) if native_serve else _NativeServerArguments()
-    _validate_environment(environment, metrics_enabled=native.metrics_enabled)
-    if native_serve:
-        listener_port, listener_host = native.listener_port, native.listener_host
-    else:
-        listener_port, listener_host = _validate_detected_arguments(arguments), None
+    arguments = _detected_server_arguments(argv=argv, original_argv=original_argv)
+    _validate_environment(environment)
+    listener_port = _validate_detected_arguments(arguments)
     if listener_port is None:
         listener_port = _environment_port(environment)
     if listener_port is None and default_listener_port is not None:
         listener_port = _parse_port(str(default_listener_port), source="settings.server.port")
-    if server_arguments is not None:
-        environment_host = _native_environment_host(environment)
-        listener_host = listener_host or environment_host or _DEFAULT_NATIVE_LISTENER_HOST
-    return ServerRuntimePolicy(
-        listener_port=listener_port,
-        listener_host=listener_host,
-        debug=native.debug or _environment_boolean(environment, "LITESTAR_DEBUG"),
-        pdb=native.pdb or _environment_boolean(environment, "LITESTAR_PDB"),
-    )
-
-
-def _parse_native_arguments(arguments: Sequence[str]) -> _NativeServerArguments:
-    """Parse the complete owned grammar without application or framework imports."""
-    tokens = _expand_native_short_arguments(arguments)
-    listener_port: int | None = None
-    listener_host: str | None = None
-    debug = pdb = False
-    metrics_enabled: bool | None = None
-    index = 0
-    while index < len(tokens):
-        option, separator, value = _split_native_option(tokens[index])
-        if option in _NATIVE_VALUE_OPTIONS:
-            if not separator:
-                index += 1
-                value = tokens[index] if index < len(tokens) else ""
-            _validate_native_value(option, value)
-            if option in _PORT_OPTIONS:
-                listener_port = _parse_port(value, source=option)
-            elif option in _HOST_OPTIONS:
-                listener_host = _parse_native_host(value, source=option)
-        elif option in _NATIVE_DEBUG_OPTIONS and not separator:
-            debug = True
-        elif option in _NATIVE_PDB_OPTIONS and not separator:
-            pdb = True
-        elif option in {"--metrics", "--no-metrics"} and not separator:
-            metrics_enabled = option == "--metrics"
-        elif option.startswith("-"):
-            message = f"LychD native serve does not support option {option}."
-            raise ServerRuntimePolicyError(message)
-        else:
-            message = "LychD native serve does not accept extra arguments."
-            raise ServerRuntimePolicyError(message)
-        index += 1
-    return _NativeServerArguments(listener_port, listener_host, debug, pdb, metrics_enabled)
-
-
-def _split_native_option(argument: str) -> tuple[str, str, str]:
-    option, separator, value = argument.partition("=")
-    if _is_reload_argument(argument):
-        message = "LychD v1 does not support Litestar reload mode; the run event plane is process-local."
-        raise ServerRuntimePolicyError(message)
-    if _is_alternate_listener_argument(argument):
-        option_name = option if option.startswith("--") else option[:2]
-        message = f"LychD native serve does not support {option_name}; use its loopback TCP listener."
-        raise ServerRuntimePolicyError(message)
-    if not option.startswith("--") and option[:2] in _NATIVE_SHORT_VALUE_OPTIONS:
-        option, value = option[:2], argument[2:].removeprefix("=")
-        separator = "=" if len(argument) > len(option) else ""
-    return option, separator, value
-
-
-def _validate_native_value(option: str, value: str) -> None:
-    if not value or value.startswith("-"):
-        message = f"LychD native serve requires a value for {option}; option-looking values are not accepted."
-        raise ServerRuntimePolicyError(message)
-    if option in _WORKER_OPTIONS and not _is_one_worker(value):
-        message = "LychD v1 requires exactly one ASGI worker; cross-process RunEventBus is not implemented."
-        raise ServerRuntimePolicyError(message)
-
-
-def _expand_native_short_arguments(arguments: Sequence[str]) -> tuple[str, ...]:
-    """Expand the supported native short grammar before checking authority.
-
-    Click permits flag clusters such as ``-dH::1``. Only known flags can precede
-    a value option; its remaining suffix belongs to that value. Unknown short
-    options fail closed so a new server flag cannot silently hide authority.
-    The same owned parser handles long options and consumes every token.
-    """
-    expanded: list[str] = []
-    for argument in arguments:
-        if not argument.startswith("-") or argument.startswith("--") or argument == "-":
-            expanded.append(argument)
-            continue
-        remaining = argument[1:]
-        while remaining:
-            option = f"-{remaining[0]}"
-            remaining = remaining[1:]
-            if option in _NATIVE_SHORT_VALUE_OPTIONS:
-                expanded.append(f"{option}{remaining}")
-                break
-            if option not in _NATIVE_SHORT_FLAGS:
-                message = f"LychD native serve does not support short option {option}; use an explicit long option."
-                raise ServerRuntimePolicyError(message)
-            expanded.append(option)
-    return tuple(expanded)
+    return ServerRuntimePolicy(listener_port=listener_port)
 
 
 def _detected_server_arguments(
@@ -283,18 +137,16 @@ def validate_server_environment(environment: Mapping[str, str]) -> None:
     _validate_environment(environment)
 
 
-def _validate_environment(environment: Mapping[str, str], *, metrics_enabled: bool | None = None) -> None:
+def _validate_environment(environment: Mapping[str, str]) -> None:
     for variable in _WORKER_ENVIRONMENT_KEYS:
         value = environment.get(variable)
         if value is not None and value != "" and not _is_one_worker(value):
             message = f"LychD v1 requires {variable}=1; the run event plane is process-local."
             raise ServerRuntimePolicyError(message)
 
-    _validate_native_listener_environment(environment)
-    if metrics_enabled is None:
-        metrics_enabled = _environment_boolean(environment, "GRANIAN_METRICS_ENABLED")
-    if metrics_enabled:
-        message = "LychD native serve does not support the Granian metrics listener; use its loopback TCP listener."
+    _validate_listener_environment(environment)
+    if _environment_boolean(environment, "GRANIAN_METRICS_ENABLED"):
+        message = "LychD does not support a separate Granian metrics listener."
         raise ServerRuntimePolicyError(message)
     _validate_owned_environment_controls(environment)
 
@@ -372,16 +224,6 @@ def _port_value(arguments: Sequence[str], index: int) -> str | None:
     return None
 
 
-def _is_alternate_listener_argument(argument: str) -> bool:
-    return (
-        argument in _ALTERNATE_LISTENER_OPTIONS
-        or any(argument.startswith(f"{option}=") for option in _LONG_ALTERNATE_LISTENER_OPTIONS)
-        or any(
-            argument.startswith(option) and len(argument) > len(option) for option in _SHORT_ALTERNATE_LISTENER_OPTIONS
-        )
-    )
-
-
 def _environment_port(environment: Mapping[str, str]) -> int | None:
     for variable in _LISTENER_PORT_ENVIRONMENT_KEYS:
         value = environment.get(variable)
@@ -390,21 +232,10 @@ def _environment_port(environment: Mapping[str, str]) -> int | None:
     return None
 
 
-def _native_environment_host(environment: Mapping[str, str]) -> str | None:
-    listener_host: str | None = None
-    for variable in _LISTENER_HOST_ENVIRONMENT_KEYS:
-        value = environment.get(variable)
-        if value is not None and value != "":
-            validated = _parse_native_host(value, source=variable)
-            if listener_host is None:
-                listener_host = validated
-    return listener_host
-
-
-def _validate_native_listener_environment(environment: Mapping[str, str]) -> None:
+def _validate_listener_environment(environment: Mapping[str, str]) -> None:
     for variable in _ALTERNATE_LISTENER_ENVIRONMENT_KEYS:
         if environment.get(variable) not in {None, ""}:
-            message = f"LychD native serve does not support {variable}; use its loopback TCP listener."
+            message = f"LychD does not support {variable}; use the image's fixed TCP listener."
             raise ServerRuntimePolicyError(message)
 
 
@@ -416,13 +247,6 @@ def _environment_boolean(environment: Mapping[str, str], variable: str) -> bool:
         return True
     message = f"LychD requires {variable} to name a valid boolean."
     raise ServerRuntimePolicyError(message)
-
-
-def _parse_native_host(value: str, *, source: str) -> str:
-    if value not in _LOOPBACK_LISTENER_HOSTS:
-        message = f"LychD native serve requires {source} to be 127.0.0.1 or ::1."
-        raise ServerRuntimePolicyError(message)
-    return value
 
 
 def _parse_port(value: str, *, source: str) -> int:

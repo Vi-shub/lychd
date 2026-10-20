@@ -24,7 +24,7 @@ outside this adapter's admitted contract.
 
 Authentication is mandatory even inside the unpublished private pod. The two distinct API and
 admin keys remain Podman-secret material and are never placed in browser code or ordinary Rune
-fields. `bind --uncaged` rejects this Soulstone.
+fields. Core binds only the managed container Vessel; the former `bind --uncaged` option is retired.
 
 `POST /v1/model/load` reports stages over server-sent events. LychD consumes the complete stream
 and verifies the active model with `GET /v1/model`; a disconnected client alone is not proof that a

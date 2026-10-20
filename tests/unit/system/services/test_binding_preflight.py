@@ -168,8 +168,8 @@ def test_caged_preflight_accepts_private_roots_without_existing_unit_files(
     report = BindingPreflightService(
         codex_path=codex,
         legacy_vessel_unit_path=tmp_path / "systemd" / "lychd-vessel.service",
-        host_readiness=_host_ready(),
-    ).inspect(settings, uncaged=False)
+        host_readiness=_host_ready(root=tmp_path),
+    ).inspect(settings)
 
     assert report.ready is True
     assert report.issues == ()
@@ -190,14 +190,14 @@ def test_preflight_rejects_legacy_vessel_unit_and_rechecks_it(
     service = BindingPreflightService(
         codex_path=codex,
         legacy_vessel_unit_path=legacy,
-        host_readiness=_host_ready(),
+        host_readiness=_host_ready(root=tmp_path),
     )
 
-    assert service.inspect(settings, uncaged=False).ready is True
+    assert service.inspect(settings).ready is True
 
     legacy.parent.mkdir()
     legacy.symlink_to(tmp_path / "missing-static-unit")
-    report = service.inspect(settings, uncaged=False)
+    report = service.inspect(settings)
 
     assert [(issue.code, issue.target) for issue in report.issues] == [
         ("legacy-vessel-unit", str(legacy)),
@@ -218,7 +218,7 @@ def test_caged_preflight_returns_every_structured_host_issue(tmp_path: Path) -> 
         codex_path=codex,
         current_uid=os.getuid() + 1,
         host_readiness=_host_blocked(),
-    ).inspect(settings, uncaged=False)
+    ).inspect(settings)
 
     assert {issue.code for issue in report.issues} == {
         "codex-mode",
@@ -247,8 +247,8 @@ def test_caged_preflight_rejects_symlinked_reactor_boundary(tmp_path: Path) -> N
 
     report = BindingPreflightService(
         codex_path=codex,
-        host_readiness=_host_ready(),
-    ).inspect(settings, uncaged=False)
+        host_readiness=_host_ready(root=tmp_path),
+    ).inspect(settings)
 
     assert [(issue.code, issue.target) for issue in report.issues] == [
         ("reactor-shape", str(inbox)),
@@ -266,8 +266,8 @@ def test_preflight_rejects_symlinked_codex_parent(tmp_path: Path) -> None:
 
     report = BindingPreflightService(
         codex_path=alias / "lychd.toml",
-        host_readiness=_host_ready(),
-    ).inspect(settings, uncaged=True)
+        host_readiness=_host_ready(root=tmp_path),
+    ).inspect(settings)
 
     issue = next(issue for issue in report.issues if issue.code == "codex-shape")
     assert issue.target == str(alias / "lychd.toml")
@@ -289,8 +289,8 @@ def test_preflight_rejects_symlinked_reactor_parent(tmp_path: Path) -> None:
 
     report = BindingPreflightService(
         codex_path=codex,
-        host_readiness=_host_ready(),
-    ).inspect(settings, uncaged=False)
+        host_readiness=_host_ready(root=tmp_path),
+    ).inspect(settings)
 
     assert [(issue.code, issue.target) for issue in report.issues if issue.code == "reactor-shape"] == [
         ("reactor-shape", str(alias / "inbox")),
@@ -298,265 +298,179 @@ def test_preflight_rejects_symlinked_reactor_parent(tmp_path: Path) -> None:
     ]
 
 
-def test_uncaged_preflight_checks_loaded_credentials_and_aggregates_failures(
+def test_preflight_does_not_require_or_recapture_runtime_credentials(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Container credentials remain mounted at runtime, outside bind preflight."""
+    from unittest.mock import Mock
+
+    codex = tmp_path / "lychd.toml"
+    _private_file(codex)
+    settings = Settings.model_construct()
+    _private_reactor(settings, tmp_path)
+    store = Mock(side_effect=AssertionError("preflight attempted a credential read"))
+    monkeypatch.setattr("lychd.system.services.secrets.PodmanSecretStore", store)
+    service = BindingPreflightService(
+        codex_path=codex,
+        legacy_vessel_unit_path=tmp_path / "legacy.service",
+        host_readiness=_host_ready(root=tmp_path),
+    )
+    assert service.inspect(settings).ready
+    assert service.inspect(settings).ready
+    store.assert_not_called()
+    assert settings.server.database.runtime_password is None
+    assert settings.server.web.secret_key is None
+    assert settings.server.web.access_password is None
+
+
+@pytest.mark.parametrize("source", ["plain", "quadlet", "dangling"])
+def test_preflight_refuses_retired_vessel_sources_and_rechecks_without_mutation(
+    tmp_path: Path,
+    source: str,
 ) -> None:
     codex = tmp_path / "lychd.toml"
     _private_file(codex)
     settings = Settings.model_construct()
-
-    report = BindingPreflightService(
+    _private_reactor(settings, tmp_path)
+    readiness = _host_ready(root=tmp_path)
+    foundation = readiness.inspection.require_ready_for_bind()
+    service = BindingPreflightService(
         codex_path=codex,
-        host_readiness=_host_ready(),
-    ).inspect(
-        settings,
-        uncaged=True,
-        uncaged_control_plane_secrets=("runtime_token",),
+        legacy_vessel_unit_path=tmp_path / "legacy.service",
+        host_readiness=readiness,
     )
-
-    assert [issue.code for issue in report.issues] == [
-        "uncaged-control-secret",
-        "uncaged-web-secret",
-        "uncaged-access-secret",
-        "uncaged-database-secret",
-        "uncaged-runtime-database-secret",
-    ]
-
-
-def _uncaged_settings(*, missing_credential: str | None = None) -> Settings:
-    credentials: dict[str, SecretStr | None] = {
-        name: SecretStr(f"synthetic-preflight-credential-{name}")
-        for name in ("password", "runtime_password", "secret_key", "access_password")
-    }
-    if missing_credential is not None:
-        credentials[missing_credential] = None
-    return Settings.model_construct(
-        server=ServerSettings(
-            database=DatabaseSettings(
-                password=credentials["password"],
-                runtime_password=credentials["runtime_password"],
-            ),
-            web=WebSettings(
-                secret_key=credentials["secret_key"],
-                access_password=credentials["access_password"],
-            ),
-        )
+    assert service.inspect(settings).ready
+    path = (
+        foundation.sites.quadlet.path / "lychd-uncaged-vessel.container"
+        if source == "quadlet"
+        else foundation.sites.systemd_user.path / "lychd-uncaged-vessel.service"
     )
+    path.parent.mkdir(parents=True, mode=0o700)
+    if source == "dangling":
+        path.symlink_to(tmp_path / "absent-retired-source")
+    else:
+        path.write_text("retained-native-source", encoding="utf-8")
+    before = set(tmp_path.rglob("*"))
+    report = service.inspect(settings)
+    assert set(tmp_path.rglob("*")) == before
+    assert [issue.code for issue in report.issues] == ["retired-vessel-binding"]
+    with pytest.raises(BindingPreflightError, match="no conversion, removal, or service control"):
+        report.require_ready()
+    if source == "dangling":
+        assert path.is_symlink()
+    else:
+        assert path.read_text(encoding="utf-8") == "retained-native-source"
 
 
 @pytest.mark.parametrize(
-    ("missing_credential", "code", "target"),
+    "units",
     [
-        ("password", "uncaged-database-secret", "bootstrap database password"),
-        ("runtime_password", "uncaged-runtime-database-secret", "runtime database password"),
-        ("secret_key", "uncaged-web-secret", "application signing key"),
-        ("access_password", "uncaged-access-secret", "local access password"),
+        ("lychd-uncaged-vessel.service",),
+        ("lychd-vessel.service", "lychd-uncaged-vessel.service"),
     ],
 )
-def test_uncaged_preflight_rejects_each_missing_loaded_credential(
-    tmp_path: Path,
-    missing_credential: str,
-    code: str,
-    target: str,
-) -> None:
-    codex = tmp_path / "lychd.toml"
-    _private_file(codex)
-    settings = _uncaged_settings(missing_credential=missing_credential)
-
-    report = BindingPreflightService(
-        codex_path=codex,
-        legacy_vessel_unit_path=tmp_path / "systemd" / "lychd-vessel.service",
-        host_readiness=_host_ready(),
-    ).inspect(settings, uncaged=True)
-
-    assert report.ready is False
-    assert [(issue.code, issue.target) for issue in report.issues] == [(code, target)]
-    with pytest.raises(BindingPreflightError, match=target):
-        report.require_ready()
-    if missing_credential == "runtime_password":
-        with pytest.raises(ValueError, match="Required runtime database password"):
-            build_saq_config(settings)
-
-
-def test_uncaged_preflight_accepts_loaded_bootstrap_and_native_runtime_credentials(
-    tmp_path: Path,
-) -> None:
-    codex = tmp_path / "lychd.toml"
-    _private_file(codex)
-    settings = _uncaged_settings()
-
-    report = BindingPreflightService(
-        codex_path=codex,
-        legacy_vessel_unit_path=tmp_path / "systemd" / "lychd-vessel.service",
-        host_readiness=_host_ready(),
-    ).inspect(settings, uncaged=True)
-
-    assert report.ready is True
-    assert report.issues == ()
-    assert report.require_ready().systemctl_bin == "/usr/bin/systemctl"
-    assert all(
-        queue.dsn and "synthetic-preflight-credential-runtime_password" in queue.dsn
-        for queue in build_saq_config(settings).queue_configs
-    )
-    assert build_csrf_config(settings).secret == "synthetic-preflight-credential-secret_key"  # noqa: S105
-    assert settings.server.database.phoenix_password is None
-
-
-@pytest.fixture
-def native_capture(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Settings:
-    """Use the real selected source with a synthetic existing secret owner."""
-    from unittest.mock import Mock
-
-    from lychd.system.services.scribe import OwnedBindings
-
-    monkeypatch.setattr(os, "environ", {"LYCHD_RUNTIME_SECRETS": "podman-core@1"})
-    monkeypatch.setattr("lychd.config.settings.root.PATH_LYCHD_TOML", tmp_path / "source.toml")
-    monkeypatch.setattr("lychd.system.host_tools.trusted_host_tool", Mock(return_value="/usr/bin/podman"))
-    store = Mock()
-    store.read.return_value = SecretStr("synthetic-native-runtime-value-1234567890")
-    monkeypatch.setattr("lychd.system.services.secrets.PodmanSecretStore", Mock(return_value=store))
-    scribe = Mock()
-    scribe.inspect_owned_bindings.return_value = OwnedBindings(receipt_present=False)
-    monkeypatch.setattr("lychd.system.services.scribe.ScribeService", Mock(return_value=scribe))
-    return Settings()
-
-
-def _native_service(tmp_path: Path) -> BindingPreflightService:
-    codex = tmp_path / "lychd.toml"
-    _private_file(codex)
-    return BindingPreflightService(
-        codex_path=codex,
-        legacy_vessel_unit_path=tmp_path / "systemd" / "lychd-vessel.service",
-        host_readiness=_host_ready(root=tmp_path),
-    )
-
-
-def test_native_preflight_accepts_runtime_capture_without_image_bootstrap_password(
-    native_capture: Settings,
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    from unittest.mock import Mock
-
-    from lychd.config.settings import SettingsSnapshot
-
-    settings = native_capture
-    settings.orchestration.switching.actuator = "systemd"
-    snapshot = SettingsSnapshot.capture(settings)
-    # Neither a changed ambient selection nor a second preflight rereads secret values.
-    monkeypatch.setenv("LYCHD_RUNTIME_SECRETS", "changed-after-capture")
-    owner = Mock(side_effect=AssertionError("preflight attempted another credential read"))
-    monkeypatch.setattr("lychd.system.services.secrets.PodmanSecretStore", owner)
-    service = _native_service(tmp_path)
-    assert service.inspect(snapshot.materialize(), uncaged=False, native_only=True).ready
-    owner.assert_not_called()
-    assert service.inspect(snapshot.materialize(), uncaged=False, native_only=True).ready
-    assert settings.server.database.password is None
-    assert settings.server.database.phoenix_password is None
-
-
-@pytest.mark.parametrize("missing", ["runtime_password", "secret_key", "access_password"])
-def test_native_preflight_refuses_each_missing_runtime_capture_value(
-    native_capture: Settings,
-    tmp_path: Path,
-    missing: str,
-) -> None:
-    settings = native_capture
-    settings.orchestration.switching.actuator = "systemd"
-    if missing == "runtime_password":
-        settings.server.database = settings.server.database.model_copy(update={missing: None})
-    else:
-        settings.server.web = settings.server.web.model_copy(update={missing: None})
-    report = _native_service(tmp_path).inspect(settings, uncaged=False, native_only=True)
-    assert not report.ready
-    assert len(report.issues) == 1
-    assert report.issues[0].code.startswith("uncaged-")
-
-
-def test_native_preflight_refuses_legacy_capture_even_after_environment_selection(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    native_capture: Settings,
-) -> None:
-    del native_capture
-    settings = _uncaged_settings()
-    settings.orchestration.switching.actuator = "systemd"
-    monkeypatch.setenv("LYCHD_RUNTIME_SECRETS", "podman-core@1")
-    report = _native_service(tmp_path).inspect(settings, uncaged=False, native_only=True)
-    assert {issue.code for issue in report.issues} == {"native-secret-capture", "native-admin-secret"}
-
-
-def test_native_preflight_refuses_changed_reference_without_credential_reads(
-    native_capture: Settings,
-    tmp_path: Path,
-) -> None:
-    settings = native_capture
-    settings.orchestration.switching.actuator = "systemd"
-    settings.server.web.secret_key_secret = "other-source"  # noqa: S105 - reference name
-    report = _native_service(tmp_path).inspect(settings, uncaged=False, native_only=True)
-    assert [issue.code for issue in report.issues] == ["native-secret-capture"]
-
-
-@pytest.mark.parametrize("units", [("lychd-vessel.service",), ("lychd-vessel.service", "lychd-uncaged-vessel.service")])
-def test_native_preflight_refuses_existing_caged_or_mixed_generation(
-    native_capture: Settings,
+def test_preflight_refuses_receipt_owned_retired_or_mixed_generation(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     units: tuple[str, ...],
 ) -> None:
-    from unittest.mock import Mock
+    from unittest.mock import Mock, call
 
     from lychd.system.services.scribe import OwnedBindings
 
+    codex = tmp_path / "lychd.toml"
+    _private_file(codex)
+    settings = Settings.model_construct()
+    _private_reactor(settings, tmp_path)
     scribe = Mock()
     scribe.inspect_owned_bindings.return_value = OwnedBindings(receipt_present=True, runtime_units=units)
     monkeypatch.setattr("lychd.system.services.scribe.ScribeService", Mock(return_value=scribe))
-    native_capture.orchestration.switching.actuator = "systemd"
-    report = _native_service(tmp_path).inspect(native_capture, uncaged=False, native_only=True)
-    assert [issue.code for issue in report.issues] == ["native-existing-caged"]
+    report = BindingPreflightService(
+        codex_path=codex,
+        legacy_vessel_unit_path=tmp_path / "legacy.service",
+        host_readiness=_host_ready(root=tmp_path),
+    ).inspect(settings)
+    assert [issue.code for issue in report.issues] == ["retired-vessel-binding"]
+    assert scribe.method_calls == [call.inspect_owned_bindings()]
 
 
-def test_native_preflight_preserves_foreign_caged_source(
-    native_capture: Settings,
-    tmp_path: Path,
-) -> None:
-    native_capture.orchestration.switching.actuator = "systemd"
-    path = tmp_path / ".config" / "containers" / "systemd" / "lychd-vessel.container"
-    path.parent.mkdir(parents=True)
-    path.write_text("foreign", encoding="utf-8")
-    report = _native_service(tmp_path).inspect(native_capture, uncaged=False, native_only=True)
-    assert [issue.code for issue in report.issues] == ["native-existing-caged"]
-    assert path.read_text(encoding="utf-8") == "foreign"
-
-
-def test_native_preflight_preserves_reactor_and_external_secret_boundaries(
-    native_capture: Settings,
-    tmp_path: Path,
-) -> None:
-    native_capture.orchestration.switching.host_reactor_dir = tmp_path / "missing" / "inbox"
-    report = _native_service(tmp_path).inspect(
-        native_capture,
-        uncaged=False,
-        native_only=True,
-        uncaged_control_plane_secrets=("control",),
-        native_portal_secrets=("portal",),
+def test_runtime_components_require_and_use_loaded_credentials() -> None:
+    """Credential consumers use their admitted Settings values without source I/O."""
+    settings = Settings.model_construct(
+        server=ServerSettings(
+            database=DatabaseSettings(runtime_password=SecretStr("synthetic-runtime-credential")),
+            web=WebSettings(secret_key=SecretStr("synthetic-signing-credential")),
+        )
     )
-    assert {issue.code for issue in report.issues} == {
-        "uncaged-control-secret",
-        "native-portal-secret",
-        "reactor-shape",
-    }
-
-
-@pytest.mark.parametrize("field", ["password", "phoenix_password"])
-def test_native_preflight_never_accepts_image_owned_credentials_in_native_settings(
-    native_capture: Settings,
-    tmp_path: Path,
-    field: str,
-) -> None:
-    native_capture.orchestration.switching.actuator = "systemd"
-    native_capture.server.database = native_capture.server.database.model_copy(
-        update={field: SecretStr("synthetic-image-owned-credential")},
+    assert all(
+        queue.dsn and "synthetic-runtime-credential" in queue.dsn for queue in build_saq_config(settings).queue_configs
     )
-    report = _native_service(tmp_path).inspect(native_capture, uncaged=False, native_only=True)
-    assert [issue.code for issue in report.issues] == ["native-admin-secret"]
+    assert build_csrf_config(settings).secret == "synthetic-signing-credential"  # noqa: S105
+    settings.server.database = settings.server.database.model_copy(update={"runtime_password": None})
+    with pytest.raises(ValueError, match="Required runtime database password"):
+        build_saq_config(settings)
+
+
+def test_locked_apply_rechecks_retired_binding_before_any_effect(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from contextlib import nullcontext
+    from unittest.mock import Mock
+
+    from lychd.config.settings import SettingsSnapshot
+    from lychd.system.services.bind import BindRequest
+    from lychd.system.services.bind_assembly import assemble_bind_use_case
+    from lychd.system.services.scribe import BindingReconcilePlan, OwnedBindings
+
+    codex = tmp_path / "lychd.toml"
+    _private_file(codex)
+    settings = Settings.model_construct()
+    _private_reactor(settings, tmp_path)
+    readiness = _host_ready(root=tmp_path)
+    foundation = readiness.inspection.require_ready_for_bind()
+    scribe = Mock()
+    scribe.inspect_owned_bindings.return_value = OwnedBindings(receipt_present=False)
+    scribe.plan_reconcile_all.return_value = BindingReconcilePlan(
+        changes=(),
+        observed_generation="before",
+        desired_generation="desired",
+    )
+    monkeypatch.setattr("lychd.system.services.scribe.ScribeService", Mock(return_value=scribe))
+    monkeypatch.setattr("lychd.system.services.scribe.facade.ScribeService", Mock(return_value=scribe))
+    secrets = Mock()
+    secrets.exists.return_value = False
+    monkeypatch.setattr("lychd.system.services.secrets.PodmanSecretStore", Mock(return_value=secrets))
+    systemd = Mock()
+    monkeypatch.setattr("lychd.system.services.systemd.SystemdUserManager", systemd)
+    monkeypatch.setattr("lychd.system.services.lifecycle.lock.LifecycleLock", nullcontext)
+    service = BindingPreflightService(
+        codex_path=codex,
+        legacy_vessel_unit_path=tmp_path / "legacy.service",
+        host_readiness=readiness,
+    )
+    assert service.inspect(settings).ready
+    use_case = assemble_bind_use_case(
+        foundation=foundation,
+        preflight_service=service,
+        settings_snapshot=SettingsSnapshot.capture(settings),
+    )
+    request = BindRequest.compile(
+        manifests=(),
+        plain_units={},
+        core_secret_factories={"planned-core": lambda: "unused"},
+        required_secret_names=(),
+    )
+    approved = use_case.plan(request)
+    retired = foundation.sites.systemd_user.path / "lychd-uncaged-vessel.service"
+    retired.parent.mkdir(parents=True, mode=0o700)
+    retired.write_text("retained-native-source", encoding="utf-8")
+
+    with pytest.raises(BindingPreflightError, match="no conversion, removal, or service control"):
+        use_case.apply(request, approved)
+
+    secrets.ensure_present.assert_not_called()
+    scribe.reconcile_all.assert_not_called()
+    systemd.assert_not_called()
+    assert retired.read_text(encoding="utf-8") == "retained-native-source"

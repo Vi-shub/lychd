@@ -49,5 +49,4 @@ def test_unregistered_runtime_is_rejected_before_publication_or_binding(runtime_
                 runes=runes,
                 soulstones=declarations.soulstones,
                 portals=declarations.portals,
-                uncaged=True,
             )

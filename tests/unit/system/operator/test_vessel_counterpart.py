@@ -23,10 +23,7 @@ from lychd.system.operator.targets import OperatorTargetResolver
 if TYPE_CHECKING:
     from collections.abc import Generator
 
-_PAIRS = (
-    ("lychd-vessel.service", "lychd-uncaged-vessel.service"),
-    ("lychd-uncaged-vessel.service", "lychd-vessel.service"),
-)
+_PAIRS = (("lychd-vessel.service", "lychd-uncaged-vessel.service"),)
 _FIELDS = ("Id", "LoadState", "ActiveState", "SubState", "MainPID", "ControlPID", "Job")
 
 
@@ -38,7 +35,7 @@ class _World:
             receipt_present=True,
             generation="fixed-generation",
             units=(
-                OwnedUnit(vessel, (f"/owned/{vessel}",), ObservationState.INACTIVE),
+                OwnedUnit(vessel, ("/owned/lychd-vessel.container",), ObservationState.INACTIVE),
                 OwnedUnit("lychd-phylactery.service", ("/owned/storage",), ObservationState.INACTIVE),
             ),
         )

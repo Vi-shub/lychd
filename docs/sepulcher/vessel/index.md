@@ -38,18 +38,15 @@ callbacks, including background work after response delivery, before closing app
 Required startup or shutdown failure becomes a failed process exit. A signal requests this
 retirement; the user manager's outer timeout still decides whether a stuck process must be forced.
 
-Generated native services use hidden `lychd serve` with its closed loopback listener grammar.
-Managed images select a separate fixed internal listener through the same launcher; they must be
-rebuilt to acquire it. Unsupported upstream server tuning is refused rather than silently ignored.
-The launcher mechanism alone does not prove installed-unit settlement. The exact owned native
-profile has authenticated stop admission and separate lifecycle evidence; active caged or mixed
-stop remains unsupported. Follow the current [CLI boundary](../../state-of-the-work.md#core-cli-rites)
-before treating a particular installation as qualified.
+The managed Vessel image uses the fixed internal `0.0.0.0:8000` listener behind generated
+loopback-only host publication. Host-native Vessel deployment and hidden `lychd serve` are
+retired. Images must be rebuilt to acquire launcher changes; unsupported server tuning refuses.
 
-The [trusted installed-hybrid profile](../../state-of-the-work.md#current-evidence-envelope)
-adds two normal installed native boots and signed stops with a normal private-manager exit.
-Its Docker dependencies, inert model units and borrowed warm model remain a distinct profile;
-it does not qualify the full generated rootless graph or managed-model lifecycle.
+Current active installation lifecycle completion is unavailable until authenticated container
+admission and exact settlement are implemented and qualified. The old signed native stops and
+trusted installed-hybrid receipt remain frozen historical observations of their removed profile.
+They do not qualify a rebuilt Vessel or authorize fallback control. Follow the current
+[CLI boundary](../../state-of-the-work.md#core-cli-rites) before an installation operation.
 
 Shutdown stops workers before their collaborators and queues. Process death loses active tasks,
 subscribers, leases, and other volatile state. Only records committed through the

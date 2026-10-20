@@ -138,7 +138,7 @@ Set these fields beneath `[orchestration.switching]` in the Codex.
 
 | Field | Default | Meaning |
 | :--- | :--- | :--- |
-| `actuator` | `"host-reactor"` | Caged mediated actuation; `"systemd"` selects explicit uncaged mode. |
+| `actuator` | `"host-reactor"` | Managed-container mediated actuation; `"systemd"` is a host-adapter test mechanism, not a host-native Core profile. |
 | `host_reactor_dir` | XDG trigger inbox | Absolute writable intent inbox; sibling journal is derived read-only. |
 | `policy` | `"declared-conflicts"` | Select exact active conflict neighbors; `"evict-idle"` is a compatibility alias. |
 | `min_priority_for_hard_swap` | `40` | Decline colder hard swaps. |

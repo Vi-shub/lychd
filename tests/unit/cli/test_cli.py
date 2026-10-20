@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 # pyright: reportPrivateUsage=false
-import os
 from collections.abc import Callable
 from pathlib import Path
 from types import SimpleNamespace
@@ -328,7 +327,6 @@ def test_root_help_does_not_construct_asgi_app(runner: CliRunner, mocker: Mocker
         "del",
     }
     assert {name for name, command in cli.commands.items() if command.hidden} == {
-        "serve",
         "database",
         "database-bootstrap",
         "reactor",
@@ -415,170 +413,15 @@ def test_installed_entrypoint_keeps_effective_root_dry_run_observable(
     root.assert_called_once_with()
 
 
-@pytest.mark.parametrize(
-    ("server_args", "configured_port", "effective_port"),
-    [
-        (("--host", "127.0.0.1", "--port", "7134"), 7444, 7134),
-        (("-H::1", "--port", "7134"), 7444, 7134),
-        (("-dPH::1", "-dPp7134"), 7444, 7134),
-        ((), 7444, 7444),
-    ],
-)
-def test_serve_hands_one_effective_listener_to_runner_and_app_init(
-    runner: CliRunner,
-    mocker: MockerFixture,
-    monkeypatch: pytest.MonkeyPatch,
-    server_args: tuple[str, ...],
-    configured_port: int,
-    effective_port: int,
+@pytest.mark.parametrize("arguments", [("serve",), ("serve", "--host", "127.0.0.1")])
+def test_retired_native_serve_is_not_a_command(
+    runner: CliRunner, mocker: MockerFixture, arguments: tuple[str, ...]
 ) -> None:
-    settings = SimpleNamespace(server=SimpleNamespace(port=configured_port))
-    mocker.patch("lychd.config.settings.root.get_settings", return_value=settings)
-    mocker.patch("lychd.app.get_settings", return_value=settings)
-    litestar = mocker.patch("lychd.app.Litestar")
-    observed: dict[str, object] = {}
-
-    def invoke_factory(*, host: str, port: int, debug: bool, pdb: bool) -> None:
-        from lychd.app import AppInit, create_app
-
-        observed["listener"] = (host, port)
-        observed["debug"] = debug
-        observed["pdb"] = pdb
-        observed["environment_port"] = os.environ["LITESTAR_PORT"]
-        observed["environment_host"] = os.environ["LITESTAR_HOST"]
-        create_app()
-        plugin = litestar.call_args.kwargs["plugins"][0]
-        assert isinstance(plugin, AppInit)
-        observed["app_init_port"] = plugin.listener_port
-
-    delegated = mocker.patch("lychd.interface.server.run_production_server", side_effect=invoke_factory)
-    monkeypatch.delenv("LITESTAR_PORT", raising=False)
-    monkeypatch.delenv("LITESTAR_HOST", raising=False)
-    monkeypatch.delenv("GRANIAN_PORT", raising=False)
-    monkeypatch.delenv("GRANIAN_HOST", raising=False)
-
-    host = "::1" if any("::1" in argument for argument in server_args) else "127.0.0.1"
-    debug = any(argument.startswith("-d") for argument in server_args)
-
-    result = runner.invoke(cli, ["serve", *server_args])
-
-    assert result.exit_code == 0
-    delegated.assert_called_once_with(host=host, port=effective_port, debug=debug, pdb=debug)
-    assert observed == {
-        "listener": (host, effective_port),
-        "debug": debug,
-        "pdb": debug,
-        "environment_port": str(effective_port),
-        "environment_host": "::1" if any("::1" in argument for argument in server_args) else "127.0.0.1",
-        "app_init_port": effective_port,
-    }
-    litestar.assert_called_once()
-    assert "LITESTAR_PORT" not in os.environ
-    assert "LITESTAR_HOST" not in os.environ
-
-
-@pytest.mark.parametrize(
-    "args",
-    [
-        ("--host", "0.0.0.0"),  # noqa: S104 - rejected authority under test
-        ("--host=0.0.0.0",),
-        ("-H", "0.0.0.0"),  # noqa: S104 - rejected authority under test
-        ("-H0.0.0.0",),
-        ("-dH0.0.0.0",),
-        ("-dPH", "0.0.0.0"),  # noqa: S104 - rejected authority under test
-        ("--host=127.0.0.1", "-dH0.0.0.0"),
-    ],
-)
-def test_serve_rejects_non_loopback_listener_arguments(
-    runner: CliRunner,
-    mocker: MockerFixture,
-    args: tuple[str, ...],
-) -> None:
-    delegated = mocker.patch("lychd.interface.server.run_production_server")
-    application = mocker.patch("lychd.app.create_app")
-
-    result = runner.invoke(cli, ["serve", *args])
-
-    assert result.exit_code != 0
-    assert "127.0.0.1 or ::1" in result.output
-    delegated.assert_not_called()
-    application.assert_not_called()
-
-
-@pytest.mark.parametrize(
-    "args",
-    [
-        ("--uds", "/tmp/lychd.sock"),  # noqa: S108 - rejected authority under test
-        ("--unix-domain-socket=/tmp/lychd.sock",),
-        ("-U", "/tmp/lychd.sock"),  # noqa: S108 - rejected authority under test
-        ("--fd", "3"),
-        ("--file-descriptor=3",),
-        ("-F3",),
-        ("-dPF3",),
-        ("-dU/tmp/server.sock",),
-    ],
-)
-def test_serve_rejects_alternate_listener_arguments(
-    runner: CliRunner,
-    mocker: MockerFixture,
-    args: tuple[str, ...],
-) -> None:
-    delegated = mocker.patch("lychd.interface.server.run_production_server")
-    application = mocker.patch("lychd.app.create_app")
-
-    result = runner.invoke(cli, ["serve", *args])
-
-    assert result.exit_code != 0
-    assert "use its loopback TCP listener" in result.output
-    delegated.assert_not_called()
-    application.assert_not_called()
-
-
-@pytest.mark.parametrize("variable", ["LITESTAR_HOST", "GRANIAN_HOST"])
-def test_serve_rejects_non_loopback_listener_environment(
-    runner: CliRunner,
-    mocker: MockerFixture,
-    monkeypatch: pytest.MonkeyPatch,
-    variable: str,
-) -> None:
-    delegated = mocker.patch("lychd.interface.server.run_production_server")
-    application = mocker.patch("lychd.app.create_app")
-    monkeypatch.setenv(variable, "0.0.0.0")  # noqa: S104 - rejected authority under test
-
-    result = runner.invoke(cli, ["serve"])
-
-    assert result.exit_code != 0
-    assert f"{variable} to be 127.0.0.1 or ::1" in result.output
-    delegated.assert_not_called()
-    application.assert_not_called()
-
-
-@pytest.mark.parametrize(
-    ("variable", "value"),
-    [
-        ("LITESTAR_UNIX_DOMAIN_SOCKET", "/tmp/lychd.sock"),  # noqa: S108 - rejected authority under test
-        ("LITESTAR_FILE_DESCRIPTOR", "3"),
-        ("GRANIAN_UDS", "/tmp/server.sock"),  # noqa: S108 - rejected authority under test
-        ("GRANIAN_FILE_DESCRIPTOR", "3"),
-    ],
-)
-def test_serve_rejects_alternate_listener_environment(
-    runner: CliRunner,
-    mocker: MockerFixture,
-    monkeypatch: pytest.MonkeyPatch,
-    variable: str,
-    value: str,
-) -> None:
-    delegated = mocker.patch("lychd.interface.server.run_production_server")
-    application = mocker.patch("lychd.app.create_app")
-    monkeypatch.setenv(variable, value)
-
-    result = runner.invoke(cli, ["serve"])
-
-    assert result.exit_code != 0
-    assert f"does not support {variable}" in result.output
-    delegated.assert_not_called()
-    application.assert_not_called()
+    factory = mocker.patch("lychd.app.create_app")
+    result = runner.invoke(cli, list(arguments))
+    assert result.exit_code == 2
+    assert "No such command 'serve'" in result.output
+    factory.assert_not_called()
 
 
 def test_database_litestar_entrypoint_ignores_ambient_foreign_app(
@@ -599,266 +442,6 @@ def test_database_litestar_entrypoint_ignores_ambient_foreign_app(
         ],
         prog_name="lychd database",
     )
-
-
-@pytest.mark.parametrize(
-    ("args", "environment", "expected_message"),
-    [
-        (("--workers", "2"), {}, "exactly one ASGI worker"),
-        (("-dPW2",), {}, "exactly one ASGI worker"),
-        (("-dr",), {}, "does not support Litestar reload mode"),
-        (("-dPRsrc",), {}, "does not support Litestar reload mode"),
-        ((), {"LITESTAR_RELOAD": "enabled"}, "does not support Litestar reload mode"),
-        (("--reload-paths", "."), {}, "does not support Litestar reload mode"),
-        (("--reload-paths=.",), {}, "does not support Litestar reload mode"),
-        ((), {"GRANIAN_RELOAD_PATHS": "."}, "does not support GRANIAN_RELOAD_PATHS"),
-        ((), {"GRANIAN_RELOAD_INCLUDE": "*.py"}, "does not support GRANIAN_RELOAD_INCLUDE"),
-        ((), {"GRANIAN_RELOAD_EXCLUDE": "*.tmp"}, "does not support GRANIAN_RELOAD_EXCLUDE"),
-        (("--metrics", "--metrics-address=0.0.0.0"), {}, "does not support the Granian metrics listener"),
-        (("--no-metrics", "--metrics"), {}, "does not support the Granian metrics listener"),
-        (
-            ("--metrics", "--granian-access-log-fmt", "--no-metrics"),
-            {},
-            "does not support option --granian-access-log-fmt",
-        ),
-        (
-            ("--granian-access-log-fmt", "--no-metrics"),
-            {"GRANIAN_METRICS_ENABLED": "true"},
-            "does not support option --granian-access-log-fmt",
-        ),
-        (
-            (),
-            {"GRANIAN_METRICS_ENABLED": "true", "GRANIAN_METRICS_ADDRESS": "0.0.0.0"},  # noqa: S104
-            "does not support the Granian metrics listener",
-        ),
-    ],
-)
-def test_serve_rejects_server_policy_failures_before_delegating(
-    runner: CliRunner,
-    mocker: MockerFixture,
-    monkeypatch: pytest.MonkeyPatch,
-    args: tuple[str, ...],
-    environment: dict[str, str],
-    expected_message: str,
-) -> None:
-    delegated = mocker.patch("lychd.interface.server.run_production_server")
-    application = mocker.patch("lychd.app.create_app")
-    for variable, value in environment.items():
-        monkeypatch.setenv(variable, value)
-
-    result = runner.invoke(cli, ["serve", *args])
-
-    assert result.exit_code != 0
-    assert expected_message in result.output
-    delegated.assert_not_called()
-    application.assert_not_called()
-
-
-@pytest.mark.parametrize(
-    ("arguments", "metrics_environment"),
-    [
-        (("--no-metrics",), "true"),
-        (("--metrics", "--no-metrics"), "true"),
-        (("--metrics-address=0.0.0.0",), "false"),
-        ((), " f "),
-    ],
-)
-def test_serve_runs_with_disabled_metrics_configuration(
-    runner: CliRunner,
-    mocker: MockerFixture,
-    monkeypatch: pytest.MonkeyPatch,
-    arguments: tuple[str, ...],
-    metrics_environment: str,
-) -> None:
-    delegated = mocker.patch("lychd.interface.server.run_production_server")
-    monkeypatch.setenv("GRANIAN_METRICS_ENABLED", metrics_environment)
-    monkeypatch.setenv("GRANIAN_METRICS_ADDRESS", "0.0.0.0")  # noqa: S104 - inactive exporter setting under test
-
-    result = runner.invoke(cli, ["serve", *arguments])
-
-    assert result.exit_code == 0
-    delegated.assert_called_once_with(host="127.0.0.1", port=Settings().server.port, debug=False, pdb=False)
-
-
-@pytest.mark.parametrize(
-    "arguments",
-    [
-        ("--workers-kill-timeout=private-value",),
-        ("--ssl-certfile", "private-value"),
-        ("--static-path-mount", "private-value"),
-        ("--loop", "private-value"),
-        ("--working-dir", "private-value"),
-        ("--env-files", "private-value"),
-        ("--pid-file", "private-value"),
-        ("--log-config", "private-value"),
-        ("--metrics-port=private-value",),
-        ("--metrics", "--granian-access-log-fmt", "--no-metrics"),
-        ("--granian-access-log-fmt", "--no-metrics"),
-        ("--no-metrics", "--granian-access-log-fmt", "--metrics"),
-        ("--caged",),
-        ("--allow-non-loopback",),
-        ("--metrics-address", "--no-metrics"),
-        ("--host", "--no-metrics"),
-        ("--port=--no-metrics",),
-        ("--workers", "-dP"),
-        ("private-value",),
-    ],
-)
-def test_serve_closed_grammar_refuses_before_runner_or_factory_without_values(
-    runner: CliRunner,
-    mocker: MockerFixture,
-    arguments: tuple[str, ...],
-) -> None:
-    server = mocker.patch("lychd.interface.server.run_production_server")
-    application = mocker.patch("lychd.app.create_app")
-
-    result = runner.invoke(cli, ["serve", *arguments])
-
-    assert result.exit_code != 0
-    assert "LychD native serve" in result.output
-    assert "private-value" not in result.output
-    server.assert_not_called()
-    application.assert_not_called()
-
-
-@pytest.mark.parametrize(
-    ("variable", "expected_message"),
-    [
-        ("GRANIAN_WORKERS_KILL_TIMEOUT", "does not support GRANIAN_WORKERS_KILL_TIMEOUT"),
-        ("GRANIAN_LOOP", "does not support GRANIAN_LOOP"),
-        ("LITESTAR_SSL_CERT_PATH", "does not support LITESTAR_SSL_CERT_PATH"),
-        ("GRANIAN_WORKERS", "GRANIAN_WORKERS=1"),
-        ("LITESTAR_RELOAD", "does not support Litestar reload mode"),
-    ],
-)
-def test_serve_revalidates_late_dotenv_controls_and_restores_frozen_environment(
-    runner: CliRunner,
-    mocker: MockerFixture,
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-    variable: str,
-    expected_message: str,
-) -> None:
-    (tmp_path / ".env").write_text(f"{variable}=private-value\n")
-    monkeypatch.chdir(tmp_path)
-    mocker.patch.dict(os.environ, {"LITESTAR_HOST": "::1", "LITESTAR_PORT": "7444"}, clear=True)
-    before = dict(os.environ)
-    server = mocker.patch("lychd.interface.server.run_production_server")
-    application = mocker.patch("lychd.app.create_app")
-
-    result = runner.invoke(cli, ["serve", "--port", "7134"])
-
-    assert result.exit_code != 0
-    assert expected_message in result.output
-    assert "private-value" not in result.output
-    for frozen in (
-        "LITESTAR_HOST",
-        "LITESTAR_PORT",
-        "GRANIAN_METRICS_ENABLED",
-        "LITESTAR_FILE_DESCRIPTOR",
-        "GRANIAN_FILE_DESCRIPTOR",
-        "LITESTAR_UNIX_DOMAIN_SOCKET",
-        "GRANIAN_UDS",
-    ):
-        assert os.environ.get(frozen) == before.get(frozen)
-    server.assert_not_called()
-    application.assert_not_called()
-
-
-def test_serve_help_shows_closed_grammar_without_loading_runner(runner: CliRunner, mocker: MockerFixture) -> None:
-    settings = mocker.patch("lychd.config.settings.root.get_settings")
-    server = mocker.patch("lychd.interface.server.run_production_server")
-
-    result = runner.invoke(cli, ["serve", "--help"])
-
-    assert result.exit_code == 0
-    for option in ("--host", "--port", "--debug", "--pdb", "--workers", "--no-metrics", "--metrics-address"):
-        assert option in result.output
-    assert "--caged" not in result.output
-    settings.assert_not_called()
-    server.assert_not_called()
-
-
-@pytest.mark.parametrize("previous_metrics", [None, "true"])
-@pytest.mark.parametrize("failure_stage", [None, "startup", "close"])
-def test_serve_preserves_listener_policy_through_cwd_dotenv_loading(
-    runner: CliRunner,
-    mocker: MockerFixture,
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-    previous_metrics: str | None,
-    failure_stage: str | None,
-) -> None:
-    """Real late dotenv loading cannot change admitted native listener authority."""
-    from litestar import Litestar
-
-    alternate_listener_keys = (
-        "LITESTAR_FILE_DESCRIPTOR",
-        "GRANIAN_FILE_DESCRIPTOR",
-        "LITESTAR_UNIX_DOMAIN_SOCKET",
-        "GRANIAN_UDS",
-    )
-    socket_path = tmp_path / "listener.sock"
-    (tmp_path / ".env").write_text(
-        "LITESTAR_HOST=0.0.0.0\nLITESTAR_PORT=9000\nLITESTAR_APP=foreign.app:application\n"
-        "GRANIAN_METRICS_ENABLED=true\nGRANIAN_METRICS_ADDRESS=0.0.0.0\nLYCHD_TEST_DOTENV_LOADED=yes\n"
-        "LITESTAR_FILE_DESCRIPTOR=9\nGRANIAN_FILE_DESCRIPTOR=9\n"
-        f"LITESTAR_UNIX_DOMAIN_SOCKET={socket_path}\nGRANIAN_UDS={socket_path}\n",
-    )
-    monkeypatch.chdir(tmp_path)
-    mocker.patch.dict(os.environ, {}, clear=True)
-    if previous_metrics is not None:
-        os.environ["GRANIAN_METRICS_ENABLED"] = previous_metrics
-        for variable in alternate_listener_keys:
-            os.environ[variable] = ""
-    mocker.patch(
-        "lychd.config.settings.root.get_settings",
-        return_value=SimpleNamespace(server=SimpleNamespace(port=8000)),
-    )
-    observed: dict[str, object] = {}
-    fixture = Litestar()
-
-    def isolated_application() -> Litestar:
-        observed["factory_listener"] = (os.environ["LITESTAR_HOST"], os.environ["LITESTAR_PORT"])
-        observed["factory_metrics"] = os.environ.get("GRANIAN_METRICS_ENABLED")
-        observed["factory_alternates"] = {variable: os.environ.get(variable) for variable in alternate_listener_keys}
-        observed["dotenv_loaded"] = os.environ.get("LYCHD_TEST_DOTENV_LOADED")
-        if failure_stage == "startup":
-            message = "inert factory startup failure"
-            raise RuntimeError(message)
-        return fixture
-
-    async def capture_server(application: Litestar, *, host: str, port: int) -> None:
-        assert application is fixture
-        observed["listener"] = (host, port)
-        if failure_stage == "close":
-            message = "inert required close failure"
-            raise RuntimeError(message)
-
-    application = mocker.patch("lychd.app.create_app", side_effect=isolated_application)
-    server = mocker.patch("lychd.interface.server.serve_application", side_effect=capture_server)
-
-    result = runner.invoke(cli, ["serve", *(["--no-metrics"] if previous_metrics else [])])
-
-    assert result.exit_code == (1 if failure_stage else 0), result.output
-    application.assert_called_once_with()
-    expected: dict[str, object] = {
-        "factory_listener": ("127.0.0.1", "8000"),
-        "factory_metrics": "false",
-        "factory_alternates": dict.fromkeys(alternate_listener_keys, ""),
-        "dotenv_loaded": "yes",
-    }
-    if failure_stage != "startup":
-        expected["listener"] = ("127.0.0.1", 8000)
-        server.assert_called_once()
-    else:
-        server.assert_not_called()
-    assert observed == expected
-    assert os.environ.get("GRANIAN_METRICS_ENABLED") == previous_metrics
-    for variable in alternate_listener_keys:
-        assert os.environ.get(variable) == ("" if previous_metrics is not None else None)
-    assert "LITESTAR_HOST" not in os.environ
-    assert "LITESTAR_PORT" not in os.environ
 
 
 def test_database_waits_before_delegating(runner: CliRunner, mocker: MockerFixture) -> None:
@@ -1207,15 +790,13 @@ def test_bind_quadlets_success(runner: CliRunner, mocker: MockerFixture) -> None
     systemd.return_value.daemon_reload.assert_called_once_with()
 
 
-@pytest.mark.parametrize("uncaged", [False, True])
 def test_bind_guidance_matches_compiled_vessel_ownership(
-    runner: CliRunner, mocker: MockerFixture, tmp_path: Path, *, uncaged: bool
+    runner: CliRunner, mocker: MockerFixture, tmp_path: Path
 ) -> None:
     """Real compiled ownership must agree with the public startup guidance."""
     from lychd.system.binding_sites import BindingSites
     from lychd.system.constants import PATH_RUNE_TEMPLATES_DIR
-    from lychd.system.operator import OperatorTarget, OperatorTargetResolver, OwnedUnitInventoryService
-    from lychd.system.operator.models import OperatorTargetError
+    from lychd.system.operator import OperatorTargetResolver, OwnedUnitInventoryService
     from lychd.system.services.scribe import OwnedBindings
     from lychd.system.services.scribe.models import OwnershipManifest
     from lychd.system.services.scribe.naming import runtime_unit_for_source
@@ -1231,7 +812,7 @@ def test_bind_guidance_matches_compiled_vessel_ownership(
     quadlet, user_units = tmp_path / "quadlet", tmp_path / "user"
     scribe = mocker.patch("lychd.system.services.scribe.facade.ScribeService").return_value
 
-    result = runner.invoke(bind_quadlets, ["--uncaged"] if uncaged else [])
+    result = runner.invoke(bind_quadlets)
 
     assert result.exit_code == 0, result.output
     # Compile/render the real fileset; only host application and observation are fakes.
@@ -1256,18 +837,8 @@ def test_bind_guidance_matches_compiled_vessel_ownership(
     catalog = OwnedUnitInventoryService(scribe, mocker.Mock(), systemctl_bin=None).inspect()
     resolver = OperatorTargetResolver(mocker.Mock())
     vessels = resolver.vessel_units(catalog)
-    if uncaged:
-        assert set(vessels) == {"lychd-vessel.service", "lychd-uncaged-vessel.service"}
-        with pytest.raises(OperatorTargetError, match="both caged and uncaged units are owned"):
-            resolver.direct_actuation_units("start", OperatorTarget.SYSTEM, catalog=catalog)
-        assert "Public start refuses mixed Vessel ownership." in result.output
-        assert "Installed native startup remains unqualified." in result.output
-        assert "lychd start" not in result.output
-        assert "systemctl --user start" not in result.output
-    else:
-        assert vessels == ("lychd-vessel.service",)
-        assert "You may now summon the declared system: lychd start" in result.output
-        assert "mixed Vessel ownership" not in result.output
+    assert vessels == ("lychd-vessel.service",)
+    assert "You may now summon the declared system: lychd start" in result.output
     systemd.return_value.daemon_reload.assert_called_once_with()
 
 
@@ -1462,35 +1033,23 @@ def test_bind_quadlets_fails_when_adapter_planned_secret_is_missing(
     assert "Missing required Podman secrets: adapter_token" in result.output
 
 
-def test_bind_quadlets_rejects_uncaged_control_plane_secrets(
+@pytest.mark.parametrize("option", ["--uncaged", "--native-only"])
+@pytest.mark.parametrize("dry_run", [False, True])
+def test_bind_rejects_removed_native_options_before_loading_or_effects(
     runner: CliRunner,
     mocker: MockerFixture,
-    binding_preflight: MagicMock,
+    option: str,
+    *,
+    dry_run: bool,
 ) -> None:
-    """An uncaged Vessel has no Podman secret mount for authenticated runtimes."""
-    stone = SimpleNamespace(
-        secret_env_files={},
-        control_plane_secret_names=("tabby_exl3_auth",),
-    )
-    mocker.patch(
-        "lychd.cli.binding.compile_animator_declarations",
-        return_value=_animator_declarations(soulstones=(stone,)),
-    )
-    mock_transmuter = mocker.patch("lychd.domain.animation.transmute.Transmuter")
-    binding_preflight.inspect.return_value = BindingPreflightReport(
-        issues=(
-            BindingPreflightIssue(
-                code="uncaged-control-secret",
-                target="Soulstone control plane",
-                detail="uncaged Vessel cannot receive Podman-mounted secrets: tabby_exl3_auth",
-            ),
-        ),
-        foundation=_binding_foundation(),
-    )
-
-    result = runner.invoke(bind_quadlets, ["--uncaged"])
-
-    assert result.exit_code != 0
-    assert "uncaged Vessel cannot receive Podman-mounted" in result.output
-    assert "tabby_exl3_auth" in result.output
-    mock_transmuter.assert_not_called()
+    session = mocker.patch("lychd.cli.binding.BindingCommandSession.inspect")
+    scribe = mocker.patch("lychd.system.services.scribe.facade.ScribeService")
+    secret_store = mocker.patch("lychd.system.services.secrets.PodmanSecretStore")
+    systemd = mocker.patch("lychd.system.services.systemd.SystemdUserManager")
+    result = runner.invoke(bind_quadlets, [option, *(["--dry-run"] if dry_run else [])])
+    assert result.exit_code == 2
+    assert f"No such option '{option}'." in result.output
+    session.assert_not_called()
+    scribe.assert_not_called()
+    secret_store.assert_not_called()
+    systemd.assert_not_called()

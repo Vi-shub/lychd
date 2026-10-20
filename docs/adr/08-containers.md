@@ -10,6 +10,22 @@ icon: material/cube-outline
     systemd and cgroup v2 supply supervision, dependency ordering, and observable physical state;
     rootless Podman supplies containers. There is no external control plane.
 
+## Core deployment and verification
+
+The Vessel runs in its managed container. Core has no host-native deployment or test-deployment
+profile. Bind compiles one container Vessel with its declared PostgreSQL, migration and extension
+services; it does not generate an uncaged alternative. The `--native-only` and `--uncaged` bind
+options are retired. Existing native bindings are preserved and refused for mutation; there is
+no implicit conversion or stop.
+
+Core tests and quality gates run in an explicit OCI test image. A test process may import the
+application directly inside that container; this does not create another supported deployment.
+Installed-runtime acceptance must exercise the actual built Vessel image and its declared
+boundary. A PostgreSQL container beside an application on the host cannot qualify that claim.
+The host CLI, Reactor and test harness retain their separately owned host responsibilities;
+they do not run a host Vessel. No container test gains production credentials or broad host
+access merely to simplify verification.
+
 ## Supported host policy
 
 LychD is committed to developing and supporting free and open-source (FOSS) software on FOSS hosts

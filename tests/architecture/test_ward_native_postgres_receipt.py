@@ -1,4 +1,4 @@
-"""Offline architecture evidence/freshness checks; never rerun the PG qualification."""
+"""Sealed Ward history and unchanged mechanism lineage; never rerun PostgreSQL."""
 
 from __future__ import annotations
 
@@ -278,6 +278,26 @@ _DEPENDENCIES = frozenset(_KEYS["root.dependency_versions"])
 _MIGRATIONS = frozenset(path for path in _SOURCES if path.startswith("src/lychd/db/migrations/versions/"))
 
 
+# The old complete qualification is historical. These seven retired configuration/fixture
+# inputs no longer describe this runtime; the other 59 inputs have only separately
+# checked byte continuity. Current configuration needs a distinct OCI occurrence.
+_RETIRED_OCCURRENCE_INPUTS = {
+    "docs/adr/12-configuration.md": "2d03734b40dcb54e416e926a22eb3be64954e0dd07dcadde3976d4e8001662f9",
+    "pyproject.toml": "dccbffe885f53d943b56234802ccae58280ca9095f2094371941b597139f184d",
+    "uv.lock": "11576fb625e8810c4466053a6c958a6d9cfa49a84acbd31c0ee428a668654bca",
+    "src/lychd/config/constants.py": "b9d3f3e91466a0e8e2f65f491ca471d39f70b87d231a0ce9b5008c379c11cb7c",
+    "src/lychd/config/settings/root.py": "a4d864782953c1756b1596a74575bd6961963186e4fc8673d29ada851d54159f",
+    "src/lychd/config/settings/sources.py": "7fb0757fa97bc123c8a81d73d7dfff359b35cba554fad5014eb3f313a8941119",
+    "tests/integration/test_database_authority_pg.py": "dd4150d38c12034f1886de56d2deeb25821e73b960a31be9f64b93a88d62b612",
+}
+_RETIREMENT = {
+    "on": "2026-10-20",
+    "integration_base": "7057210a24cb0e777fb8d2af034a0baffeaa349c",
+    "reason": "host-native-Core-runtime-retired",
+    "no_current_full_chain_qualification": True,
+}
+
+
 def _shape(value: Any, path: str = "root") -> None:
     if isinstance(value, dict):
         mapping = cast("dict[str, Any]", value)
@@ -407,9 +427,49 @@ def test_combined_ward_native_receipt_scope_privacy_and_exact_evidence() -> None
     _load()
 
 
-def test_combined_receipt_current_source_migrations_and_selected_dependency_freshness() -> None:
+def _require_retired_inputs(receipt: dict[str, Any], retired: dict[str, str]) -> None:
+    assert set(retired) == {
+        "docs/adr/12-configuration.md",
+        "pyproject.toml",
+        "uv.lock",
+        "src/lychd/config/constants.py",
+        "src/lychd/config/settings/root.py",
+        "src/lychd/config/settings/sources.py",
+        "tests/integration/test_database_authority_pg.py",
+    }
+    assert {path: receipt["source_fingerprints"][path] for path in retired} == retired
+
+
+def test_historical_qualification_retirement_preserves_the_complete_source_map() -> None:
     receipt = _load()
-    for path, digest in receipt["source_fingerprints"].items():
+    _require_retired_inputs(receipt, _RETIRED_OCCURRENCE_INPUTS)
+    canonical = json.dumps(receipt["source_fingerprints"], sort_keys=True, separators=(",", ":")).encode()
+    assert sha256(canonical).hexdigest() == "f9fe29273a3b1273aae9cc3315ed6d4c05b8655c4e4862d4b01da50643c2ce35"
+    assert _RETIREMENT["on"] == "2026-10-20"
+    assert _RETIREMENT["integration_base"] == "7057210a24cb0e777fb8d2af034a0baffeaa349c"
+    assert _RETIREMENT["reason"] == "host-native-Core-runtime-retired"
+    assert _RETIREMENT["no_current_full_chain_qualification"] is True
+
+
+def test_retirement_cannot_excuse_an_unchanged_ward_input() -> None:
+    receipt = _load()
+    widened = dict(_RETIRED_OCCURRENCE_INPUTS)
+    path = "src/lychd/domain/ward/service.py"
+    widened[path] = receipt["source_fingerprints"][path]
+    with pytest.raises(AssertionError):
+        _require_retired_inputs(receipt, widened)
+
+
+def test_unchanged_ward_mechanism_inputs_preserve_historical_lineage() -> None:
+    receipt = _load()
+    _require_retired_inputs(receipt, _RETIRED_OCCURRENCE_INPUTS)
+    live = {
+        path: digest
+        for path, digest in receipt["source_fingerprints"].items()
+        if path not in _RETIRED_OCCURRENCE_INPUTS
+    }
+    assert len(live) == 59
+    for path, digest in live.items():
         assert sha256((_ROOT / path).read_bytes()).hexdigest() == digest, path
     assert {
         str(path.relative_to(_ROOT)) for path in (_ROOT / "src/lychd/db/migrations/versions").glob("*.py")

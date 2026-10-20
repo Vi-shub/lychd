@@ -73,56 +73,19 @@ surfaces are not admitted operator projections.
 
 ### Local installation-stop admission
 
-The machine lifecycle port admits only `system stop`. It authenticates the complete request and
-corresponding reply with the existing dedicated local operator credential, without transmitting
-that credential or falling back to HTTP Basic. It returns no Sigil and invokes no host effect.
-Ordinary protected requests retain their existing Basic authentication and browser boundaries.
+The former `native-owned-lifespan@1` host-Vessel stop profile and its HTTP admission route are
+retired with native deployment. Historical signed-stop receipts remain dated observations of
+that removed profile; they cannot authorize a current container operation.
 
-The fixed profile uses [RFC 9421](https://www.rfc-editor.org/rfc/rfc9421.html) `hmac-sha256`, one local
-key identifier and no algorithm or key negotiation. Its sole POST path is
-`/api/v1/operator/stop-admission`, with no query parameters or Origin.
-Request body version 2 contains a fresh 128-bit public nonce, the exact `system-stop` operation,
-the host-attested binding generation and the required fixed `native-owned-lifespan@1` launcher
-profile. Method, complete target URI, content type and a
-validated SHA-256 content digest are signed. The corresponding reply signs its status, content
-type and validated body digest; its body binds the nonce, operation, generation, request method,
-URI, content digest and launcher profile to the admission decision. Request and reply have
-distinct signed role tags `lychd-system-stop-request@2` and `lychd-system-stop-reply@2`.
-The client accepts only its outstanding invocation's reply. Version 1 and unknown profiles
-refuse; there is no version or launcher negotiation or authentication downgrade.
+A future container lifecycle port must authenticate exact installation intent, retain current
+binding and process/container authority, close admission before retirement, and independently
+verify the owned terminal outcome before stopping dependencies. Unknown, lost or forced outcomes
+preserve dependencies for reconciliation. No native-profile rename, inactive unit alone, successful
+manager reply or direct fallback can establish that contract. Current active-Vessel lifecycle
+operations refuse until that passage is implemented and qualified.
 
-Only the owned native entrypoint may arm this profile for its captured production application.
-Application construction, environment variables, publication alone, direct ASGI, the developer
-fixture and the unqualified caged entrypoint cannot arm it. Retirement withdraws admission before
-awaiting callback or service cleanup. The host also requires the exact owned native Vessel unit
-before making the exchange; a profile claim cannot change host binding authority. This identifies
-the required cleanup mechanism, not a process cycle or proof that shutdown has already completed.
-
-Bodies are at most 4 KiB. Critical headers and signature parameters have fixed bounded shapes;
-duplicate critical headers, multiple signatures, missing or changed coverage, extra body fields,
-invalid body digests, wrong roles and mismatched replies refuse. Signed creation and expiry are
-required, validity is at most 30 seconds, and future-created or expired messages refuse. The
-client disables proxies from the environment, redirects and authentication downgrade, uses only
-the configured literal loopback address, and bounds the complete admission exchange. Host and
-other applicable HTTP boundaries remain enforced; only this exact route uses message
-authentication instead of Basic and CSRF-cookie negotiation.
-
-Target-URI verification uses the original Host and the target represented by ASGI, never the
-internal container listener address or forwarded headers. Encoded path aliases and query
-parameters refuse. ASGI does not distinguish an absent query from an empty query delimiter;
-this profile does not attest that lost wire distinction. The client emits only the fixed path.
-
-This profile authenticates an installation-scoped operation, not a confidential transport or a
-particular process start. Transparent forwarding may only forward the unchanged admitted
-exchange; it grants neither the credential nor authority to alter the operation. The Vessel
-does not independently attest host bindings. A repeated request can produce another inert reply,
-never a host effect or a ticket accepted by a later CLI invocation. Runtime publication and the
-current local credential owner gate admission; the isolated developer fixture cannot admit it.
-
-The message-signature implementation supplies cryptographic verification, not application
-admission: consumers must verify body bytes, required coverage, freshness, role and pending-request
-binding themselves. Missing or uncertain evidence refuses. Deployment and shutdown claims require
-their own receipts; a successful protocol fixture is not such a receipt.
+Ordinary local HTTP Basic, Host, Origin, CORS and CSRF boundaries remain authoritative. Retiring
+the special stop route removes its middleware exceptions; it creates no replacement bypass.
 
 Secrets remain references in Codex and Runes, are emitted only for a unit that needs them, and are
 absent from lower-trust child environments, receipts, errors, and command lines. A Tomb supervisor

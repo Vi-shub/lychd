@@ -6,11 +6,6 @@ from typing import TYPE_CHECKING, ClassVar, cast
 
 import click
 
-from lychd.interface.server_policy import (
-    ServerRuntimePolicyError,
-    evaluate_server_runtime_policy,
-)
-
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
@@ -64,77 +59,6 @@ def _run_litestar(args: Sequence[str], *, prog_name: str) -> None:
         args=["--app", "lychd.app:create_app", *args],
         prog_name=prog_name,
     )
-
-
-@cli.command(
-    name="serve",
-    hidden=True,
-    context_settings={"ignore_unknown_options": True, "allow_extra_args": True},
-    epilog=(
-        "Owned options: --host/-H HOST; --port/-p PORT; --debug/-d; "
-        "--pdb/--use-pdb/-P; --workers/--wc/--web-concurrency/-W 1; "
-        "--metrics/--no-metrics (effective false); --metrics-address ADDRESS (dormant)."
-    ),
-)
-@click.argument("server_args", nargs=-1, type=click.UNPROCESSED)
-def serve(server_args: tuple[str, ...]) -> None:
-    """Run the ASGI vessel, preserving admitted listeners through late dotenv loading."""
-    from lychd.config.settings.root import get_settings
-
-    try:
-        policy = evaluate_server_runtime_policy(
-            environment=os.environ,
-            default_listener_port=get_settings().server.port,
-            server_arguments=server_args,
-        )
-    except ServerRuntimePolicyError as exc:
-        raise click.ClickException(str(exc)) from exc
-    if policy.listener_port is None:
-        message = "LychD could not resolve one effective listener port."
-        raise click.ClickException(message)
-    if policy.listener_host is None:
-        message = "LychD could not resolve one effective loopback listener host."
-        raise click.ClickException(message)
-    listener_environment = {
-        "LITESTAR_PORT": str(policy.listener_port),
-        "LITESTAR_HOST": policy.listener_host,
-        "GRANIAN_METRICS_ENABLED": "false",
-        "LITESTAR_FILE_DESCRIPTOR": "",
-        "GRANIAN_FILE_DESCRIPTOR": "",
-        "LITESTAR_UNIX_DOMAIN_SOCKET": "",
-        "GRANIAN_UDS": "",
-    }
-    previous_environment = {variable: os.environ.get(variable) for variable in listener_environment}
-    # Freeze admitted authority before dotenv can supply absent server settings.
-    os.environ.update(listener_environment)
-    try:
-        from pathlib import Path
-
-        from dotenv import load_dotenv
-
-        load_dotenv(dotenv_path=Path.cwd() / ".env", override=False)
-        try:
-            policy = evaluate_server_runtime_policy(
-                environment=os.environ,
-                default_listener_port=policy.listener_port,
-                server_arguments=server_args,
-            )
-        except ServerRuntimePolicyError as exc:
-            raise click.ClickException(str(exc)) from exc
-        from lychd.interface.server import run_production_server
-
-        run_production_server(
-            host=listener_environment["LITESTAR_HOST"],
-            port=int(listener_environment["LITESTAR_PORT"]),
-            debug=policy.debug,
-            pdb=policy.pdb,
-        )
-    finally:
-        for variable, previous_value in previous_environment.items():
-            if previous_value is None:
-                os.environ.pop(variable, None)
-            else:
-                os.environ[variable] = previous_value
 
 
 @cli.command(

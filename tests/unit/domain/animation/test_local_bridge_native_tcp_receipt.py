@@ -5,24 +5,50 @@
 
 from __future__ import annotations
 
-import json
 import re
-import tomllib
-from importlib.metadata import version
 
-from tests.support.local_bridge_receipt_freshness import NATIVE_SOURCES, require_current_tcp_coverage
+from tests.support.local_bridge_receipt_freshness import (
+    HISTORICAL_NATIVE_SOURCES,
+    read_historical_receipt,
+    require_historical_tcp_coverage,
+)
 from tests.unit.domain.animation import test_local_bridge_receipt as historical
 
 _ROOT = historical._ROOT
 _RECEIPT = _ROOT / "tests/fixtures/animator/local-bridge-vllm-native-tcp.json"
 _NATIVE_TEST = "tests/integration/test_local_bridge_native_tcp.py"
-_NATIVE_SOURCES = NATIVE_SOURCES
-_NATIVE_DEPENDENCIES = (*historical._CORE_DEPENDENCIES, "click", "granian", "python-dotenv")
+_NATIVE_SOURCES = HISTORICAL_NATIVE_SOURCES
+_HISTORICAL_NATIVE_DEPENDENCIES = {
+    "advanced-alchemy": "1.11.0",
+    "alembic": "1.19.2",
+    "asyncpg": "0.32.0",
+    "click": "8.5.0",
+    "cryptography": "50.0.2",
+    "docker": "7.2.0",
+    "granian": "2.8.2",
+    "http-message-signatures": "2.0.1",
+    "httpx": "0.28.1",
+    "httpx2": "2.12.0",
+    "litestar": "2.24.0",
+    "litestar-saq": "0.8.0",
+    "openai": "3.28.0",
+    "psycopg": "3.3.6",
+    "pydantic": "2.14.0",
+    "pydantic-ai-slim": "2.55.0",
+    "pydantic-graph": "2.55.0",
+    "pydantic-settings": "2.15.0",
+    "pytest": "9.1.1",
+    "python-dotenv": "1.2.3",
+    "saq": "0.26.4",
+    "sqlalchemy": "2.0.54",
+    "testcontainers": "4.15.0",
+    "typing-extensions": "4.16.0",
+}
 
 
-def test_native_tcp_receipt_preserves_its_observed_scope_and_privacy() -> None:
+def test_historical_native_tcp_receipt_preserves_its_observed_scope_and_privacy() -> None:
     text = _RECEIPT.read_text()
-    receipt = json.loads(text)
+    receipt = read_historical_receipt(_RECEIPT)
     assert receipt["schema"] == "local-bridge-vllm-native-tcp@1"
     assert receipt["record_kind"] == "sanitized_public_local_bridge_native_tcp_qualification"
     assert receipt["qualification_date"] == "2026-10-20"
@@ -90,8 +116,8 @@ def test_native_tcp_receipt_preserves_its_observed_scope_and_privacy() -> None:
     )
 
 
-def test_native_tcp_receipt_requires_normal_processes_and_identical_retained_state() -> None:
-    receipt = json.loads(_RECEIPT.read_text())
+def test_historical_native_tcp_receipt_requires_normal_processes_and_identical_retained_state() -> None:
+    receipt = read_historical_receipt(_RECEIPT)
     processes = receipt["processes"]
     assert processes["application_children"] == 2
     assert processes["start_method"] == "spawn"
@@ -140,8 +166,8 @@ def test_native_tcp_receipt_requires_normal_processes_and_identical_retained_sta
     assert outcome["external_compute_unknown"] is False
 
 
-def test_native_tcp_receipt_keeps_model_resource_and_cleanup_limits_explicit() -> None:
-    receipt = json.loads(_RECEIPT.read_text())
+def test_historical_native_tcp_receipt_keeps_model_resource_and_cleanup_limits_explicit() -> None:
+    receipt = read_historical_receipt(_RECEIPT)
     assert receipt["model"] == {
         "served_model_id": "Qwen3.8-27B",
         "model_bytes_attested": False,
@@ -220,8 +246,8 @@ def test_native_tcp_receipt_keeps_model_resource_and_cleanup_limits_explicit() -
     } <= set(receipt["unexercised"])
 
 
-def test_native_tcp_receipt_matches_qualified_sources_and_provenance() -> None:
-    receipt = json.loads(_RECEIPT.read_text())
+def test_historical_native_tcp_receipt_preserves_source_lineage_and_provenance() -> None:
+    receipt = read_historical_receipt(_RECEIPT)
     assert set(receipt["source_fingerprints"]) == historical._SOURCES | _NATIVE_SOURCES
     assert len(receipt["source_fingerprints"]) == 75
     evidence = receipt["qualification_evidence"]
@@ -256,15 +282,9 @@ def test_native_tcp_receipt_matches_qualified_sources_and_provenance() -> None:
     )
     for digest in evidence.values():
         assert re.fullmatch(r"[0-9a-f]{64}", digest)
-    require_current_tcp_coverage(_ROOT, historical._SOURCES, historical._SOURCES | _NATIVE_SOURCES)
+    require_historical_tcp_coverage(_ROOT, historical._SOURCES, historical._SOURCES | _NATIVE_SOURCES)
 
 
-def test_native_tcp_receipt_matches_selected_dependencies() -> None:
-    receipt = json.loads(_RECEIPT.read_text())
-    dependencies = {name: version(name) for name in _NATIVE_DEPENDENCIES}
-    # Optional SDKs use exact lock entries in ordinary offline CI.
-    locked = tomllib.loads((_ROOT / "uv.lock").read_text())
-    dependencies.update(
-        {item["name"]: item["version"] for item in locked["package"] if item["name"] in {"docker", "testcontainers"}}
-    )
-    assert receipt["dependency_versions"] == dependencies
+def test_historical_native_tcp_receipt_preserves_observed_dependencies() -> None:
+    receipt = read_historical_receipt(_RECEIPT)
+    assert receipt["dependency_versions"] == _HISTORICAL_NATIVE_DEPENDENCIES

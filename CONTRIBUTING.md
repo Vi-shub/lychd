@@ -150,8 +150,9 @@ does not itself issue credentials or authorize a release.
 
 ## Supported Environment
 
-- Python supports `>=3.12,<3.16`; `.python-version` pins 3.15.0 for repository, release,
-  documentation, and Altar tooling. Use `uv` 0.13.0 for dependencies and commands.
+- Python supports `>=3.12,<3.16`; `.python-version` pins 3.15.0 for repository tooling.
+  Core tests, lint, formatting checks and typing execute only in the explicit OCI check image
+  built from `Containerfile.tests`, with `uv` 0.13.0. There is no host-native Core test profile.
 - The Vessel uses the stable `python:3.14.8-slim-bookworm` base. Core Python CI selects both
   3.14.8 and 3.15.0; the manual Python and PostgreSQL jobs use the same two versions. These
   configured lanes keep the repository and Vessel interpreters under explicit checks; passing
@@ -173,7 +174,14 @@ owns those commands and their evidence boundaries.
 
 ## Setup and Commands
 
-Install only what the change needs:
+A working OCI engine is required for Core verification; rootless Podman is the default. `make` builds an explicit
+allowlisted source context and runs the resulting exact OCI image; it mounts neither the checkout
+nor HOME. Docker may be selected explicitly with `LYCHD_TEST_ENGINE=docker`. Missing engines
+or failed builds stop the check; there is no host fallback. Docker uses Buildx with `--resource`
+support (locally checked with 0.36.1), or an explicitly selected classic builder; Podman uses
+its native build limits.
+
+Install host operator or frontend tooling only when the change needs it:
 
 ```bash
 make install
@@ -181,8 +189,8 @@ make frontend-install    # Frontend changes only
 make help
 ```
 
-`make install` creates or updates `.venv` from `uv.lock`, including the local
-`postgres-binary` convenience extra. `make frontend-install` runs `npm ci` from the web-client lock.
+`make install` creates or updates host CLI tooling in `.venv` from `uv.lock`, including the local
+`postgres-binary` convenience extra; it does not supply a supported host Core test environment. `make frontend-install` runs `npm ci` from the web-client lock.
 
 `make init` materializes local host layout; it is not a development bootstrap. Use it only for
 [Summoning](docs/summoning.md) or deliberate host-initialization testing.
@@ -201,24 +209,28 @@ Omit a target variable for the repository-wide default. `make check` runs the co
 non-mutating Python lint, format, type, and test suite—not frontend checks. Use `make format` only
 when you intend to change files.
 
-Tests run serially by default so shared host-resource probes remain deterministic. Set an explicit
+Every Core command above enters `Containerfile.tests` through `scripts/container_checks.sh`.
+Use `LYCHD_TEST_PYTHON=3.14.8` or `3.15.0` to select a reviewed interpreter lane. Ordinary check
+containers have no network, added capabilities, host checkout, HOME or daemon socket.
+Tests run serially by default so shared resource probes remain deterministic. Set an explicit
 worker count such as `N=8` to opt into bounded parallelism, use `K="expression"` for pytest name
 selection, and use `VERBOSE=1` for raw output, long tracebacks, and live DEBUG logs. Ordinary runs use
 pytest's native compact report, capture logs, and allocate a unique scratch directory beneath
-`.cache/pytest`; set `PYTEST_BASETEMP` to an explicit current-user-owned path only when a caller
-must own that location. Use an ordinary test-data path such as a fresh `/tmp` directory, outside
+`.cache/pytest` inside the disposable container; `PYTEST_BASETEMP` also names a container path.
+Reports and scratch do not persist on the host unless separately admitted for export. Use an ordinary test-data path such as a fresh `/tmp` directory, outside
 protected authority roots such as `~/.codex`; mount-authority tests deliberately reject those roots.
 
 Pull requests and pushes to `dev` and `main` run **Core Python CI**: repository lint, formatting and strict
 typing, followed by `make test-ci`. This explicit selection covers configuration, database model
-contracts, release archive checks, native server admission, operator control, failed or masked unit
+contracts, release archive checks, container server policy, operator control, failed or masked unit
 deletion previews, credential and contributed-secret checks, init binding-site refusal,
 animation/dispatch/orchestration, core Run and delegated-job logic, extensions, agents and web contracts,
 Scout destination/parser/supervisor contracts and qualification-receipt freshness,
 plus configuration, extension contribution, reconstructed Bridge resume, and the inactive Blockworld
 placement workflow.
-It uses in-process substitutes, requires no container daemon, running database, systemd service,
-model or GPU, and does not prove host operation.
+It runs in the explicit OCI check image with in-process substitutes. The host needs the OCI
+engine to build and launch that image; ordinary test code receives no daemon socket, running
+database, systemd service, model or GPU. It does not prove host operation.
 `CI_PYTEST_TARGETS` in the Makefile owns the exact selection. Reproduce it locally with:
 
 ```bash
@@ -231,18 +243,22 @@ PostgreSQL, Altar check/build with the generated-diff guard, and a clean documen
 Host-dependent Quadlet/filesystem differences on GitHub runners remain unresolved; a core-CI
 pass does not waive these broader checks for a change that needs them. The Pages workflow builds
 documentation on `main`; the tag/manual release-candidate workflow remains a separate
-non-publishing artifact receipt. `make test` and `make check` retain their full non-container
+non-publishing artifact receipt. `make test` and `make check` retain their full `not container` marker
 selection; `make test-ci` does not replace them for final verification.
 
 Disposable PostgreSQL receipts are an explicit host-integration profile, not part of ordinary
 `make check`:
 
 ```bash
-make test-containers
+LYCHD_TEST_ENGINE=docker LYCHD_TEST_DAEMON_SOCKET=/absolute/path/to/owned-docker.sock make test-containers
 ```
 
-That target installs the separate `container-test` dependency group, requires a working
-Docker-compatible daemon, and may pull the pinned `pgvector` image. Ryuk remains unprivileged by
+The check image includes the separate `container-test` dependency group. This target requires
+an explicitly named absolute Docker daemon socket; it admits that socket and host
+networking to the test harness for disposable PostgreSQL. The socket profile disables the
+container SELinux label boundary for that trusted daemon-capable harness; it never relabels the
+host socket. Ordinary checks retain their container label boundary. It grants no such authority to the
+production Vessel and may pull the pinned `pgvector` image. Ryuk remains unprivileged by
 default. A rootless compatibility environment may deliberately opt in with
 `TESTCONTAINERS_RYUK_PRIVILEGED=true make test-containers`; do not export that setting as a normal
 repository default.
@@ -251,15 +267,17 @@ The maintained [Ward/native-authority PostgreSQL profile](docs/state-of-the-work
 records 23 cases: 18 Ward migration/runtime cases and five isolated inactive candidate-authority
 cases. This does not turn ordinary CI into a live database test or qualify installed activation.
 
-The separate opt-in [warm-model Bridge proof](docs/sepulcher/animator/soulstone/engines/vllm.md#join-one-reply-to-durable-bridge)
-joins streaming inference, SAQ, PostgreSQL and retained history across two application boots.
-Its separate Linux process-restart selection uses two sequential spawn children. Both need an
-explicit external loopback profile and never start the model; the page owns bounded commands
-and receipt requirements.
-Its separately admitted source-CLI/native TCP selection records two normal process boots,
-four refused message admissions, one complete SDK reply and identical retained state without
-second-boot inference. It has its own [scope and receipt](docs/state-of-the-work.md#vllm-integration);
-neither that source fixture nor the historical TestClient receipts qualify installed startup.
+The former warm-model ASGI, spawned-process and host-native TCP Bridge receipts, trusted browser
+receipt and installed-hybrid receipt are frozen historical observations. They were retired on
+20 October 2026 at base `7057210a`; they do not qualify this check image or a rebuilt production
+Vessel. [State of Work](docs/state-of-the-work.md#current-evidence-envelope) retains their exact
+scope. Current container runtime, browser and lifecycle qualification remain pending.
+
+The specialised engine/host proof descriptions below retain their named external boundaries.
+Their former host Python commands are not a supported Core verification route. A new occurrence
+requires an explicitly admitted OCI harness carrying those exact prerequisites and terminal
+receipts; the default wrapper does not forward arbitrary proof environment, files or sockets.
+No host-native fallback is supported when that adaptation is unavailable.
 
 Real private-manager tests require a fresh task-owned delegated user service. A private bus and
 HOME alone do not isolate cgroups: another manager could migrate unrelated processes from its
@@ -267,46 +285,10 @@ inherited cgroup. The harness verifies the exact transient unit, delegation, anc
 cgroup and exclusive task processes before launching; it never falls back to the installed
 manager. Ordinary unavailable environments skip; an explicitly required proof fails.
 
-The separate native stop proof runs three ordered cases: required-close failure, clean closure,
-then reference-connection loss after clean exit capture. It uses the actual generated native
-command with an explicit inert application factory. It exercises signed HTTP admission and
-Vessel-first dependency retention; it does not qualify a deployed model body.
-Run from the checkout with a fresh external basetemp:
-
-```bash
-proof_unit="lychd-proof-native-$$.service"
-systemd-run --user --unit="$proof_unit" --collect --wait --pipe --service-type=exec \
-  --property=Delegate=yes --property=TasksMax=128 --property=RuntimeMaxSec=150 \
-  --property=TimeoutStopSec=10 --property="WorkingDirectory=$PWD" \
-  --setenv="LYCHD_SYSTEMD_PROOF_OUTER_UNIT=$proof_unit" --setenv=LYCHD_REQUIRE_SYSTEMD_PROOF=1 \
-  /usr/bin/make test N=0 PYTEST_TARGETS=tests/integration/test_native_stop_systemd.py \
-  PYTEST_BASETEMP=/tmp/lychd-native-stop-proof
-```
-
-Inspect all three case receipts and cleanup beneath basetemp. Confirm the exact outer unit is collected
-and its cgroup is absent or empty. Requested CPU or memory properties do not establish effective
-limits; inspect the actual cgroup files when those limits are required.
-
-A separate retained-only case selects
-`tests/integration/test_native_stop_systemd.py::test_retained_scavenger_native_vessel_stop_restart`.
-Keep `LYCHD_REQUIRE_SYSTEMD_PROOF=1`; additionally pass
-`LYCHD_REQUIRE_NATIVE_SCAVENGER_PROOF=1` and an absolute `LYCHD_NATIVE_SCAVENGER_PROFILE` through
-the delegated unit environment, with a fresh external basetemp and sufficient bounded runtime.
-Invoke the selected node directly with the already locked interpreter's `python -B -m pytest -n 0`;
-perform no environment synchronization during the occurrence. Pin the delegated working directory
-to the reviewed checkout and pass `PYTHONPATH="$PWD/src:$PWD"`, `PYTHONDONTWRITEBYTECODE=1` and
-`PYTHONNOUSERSITE=1` through the unit environment so parent imports use that exact source too.
-Admit exclusive external database/profile custody and zero acquisition/inference before launch.
-Read the closed twelve-string input contract in
-[the retained-input helper](tests/fixtures/web/native_scavenger_app.py) before preparing its private
-0600 JSON profile, 0600 credential/configuration/canonical files and real owner-only 0700
-application HOME/XDG roots. The operator owns database/schema/role readiness, the exact retained
-50-item terminal observation and complete five-table baseline, with no active work or reservations.
-The helper validates prerequisites; it does not initialize or repair them. PostgreSQL stays live
-and external throughout both native stops and must be settled separately while preserving its
-volume. Review complete native/manager logs and both stop/restart receipts, then reconcile owned
-processes and resources independently. Do not publish the profile, credentials or raw logs, or
-interpret an idle readback as dependency shutdown, installed lifetime or worker-execution proof.
+The host-native signed-stop proof and its server, credential-source, TCP and private-manager
+fixtures are retired. Current active container stop/start completion remains unavailable until
+its own authenticated lifecycle passage is implemented and qualified. Historical native stops
+cannot establish container settlement or authorize a direct fallback.
 
 The separate Linux target-switch proof requires the installed Quadlet generator, an ordinary
 rootless Podman cache containing the exact Python image pinned in its test, and a responding user
@@ -362,30 +344,10 @@ installed `container-test` dependencies, local Docker socket and the already cac
 image `sha256:1963bc48febf543433baa1ce3edcc6cc08154de722e22495f86681cc9a849026`.
 It never pulls either image or selects a warm service.
 
-Admit one fresh occurrence and keep its terminal handle. Run from the intended checkout with its existing compatible `.venv` inside
-this trusted user-unit profile; use a fresh short basetemp under `/tmp`. The Python pytest process
-must be the unit MainPID, so the unit directly executes Python rather than a Make or uv wrapper. The helper refuses an
-unadmitted outer unit, aliased/reused roots, shared writable ancestors or an overlong PostgreSQL
-socket path. This example supplies the required unit profile; it is not a foreign-runtime cage.
-
-```bash
-proof_python="$PWD/.venv/bin/python"
-proof_id="$("$proof_python" -c 'import uuid; print(uuid.uuid4().hex)')"
-proof_unit="lychd-archive-native-${proof_id}.service"
-systemd-run --user --unit="$proof_unit" --collect --wait --pipe \
-  --property="WorkingDirectory=$PWD" --property=TasksMax=512 \
-  --property=RuntimeMaxSec=300 --property=TimeoutStopSec=30 \
-  --property=KillMode=control-group --property=Restart=no \
-  --property=LimitAS=8G --property=LimitCPU=180 --property=LimitNOFILE=512 \
-  --property=LimitFSIZE=16777216 --property=LimitCORE=0 --property=UMask=0077 \
-  env PYTHONPATH="$PWD/src:$PWD" PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 \
-  LYCHD_REQUIRE_ARCHIVE_SEMANTIC_NATIVE_PROOF=1 \
-  LYCHD_ARCHIVE_NATIVE_OUTER_UNIT="$proof_unit" \
-  LYCHD_EMBEDDING_FIXTURE=/absolute/path/Qwen3-Embedding-0.6B-Q8_0.gguf \
-  "$proof_python" -B -m pytest -m container -q \
-  --basetemp="/tmp/lsn-${proof_id:0:8}" \
-  tests/integration/test_archive_semantic_native_runtime.py
-```
+The prior direct-host pytest launch is retired as a Core verification route. The retained
+Archive observation describes its historical trusted user-unit profile; a new execution needs
+an admitted OCI adaptation of its external model, database, namespace and terminal-custody
+requirements. No current container qualification is asserted here.
 
 The helper owns one model container with no IP network/host port/GPU, one networkless
 PostgreSQL container with a fresh temporary Unix-socket bind and anonymous data, and one
@@ -561,13 +523,13 @@ The optional offline music engineering profile runs without the Vessel or a nati
 ```bash
 uv sync --locked --group music-probe --inexact
 uv run --locked --group music-probe python scripts/music_probe.py --help
-uv run --locked --group music-probe pytest tests/unit/compositions tests/unit/system/services/test_music_probe.py tests/unit/system/services/test_comfy_probe.py
 ```
 
 The `music-probe` group installs DawDreamer and NumPy for finite native audio proofs; it is not a
 Vessel dependency. The typing group includes NumPy's array annotations without installing
-DawDreamer. Native audio tests explicitly skip when DawDreamer is absent; the group-enabled gate
-must execute them. Pure recipe, CLI and Comfy transport tests require no running model or service.
+DawDreamer. Native audio tests explicitly skip when DawDreamer is absent; a group-enabled gate must run
+inside an explicit OCI test image containing those dependencies. The default check image does not
+qualify that optional group; do not substitute a host pytest invocation. Pure recipe, CLI and Comfy transport tests require no running model or service.
 Keep recipes, imported media and results in explicit absolute paths outside every checkout.
 [Workbench](docs/compositions/riffmaw/workbench.md) owns the supported probe operations and limits.
 
@@ -578,10 +540,13 @@ make frontend-check
 make frontend-build
 ```
 
-Both regenerate the Litestar OpenAPI contract. The build updates the tracked static Altar in
+Both regenerate the Litestar OpenAPI contract through offline host build tooling. Schema export
+constructs no Core listener or lifespan; frontend client tests retain their separate Node boundary.
+This host tooling does not create a host-native Core deployment or test profile. The build updates the tracked static Altar in
 `src/lychd/public/`; review and commit it with its source change.
 
-For documentation changes, run:
+For documentation changes, run the architecture selection through the OCI wrapper. Run the
+clean Zensical command inside an explicitly admitted OCI documentation environment:
 
 ```bash
 make test PYTEST_TARGETS="tests/architecture" N=0
@@ -630,10 +595,10 @@ Loom. Check that authentication carries across those reads. These commands and b
 alone do not qualify that browser workflow; [State of Work](docs/state-of-the-work.md#current-evidence-envelope)
 records the evidence boundary.
 
-A separate trusted source-browser receipt qualifies one fixed authenticated keyboard journey,
-controlled failure, useful reply and retained reload against source CLI/Granian and the compiled
-Altar. Its explicit fixtures and independent review are recorded in that same State envelope;
-it does not qualify this Vite fixture or ordinary installed startup. Reloaded replies may use
+A separate frozen source-browser receipt records one fixed authenticated keyboard journey,
+controlled failure, useful reply and retained reload against the retired host-native CLI/Granian
+profile and its compiled Altar. Its explicit fixtures and independent review are recorded in that same State envelope;
+it does not qualify the current container fixture, rebuilt Vessel or ordinary installed startup. Reloaded replies may use
 generic **Retained reply** cards; retained failed text does not imply every live badge survives.
 
 The fixture admits the exact Vite origin through the normal Host, CORS, Origin, authentication,

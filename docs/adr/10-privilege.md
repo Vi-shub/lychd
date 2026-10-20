@@ -7,9 +7,10 @@ icon: material/transfer-up
 
 !!! abstract "Context"
     The Vessel does not receive a shell, Podman socket, user-systemd bus, or general root authority.
-    Privileged effects cross one of two non-interchangeable boundaries: the default caged Host
-    Reactor, or explicit uncaged direct systemd development mode. Both accept the same closed
-    transition word; only trusted bootstrap selects the effect owner.
+    The managed Vessel crosses the Host Reactor boundary for privileged effects. The typed direct
+    systemd adapter remains a host-side mechanism exercised by explicit OCI tests, not a
+    host-native Vessel deployment. Both accept the same closed transition word; trusted
+    construction selects the effect owner without granting the container host control authority.
 
 ## Decision: authority before effect
 

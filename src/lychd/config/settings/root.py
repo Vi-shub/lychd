@@ -5,9 +5,9 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from functools import lru_cache
-from typing import Any, override
+from typing import override
 
-from pydantic import Field, PrivateAttr, SecretStr, model_validator
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict, TomlConfigSettingsSource
 
 from lychd.config.settings.archive import ArchiveSettings
@@ -15,7 +15,7 @@ from lychd.config.settings.extensions import ExtensionSettings
 from lychd.config.settings.orchestration import OrchestrationSettings
 from lychd.config.settings.section import SettingsSection
 from lychd.config.settings.server import ServerSettings
-from lychd.config.settings.sources import RuntimeSecretCapture, RuntimeSecretsSource, runtime_secret_capture
+from lychd.config.settings.sources import RuntimeSecretsSource
 from lychd.config.settings.weaver import WeaverSettings
 from lychd.domain.archive import ArchiveProfile
 from lychd.system.constants import PATH_LYCHD_TOML
@@ -53,18 +53,6 @@ class Settings(_SettingsValues, BaseSettings):
     """Load one configuration generation, including runtime credentials, at construction."""
 
     model_config = SettingsConfigDict(env_nested_delimiter="__", extra="forbid", hide_input_in_errors=True)
-    _runtime_secret_capture: RuntimeSecretCapture | None = PrivateAttr(default=None)
-
-    def __init__(self, **values: Any) -> None:
-        """Retain source provenance privately alongside the validated generation."""
-        with runtime_secret_capture() as capture:
-            super().__init__(**values)
-        self._runtime_secret_capture = capture.result
-
-    @property
-    def runtime_secret_capture(self) -> RuntimeSecretCapture | None:
-        """Return startup provenance without reopening environment or secret owners."""
-        return self._runtime_secret_capture
 
     @classmethod
     @override
@@ -99,7 +87,6 @@ class SettingsSnapshot:
     database_runtime_password: SecretStr | None = field(default=None, repr=False)
     database_phoenix_password: SecretStr | None = field(default=None, repr=False)
     web_access_password: SecretStr | None = field(default=None, repr=False)
-    runtime_secret_capture: RuntimeSecretCapture | None = None
 
     @classmethod
     def capture(cls, settings: Settings) -> SettingsSnapshot:
@@ -111,7 +98,6 @@ class SettingsSnapshot:
             database_runtime_password=settings.server.database.runtime_password,
             database_phoenix_password=settings.server.database.phoenix_password,
             web_access_password=settings.server.web.access_password,
-            runtime_secret_capture=settings.runtime_secret_capture,
         )
 
     def materialize(self) -> Settings:
@@ -130,7 +116,7 @@ class SettingsSnapshot:
                 "access_password": self.web_access_password,
             }
         )
-        return Settings.model_construct(**dict(values), _runtime_secret_capture=self.runtime_secret_capture)
+        return Settings.model_construct(**dict(values))
 
 
 @lru_cache(maxsize=1, typed=True)

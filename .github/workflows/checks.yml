@@ -1,12 +1,8 @@
 name: Repository Checks
 
 # Full qualification remains manual. Core Python CI runs its named subset on PRs.
-# This broader gate is green on a maintainer workstation but red on a
-# GitHub-hosted runner, and the differences are environmental rather than code:
-# ubuntu-latest carries Podman 4.9, whose Quadlet generator rejects the `Pod=`
-# key that Podman 5 accepts, and the file-publication and workspace-restore
-# receipts classify a restored path differently there than on the developer's
-# filesystem. Resolve those prerequisites before expanding automatic coverage.
+# Python runs inside the reviewed test image, including its Podman 5 Quadlet
+# generator. Passing this gate does not qualify deployed host services.
 on:
   workflow_dispatch:
 
@@ -30,7 +26,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      UV_CACHE_DIR: .cache/uv
+      LYCHD_TEST_ENGINE: docker
+      LYCHD_TEST_PYTHON: ${{ matrix.python-version }}
       PYTEST_BASETEMP: .cache/pytest/python-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - name: Check out source
@@ -38,15 +35,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install Python and uv
-        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
-        with:
-          version: "0.13.0"
-          python-version: ${{ matrix.python-version }}
-          enable-cache: true
-          cache-suffix: checks-python-${{ matrix.python-version }}
-
-      - name: Run repository Python gate
+      - name: Run repository Python gate in the OCI test image
         run: make check
 
   postgres:
@@ -58,7 +47,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      UV_CACHE_DIR: .cache/uv
+      LYCHD_TEST_ENGINE: docker
+      LYCHD_TEST_PYTHON: ${{ matrix.python-version }}
+      LYCHD_TEST_DAEMON_SOCKET: /var/run/docker.sock
       PYTEST_BASETEMP: .cache/pytest/postgres-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - name: Check out source
@@ -66,15 +57,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install Python and uv
-        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
-        with:
-          version: "0.13.0"
-          python-version: ${{ matrix.python-version }}
-          enable-cache: true
-          cache-suffix: checks-postgres-${{ matrix.python-version }}
-
-      - name: Run disposable PostgreSQL receipts
+      - name: Run PostgreSQL receipts in the test image with explicit daemon access
         run: make test-containers N=0
 
   altar:

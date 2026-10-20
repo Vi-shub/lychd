@@ -186,6 +186,17 @@ class DeletionPlanner:
                     f"cannot produce an exact retirement plan: {exc}",
                 )
             )
+        retired_native = "lychd-uncaged-vessel.service"
+        if (owned is not None and retired_native in owned.runtime_units) or (
+            unit_plan is not None and retired_native in unit_plan.owned_units
+        ):
+            actions.append(
+                self._quiesce_blocker(
+                    "Retired native Vessel",
+                    "manual reconciliation is required; no retirement or deletion is authorized",
+                )
+            )
+            unit_plan = None
         if owned is not None and unit_plan is not None and owned.generation != unit_plan.generation:
             actions.append(
                 self._quiesce_blocker(

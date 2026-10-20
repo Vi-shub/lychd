@@ -10,10 +10,7 @@ from lychd.domain.animation.services.declarations import (
     compile_animator_declarations,
 )
 from lychd.system.services.bind_assembly import assemble_bind_use_case
-from lychd.system.services.bind_compilation import (
-    compile_bind_request,
-    uncaged_control_plane_secret_names,
-)
+from lychd.system.services.bind_compilation import compile_bind_request
 
 if TYPE_CHECKING:
     from lychd.config.runes.registry import RuneRegistry
@@ -46,11 +43,9 @@ class BindingCommandSession:
     portals: tuple[PortalConfig, ...]
     preflight_service: BindingPreflightService
     preflight: BindingPreflightReport
-    uncaged: bool
-    native_only: bool = False
 
     @classmethod
-    def inspect(cls, *, uncaged: bool, native_only: bool = False) -> BindingCommandSession:
+    def inspect(cls) -> BindingCommandSession:
         """Load declared intent once and inspect prerequisites without effects."""
         from lychd.config.runes.registry import load_rune_registry
         from lychd.config.settings.root import get_settings
@@ -67,19 +62,7 @@ class BindingCommandSession:
             runes=runes,
         )
         preflight_service = BindingPreflightService()
-        preflight = preflight_service.inspect(
-            settings,
-            uncaged=uncaged,
-            native_only=native_only,
-            uncaged_control_plane_secrets=(
-                uncaged_control_plane_secret_names(declarations.soulstones) if uncaged or native_only else ()
-            ),
-            native_portal_secrets=(
-                tuple(portal.api_key_secret_name for portal in declarations.portals if portal.api_key_secret_name)
-                if native_only
-                else ()
-            ),
-        )
+        preflight = preflight_service.inspect(settings)
         return cls(
             settings_snapshot=SettingsSnapshot.capture(settings),
             extensions=extensions,
@@ -88,8 +71,6 @@ class BindingCommandSession:
             portals=declarations.portals,
             preflight_service=preflight_service,
             preflight=preflight,
-            uncaged=uncaged,
-            native_only=native_only,
         )
 
     def prepare(self) -> PreparedBinding:
@@ -102,23 +83,11 @@ class BindingCommandSession:
             runes=self.runes,
             soulstones=self.soulstones,
             portals=self.portals,
-            uncaged=self.uncaged,
-            native_only=self.native_only,
         )
         use_case = assemble_bind_use_case(
             foundation=foundation,
             preflight_service=self.preflight_service,
             settings_snapshot=self.settings_snapshot,
-            uncaged_control_plane_secrets=(
-                uncaged_control_plane_secret_names(self.soulstones) if self.uncaged or self.native_only else ()
-            ),
-            native_portal_secrets=(
-                tuple(portal.api_key_secret_name for portal in self.portals if portal.api_key_secret_name)
-                if self.native_only
-                else ()
-            ),
-            uncaged=self.uncaged,
-            native_only=self.native_only,
         )
         return PreparedBinding(
             request=request,

@@ -1,23 +1,18 @@
 """Single-snapshot contracts for pure bind request compilation."""
 
-import os
-import sys
-from collections.abc import Sequence
 from contextlib import nullcontext
 from dataclasses import dataclass
 from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
-from click.testing import CliRunner
-from pydantic import SecretStr
 
 from lychd.config import QuadletConfig
 from lychd.config.runes.registry import RuneRegistry
 from lychd.config.settings.root import Settings, get_settings
 from lychd.config.settings.server import ServerSettings
 from lychd.domain.animation.conflicts import ConflictTopologyError
-from lychd.domain.animation.schemas import GenericSoulstoneConfig, OpenAIPortalConfig, SoulstoneConfig
+from lychd.domain.animation.schemas import GenericSoulstoneConfig, OpenAIPortalConfig
 from lychd.domain.animation.transmute import QuadletContribution, TransmutationContext
 from lychd.extensions.context import ExtensionContext
 from lychd.extensions.host import AssembledExtensions, assemble_extensions
@@ -35,7 +30,6 @@ from lychd.system.services.bind import (
     BindUseCase,
 )
 from lychd.system.services.bind_compilation import compile_bind_request
-from lychd.system.services.binding_preflight import BindingPreflightReport
 from lychd.system.services.scribe import BindingReconcilePlan
 
 
@@ -51,7 +45,6 @@ def test_compile_uses_only_its_injected_settings_snapshot() -> None:
         runes=RuneRegistry(()),
         soulstones=(),
         portals=(),
-        uncaged=False,
     )
 
     pod = next(manifest for manifest in request.manifests if isinstance(manifest, QuadletPod))
@@ -60,24 +53,6 @@ def test_compile_uses_only_its_injected_settings_snapshot() -> None:
     assert tuple(secret.name for secret in request.core_secrets) == tuple(
         sorted(settings.server.privileged_secret_names)
     )
-
-
-def test_compile_emits_uncaged_vessel_unit_from_injected_settings() -> None:
-    settings = Settings(server=ServerSettings(port=9999))
-
-    request = compile_bind_request(
-        settings=settings,
-        extensions=assemble_extensions(settings),
-        runes=RuneRegistry(()),
-        soulstones=(),
-        portals=(),
-        uncaged=True,
-    )
-
-    rendered = request.plain_unit_mapping()["lychd-uncaged-vessel.service"]
-    executable = Path(sys.prefix) / "bin" / "lychd"
-    assert f'ExecStart="{executable}" serve --host 127.0.0.1 --port 9999' in rendered
-    assert 'Environment="LYCHD_MODE=uncaged"' in rendered
 
 
 def test_bind_rejects_a_soulstone_without_an_advertised_capability() -> None:
@@ -99,7 +74,6 @@ def test_bind_rejects_a_soulstone_without_an_advertised_capability() -> None:
             runes=RuneRegistry(()),
             soulstones=(stone,),
             portals=(),
-            uncaged=False,
         )
 
 
@@ -137,7 +111,6 @@ def _contributor_request(
         runes=RuneRegistry(()),
         soulstones=(),
         portals=portals,
-        uncaged=False,
     )
 
 
@@ -336,7 +309,6 @@ def test_compilation_keeps_soulstone_requirements_and_core_alias_refusal(*, alia
                 runes=RuneRegistry(()),
                 soulstones=(stone,),
                 portals=(),
-                uncaged=False,
             )
     else:
         request = compile_bind_request(
@@ -345,7 +317,6 @@ def test_compilation_keeps_soulstone_requirements_and_core_alias_refusal(*, alia
             runes=RuneRegistry(()),
             soulstones=(stone,),
             portals=(),
-            uncaged=False,
         )
         assert request.required_secret_names == ("runtime-token",)
 
@@ -392,7 +363,6 @@ def test_contributor_raw_secret_refuses_before_binding_effects(
             runes=RuneRegistry(()),
             soulstones=(),
             portals=(),
-            uncaged=False,
         )
         use_case.apply(request, use_case.plan(request))
 
@@ -448,7 +418,6 @@ def test_contributor_unsupported_raw_arguments_refuse_before_binding_effects(
             runes=RuneRegistry(()),
             soulstones=(),
             portals=(),
-            uncaged=False,
         )
         use_case.apply(request, use_case.plan(request))
 
@@ -496,7 +465,6 @@ def test_supported_raw_contribution_keeps_typed_loopback_ports_through_binding(
         runes=RuneRegistry(()),
         soulstones=(),
         portals=(),
-        uncaged=False,
     )
     use_case, _, scribe, systemd = _bind_ports(set())
 
@@ -520,222 +488,47 @@ def test_supported_raw_contribution_keeps_typed_loopback_ports_through_binding(
     systemd.daemon_reload.assert_called_once_with()
 
 
-def _native_profile_request(
-    settings: Settings,
-    *,
-    native_only: bool = False,
-    soulstones: Sequence[SoulstoneConfig] = (),
-) -> BindRequest:
-    return compile_bind_request(
+def test_container_fileset_keeps_all_core_services_and_reactor() -> None:
+    """The one profile retains the image-owned bootstrap and credential boundaries."""
+    settings = Settings(server=ServerSettings(port=9999))
+    settings.server.database.port = 15432
+    request = compile_bind_request(
         settings=settings,
         extensions=assemble_extensions(settings),
         runes=RuneRegistry(()),
-        soulstones=soulstones,
+        soulstones=(),
         portals=(),
-        uncaged=False,
-        native_only=native_only,
     )
-
-
-@pytest.mark.parametrize("actuator", ["host-reactor", "systemd"])
-def test_native_only_fileset_preserves_storage_and_orders_native_start(actuator: str) -> None:
-    """Only the native listener changes; every image-owned bootstrap contract survives."""
-    from lychd.system import constants
-
-    settings = Settings()
-    settings.orchestration.switching = settings.orchestration.switching.model_validate({"actuator": actuator})
-    settings.server.port = 9999
-    settings.server.database.port = 15432
-    baseline = _native_profile_request(settings)
-    request = _native_profile_request(settings, native_only=True)
     containers = {m.container_name: m for m in request.manifests if isinstance(m, QuadletContainer)}
-    baseline_containers = {m.container_name: m for m in baseline.manifests if isinstance(m, QuadletContainer)}
-    assert set(containers) == {"lychd-phylactery", "lychd-migrate"}
-    for name, container in containers.items():
-        assert container == baseline_containers[name]
+    assert set(containers) == {"lychd-vessel", "lychd-phylactery", "lychd-migrate"}
+    assert set(request.plain_unit_mapping()) == {"lychd-reactor.path", "lychd-reactor.service"}
     pod = next(m for m in request.manifests if isinstance(m, QuadletPod))
-    assert pod.publish_ports == ["127.0.0.1:15432:5432"]
-    expected = {"lychd-uncaged-vessel.service"}
-    if actuator == "host-reactor":
-        expected |= {"lychd-reactor.path", "lychd-reactor.service"}
-    assert set(request.plain_unit_mapping()) == expected
-    native = request.plain_unit_mapping()["lychd-uncaged-vessel.service"]
-    assert f'ExecStart="{Path(sys.prefix) / "bin" / "lychd"}" serve --host 127.0.0.1 --port 9999' in native
-    dependencies = "lychd-migrate.service" + (" lychd-reactor.path" if actuator == "host-reactor" else "")
-    assert f"Requires={dependencies}\nAfter={dependencies}\n" in native
-    assignments = [line for line in native.splitlines() if line.startswith("Environment=")]
-    assert assignments == sorted(
-        [
-            f'Environment="HOME={Path.home()}"',
-            'Environment="LYCHD_MODE=uncaged"',
-            'Environment="LYCHD_RUNTIME_SECRETS=podman-core@1"',
-            'Environment="SERVER__DATABASE__HOST=127.0.0.1"',
-            'Environment="SERVER__DATABASE__PORT=15432"',
-            f'Environment="XDG_CACHE_HOME={constants.PATH_XDG_CACHE_HOME}"',
-            f'Environment="XDG_CONFIG_HOME={constants.PATH_XDG_CONFIG_HOME}"',
-            f'Environment="XDG_DATA_HOME={constants.PATH_XDG_DATA_HOME}"',
-        ]
-    )
-    runtime_names = {
+    assert pod.publish_ports == [f"127.0.0.1:9999:{CONTAINER_LYCHD_PORT}", "127.0.0.1:15432:5432"]
+    vessel = containers["lychd-vessel"]
+    assert vessel.read_only
+    assert vessel.secret_mount_tmpfs
+    assert vessel.requires == ["lychd-migrate.service", "lychd-reactor.path"]
+    assert set(vessel.secrets) == {
         settings.server.database.runtime_password_secret,
         settings.server.web.secret_key_secret,
         settings.server.web.access_password_secret,
     }
-    assert set(request.required_secret_names) == {*baseline.required_secret_names, *runtime_names}
-    assert {secret.name for secret in request.core_secrets} == {
+    assert settings.server.database.password_secret not in vessel.secrets
+    assert settings.server.database.phoenix_password_secret not in vessel.secrets
+    assert set(containers["lychd-migrate"].secrets) == {
         settings.server.database.password_secret,
-        settings.server.database.phoenix_password_secret,
-    }
-    assert request.secret_names == baseline.secret_names
-
-
-def test_native_only_refuses_dual_selection_before_compilation() -> None:
-    settings = Settings()
-    with pytest.raises(ValueError, match="mutually exclusive"):
-        compile_bind_request(
-            settings=settings,
-            extensions=assemble_extensions(settings),
-            runes=RuneRegistry(()),
-            soulstones=(),
-            portals=(),
-            uncaged=True,
-            native_only=True,
-        )
-
-
-def test_native_only_preserves_model_declarations_and_contributor_ports() -> None:
-    from lychd.extensions.builtin.animator.soulstones.vllm import VllmSoulstoneConfig
-
-    settings = Settings.model_validate({"extensions": {"builtins": ("animator/vllm",), "crypt": ()}})
-    stone = VllmSoulstoneConfig(name="model", model_path="/models/test", port=20000)
-    baseline = _native_profile_request(settings, soulstones=(stone,))
-    native = _native_profile_request(settings, soulstones=(stone,), native_only=True)
-    assert [m for m in native.manifests if not isinstance(m, QuadletPod)] == [
-        m
-        for m in baseline.manifests
-        if not isinstance(m, QuadletPod)
-        and not (isinstance(m, QuadletContainer) and m.container_name == "lychd-vessel")
-    ]
-    assert set(native.required_secret_names) == {
-        *baseline.required_secret_names,
         settings.server.database.runtime_password_secret,
-        settings.server.web.secret_key_secret,
-        settings.server.web.access_password_secret,
-    }
-
-
-def test_native_only_cannot_reintroduce_application_port_through_contribution() -> None:
-    settings = Settings()
-    context = ExtensionContext()
-    context.registration_view("crypt:port-test").transmutation.add_contributor(
-        _RawPodmanContributor(arguments=(), mutate_before_return=False, pod_ports=(f"{settings.server.port}:9999",)),
-    )
-    with pytest.raises(ValueError, match="native Vessel listener port"):
-        compile_bind_request(
-            settings=settings,
-            extensions=AssembledExtensions(context=context),
-            runes=RuneRegistry(()),
-            soulstones=(),
-            portals=(),
-            uncaged=False,
-            native_only=True,
-        )
-
-
-def test_native_fileset_cannot_adopt_a_foreign_native_unit(tmp_path: Path) -> None:
-    from lychd.system.constants import PATH_RUNE_TEMPLATES_DIR
-    from lychd.system.services.scribe import ScribeConflictError, ScribeService
-
-    quadlet, units = tmp_path / "quadlet", tmp_path / "units"
-    quadlet.mkdir(mode=0o700)
-    units.mkdir(mode=0o700)
-    occupied = units / "lychd-uncaged-vessel.service"
-    occupied.write_text("foreign-native-unit", encoding="utf-8")
-    request = _native_profile_request(Settings(), native_only=True)
-    scribe = ScribeService(templates_dir=PATH_RUNE_TEMPLATES_DIR, output_dir=quadlet, systemd_dir=units)
-    with pytest.raises(ScribeConflictError, match="unowned"):
-        scribe.plan_reconcile_all(request.manifests, plain_units=request.plain_unit_mapping())
-    assert occupied.read_text(encoding="utf-8") == "foreign-native-unit"
-    assert not scribe.ownership_path.exists()
-    assert tuple(quadlet.iterdir()) == ()
-
-
-def test_native_runtime_secret_disappearing_after_plan_refuses_before_effects() -> None:
-    settings = Settings()
-    request = _native_profile_request(settings, native_only=True)
-    present = set(request.secret_names)
-    use_case, secrets, scribe, systemd = _bind_ports(present)
-    approved = use_case.plan(request)
-    present.remove(settings.server.database.runtime_password_secret)
-    with pytest.raises(BindingPlanDriftError, match="secret state changed after planning"):
-        use_case.apply(request, approved)
-    secrets.ensure_present.assert_not_called()
-    scribe.reconcile_all.assert_not_called()
-    systemd.daemon_reload.assert_not_called()
-
-
-@pytest.mark.parametrize("missing_index", [0, 1, 2])
-@pytest.mark.parametrize("dry_run", [False, True])
-def test_native_runtime_secret_absent_before_initial_plan_refuses_cli_and_apply(
-    missing_index: int,
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    *,
-    dry_run: bool,
-) -> None:
-    from lychd.cli.binding import PreparedBinding
-    from lychd.cli.commands import bind_quadlets
-
-    names = ("native-runtime", "native-signing", "native-access")
-    present: set[str] = set(names)
-    use_case, secrets, scribe, systemd = _bind_ports(present)
-    secrets.read.return_value = SecretStr("synthetic-native-capture-credential-1234567890")
-    monkeypatch.setattr(
-        os,
-        "environ",
-        {
-            "LYCHD_RUNTIME_SECRETS": "podman-core@1",
-            "SERVER__DATABASE__RUNTIME_PASSWORD_SECRET": names[0],
-            "SERVER__WEB__SECRET_KEY_SECRET": names[1],
-            "SERVER__WEB__ACCESS_PASSWORD_SECRET": names[2],
-        },
-    )
-    monkeypatch.setattr("lychd.config.settings.root.PATH_LYCHD_TOML", tmp_path / "absent.toml")
-    monkeypatch.setattr("lychd.system.host_tools.trusted_host_tool", MagicMock(return_value="/usr/bin/podman"))
-    monkeypatch.setattr("lychd.system.services.secrets.PodmanSecretStore", MagicMock(return_value=secrets))
-    settings = Settings()
-    assert settings.runtime_secret_capture is not None
-    assert settings.runtime_secret_capture.names == names
-    assert [call.args[0] for call in secrets.read.call_args_list] == list(names)
-    request = _native_profile_request(settings, native_only=True)
-    missing_name = names[missing_index]
-    present.remove(missing_name)
-    approved = use_case.plan(request)
-    assert approved.missing_required_secrets == (missing_name,)
-    assert set(approved.missing_core_secrets) == {
-        settings.server.database.password_secret,
         settings.server.database.phoenix_password_secret,
     }
-    session = MagicMock()
-    session.preflight = BindingPreflightReport(issues=(), foundation=approved.foundation)
-    session.prepare.return_value = PreparedBinding(request=request, plan=approved, use_case=use_case)
-    monkeypatch.setattr("lychd.cli.binding.BindingCommandSession.inspect", MagicMock(return_value=session))
-    result = CliRunner().invoke(bind_quadlets, ["--native-only", *(["--dry-run"] if dry_run else [])])
-    assert result.exit_code == 1, result.output
-    assert missing_name in result.output
-    assert "Binding plan is coherent" not in result.output
-    with pytest.raises(BindingRequirementError, match=missing_name):
-        use_case.apply(request, approved)
-    assert secrets.read.call_count == 3
-    secrets.ensure_present.assert_not_called()
-    scribe.reconcile_all.assert_not_called()
-    systemd.daemon_reload.assert_not_called()
+    assert containers["lychd-phylactery"].secrets == [settings.server.database.password_secret]
+    assert {secret.name for secret in request.core_secrets} == set(settings.server.privileged_secret_names)
+    assert request.required_secret_names == ()
 
 
 @pytest.mark.parametrize("stem", ["lychd-vessel", "lychd-uncaged-vessel"])
 @pytest.mark.parametrize("suffix", ["", ".container", ".service"])
-def test_native_contribution_cannot_emit_a_reserved_vessel_source(stem: str, suffix: str) -> None:
-    _assert_native_contribution_refuses(
+def test_contribution_cannot_emit_a_reserved_vessel_source(stem: str, suffix: str) -> None:
+    _assert_contribution_refuses(
         QuadletContainer(
             description="Reserved source",
             image="fixture/image",
@@ -744,13 +537,13 @@ def test_native_contribution_cannot_emit_a_reserved_vessel_source(stem: str, suf
     )
 
 
-@pytest.mark.parametrize("stem", ["lychd-vessel", "lychd-uncaged-vessel"])
 @pytest.mark.parametrize(
     "field", ["pod", "pod_service", "wants", "requires", "after", "binds_to", "conflicts", "wanted_by"]
 )
-def test_native_contribution_cannot_reintroduce_a_vessel_through_unit_directives(stem: str, field: str) -> None:
+def test_contribution_cannot_reintroduce_a_retired_vessel_through_unit_directives(field: str) -> None:
+    stem = "lychd-uncaged-vessel"
     value = f"{stem}.container" if field == "pod" else f"{stem}.service"
-    _assert_native_contribution_refuses(
+    _assert_contribution_refuses(
         QuadletContainer.model_validate(
             {
                 "description": "Reserved unit reference",
@@ -762,7 +555,7 @@ def test_native_contribution_cannot_reintroduce_a_vessel_through_unit_directives
     )
 
 
-def _assert_native_contribution_refuses(container: QuadletContainer) -> None:
+def _assert_contribution_refuses(container: QuadletContainer) -> None:
     context = ExtensionContext()
     context.registration_view("crypt:reserved-vessel-test").transmutation.add_contributor(
         _SecretContributor(containers=(container,)),
@@ -776,8 +569,6 @@ def _assert_native_contribution_refuses(container: QuadletContainer) -> None:
             runes=RuneRegistry(()),
             soulstones=(),
             portals=(),
-            uncaged=False,
-            native_only=True,
         )
         use_case.apply(request, use_case.plan(request))
 
@@ -790,27 +581,24 @@ def _assert_native_contribution_refuses(container: QuadletContainer) -> None:
     systemd.daemon_reload.assert_not_called()
 
 
-def test_native_only_preserves_an_ordinary_contribution_under_its_own_identity() -> None:
+def test_compilation_preserves_an_ordinary_contribution_under_its_own_identity() -> None:
     container = QuadletContainer(
         description="Ordinary contribution",
         image="fixture/image",
         container_name="lychd-sidecar",
         pod="lychd.pod",
+        requires=["lychd-vessel.service"],
     )
     context = ExtensionContext()
     context.registration_view("crypt:ordinary-sidecar").transmutation.add_contributor(
         _SecretContributor(containers=(container,)),
     )
-    settings = Settings()
-    for native_only in (False, True):
-        request = compile_bind_request(
-            settings=settings,
-            extensions=AssembledExtensions(context=context),
-            runes=RuneRegistry(()),
-            soulstones=(),
-            portals=(),
-            uncaged=False,
-            native_only=native_only,
-        )
-        assert container in request.manifests
-        assert ("lychd-uncaged-vessel.service" in request.plain_unit_mapping()) is native_only
+    request = compile_bind_request(
+        settings=Settings(),
+        extensions=AssembledExtensions(context=context),
+        runes=RuneRegistry(()),
+        soulstones=(),
+        portals=(),
+    )
+    assert container in request.manifests
+    assert set(request.plain_unit_mapping()) == {"lychd-reactor.path", "lychd-reactor.service"}

@@ -6,7 +6,7 @@ import errno
 import os
 import stat
 from contextlib import nullcontext
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import cast
 
@@ -2575,3 +2575,24 @@ def test_unreadable_mount_identity_fails_closed(
         service.remove(root, expected_identity=_root_identity(root))
 
     assert sentinel.read_text(encoding="utf-8") == "operator data"
+
+
+@pytest.mark.parametrize("retired_source", ["ownership", "retirement"])
+def test_retired_native_vessel_blocks_deletion_before_any_effect(tmp_path: Path, retired_source: str) -> None:
+    harness = _build_harness(tmp_path)
+    retired = "lychd-uncaged-vessel.service"
+    if retired_source == "ownership":
+        harness.scribe.owned = replace(harness.scribe.owned, runtime_units=(retired,))
+    else:
+        harness.retirement.current = replace(harness.retirement.current, owned_units=(retired,))
+    before = _tree_snapshot(tmp_path)
+
+    plan = harness.planner.plan()
+
+    assert plan.first_blocked_stage is DeletionStage.QUIESCE
+    assert plan.unit_plan is None
+    assert any("manual reconciliation" in action.detail for action in plan.actions)
+    assert _tree_snapshot(tmp_path) == before
+    assert harness.retirement.execute_calls == 0
+    assert harness.bindings.destroy_calls == 0
+    assert not harness.checkpoint.exists

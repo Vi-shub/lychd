@@ -85,9 +85,9 @@ def _bound_service(
     else:
         scribe.reconcile_all(
             [],
-            plain_units={"lychd-vessel.service": "[Service]\nExecStart=/usr/bin/true\n"},
+            plain_units={"lychd-probe.service": "[Service]\nExecStart=/usr/bin/true\n"},
         )
-        source = systemd_dir / "lychd-vessel.service"
+        source = systemd_dir / "lychd-probe.service"
     lifecycle = BindingLifecycleService(
         scribe,
         runner=runner,
@@ -99,6 +99,7 @@ def _bound_service(
 @dataclass
 class _RetirementRunner:
     unit_file_state: str
+    unit_name: str
     active: bool = True
     reloaded: bool = False
     source: Path | None = None
@@ -119,7 +120,7 @@ class _RetirementRunner:
                 stdout = f"LoadState=loaded\nActiveState={active}\nUnitFileState={self.unit_file_state}\n"
             return ProcessResult(argv, 0, stdout)
         if verb == "stop":
-            assert argv[3:] == ("lychd-vessel.service",)
+            assert argv[3:] == (self.unit_name,)
             assert self.source.exists()
             self.active = False
             return ProcessResult(argv, 0)
@@ -153,7 +154,7 @@ def _unit_plan(tmp_path: Path, runner: ProcessRunner, *, post_reload: bool = Fal
         runner=runner,
         systemctl_bin="/usr/bin/systemctl",
     )
-    owned = OwnedBindings(receipt_present=True, generation="fixture", runtime_units=("lychd-vessel.service",))
+    owned = OwnedBindings(receipt_present=True, generation="fixture", runtime_units=("lychd-probe.service",))
     actions = service._post_reload_unit_actions(owned) if post_reload else service._unit_actions(owned)  # pyright: ignore[reportPrivateUsage]
     return LifecyclePlan(actions=tuple(actions))
 
@@ -275,7 +276,8 @@ def test_retired_generated_and_static_bindings_remove_without_disable(
     tmp_path: Path,
     unit_file_state: str,
 ) -> None:
-    runner = _RetirementRunner(unit_file_state)
+    unit_name = "lychd-vessel.service" if unit_file_state == "generated" else "lychd-probe.service"
+    runner = _RetirementRunner(unit_file_state, unit_name=unit_name)
     scribe, lifecycle, source = _bound_service(tmp_path, runner, generated=unit_file_state == "generated")
     runner.source = source
     runner.authority = scribe.ownership_path
@@ -287,7 +289,7 @@ def test_retired_generated_and_static_bindings_remove_without_disable(
     )
 
     plan = retirement.plan()
-    assert plan.owned_units == ("lychd-vessel.service",)
+    assert plan.owned_units == (unit_name,)
     assert plan.stop_units == plan.owned_units
     assert plan.disable_units == ()
     assert source.exists()
@@ -338,7 +340,7 @@ def test_reload_failure_retains_exact_authority_for_idempotent_retry(
     retained = scribe.inspect_owned_bindings()
     assert retained.receipt_present
     assert retained.systemd_sources == (source,)
-    assert retained.runtime_units == ("lychd-vessel.service",)
+    assert retained.runtime_units == ("lychd-probe.service",)
     assert not source.exists()
     assert scribe.ownership_path.exists()
 
@@ -382,6 +384,6 @@ def test_unit_state_after_reload_blocks_authority_release(
     retained = scribe.inspect_owned_bindings()
     assert retained.receipt_present
     assert retained.systemd_sources == (source,)
-    assert retained.runtime_units == ("lychd-vessel.service",)
+    assert retained.runtime_units == ("lychd-probe.service",)
     assert not source.exists()
     assert scribe.ownership_path.exists()

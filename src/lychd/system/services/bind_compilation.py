@@ -8,7 +8,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from lychd.system.schemas import QuadletContainer, SystemdService, podman_secret_source, systemd_executable_token
+from lychd.system.schemas import QuadletContainer, podman_secret_source
 from lychd.system.services.bind import BindRequest
 
 if TYPE_CHECKING:
@@ -36,13 +36,6 @@ def required_secret_names_from_soulstones(
     return sorted(names)
 
 
-def uncaged_control_plane_secret_names(
-    soulstones: Sequence[SoulstoneConfig],
-) -> tuple[str, ...]:
-    """Return secrets that only the caged Vessel can receive from Podman."""
-    return tuple(sorted({name for stone in soulstones for name in stone.control_plane_secret_names}))
-
-
 def compile_bind_request(
     *,
     settings: Settings,
@@ -50,13 +43,8 @@ def compile_bind_request(
     runes: RuneRegistry,
     soulstones: Sequence[SoulstoneConfig],
     portals: Sequence[PortalConfig],
-    uncaged: bool,
-    native_only: bool = False,
 ) -> BindRequest:
-    """Compile one caged, dual, or explicitly native-only complete binding generation."""
-    if uncaged and native_only:
-        msg = "--native-only and --uncaged are mutually exclusive."
-        raise ValueError(msg)
+    """Compile the complete container binding generation from declared intent."""
     from lychd.domain.animation.capabilities import CapabilitySpec
     from lychd.domain.animation.conflicts import require_soulstone_capability_coverage
     from lychd.domain.animation.services.adapters.registry import (
@@ -91,7 +79,6 @@ def compile_bind_request(
         portals=tuple(portals),
         runes=runes,
         runtime_plans=runtime_plans,
-        native_only=native_only,
     )
     core_secret_factories = {
         settings.server.web.secret_key_secret: (lambda: secrets.token_hex(32)),
@@ -100,17 +87,6 @@ def compile_bind_request(
         settings.server.database.phoenix_password_secret: (lambda: secrets.token_urlsafe(32)),
         settings.server.web.access_password_secret: (lambda: secrets.token_urlsafe(32)),
     }
-    native_runtime_secrets = (
-        (
-            settings.server.database.runtime_password_secret,
-            settings.server.web.secret_key_secret,
-            settings.server.web.access_password_secret,
-        )
-        if native_only
-        else ()
-    )
-    for name in native_runtime_secrets:
-        del core_secret_factories[name]
     manifest_secrets = {
         podman_secret_source(spec)
         for manifest in manifests
@@ -122,18 +98,13 @@ def compile_bind_request(
     manifest_requirements = manifest_secrets.difference(core_secret_factories)
     return BindRequest.compile(
         manifests=manifests,
-        plain_units=_desired_plain_units(
-            settings=settings,
-            uncaged=uncaged,
-            native_only=native_only,
-        ),
+        plain_units=_desired_plain_units(settings=settings),
         core_secret_factories=core_secret_factories,
         required_secret_names=sorted(
             {
                 *required_soulstone_secrets,
                 *portal_secrets,
                 *manifest_requirements,
-                *native_runtime_secrets,
             }
         ),
     )
@@ -170,56 +141,15 @@ def _host_reactor_units(*, settings: Settings) -> dict[str, str]:
     }
 
 
-def _compile_uncaged_vessel_unit(*, settings: Settings, native_only: bool = False) -> SystemdService:
-    """Compile the host-native Vessel with one literal installed executable token."""
-    executable = Path(sys.prefix) / "bin" / "lychd"
-    environment = {"LYCHD_MODE": "uncaged"}
-    dependencies: list[str] = []
-    if native_only:
-        from lychd.system.constants import PATH_XDG_CACHE_HOME, PATH_XDG_CONFIG_HOME, PATH_XDG_DATA_HOME
-
-        environment.update(
-            {
-                "HOME": str(Path.home()),
-                "XDG_CACHE_HOME": str(PATH_XDG_CACHE_HOME),
-                "XDG_CONFIG_HOME": str(PATH_XDG_CONFIG_HOME),
-                "XDG_DATA_HOME": str(PATH_XDG_DATA_HOME),
-                "LYCHD_RUNTIME_SECRETS": "podman-core@1",
-                "SERVER__DATABASE__HOST": "127.0.0.1",
-                "SERVER__DATABASE__PORT": str(settings.server.database.port),
-            }
-        )
-        dependencies = ["lychd-migrate.service"]
-        if settings.orchestration.switching.actuator == "host-reactor":
-            dependencies.append("lychd-reactor.path")
-    return SystemdService(
-        name="lychd-uncaged-vessel",
-        description="LychD Vessel (uncaged)",
-        exec_start=f"{systemd_executable_token(executable)} serve --host 127.0.0.1 --port {settings.server.port}",
-        environment=environment,
-        requires=dependencies,
-        after=dependencies,
-    )
-
-
 def _desired_plain_units(
     *,
     settings: Settings,
-    uncaged: bool,
-    native_only: bool = False,
 ) -> dict[str, str]:
     """Compile the complete non-Quadlet unit set for one binding plan."""
-    plain_units = (
-        _host_reactor_units(settings=settings) if settings.orchestration.switching.actuator == "host-reactor" else {}
-    )
-    if uncaged or native_only:
-        service = _compile_uncaged_vessel_unit(settings=settings, native_only=native_only)
-        plain_units[service.filename] = service.render()
-    return plain_units
+    return _host_reactor_units(settings=settings) if settings.orchestration.switching.actuator == "host-reactor" else {}
 
 
 __all__ = [
     "compile_bind_request",
     "required_secret_names_from_soulstones",
-    "uncaged_control_plane_secret_names",
 ]

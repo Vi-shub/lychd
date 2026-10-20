@@ -35,7 +35,7 @@ def database(tmp_path_factory: pytest.TempPathFactory) -> Generator[Settings]:
     hba.chmod(0o644)
     postgres = PostgresContainer("docker.io/pgvector/pgvector:pg18-trixie", driver="asyncpg")
     postgres.with_env("POSTGRES_INITDB_ARGS", "--auth-host=scram-sha-256")
-    postgres.with_volume_mapping(str(hba), "/etc/lychd-pg_hba.conf", "ro,Z")
+    postgres.with_copy_into_container(hba, "/etc/lychd-pg_hba.conf", mode=0o444)
     postgres.with_command("postgres -c hba_file=/etc/lychd-pg_hba.conf -c password_encryption=scram-sha-256")
     try:
         postgres.start()

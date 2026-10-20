@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 import stat
-from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, Protocol
@@ -34,15 +33,7 @@ type BindingPreflightIssueCode = Literal[
     "reactor-shape",
     "reactor-mode",
     "reactor-owner",
-    "uncaged-control-secret",
-    "uncaged-web-secret",
-    "uncaged-access-secret",
-    "uncaged-database-secret",
-    "uncaged-runtime-database-secret",
-    "native-secret-capture",
-    "native-admin-secret",
-    "native-existing-caged",
-    "native-portal-secret",
+    "retired-vessel-binding",
 ]
 
 
@@ -119,19 +110,8 @@ class BindingPreflightService:
             current_uid=self._current_uid,
         )
 
-    def inspect(
-        self,
-        settings: Settings,
-        *,
-        uncaged: bool,
-        uncaged_control_plane_secrets: Sequence[str] = (),
-        native_only: bool = False,
-        native_portal_secrets: Sequence[str] = (),
-    ) -> BindingPreflightReport:
-        """Return every bind blocker observed from one already-loaded Settings object."""
-        if uncaged and native_only:
-            msg = "--native-only and --uncaged are mutually exclusive."
-            raise ValueError(msg)
+    def inspect(self, settings: Settings) -> BindingPreflightReport:
+        """Return every blocker for the sole container binding generation."""
         issues = [*self._inspect_codex(), *self._inspect_legacy_vessel_unit()]
         host = self._host_readiness.inspect()
         report = host.report
@@ -157,32 +137,9 @@ class BindingPreflightService:
                     )
                 )
 
-        if uncaged or native_only:
-            issues.extend(
-                self._inspect_uncaged(
-                    settings,
-                    control_plane_secrets=uncaged_control_plane_secrets,
-                    native_only=native_only,
-                )
-            )
-        else:
-            issues.extend(self._inspect_caged(settings))
-
-        if native_only:
-            if native_portal_secrets:
-                issues.append(
-                    BindingPreflightIssue(
-                        code="native-portal-secret",
-                        target="Portal credentials",
-                        detail="Native-only core capture does not transport Portal secrets.",
-                    )
-                )
-            if foundation is not None:
-                issues.extend(self._inspect_native_bindings(foundation))
-            switching = settings.orchestration.switching
-            if switching.actuator == "host-reactor":
-                issues.extend(self._inspect_reactor_directory(switching.host_reactor_dir, label="inbox"))
-                issues.extend(self._inspect_reactor_directory(switching.host_reactor_journal_dir, label="journal"))
+        issues.extend(self._inspect_caged(settings))
+        if foundation is not None:
+            issues.extend(self._inspect_retired_vessel_bindings(foundation))
 
         return BindingPreflightReport(
             issues=tuple(issues),
@@ -190,19 +147,26 @@ class BindingPreflightService:
         )
 
     @staticmethod
-    def _inspect_native_bindings(foundation: BindingFoundation) -> list[BindingPreflightIssue]:
-        """Refuse caged or mixed source generations without conversion or actuation."""
+    def _inspect_retired_vessel_bindings(foundation: BindingFoundation) -> list[BindingPreflightIssue]:
+        """Preserve retired host-native generations instead of reconciling them away."""
         from lychd.system.services.scribe import ScribeService
 
+        retired_unit = "lychd-uncaged-vessel.service"
+        sources = (
+            foundation.sites.systemd_user.path / retired_unit,
+            foundation.sites.quadlet.path / "lychd-uncaged-vessel.container",
+        )
         owned = ScribeService(expected_sites=foundation.sites).inspect_owned_bindings()
-        caged_source = foundation.sites.quadlet.path / "lychd-vessel.container"
-        if "lychd-vessel.service" not in owned.runtime_units and not os.path.lexists(caged_source):
+        if retired_unit not in owned.runtime_units and not any(os.path.lexists(path) for path in sources):
             return []
         return [
             BindingPreflightIssue(
-                code="native-existing-caged",
-                target="existing Vessel binding",
-                detail="Native-only bind refuses an existing caged or mixed generation; no conversion is performed.",
+                code="retired-vessel-binding",
+                target="existing host-native Vessel binding",
+                detail=(
+                    "Container binding refuses a retired host-native or mixed generation; "
+                    "no conversion, removal, or service control is performed."
+                ),
             )
         ]
 
@@ -216,7 +180,7 @@ class BindingPreflightService:
                 target=str(self._legacy_vessel_unit_path),
                 detail=(
                     "legacy static unit shadows the caged Quadlet service; disable and remove it "
-                    "before binding (uncaged mode uses lychd-uncaged-vessel.service)"
+                    "before binding through a separately reviewed operator recovery"
                 ),
             )
         ]
@@ -344,87 +308,6 @@ class BindingPreflightService:
                     code="reactor-mode",
                     target=str(path),
                     detail=f"Host Reactor {label} mode is {oct(mode)}; expected 0o700",
-                )
-            )
-        return issues
-
-    def _inspect_uncaged(
-        self,
-        settings: Settings,
-        *,
-        control_plane_secrets: Sequence[str],
-        native_only: bool = False,
-    ) -> list[BindingPreflightIssue]:
-        """Validate captured runtime credentials and each profile's bootstrap boundary."""
-        issues: list[BindingPreflightIssue] = []
-        if native_only:
-            capture = settings.runtime_secret_capture
-            names = (
-                settings.server.database.runtime_password_secret,
-                settings.server.web.secret_key_secret,
-                settings.server.web.access_password_secret,
-            )
-            if capture is None or capture.profile != "podman-core@1" or capture.names != names:
-                issues.append(
-                    BindingPreflightIssue(
-                        code="native-secret-capture",
-                        target="native runtime credentials",
-                        detail="Native-only bind requires the matching explicit podman-core@1 Settings capture.",
-                    )
-                )
-            if settings.server.database.password is not None or settings.server.database.phoenix_password is not None:
-                issues.append(
-                    BindingPreflightIssue(
-                        code="native-admin-secret",
-                        target="image-owned database credentials",
-                        detail="Native-only Settings must not contain bootstrap or Phoenix database credentials.",
-                    )
-                )
-        if control_plane_secrets:
-            issues.append(
-                BindingPreflightIssue(
-                    code="uncaged-control-secret",
-                    target="Soulstone control plane",
-                    detail=(
-                        "uncaged Vessel cannot receive Podman-mounted secrets: "
-                        f"{', '.join(sorted(control_plane_secrets))}"
-                    ),
-                )
-            )
-
-        if settings.server.web.secret_key is None:
-            issues.append(
-                BindingPreflightIssue(
-                    code="uncaged-web-secret",
-                    target="application signing key",
-                    detail="Required application signing key is unavailable in Settings.",
-                )
-            )
-
-        if settings.server.web.access_password is None:
-            issues.append(
-                BindingPreflightIssue(
-                    code="uncaged-access-secret",
-                    target="local access password",
-                    detail="Required local access password is unavailable in Settings.",
-                )
-            )
-
-        if not native_only and settings.server.database.password is None:
-            issues.append(
-                BindingPreflightIssue(
-                    code="uncaged-database-secret",
-                    target="bootstrap database password",
-                    detail="Required bootstrap database password is unavailable in Settings.",
-                )
-            )
-
-        if settings.server.database.runtime_password is None:
-            issues.append(
-                BindingPreflightIssue(
-                    code="uncaged-runtime-database-secret",
-                    target="runtime database password",
-                    detail="Required runtime database password is unavailable in Settings.",
                 )
             )
         return issues

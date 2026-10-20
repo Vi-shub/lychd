@@ -181,7 +181,7 @@ def test_del_refuses_failed_or_masked_unit_before_any_effect(
     fixture = _public_deletion(
         tmp_path,
         mocker,
-        states={"lychd-vessel.service": (load_state, active_state, unit_file_state)},
+        states={"lychd-probe.service": (load_state, active_state, unit_file_state)},
     )
 
     result = CliRunner().invoke(delete_installation, [option])
@@ -189,11 +189,11 @@ def test_del_refuses_failed_or_masked_unit_before_any_effect(
     assert result.exit_code == 2, result.output
     assert "QUIESCE" in result.output
     assert "BLOCKED" in result.output
-    assert "lychd-vessel.service" in result.output
+    assert "lychd-probe.service" in result.output
     assert reason in result.output
     assert "unit is already inactive" not in result.output
     if unit_file_state.startswith("masked"):
-        assert f"lychd-vessel.service ({unit_file_state})" in result.output
+        assert f"lychd-probe.service ({unit_file_state})" in result.output
     assert fixture.services.planner.plan().first_blocked_stage is DeletionStage.QUIESCE
     fixture.assert_no_effects()
     assert list(tmp_path.iterdir()) == []
@@ -213,7 +213,7 @@ def test_del_inactive_supported_unit_has_unblocked_effect_free_preview(
     fixture = _public_deletion(
         tmp_path,
         mocker,
-        states={"lychd-vessel.service": (load_state, "inactive", unit_file_state)},
+        states={"lychd-probe.service": (load_state, "inactive", unit_file_state)},
     )
 
     result = CliRunner().invoke(delete_installation, ["--dry-run"])

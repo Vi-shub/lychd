@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
+from pathlib import PurePath
 from typing import Any
 
 
@@ -126,6 +127,18 @@ class OwnedUnitCatalog:
     def select(self, names: set[str] | frozenset[str]) -> tuple[OwnedUnit, ...]:
         """Return only exact owned unit names from a caller-owned allowlist."""
         return tuple(unit for unit in self.units if unit.name in names)
+
+    def has_retired_native_vessel(self) -> bool:
+        """Identify native Vessel ownership that permits observation only.
+
+        Historical plain services share the caged runtime name; their validated
+        source basename distinguishes them from the supported Quadlet container.
+        """
+        return any(
+            unit.name == "lychd-uncaged-vessel.service"
+            or any(PurePath(source).name == "lychd-vessel.service" for source in unit.sources)
+            for unit in self.units
+        )
 
 
 @dataclass(frozen=True)

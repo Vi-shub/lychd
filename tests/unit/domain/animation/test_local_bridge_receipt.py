@@ -1,12 +1,14 @@
-"""Check historical qualification metadata and freshness without contacting a model or Docker."""
+"""Preserve dated pre-removal ASGI facts; no current container qualification."""
 
 from __future__ import annotations
 
-import tomllib
-from importlib.metadata import version
 from pathlib import Path
 
-from tests.support.local_bridge_receipt_freshness import read_historical_receipt, require_current_tcp_coverage
+from tests.support.local_bridge_receipt_freshness import (
+    read_historical_receipt,
+    require_historical_source_map,
+    require_historical_tcp_coverage,
+)
 
 _ROOT = Path(__file__).resolve().parents[4]
 _RECEIPT = _ROOT / "tests/fixtures/animator/local-bridge-vllm-runtime.json"
@@ -71,30 +73,32 @@ _SOURCES = {
     "tests/integration/test_local_bridge_runtime.py",
     "tests/integration/test_production_wiring.py",
 }
-_CORE_DEPENDENCIES = (
-    "advanced-alchemy",
-    "alembic",
-    "asyncpg",
-    "cryptography",
-    "http-message-signatures",
-    "httpx",
-    "httpx2",
-    "litestar",
-    "litestar-saq",
-    "openai",
-    "psycopg",
-    "pydantic",
-    "pydantic-settings",
-    "pydantic-ai-slim",
-    "pydantic-graph",
-    "saq",
-    "sqlalchemy",
-    "typing-extensions",
-    "pytest",
-)
+_HISTORICAL_DEPENDENCIES = {
+    "advanced-alchemy": "1.11.0",
+    "alembic": "1.19.2",
+    "asyncpg": "0.32.0",
+    "cryptography": "50.0.2",
+    "docker": "7.2.0",
+    "http-message-signatures": "2.0.1",
+    "httpx": "0.28.1",
+    "httpx2": "2.12.0",
+    "litestar": "2.24.0",
+    "litestar-saq": "0.8.0",
+    "openai": "3.28.0",
+    "psycopg": "3.3.6",
+    "pydantic": "2.14.0",
+    "pydantic-ai-slim": "2.55.0",
+    "pydantic-graph": "2.55.0",
+    "pydantic-settings": "2.15.0",
+    "pytest": "9.1.1",
+    "saq": "0.26.4",
+    "sqlalchemy": "2.0.54",
+    "testcontainers": "4.15.0",
+    "typing-extensions": "4.16.0",
+}
 
 
-def test_maintained_local_bridge_receipt_keeps_its_exact_boundary() -> None:
+def test_historical_local_bridge_receipt_keeps_its_exact_boundary() -> None:
     receipt = read_historical_receipt(_RECEIPT)
     assert set(receipt) == {
         "schema",
@@ -212,7 +216,7 @@ def test_maintained_local_bridge_receipt_keeps_its_exact_boundary() -> None:
     }
     assert len(receipt["retained_history_sha256"]) == 64
     assert set(receipt["retained_history_sha256"]) <= set("0123456789abcdef")
-    # This is a metadata/freshness gate, not a replay or a new live result.
+    # The original freshness label describes the dated receipt, never this current test.
     assert receipt["freshness_check"] == "offline-metadata-source-and-selected-dependency-check-only"
     assert not any(
         item in _RECEIPT.read_text()
@@ -231,9 +235,9 @@ def test_maintained_local_bridge_receipt_keeps_its_exact_boundary() -> None:
     )
 
 
-def test_maintained_local_bridge_receipt_matches_critical_sources() -> None:
+def test_historical_local_bridge_receipt_preserves_source_lineage() -> None:
     receipt = read_historical_receipt(_RECEIPT)
-    assert set(receipt["source_fingerprints"]) == _SOURCES
+    require_historical_source_map(receipt, _SOURCES, "d7d6c42e6f8f1501d05f32839087da327cb4217f16ade9e0345e4982fc62f4de")
     evidence = receipt["qualification_evidence"]
     assert set(evidence) == {
         "application_receipt_sha256",
@@ -258,16 +262,9 @@ def test_maintained_local_bridge_receipt_matches_critical_sources() -> None:
     for digest in evidence.values():
         assert len(digest) == 64
         assert set(digest) <= set("0123456789abcdef")
-    require_current_tcp_coverage(_ROOT, _SOURCES, _SOURCES)
+    require_historical_tcp_coverage(_ROOT, _SOURCES, _SOURCES)
 
 
-def test_maintained_local_bridge_receipt_matches_selected_dependencies() -> None:
+def test_historical_local_bridge_receipt_preserves_observed_dependencies() -> None:
     receipt = read_historical_receipt(_RECEIPT)
-    dependencies = {name: version(name) for name in _CORE_DEPENDENCIES}
-    # Core CI need not install the optional container SDK. Its locked versions
-    # still belong to this profile; unrelated lockfile edits do not stale it.
-    locked = tomllib.loads((_ROOT / "uv.lock").read_text())
-    dependencies.update(
-        {item["name"]: item["version"] for item in locked["package"] if item["name"] in {"docker", "testcontainers"}}
-    )
-    assert receipt["dependency_versions"] == dependencies
+    assert receipt["dependency_versions"] == _HISTORICAL_DEPENDENCIES

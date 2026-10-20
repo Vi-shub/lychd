@@ -34,7 +34,7 @@ serialized declaration and the already-loaded credentials separately in memory a
 Each preview/apply phase revalidates its own copy without running settings sources again.
 
 Every accepted field must have one real consumer. Current Settings exposes `server.port`, but the
-native listener host is fixed by runtime policy rather than TOML. Obsolete `server.host`,
+managed image listener is fixed by runtime policy rather than TOML. Obsolete `server.host`,
 `server.reload`, `server.keep_alive`, and `server.web.url` inputs are rejected and do not appear in
 generated configuration; launcher flags or environment cannot smuggle them back as Codex intent.
 
@@ -269,65 +269,21 @@ non-repr `SecretStr` fields. Explicit construction and root-grammar environment 
 precedence over the existing `LYCHD_DB_PASSWORD` / `LYCHD_APP_SECRET_KEY` environment aliases,
 then their `*_FILE` paths, then `/run/secrets/<declared-name>`. TOML credential values are rejected.
 An absent default mount leaves the credential unset so host `init` and caged `bind` can run before
-provisioning; database/web assembly and uncaged preflight reject unset credentials without I/O.
-Uncaged preflight checks the bootstrap database password, runtime database password, local HTTP
-access password, and application signing key separately against that captured generation.
+provisioning; database/web assembly rejects unset runtime credentials without further I/O.
 Explicit file overrides must be readable and nonempty at Settings construction. Nested settings
 models perform validation only; explicitly supplied section instances are complete overrides.
 Bind preflight requires the Codex secret file to be Magus-owned with
 group and other permissions closed. Generated caged units use file form and scope mounts to the
 unit that needs them. Filesystem permissions do not isolate code within that unit.
 
-### Explicit native core credential source
+### Retired native credential selection {#explicit-native-core-credential-source}
 
-A process may explicitly select `LYCHD_RUNTIME_SECRETS=podman-core@1` before its first Settings
-construction. Selection is interpreted from the existing Pydantic environment capture; absent
-selection retains the precedence above. An empty, unknown or non-string captured selection refuses
-before credential I/O. A selected Podman profile also refuses Pydantic's optional empty-value
-filtering mode, which would hide competing empty aliases. When a caller explicitly enables that
-filtering and supplies an empty selection, the capture contains no selection and retains legacy
-behavior; it does not select Podman.
-`LYCHD_MODE=uncaged`, an installed Podman executable, or a missing mount never selects this source.
-Selection is a credential-source contract, not launcher attestation or permission to run a service.
-
-This profile reads exactly the declared runtime database password, application signing key and
-local access password from the existing trusted rootless Podman secret owner. It uses the
-host-attested Podman executable and the existing exact-name, bounded secret reader, once per
-field per Settings construction. It reads no bootstrap or Phoenix password, creates or replaces
-no secret, and exports no secret through environment, unit text, serialization or diagnostics.
-Unavailable or untrusted Podman, missing or malformed secret data and read failure refuse without
-fallback. A partial read does not publish a partial Settings generation.
-
-Before any Podman read, the profile refuses any explicit constructor `server` section, including
-an empty dictionary or a complete model. This also covers constructor modes that serialize model
-instances before the source sees them. All five core credential fields supplied through the
-root-grammar environment, even explicit `None`, and their corresponding legacy value or `*_FILE`
-aliases, even empty ones, also refuse. There is no equal-value exception. TOML credential values
-remain forbidden. Server declarations and secret references remain available through their normal
-environment/TOML precedence; explicit non-server root sections retain their existing behavior.
-Source priority must not silently replace the selected owner's values.
-
-The resulting credentials remain excluded `SecretStr` values in the one captured Settings
-generation. Cached consumers and snapshot restoration perform no further reads; a new explicit
-construction or process restart reads again. The three reads are not an atomic secret generation,
-and secret presence or matching names do not prove that a retained database role accepts them.
-The migration gate and PostgreSQL authentication retain that responsibility. This source grants
-no bootstrap authority, Portal or Soulstone credential transport, binding conversion, runtime
-mutation, automatic rotation or reload. Existing caged and dual binding generations do not select
-it implicitly; a coherent native-only installed generation needs its own binding and lifecycle
-evidence.
-
-Native-only bind requires provenance from a successful explicit `podman-core@1` Settings
-construction: the exact profile and three declared secret names are retained privately with
-that Settings generation and its snapshot. They are never inferred from later environment
-values or credential equality. Preflight requires those names to match current declarations,
-all three captured runtime values to exist, and bootstrap/Phoenix values to remain absent.
-The three native runtime names are required existing Podman inputs at initial planning and
-apply; only image-owned bootstrap/Phoenix names retain absent-secret generation authority.
-Image-owned migration retains bootstrap authority. Snapshot restoration and locked preflight
-perform no additional credential reads; existing bind secret-presence and fileset generation
-checks still apply. Provenance does not attest atomic secret rotation or retained database-role
-currency, which remain outside this binding proof.
+The host-native `LYCHD_RUNTIME_SECRETS=podman-core@1` Settings source and its capture/provenance
+fields are retired. Explicit use of that selector refuses before credential I/O rather than
+falling back to another owner. Container startup consumes its narrowly mounted `/run/secrets`
+inputs through the ordinary sources above. The host operator's trusted Podman secret adapter
+retains its separate bind/access responsibilities; it is not application startup credential
+transport. No replacement source, automatic conversion, rotation or credential export is added.
 
 ### Policy and derived projections
 

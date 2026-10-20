@@ -1,4 +1,4 @@
-"""Check the process trial's scope/freshness and an inert spawned-child refusal."""
+"""Preserve the dated process trial and a current inert spawned-child refusal."""
 
 # The historical metadata module owns the shared bounded source/dependency lists.
 # pyright: reportPrivateUsage=false
@@ -8,15 +8,17 @@ from __future__ import annotations
 import json
 import re
 import sys
-import tomllib
-from importlib.metadata import version
 
 import pytest
 from scripts.local_model_probe import ProbeProfile
 
 from lychd.config.settings.root import SettingsSnapshot
 from tests.integration import test_local_bridge_process_restart as runtime
-from tests.support.local_bridge_receipt_freshness import read_historical_receipt, require_current_tcp_coverage
+from tests.support.local_bridge_receipt_freshness import (
+    read_historical_receipt,
+    require_historical_source_map,
+    require_historical_tcp_coverage,
+)
 from tests.unit.domain.animation import test_local_bridge_receipt as historical
 
 _ROOT = historical._ROOT
@@ -24,7 +26,7 @@ _RECEIPT = _ROOT / "tests/fixtures/animator/local-bridge-vllm-process-restart.js
 _PROCESS_TEST = "tests/integration/test_local_bridge_process_restart.py"
 
 
-def test_process_receipt_preserves_qualification_and_privacy_boundary() -> None:
+def test_historical_process_receipt_preserves_qualification_and_privacy_boundary() -> None:
     text = _RECEIPT.read_text()
     receipt = read_historical_receipt(_RECEIPT)
     assert receipt["schema"] == "local-bridge-vllm-process-restart@1"
@@ -139,9 +141,13 @@ def test_process_receipt_preserves_qualification_and_privacy_boundary() -> None:
     )
 
 
-def test_process_receipt_matches_qualified_sources_and_provenance() -> None:
+def test_historical_process_receipt_preserves_source_lineage_and_provenance() -> None:
     receipt = read_historical_receipt(_RECEIPT)
-    assert set(receipt["source_fingerprints"]) == historical._SOURCES | {_PROCESS_TEST}
+    require_historical_source_map(
+        receipt,
+        historical._SOURCES | {_PROCESS_TEST},
+        "196767d06e885806550783359a4fece1c2b9ef5cde202eed99e29d757b2334e5",
+    )
     evidence = receipt["qualification_evidence"]
     assert evidence["process_test_sha256_before_trial"] == receipt["source_fingerprints"][_PROCESS_TEST]
     assert set(evidence) == {
@@ -162,18 +168,12 @@ def test_process_receipt_matches_qualified_sources_and_provenance() -> None:
     )
     for digest in evidence.values():
         assert re.fullmatch(r"[0-9a-f]{64}", digest)
-    require_current_tcp_coverage(_ROOT, historical._SOURCES, historical._SOURCES | {_PROCESS_TEST})
+    require_historical_tcp_coverage(_ROOT, historical._SOURCES, historical._SOURCES | {_PROCESS_TEST})
 
 
-def test_process_receipt_matches_selected_dependencies() -> None:
+def test_historical_process_receipt_preserves_observed_dependencies() -> None:
     receipt = read_historical_receipt(_RECEIPT)
-    dependencies = {name: version(name) for name in historical._CORE_DEPENDENCIES}
-    # Container SDKs stay optional in ordinary CI; their exact lock entries still bind this trial.
-    locked = tomllib.loads((_ROOT / "uv.lock").read_text())
-    dependencies.update(
-        {item["name"]: item["version"] for item in locked["package"] if item["name"] in {"docker", "testcontainers"}}
-    )
-    assert receipt["dependency_versions"] == dependencies
+    assert receipt["dependency_versions"] == historical._HISTORICAL_DEPENDENCIES
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="the process proof uses Linux pipe bounds")

@@ -1,8 +1,8 @@
-"""Offline shared-chain freshness; historical occurrences remain immutable.
+"""Seal dated pre-removal observations without qualifying current container code.
 
-Root accepted the dated TCP03 occurrence after its independent physical audit
-and review of the sanitized fixture and complete scenario owner.
-This module never imports metadata test modules or opens runtime surfaces.
+The 20 October container-only decision retired host-native Core deployment and
+its qualification drivers. Original receipt bytes, source maps and facts remain
+historical evidence; no live file or installed dependency comparison renews them.
 """
 
 # ruff: noqa: INP001 - existing tests/support namespace is intentional
@@ -15,14 +15,20 @@ from pathlib import Path
 from typing import Any, cast
 
 _HISTORICAL_SHA256 = {
+    "local-bridge-vllm-native-tcp.json": "e63e321998d70d2a8901d610c687e95c289d7d667fb9986c6d1052020fd68831",
     "local-bridge-vllm-runtime.json": "20d5a529338815bd43588e87fac91f1041aacaf2f470fe62db4d414d8f0033e2",
     "local-bridge-vllm-process-restart.json": "a6571c0f111ba3178dc10c0ee0d962e13bfd236c634a187abee038fbaec38a24",
 }
 
-# Exact reviewed artifact from the accepted 20 October occurrence.
-ACCEPTED_CURRENT_TCP_FIXTURE_SHA256: str | None = "e63e321998d70d2a8901d610c687e95c289d7d667fb9986c6d1052020fd68831"
+# Deliberate evidence-contract retirement; this is not a fingerprint renewal.
+HISTORICAL_RETIREMENT = {
+    "source_base": "7057210a24cb0e777fb8d2af034a0baffeaa349c",
+    "retired_on": "2026-10-20",
+    "reason": "container-only-Core-production-and-testing-removes-native-deployment",
+    "no_current_qualification": True,
+}
 
-NATIVE_SOURCES = frozenset(
+HISTORICAL_NATIVE_SOURCES = frozenset(
     {
         "src/lychd/__main__.py",
         "src/lychd/cli/base.py",
@@ -52,38 +58,34 @@ def read_historical_receipt(path: Path) -> dict[str, Any]:
     return cast("dict[str, Any]", json.loads(raw))
 
 
-def require_current_tcp_coverage(root: Path, shared_sources: set[str], required_sources: set[str]) -> dict[str, Any]:
-    """Join explicit historical input coverage to all75 current TCP critical paths.
-
-    The native metadata module retains the complete scenario/provenance/privacy/
-    resource/dependency validators. This function owns only the approved whole
-    artifact identity, exact source closure and current path-byte comparison.
-    """
-    expected = set(shared_sources) | NATIVE_SOURCES
-    assert len(expected) == 75, "review a critical-source closure change explicitly"
-    assert required_sources <= expected, "historical critical input missing from TCP closure"
-    pin = ACCEPTED_CURRENT_TCP_FIXTURE_SHA256
-    assert isinstance(pin, str), "actual accepted TCP fixture whole SHA256 is required"
-    assert len(pin) == 64, "accepted TCP fixture SHA256 must contain 64 characters"
-    assert set(pin) <= set("0123456789abcdef"), "accepted TCP fixture SHA256 must be lowercase hexadecimal"
-    path = root / "tests/fixtures/animator/local-bridge-vllm-native-tcp.json"
-    raw = path.read_bytes()
-    assert sha256(raw).hexdigest() == pin, "current TCP fixture differs from exact reviewed accepted artifact"
-    receipt = cast("dict[str, Any]", json.loads(raw))
-    assert receipt["schema"] == "local-bridge-vllm-native-tcp@1"
-    assert receipt["status"] == "passed"
+def require_historical_source_map(receipt: dict[str, Any], sources: set[str], digest: str) -> None:
+    """Check a frozen map's closure and bytes, never the current source tree."""
+    assert HISTORICAL_RETIREMENT["no_current_qualification"] is True
     fingerprints = receipt["source_fingerprints"]
-    assert set(fingerprints) == expected
-    assert len(fingerprints) == 75
-    assert required_sources <= fingerprints.keys()
-    for relative, digest in fingerprints.items():
-        source = root / relative
-        assert source.resolve() == source, relative
-        assert source.is_relative_to(root), relative
-        assert source.is_file(), relative
-        assert sha256(source.read_bytes()).hexdigest() == digest, relative
+    assert set(fingerprints) == sources
+    assert all(len(value) == 64 and set(value) <= set("0123456789abcdef") for value in fingerprints.values())
+    canonical = json.dumps(fingerprints, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+    assert sha256(canonical).hexdigest() == digest
+
+
+def require_historical_tcp_coverage(root: Path, shared_sources: set[str], required_sources: set[str]) -> dict[str, Any]:
+    """Preserve the dated 75-path TCP lineage without claiming current execution."""
+    assert HISTORICAL_RETIREMENT == {
+        "source_base": "7057210a24cb0e777fb8d2af034a0baffeaa349c",
+        "retired_on": "2026-10-20",
+        "reason": "container-only-Core-production-and-testing-removes-native-deployment",
+        "no_current_qualification": True,
+    }
+    expected = set(shared_sources) | HISTORICAL_NATIVE_SOURCES
+    assert len(expected) == 75
+    assert required_sources <= expected
+    receipt = read_historical_receipt(root / "tests/fixtures/animator/local-bridge-vllm-native-tcp.json")
+    assert receipt["schema"] == "local-bridge-vllm-native-tcp@1"
+    assert receipt["qualification_date"] == "2026-10-20"
+    assert receipt["status"] == "passed"
+    require_historical_source_map(receipt, expected, "0a104613c035ea6020d8bbf8a0ab365fdd8ab773b1e14a973895b53263c49473")
     assert (
         receipt["qualification_evidence"]["native_test_sha256_before_trial"]
-        == fingerprints["tests/integration/test_local_bridge_native_tcp.py"]
+        == receipt["source_fingerprints"]["tests/integration/test_local_bridge_native_tcp.py"]
     )
     return receipt

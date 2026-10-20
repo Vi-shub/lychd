@@ -1,16 +1,18 @@
-"""Inert admission boundaries and freshness of the actual native observation."""
+"""Current inert admission boundaries and sealed pre-removal Archive observations."""
 
 # ruff: noqa: INP001 - focused tests use the existing support namespace
 
 import json
 from collections.abc import Iterator
+from hashlib import sha256
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import pytest
 
 from tests.support import archive_semantic_runtime as proof
-from tests.support.archive_semantic_runtime import _admit_root, _sources  # pyright: ignore[reportPrivateUsage]
+from tests.support.archive_semantic_runtime import _admit_root  # pyright: ignore[reportPrivateUsage]
+from tests.support.local_bridge_receipt_freshness import HISTORICAL_RETIREMENT
 
 
 @pytest.fixture
@@ -71,12 +73,62 @@ def test_overlong_postgres_socket_refuses_before_effects(scratch: Path) -> None:
     assert not root.exists()
 
 
-def test_maintained_native_receipt_binds_current_critical_source() -> None:
+def test_historical_native_receipt_preserves_dated_source_lineage() -> None:
     root = Path(__file__).resolve().parents[3]
-    receipt = json.loads((root / "tests/fixtures/archive/native-semantic-runtime-2026-10-19.json").read_text())
+    raw = (root / "tests/fixtures/archive/native-semantic-runtime-2026-10-19.json").read_bytes()
+    assert sha256(raw).hexdigest() == "1959f5ce81490ea0401b03661b4fc90407c66ae2e574267b05ef0db38acd42c5"
+    receipt = json.loads(raw)
+    assert receipt["observed_on"] == "2026-10-20"
+    assert HISTORICAL_RETIREMENT["no_current_qualification"] is True
+    assert set(receipt["source_sha256"]) == {
+        "domain/animation/embeddings.py",
+        "domain/animation/services/registry.py",
+        "domain/cortex/dispatcher.py",
+        "domain/cortex/leases.py",
+        "extensions/builtin/animator/llamacpp/connector.py",
+        "extensions/builtin/animator/llamacpp/embedding.py",
+        "extensions/builtin/animator/llamacpp/embedding_profile.py",
+        "extensions/builtin/animator/runtimes/llamacpp.py",
+        "extensions/builtin/animator/soulstones/llamacpp.py",
+        "pyproject.toml",
+        "src/lychd/config/settings/__init__.py",
+        "src/lychd/config/settings/archive.py",
+        "src/lychd/config/settings/root.py",
+        "src/lychd/config/settings/server.py",
+        "src/lychd/db/archive.py",
+        "src/lychd/db/archive_derivation.py",
+        "src/lychd/db/archive_semantic.py",
+        "src/lychd/db/models/archive.py",
+        "src/lychd/db/models/archive_derivation.py",
+        "src/lychd/domain/archive/contracts.py",
+        "src/lychd/domain/archive/derivation.py",
+        "src/lychd/domain/archive/derivation_service.py",
+        "src/lychd/domain/archive/semantic.py",
+        "src/lychd/domain/archive/semantic_service.py",
+        "src/lychd/domain/codex/guards.py",
+        "src/lychd/domain/codex/local_access.py",
+        "src/lychd/domain/codex/middleware.py",
+        "src/lychd/domain/codex/sigil.py",
+        "src/lychd/interface/web/archive.py",
+        "src/lychd/interface/web/archive_access.py",
+        "src/lychd/interface/web/archive_derivation.py",
+        "src/lychd/interface/web/archive_derivation_factory.py",
+        "src/lychd/interface/web/archive_generation_factory.py",
+        "src/lychd/interface/web/archive_response.py",
+        "src/lychd/interface/web/archive_semantic.py",
+        "src/lychd/interface/web/archive_semantic_factory.py",
+        "src/lychd/interface/web/openapi.py",
+        "tests/conftest.py",
+        "tests/integration/test_archive_semantic_native_runtime.py",
+        "tests/scout_postgres_fixture.py",
+        "tests/support/archive_semantic_runtime.py",
+        "tests/support/embedding_runtime.py",
+        "uv.lock",
+    }
+    canonical = json.dumps(receipt["source_sha256"], sort_keys=True, separators=(",", ":")).encode()
+    assert sha256(canonical).hexdigest() == "23b8faf49fd05497640489903c3b08e996961cf891e437f409c72e50acad5ad3"
     assert receipt["record_kind"] == "sanitized_public_maintained_native_archive_semantic_qualification"
     assert receipt["status"] == receipt["cleanup"] == "passed"
-    assert receipt["source_sha256"] == _sources()
     assert receipt["artifact_unchanged_after_cleanup"] is True
     assert receipt["proof"]["operations"] == 8
     assert receipt["proof"]["query_operations"] == 5
@@ -89,12 +141,87 @@ def test_maintained_native_receipt_binds_current_critical_source() -> None:
     assert receipt["independent_terminal_audit"]["workflow_passed"] is True
 
 
-def test_maintained_native_answer_receipt_binds_current_critical_source() -> None:
+def test_historical_native_answer_receipt_preserves_dated_source_lineage() -> None:
     root = Path(__file__).resolve().parents[3]
-    receipt = json.loads((root / "tests/fixtures/archive/native-semantic-answer-runtime-2026-10-19.json").read_text())
+    raw = (root / "tests/fixtures/archive/native-semantic-answer-runtime-2026-10-19.json").read_bytes()
+    assert sha256(raw).hexdigest() == "f443bbe7ecaa8034fd43c24edb7bd048f2e5a1d46ad4f54d7e0cbd6fc7a16aa6"
+    receipt = json.loads(raw)
+    assert receipt["observed_on"] == "2026-10-20"
+    assert HISTORICAL_RETIREMENT["no_current_qualification"] is True
+    assert set(receipt["source_sha256"]) == {
+        "domain/animation/embeddings.py",
+        "domain/animation/services/registry.py",
+        "domain/cortex/dispatcher.py",
+        "domain/cortex/leases.py",
+        "extensions/builtin/animator/llamacpp/connector.py",
+        "extensions/builtin/animator/llamacpp/embedding.py",
+        "extensions/builtin/animator/llamacpp/embedding_profile.py",
+        "extensions/builtin/animator/runtimes/llamacpp.py",
+        "extensions/builtin/animator/soulstones/llamacpp.py",
+        "pyproject.toml",
+        "scripts/local_model_probe.py",
+        "src/lychd/agents/archive_context.py",
+        "src/lychd/agents/context_limits.py",
+        "src/lychd/agents/workflows/semantic_chat.py",
+        "src/lychd/app.py",
+        "src/lychd/config/settings/__init__.py",
+        "src/lychd/config/settings/archive.py",
+        "src/lychd/config/settings/root.py",
+        "src/lychd/config/settings/server.py",
+        "src/lychd/db/archive.py",
+        "src/lychd/db/archive_derivation.py",
+        "src/lychd/db/archive_semantic.py",
+        "src/lychd/db/bootstrap.py",
+        "src/lychd/db/checkpoints.py",
+        "src/lychd/db/engine.py",
+        "src/lychd/db/factory.py",
+        "src/lychd/db/models/archive.py",
+        "src/lychd/db/models/archive_derivation.py",
+        "src/lychd/db/sessions.py",
+        "src/lychd/domain/animation/model_factory.py",
+        "src/lychd/domain/archive/contracts.py",
+        "src/lychd/domain/archive/derivation.py",
+        "src/lychd/domain/archive/derivation_service.py",
+        "src/lychd/domain/archive/semantic.py",
+        "src/lychd/domain/archive/semantic_service.py",
+        "src/lychd/domain/codex/guards.py",
+        "src/lychd/domain/codex/local_access.py",
+        "src/lychd/domain/codex/middleware.py",
+        "src/lychd/domain/codex/sigil.py",
+        "src/lychd/domain/cortex/context.py",
+        "src/lychd/domain/cortex/dispatcher.py",
+        "src/lychd/domain/cortex/engine.py",
+        "src/lychd/domain/cortex/leases.py",
+        "src/lychd/domain/cortex/ledger.py",
+        "src/lychd/domain/cortex/runs.py",
+        "src/lychd/domain/cortex/semantic_answer.py",
+        "src/lychd/ghouls/runs.py",
+        "src/lychd/interface/web/altar_services.py",
+        "src/lychd/interface/web/archive.py",
+        "src/lychd/interface/web/archive_access.py",
+        "src/lychd/interface/web/archive_derivation.py",
+        "src/lychd/interface/web/archive_derivation_factory.py",
+        "src/lychd/interface/web/archive_generation_factory.py",
+        "src/lychd/interface/web/archive_response.py",
+        "src/lychd/interface/web/archive_semantic.py",
+        "src/lychd/interface/web/archive_semantic_factory.py",
+        "src/lychd/interface/web/lifespan.py",
+        "src/lychd/interface/web/openapi.py",
+        "src/lychd/system/services/queues.py",
+        "tests/conftest.py",
+        "tests/integration/test_archive_semantic_native_runtime.py",
+        "tests/integration/test_local_bridge_runtime.py",
+        "tests/integration/test_production_wiring.py",
+        "tests/integration/test_semantic_answer_native_runtime.py",
+        "tests/scout_postgres_fixture.py",
+        "tests/support/archive_semantic_runtime.py",
+        "tests/support/embedding_runtime.py",
+        "uv.lock",
+    }
+    canonical = json.dumps(receipt["source_sha256"], sort_keys=True, separators=(",", ":")).encode()
+    assert sha256(canonical).hexdigest() == "a22dac7df7c0917908c1d8c77be16875848550bce5a3ecce982fa6e2736ff15a"
     assert receipt["record_kind"] == "sanitized_public_maintained_native_semantic_answer_qualification"
     assert receipt["status"] == receipt["cleanup"] == "passed"
-    assert receipt["source_sha256"] == _sources(proof.ANSWER_PROFILE)
     assert receipt["qualification"] == proof.ANSWER_PROFILE
     assert receipt["case_profile"] == "generated-answer-and-empty-recall-v2"
     assert receipt["outer_limits"]["chat_POSTs"] == 2

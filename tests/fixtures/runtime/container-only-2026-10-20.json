@@ -1,0 +1,180 @@
+{
+  "schema": "lychd.container-only-qualification.v1",
+  "observed_on": "2026-10-20",
+  "base_revision": "7057210a24cb0e777fb8d2af034a0baffeaa349c",
+  "profile": "Trusted operator-owned OCI acceptance; no hostile containment attestation",
+  "production_inputs": {
+    "scope": "Nine named build roots and all regular src files, excluding Python caches",
+    "roots": [
+      ".containerignore",
+      "Containerfile",
+      "LICENSE",
+      "README.md",
+      "THIRD_PARTY_NOTICES.md",
+      "pyproject.toml",
+      "uv.lock",
+      "clients/web/static/THIRD_PARTY_NOTICES.txt",
+      "scripts/generate_python_third_party_notices.py"
+    ],
+    "count": 553,
+    "sha256": "b03f0df6e78572391227d34b46e69d8d0922bc3134d33504b332ccd5b1cabe5b",
+    "clean_checkout_attested": false,
+    "atomic_transitive_closure_attested": false
+  },
+  "production": {
+    "image": "sha256:baad4fb92462d076142409f6a3e590afb0190287c21e2c2269e61a14cef8046d",
+    "python": "3.14.8",
+    "command": [
+      "python",
+      "-m",
+      "lychd.interface.server",
+      "--caged"
+    ],
+    "database_bootstrap_exit_code": 0,
+    "alembic_head": "0020",
+    "bootstrap_driver": "plain psycopg with system libpq",
+    "runtime_uid": 1001,
+    "read_only_rootfs": true,
+    "cap_drop": [
+      "ALL"
+    ],
+    "no_new_privileges": true,
+    "kernel": {
+      "memory.max": "2147483648",
+      "memory.swap.max": "0",
+      "cpu.max": "200000 100000",
+      "pids.max": "256"
+    },
+    "boots": [
+      {
+        "authenticated_status": 200,
+        "http": {
+          "schema": 200,
+          "no_auth": 401,
+          "wrong_auth": 401,
+          "foreign_host": 400,
+          "foreign_origin": 403,
+          "missing_csrf": 403
+        },
+        "exit_code": 0,
+        "oom_killed": false
+      },
+      {
+        "authenticated_status": 200,
+        "http": {
+          "schema": 200,
+          "no_auth": 401,
+          "wrong_auth": 401,
+          "foreign_host": 400,
+          "foreign_origin": 403,
+          "missing_csrf": 403
+        },
+        "exit_code": 0,
+        "oom_killed": false
+      }
+    ],
+    "fixture": "Fresh task bridge, literal 127.0.0.1 publication, synthetic mounted credentials, empty owned Reactor directories; fixture ownership initializer UID0 touches only the fresh named volume; Core stays UID1001",
+    "all_owned_containers_volumes_network_absent": true
+  },
+  "ward_candidate": {
+    "test_image": "sha256:b7111d3a713f0b6c2df0371e12a10feb2d1a8e51a427f36967fc58c875e255d2",
+    "python": "3.15.0",
+    "source_fingerprints": {
+      "tests/conftest.py": "ee6a7991363a5681b647635b7ff3a8ffa0cefb8a3c2a771ae1994d6381da5dc7",
+      "tests/integration/test_ward_pg.py": "2bbbd8d89e228be51855e6b761c1e0655d6338c4e65af67c767b4d5fe1ce30d9",
+      "tests/integration/test_native_candidate_authority_pg.py": "5b1c8f1a01cb0a8e9bbd4a87cbbfd5704979d2dac076817fed22023e1c39e358",
+      "tests/integration/test_database_authority_pg.py": "ea5321a78261980c4d2d9f11253b80d1681702d38c9ba3b3458aa085c52d6b40",
+      "tests/integration/test_archive_migrations_pg.py": "b4699870e8370a16e03d0a9d8f9bf08e01b8a1627ce2028696aa91c0cd1e21b6",
+      "tests/unit/system/services/test_native_candidate_authority.py": "8a6ce3d77ff552c1e98fed73fef326b20e02dc200bdf2d3f5f5877054ca6f85a"
+    },
+    "dependency_versions": {
+      "docker": "7.2.0",
+      "testcontainers": "4.15.0",
+      "pytest": "9.1.1",
+      "sqlalchemy": "2.0.54",
+      "psycopg": "3.3.6",
+      "psycopg-binary": "3.3.6",
+      "asyncpg": "0.32.0",
+      "alembic": "1.19.2",
+      "pydantic": "2.14.0",
+      "litestar": "2.24.0",
+      "litestar-saq": "0.8.0",
+      "saq": "0.26.4",
+      "advanced-alchemy": "1.11.0",
+      "pgvector": "0.5.0"
+    },
+    "passed": 23,
+    "failed": 0,
+    "skipped": 0,
+    "pytest_exit_code": 0,
+    "test_nodes": [
+      "tests/integration/test_ward_pg.py::test_default_deny_exact_principal_object_action_and_purpose",
+      "tests/integration/test_ward_pg.py::test_exchange_is_once_under_concurrency_and_auth_refusals",
+      "tests/integration/test_ward_pg.py::test_revocation_during_preparation_and_restart_remains_denied",
+      "tests/integration/test_ward_pg.py::test_policy_change_and_terminal_principal_revocation_fence_pending_work",
+      "tests/integration/test_ward_pg.py::test_each_expiry_prevents_disclosure[credential]",
+      "tests/integration/test_ward_pg.py::test_each_expiry_prevents_disclosure[session]",
+      "tests/integration/test_ward_pg.py::test_each_expiry_prevents_disclosure[permission]",
+      "tests/integration/test_ward_pg.py::test_schema_enforces_human_user_and_session_principal_binding",
+      "tests/integration/test_ward_pg.py::test_fullchain_0019_0020_cycle_runtime_roles_and_retained_refusal",
+      "tests/integration/test_ward_pg.py::test_credential_revocation_invalidates_existing_authentication",
+      "tests/integration/test_ward_pg.py::test_retained_publication_attempt_faults_and_current_recheck[before-handoff]",
+      "tests/integration/test_ward_pg.py::test_retained_publication_attempt_faults_and_current_recheck[after-handoff]",
+      "tests/integration/test_ward_pg.py::test_retained_publication_attempt_faults_and_current_recheck[commit-ack]",
+      "tests/integration/test_ward_pg.py::test_retained_publication_attempt_faults_and_current_recheck[revocation]",
+      "tests/integration/test_ward_pg.py::test_retained_publication_attempt_faults_and_current_recheck[regrant]",
+      "tests/integration/test_ward_pg.py::test_nondefault_isolation_refuses_and_preserves_caller_configuration[REPEATABLE READ]",
+      "tests/integration/test_ward_pg.py::test_nondefault_isolation_refuses_and_preserves_caller_configuration[SERIALIZABLE]",
+      "tests/integration/test_ward_pg.py::test_nondefault_isolation_refuses_and_preserves_caller_configuration[AUTOCOMMIT]",
+      "tests/integration/test_native_candidate_authority_pg.py::test_independent_attributed_hold_reject_replay_restart_and_legacy_refusal",
+      "tests/integration/test_native_candidate_authority_pg.py::test_database_clock_expiry_after_real_stage_prevents_publication",
+      "tests/integration/test_native_candidate_authority_pg.py::test_actual_principal_lock_wait_observes_revocation_and_shutdown_serializes",
+      "tests/integration/test_native_candidate_authority_pg.py::test_lost_decision_commit_ack_reconciles_exact_retained_identity",
+      "tests/integration/test_native_candidate_authority_pg.py::test_native_creation_mapper_table_and_prebound_connection_escapes_refuse_before_effect"
+    ],
+    "postgres_image": "sha256:1963bc48febf543433baa1ce3edcc6cc08154de722e22495f86681cc9a849026",
+    "postgres_objects": 3,
+    "postgres_each_kernel": {
+      "memory.max": "536870912",
+      "memory.swap.max": "0",
+      "cpu.max": "100000 100000",
+      "pids.max": "128"
+    },
+    "kernel_readback_before_readiness": true,
+    "all_objects_and_anonymous_volumes_absent": true,
+    "root_cgroups_absent": true,
+    "parent_removed": true,
+    "ward_schema": "Real bootstrap/HBA/full migrations and restricted runtime DML/DDL checks",
+    "candidate_schema": "Isolated Ward/Creation metadata DDL; no second full migration-chain claim"
+  },
+  "effects": {
+    "model_calls": 0,
+    "image_pulls_during_runtime": 0,
+    "operator_credential_reads": 0,
+    "warm_service_mutations": 0,
+    "retained_data_mutations": 0
+  },
+  "private_evidence_sha256": {
+    "production-image-build-01/admission.json": "18dce8b3a8893667e130f5fa9afbd6b6f02d5e27e6b83a7baf2858b1729432ea",
+    "production-image-build-01/terminal.json": "eebc2e009ec180aff1d64ef1d15682630ebe1d17be0e7c4e4e2cb2a7a0e78689",
+    "production-boot-05.py": "a8e52eba97bd36863befa6a9643499a42d3196100c6a9b7e461e0510bc5fa295",
+    "production-boot-05/admission.json": "f8f867c29f1f70a60053259c271b359ab1b1449129fceb54e38cd88c3f4367fa",
+    "production-boot-05/terminal.json": "464bd41e01d06eef513ad6c58e530fc9dbf1c52d9f4d0beb9c8162c9275d3698",
+    "production-boot-05/migration.log": "33ce46a8cfb7f620fa8390e3649a921fa69e7383566b73403eb36cfcf67f5b1a",
+    "production-boot-05/core.log": "60584d5cea0dda217976a9ba755e05c12a120daa8b2dd2eed245c19bd0c78c48",
+    "pg-policy-03.py": "d4c5241deda8ab24076bf6152d71f83ec7b272de0cf9557cd384a4e3dcbc1a63",
+    "run-pg-oci-04.py": "0d4a62fe81c438036500767891e7c237137040a27650c508e22b56a4ebd07bed",
+    "postgres-oci-04/admission.json": "17b891cff74497b5c4d1901d3d714eb4f6dbb1f99eefb26b02b4ae9b32f1a98a",
+    "postgres-oci-04/policy-evidence.json": "51712ebe3da6e1ba328b4ead4d67a8b106be9984cf61779a78d852f95eae81e6",
+    "postgres-oci-04/terminal.json": "404270a249298267d90da0996a72be9d612eafbd63bf112578a5900212d313dd",
+    "postgres-oci-04/pytest.log": "706965c50f12f7f4b44a0f5af702450c4dea0a286c7a9503d9b13066c05f0d94"
+  },
+  "unproved": [
+    "Public CLI active container start/stop completion",
+    "Full generated rootless body and managed-model lifecycle",
+    "Real Host Reactor transitions",
+    "Useful model workload or browser acceptance under this image",
+    "Foreign-constructor hostile containment and enrolled peer roundtrip",
+    "Crash recovery, exactly-once effects and shared filesystem/database atomicity"
+  ]
+}

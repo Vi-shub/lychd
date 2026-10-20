@@ -394,7 +394,6 @@ async def test_fixture_preserves_failures_and_closes_every_owner(
     [
         {"GRANIAN_WORKERS": "2"},
         {"LITESTAR_RELOAD": "true"},
-        {"GRANIAN_HOST": "0.0.0.0"},  # noqa: S104 - refusal control
         {"GRANIAN_UDS": "/fixture.sock"},
         {"GRANIAN_METRICS_ENABLED": "true"},
         {"LITESTAR_FILE_DESCRIPTOR": "3"},
@@ -410,14 +409,15 @@ def test_fixture_launcher_rejects_unsafe_environment_before_credentials(
         monkeypatch.setenv(key, value)
     monkeypatch.setattr(developer.secrets, "token_urlsafe", _forbidden_credential)
     with pytest.raises(SystemExit) as caught:
-        developer.main(())
+        developer.main(("--caged",))
     assert caught.value.code == 2
 
 
 @pytest.mark.parametrize(
     "arguments",
     [
-        ("--host", "0.0.0.0"),  # noqa: S104 - refusal control
+        (),
+        ("--caged", "--host", "0.0.0.0"),  # noqa: S104 - refusal control
         ("--workers", "2"),
         ("--reload",),
         ("--uds", "x"),
@@ -537,12 +537,8 @@ async def test_fixture_refuses_existing_owner_and_does_not_withdraw_foreign_repl
         reset_run_substrate()
 
 
-@pytest.mark.parametrize(
-    "arguments",
-    [("--host", "::1", "--port", "8034"), ("-H", "::1", "-p", "8034"), ("-H::1", "-p8034")],
-)
-def test_fixture_launcher_issues_fresh_credentials_and_preserves_listener(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], arguments: tuple[str, ...]
+def test_fixture_image_launcher_issues_fresh_credentials_with_fixed_listener(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     for key in tuple(developer.os.environ):
         if key.startswith(("LITESTAR_", "GRANIAN_")) or key == "WEB_CONCURRENCY":
@@ -551,7 +547,7 @@ def test_fixture_launcher_issues_fresh_credentials_and_preserves_listener(
     monkeypatch.setattr(developer, "_serve", serve)
     passwords: list[str] = []
     for _ in range(2):
-        developer.main(arguments)
+        developer.main(("--caged",))
         output = capsys.readouterr()
         password = output.out.split("Password: ", 1)[1].strip()
         assert len(password) >= 32
@@ -559,7 +555,7 @@ def test_fixture_launcher_issues_fresh_credentials_and_preserves_listener(
         passwords.append(password)
     assert passwords[0] != passwords[1]
     assert serve.await_count == 2
-    assert serve.call_args.kwargs == {"host": "::1", "port": 8034}
+    assert serve.call_args.kwargs == {"host": "0.0.0.0", "port": 8000}  # noqa: S104 - image listener
 
 
 def _substitute_embedded_transport(

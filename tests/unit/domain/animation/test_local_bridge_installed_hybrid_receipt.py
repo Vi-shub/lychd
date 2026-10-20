@@ -5,10 +5,10 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-import tomllib
-from importlib.metadata import version
 from pathlib import Path
 from typing import Any, cast
+
+from tests.support.local_bridge_receipt_freshness import require_historical_source_map
 
 _ROOT = Path(__file__).resolve().parents[4]
 _RECEIPT = _ROOT / "tests/fixtures/animator/local-bridge-installed-hybrid-2026-10-20.json"
@@ -177,14 +177,14 @@ def _canonical(value: object) -> bytes:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
 
 
-def _read() -> dict[str, Any]:
+def _read_historical() -> dict[str, Any]:
     payload = _RECEIPT.read_bytes()
     assert hashlib.sha256(payload).hexdigest() == _SHA256
     return cast("dict[str, Any]", json.loads(payload))
 
 
-def test_installed_hybrid_receipt_preserves_exact_actual_scope_and_oracles() -> None:
-    receipt = _read()
+def test_historical_installed_hybrid_receipt_preserves_exact_actual_scope_and_oracles() -> None:
+    receipt = _read_historical()
     assert set(receipt) == {
         "schema",
         "record_kind",
@@ -272,46 +272,29 @@ def test_installed_hybrid_receipt_preserves_exact_actual_scope_and_oracles() -> 
     assert all(re.fullmatch(r"[0-9a-f]{64}", v) for v in receipt["evidence_sha256"].values())
 
 
-def test_installed_hybrid_receipt_binds_current_source_and_artifact_scope() -> None:
-    receipt = _read()
-    assert set(receipt["source_fingerprints"]) == set(_SOURCES)
-    assert len(_SOURCES) == 136
-    for relative in _SOURCES:
-        path = _ROOT / relative
-        assert path.is_file()
-        assert not path.is_symlink()
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == receipt["source_fingerprints"][relative], relative
-    root = _ROOT / "src/lychd"
-    production: dict[str, str] = {}
-    for path in root.rglob("*"):
-        relative = path.relative_to(root)
-        if relative.parts[0] == "public" or "__pycache__" in relative.parts or path.suffix == ".pyc":
-            continue
-        assert not path.is_symlink()
-        if path.is_file():
-            production[relative.as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
-    assert len(production) == 494
-    assert (
-        hashlib.sha256(_canonical(production)).hexdigest()
-        == "ac1376eb93a2a8ae2528477af51077b36ea64eced098cfdb38e118104cb98ead"
+def test_historical_installed_hybrid_receipt_preserves_source_and_dependency_lineage() -> None:
+    receipt = _read_historical()
+    require_historical_source_map(
+        receipt, set(_SOURCES), "b0e4b9227ea2c91a12a7d5a79f9771e0c5ea071ebd30f9b48bc0a41f05b38865"
     )
+    assert len(_SOURCES) == 136
+    assert receipt["selected_dependency_versions"] == _DEPENDENCIES
     identity = receipt["source_identity"]
+    # These are sealed historical manifest facts; no current 494-file walk occurs.
+    assert identity["nonpublic_production_package_source_count"] == 494
+    assert identity["nonpublic_production_package_manifest_sha256"] == (
+        "ac1376eb93a2a8ae2528477af51077b36ea64eced098cfdb38e118104cb98ead"
+    )
     assert identity["installed_noneditable_package_file_count"] == 548
-    assert (
-        identity["installed_package_manifest_sha256"]
-        == "ffac71ba4bb9f3c8a3f07a10be8ff815676c9d2a6dcb6f1c9f8ca73f3920f89f"
+    assert identity["installed_package_manifest_sha256"] == (
+        "ffac71ba4bb9f3c8a3f07a10be8ff815676c9d2a6dcb6f1c9f8ca73f3920f89f"
     )
     assert identity["wheel_sha256"] == "284386357196466fb69ac6e9b1218c515fa7884617d095803b2aa7ff7f2de45c"
     assert identity["whole_current_checkout_qualified"] is False
-    assert receipt["selected_dependency_versions"] == _DEPENDENCIES
-    locked = tomllib.loads((_ROOT / "uv.lock").read_text())["package"]
-    for name, expected in _DEPENDENCIES.items():
-        assert version(name) == expected, name
-        assert any(p["name"] == name and p["version"] == expected for p in locked), name
 
 
-def test_installed_hybrid_receipt_omits_private_raw_material() -> None:
-    _read()
+def test_historical_installed_hybrid_receipt_omits_private_raw_material() -> None:
+    _read_historical()
     text = _RECEIPT.read_text()
     assert not re.search(r"\b[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\b", text)
     assert not any(

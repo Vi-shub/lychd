@@ -25,10 +25,11 @@ PYTEST_TARGETS ?= tests
 # and disposable PostgreSQL remain separate. Keep the full test/check defaults.
 CI_PYTEST_TARGETS := tests/unit/config tests/unit/db \
 	tests/architecture/test_release_legal_artifacts.py tests/architecture/test_ward_native_postgres_receipt.py \
+	tests/architecture/test_core_check_entrypoints.py tests/architecture/test_container_only_receipt.py \
 	tests/unit/test_app.py tests/unit/cli/test_cli.py \
 	tests/unit/system/operator tests/unit/cli/test_operator.py \
 	tests/unit/cli/test_deletion_retirement.py \
-	tests/unit/system/services/test_binding_preflight.py tests/unit/system/test_uncaged_unit.py \
+	tests/unit/system/services/test_binding_preflight.py \
 	tests/unit/system/services/test_init_binding_sites.py tests/unit/system/services/test_bind_compilation.py \
 	tests/unit/system/test_schemas.py tests/unit/system/services/test_artifact_custody.py \
 	tests/unit/system/services/test_artifact_publication.py \
@@ -75,6 +76,9 @@ RELEASE_ARTIFACT_DIR ?= .cache/release-candidate/$(RELEASE_REVISION)
 PYTEST_EFFECTIVE_TARGETS := $(PYTEST_TARGETS)
 UV ?= uv
 UV_DEV_RUN := $(UV) run --locked --extra postgres-binary
+ifeq ($(LYCHD_TEST_CONTAINER),1)
+UV_DEV_RUN := $(UV) run --offline --no-sync --extra postgres-binary
+endif
 UV_CACHE_DIR ?= .cache/uv
 RTK ?= rtk
 RTK_AVAILABLE := $(shell command -v $(RTK) >/dev/null 2>&1 && echo 1 || echo 0)
@@ -193,7 +197,11 @@ frontend-dev: ## Run the SvelteKit Altar in loopback-only development mode
 
 .PHONY: developer-fixture
 developer-fixture: ## Run the read-only synthetic backend for local browser development
-	@$(UV_DEV_RUN) python -m lychd.developer
+ifeq ($(LYCHD_TEST_CONTAINER),1)
+	@$(UV_DEV_RUN) python -m lychd.developer --caged
+else
+	@bash scripts/container_checks.sh developer-fixture
+endif
 
 .PHONY: frontend-build
 frontend-build: ## Generate contracts and compile the static Svelte Altar
@@ -228,60 +236,56 @@ lock: ## Re-resolve dependencies and update uv.lock
 # 🧪 Quality & Testing
 # =============================================================================
 
+# Only the source-bound check image may execute Core test/check tools. An env
+# flag by itself cannot bypass the host wrapper.
+CORE_CHECK_TARGETS := lint format-check type-check test test-containers test-ci test-config coverage check
+ifeq ($(LYCHD_TEST_CONTAINER),1)
+CHECK_CONTAINER_OBSERVED := $(shell test -f /opt/lychd-test-image && { test -f /run/.containerenv || test -f /.dockerenv; } && echo 1)
+ifneq ($(CHECK_CONTAINER_OBSERVED),1)
+$(error Core checks require the OCI test image and an observed container marker)
+endif
 .PHONY: lint
 lint: ## Run Ruff (Linter). Usage: make lint RUFF_TARGETS="src/lychd/app.py tests/unit"
-	@$(call validate_paths,$(RUFF_TARGETS))
-	@echo "${INFO} Linting (Targets: $(RUFF_TARGETS))..."
-	@$(RUFF) check $(RUFF_TARGETS)
+	@read -r -a targets <<< "$$RUFF_TARGETS"
+	@$(RUFF) check "$${targets[@]}"
 	@echo "${OK} Lint pass."
-
-.PHONY: format
-format: ## Run Ruff (Formatter). Usage: make format FORMAT_TARGETS="src/lychd/app.py"
-	@$(call validate_paths,$(FORMAT_TARGETS))
-	@echo "${INFO} Formatting (Targets: $(FORMAT_TARGETS))..."
-	@$(RUFF) format $(FORMAT_TARGETS)
-	@echo "${OK} Formatted."
 
 .PHONY: format-check
 format-check: ## Check Ruff formatting without changing files
-	@$(call validate_paths,$(FORMAT_TARGETS))
-	@echo "${INFO} Checking formatting (Targets: $(FORMAT_TARGETS))..."
-	@$(RUFF) format --check $(FORMAT_TARGETS)
+	@read -r -a targets <<< "$$FORMAT_TARGETS"
+	@$(RUFF) format --check "$${targets[@]}"
 	@echo "${OK} Formatting is clean."
 
 .PHONY: type-check
 type-check: ## Run BasedPyright. Usage: make type-check TYPECHECK_TARGETS="src/lychd/app.py"
-	@$(call validate_paths,$(TYPECHECK_TARGETS))
-	@echo "${INFO} Type checking (Targets: $(if $(strip $(TYPECHECK_TARGETS)),$(TYPECHECK_TARGETS),<repo-default>))..."
-	@$(TYPECHECK) $(TYPECHECK_TARGETS)
+	@read -r -a targets <<< "$$TYPECHECK_TARGETS"
+	@$(TYPECHECK) "$${targets[@]}"
 	@echo "${OK} Types are strict."
 
 .PHONY: test
 test: ## Run tests. Usage: make test K="anim"
-	@echo "${INFO} Running tests (Args: $(PYTEST_ARGS) Targets: $(PYTEST_EFFECTIVE_TARGETS))..."
-	@basetemp="$(strip $(PYTEST_BASETEMP))"
-	@if [[ -z "$$basetemp" ]]; then
-		mkdir -p "$(PYTEST_BASE_ROOT)"
-		basetemp="$$(mktemp -d "$(PYTEST_BASE_ROOT)/run.XXXXXX")"
-	else
-		mkdir -p "$$(dirname "$$basetemp")"
-	fi
-	@$(PYTEST) $(PYTEST_ARGS) --basetemp "$$basetemp" $(PYTEST_EFFECTIVE_TARGETS)
+	@$(UV_DEV_RUN) python scripts/container_pytest_args.py
 
 .PHONY: test-containers
 test-containers: ## Run explicit disposable-PostgreSQL receipts; requires a Docker-compatible daemon
-	@echo "${INFO} Running disposable PostgreSQL receipts (Targets: $(CONTAINER_TEST_TARGETS))..."
-	@basetemp="$(strip $(PYTEST_BASETEMP))"
+	@read -r -a targets <<< "$$CONTAINER_TEST_TARGETS"
+	@args=(-n "$$N" --dist loadscope -m container)
+	@if [[ "$$VERBOSE" == 1 ]]; then
+		args+=(-s --tb=long -o log_cli=true --log-cli-level=DEBUG)
+	@else
+		args+=(-qq)
+	fi
+	@basetemp="$${PYTEST_BASETEMP:-}"
 	@if [[ -z "$$basetemp" ]]; then
-		mkdir -p "$(PYTEST_BASE_ROOT)"
-		basetemp="$$(mktemp -d "$(PYTEST_BASE_ROOT)/run.XXXXXX")"
-	else
+		mkdir -p "$$PYTEST_BASE_ROOT"
+		basetemp="$$(mktemp -d "$$PYTEST_BASE_ROOT/run.XXXXXX")"
+	@else
 		mkdir -p "$$(dirname "$$basetemp")"
 	fi
-	@$(UV_DEV_RUN) --group container-test pytest $(CONTAINER_PYTEST_ARGS) --basetemp "$$basetemp" $(CONTAINER_TEST_TARGETS)
+	@$(UV_DEV_RUN) --group container-test pytest "$${args[@]}" --basetemp "$$basetemp" "$${targets[@]}"
 
 .PHONY: test-ci
-test-ci: ## Run the core CI selection without real host services, models or containers
+test-ci: ## Run the core CI selection inside the OCI test image
 	@$(MAKE) test PYTEST_TARGETS="$(CI_PYTEST_TARGETS)" M="not container" N=0
 
 .PHONY: test-config
@@ -291,11 +295,11 @@ test-config: ## Run configurable/runes focused tests only
 .PHONY: coverage
 coverage: ## Run tests with coverage report
 	@echo "${INFO} Generating coverage..."
-	@basetemp="$(strip $(PYTEST_BASETEMP))"
+	@basetemp="$${PYTEST_BASETEMP:-}"
 	@if [[ -z "$$basetemp" ]]; then
-		mkdir -p "$(PYTEST_BASE_ROOT)"
-		basetemp="$$(mktemp -d "$(PYTEST_BASE_ROOT)/run.XXXXXX")"
-	else
+		mkdir -p "$$PYTEST_BASE_ROOT"
+		basetemp="$$(mktemp -d "$$PYTEST_BASE_ROOT/run.XXXXXX")"
+	@else
 		mkdir -p "$$(dirname "$$basetemp")"
 	fi
 	@$(PYTEST) --basetemp "$$basetemp" -m "not container" --cov --cov-report=html:htmlcov --cov-report=term
@@ -303,6 +307,28 @@ coverage: ## Run tests with coverage report
 
 .PHONY: check
 check: lint format-check type-check test ## Run all non-mutating quality checks
+
+else
+.PHONY: $(CORE_CHECK_TARGETS)
+lint: ## Run Ruff lint inside the source-bound OCI test image
+format-check: ## Check formatting inside the OCI test image
+type-check: ## Run BasedPyright inside the OCI test image
+test: ## Run tests inside OCI; select with PYTEST_TARGETS, K, M, ARGS and N
+test-containers: ## Run OCI PostgreSQL receipts with explicit LYCHD_TEST_DAEMON_SOCKET
+test-ci: ## Run the Core CI selection inside the OCI test image
+test-config: ## Run configuration tests inside the OCI test image
+coverage: ## Enforce coverage inside OCI; HTML is private to that disposable container
+check: ## Run all non-mutating Python checks inside the OCI test image
+$(CORE_CHECK_TARGETS):
+	@bash scripts/container_checks.sh $@
+endif
+
+.PHONY: format
+format: ## Run Ruff (Formatter). Usage: make format FORMAT_TARGETS="src/lychd/app.py"
+	@$(call validate_paths,$(FORMAT_TARGETS))
+	@echo "${INFO} Formatting (Targets: $(FORMAT_TARGETS))..."
+	@$(RUFF) format $(FORMAT_TARGETS)
+	@echo "${OK} Formatted."
 
 ## ============================================================================
 ## Documentation

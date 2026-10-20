@@ -42,16 +42,11 @@ TOML and serialized snapshots. Editing an environment variable or secret file do
 running process; restart it to load the change. The exact credential names and precedence belong to
 [Configuration](../adr/12-configuration.md#secrets-privacy-autonomy-and-projections).
 
-An explicit startup source, `LYCHD_RUNTIME_SECRETS=podman-core@1`, instead captures the runtime
-DB, signing and local access values from their declared Podman secret names. It refuses competing
-core credential inputs and explicit constructor server sections; use environment or TOML for server
-declarations. It does not load the bootstrap or Phoenix password. Set the selection
-before the process first loads Settings; changing it cannot update a running generation. The
-profile requires empty values to remain visible in Pydantic's environment capture. See the
-[exact source contract](../adr/12-configuration.md#explicit-native-core-credential-source).
-This supplies credential loading, not a native installation recipe. Current caged and dual
-bindings do not select it automatically; [State of Work](../state-of-the-work.md#settings-generations)
-keeps source tests separate from installed startup and database authentication.
+The former host-native `LYCHD_RUNTIME_SECRETS=podman-core@1` source is retired; explicit
+selection refuses before credential I/O. The container consumes its separately mounted
+`/run/secrets` inputs through ordinary Settings sources. The host Podman secret adapter retains
+its bind/access responsibilities without becoming application startup transport. See the
+[retired source boundary](../adr/12-configuration.md#explicit-native-core-credential-source).
 
 An incomplete law may be edited; it may not half-enter the body. The complete configuration must
 validate before infrastructure projection begins.
@@ -63,7 +58,8 @@ The generated foundation selects the caged Host Reactor:
 actuator = "host-reactor"
 ```
 
-`actuator = "systemd"` is the explicit uncaged development path. [Runtime transitions](animator/runtime-transitions.md#switching-settings) gives the Reactor path
+`actuator = "systemd"` remains a typed host-adapter mechanism for explicit tests; it does not
+select a supported host-native Vessel or bypass the managed container's Host Reactor boundary. [Runtime transitions](animator/runtime-transitions.md#switching-settings) gives the Reactor path
 and acknowledgement settings; [Orchestrator](../adr/23-orchestrator.md#host-mutation-port-and-privilege-boundary)
 owns the validated host handoff and recovery outcomes.
 

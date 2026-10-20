@@ -39,7 +39,15 @@ async def events() -> ServerSentEvent:
     return ServerSentEvent(source())
 
 
-@get(["/_app/asset", "/schema/openapi.json", "/_application/private", "/schema-private"])
+@get(
+    [
+        "/_app/asset",
+        "/schema/openapi.json",
+        "/_application/private",
+        "/schema-private",
+        "/api/v1/operator/stop-admission",
+    ]
+)
 async def asset() -> dict[str, bool]:
     """Expose exact public paths and lookalikes to test exclusion anchoring."""
     return {"asset": True}
@@ -175,3 +183,8 @@ def test_middleware_refuses_two_credential_owners() -> None:
     access = LocalOperatorAccess(access_password=TEST_ACCESS_PASSWORD)
     with pytest.raises(ValueError, match="one credential owner"):
         sigil_auth_middleware(access_password=TEST_ACCESS_PASSWORD, operator_access=access)
+
+
+def test_retired_stop_admission_path_has_no_authentication_exemption() -> None:
+    response = _client().get("/api/v1/operator/stop-admission")
+    assert response.status_code == 401

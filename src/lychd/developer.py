@@ -1,6 +1,7 @@
 """Explicit disposable browser fixture; never an alternate production startup.
 
-Run ``python -m lychd.developer`` for fresh terminal-issued credentials. This
+Run ``python -m lychd.developer --caged`` inside the development image for fresh
+terminal-issued credentials. This
 composition has no ambient Settings, Rune discovery, database, or execution
 capability. Its records are synthetic and disappear when the process exits.
 """
@@ -28,7 +29,7 @@ from lychd.config.settings.root import Settings, SettingsSnapshot
 from lychd.config.settings.server import validate_local_access_password
 from lychd.extensions.host import AssembledExtensions
 from lychd.extensions.manager import ExtensionManager
-from lychd.interface.server_policy import ServerRuntimePolicyError, evaluate_server_runtime_policy
+from lychd.interface.server_policy import ServerRuntimePolicyError, validate_server_environment
 from lychd.interface.web.altar_services import AltarServices, build_altar_services
 
 if TYPE_CHECKING:
@@ -40,7 +41,8 @@ if TYPE_CHECKING:
     from lychd.domain.orchestration.containment import SoftActivationRecord
 
 _BROWSER_PORT = 5173
-_DEFAULT_LISTENER_PORT = 8000
+_LISTENER_PORT = 8000
+_LISTENER_HOST = "0.0.0.0"  # noqa: S104 -- internal image listener behind loopback host publication
 _SYNTHETIC = "SYNTHETIC developer fixture: no graph, model, or host execution."
 _READ_ONLY = "The synthetic developer fixture is read-only; mutations and execution are unavailable."
 
@@ -204,8 +206,9 @@ class DeveloperFixture:
 def create_developer_app(*, access_password: SecretStr, signing_key: SecretStr, listener_port: int = 8000) -> Litestar:
     """Build real HTTP surfaces from explicit credentials without reading Settings sources."""
     from lychd.app import AppInit
+    from lychd.interface.server_policy import evaluate_server_runtime_policy
 
-    evaluate_server_runtime_policy(environment={}, server_arguments=("--port", str(listener_port)))
+    evaluate_server_runtime_policy(environment={}, default_listener_port=listener_port)
     validate_local_access_password(access_password)
     if not signing_key.get_secret_value():
         msg = "The developer fixture requires an explicit signing key."
@@ -257,20 +260,15 @@ def main(arguments: Sequence[str] | None = None) -> None:
     """Issue fresh fixture-only credentials to the invoking terminal and start one listener."""
     arguments = tuple(sys.argv[1:] if arguments is None else arguments)
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
-    parser.add_argument("--host", "-H", help="Loopback address (default: 127.0.0.1)")
-    parser.add_argument("--port", "-p", type=int, help="TCP port (default: 8000)")
+    parser.add_argument("--caged", action="store_true", required=True, help="Run inside the development image")
     parser.parse_args(arguments)
     try:
-        policy = evaluate_server_runtime_policy(
-            environment=os.environ, default_listener_port=_DEFAULT_LISTENER_PORT, server_arguments=arguments
-        )
+        validate_server_environment(os.environ)
     except ServerRuntimePolicyError as exc:
         parser.error(str(exc))
-    if policy.listener_host is None or policy.listener_port is None:
-        parser.error("A loopback listener host and port are required.")
     password = SecretStr(secrets.token_urlsafe(32))
     app = create_developer_app(
-        access_password=password, signing_key=SecretStr(secrets.token_urlsafe(48)), listener_port=policy.listener_port
+        access_password=password, signing_key=SecretStr(secrets.token_urlsafe(48)), listener_port=_LISTENER_PORT
     )
     # This explicit terminal result is the only credential output. It is never a
     # structured diagnostic, environment variable, URL, browser asset, or file.
@@ -278,7 +276,7 @@ def main(arguments: Sequence[str] | None = None) -> None:
         f"SYNTHETIC read-only fixture. No execution or durable state.\nUsername: magus\nPassword: {password.get_secret_value()}\n"
     )
     sys.stdout.flush()
-    asyncio.run(_serve(app, host=policy.listener_host, port=policy.listener_port))
+    asyncio.run(_serve(app, host=_LISTENER_HOST, port=_LISTENER_PORT))
 
 
 if __name__ == "__main__":

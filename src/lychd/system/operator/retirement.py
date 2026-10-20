@@ -47,6 +47,11 @@ class OwnedUnitRetirementService:
         catalog = self._inventory.owned_units()
         if catalog.warning:
             raise OperatorError(catalog.warning)
+        if catalog.has_retired_native_vessel():
+            message = (
+                "Retired native Vessel bindings require manual reconciliation; retirement and deletion are unavailable."
+            )
+            raise OperatorError(message)
         bad_setting = tuple(
             f"{unit.name} ({unit.load_state})" for unit in catalog.units if unit.load_state == "bad-setting"
         )

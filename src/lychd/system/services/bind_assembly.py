@@ -7,8 +7,6 @@ from typing import TYPE_CHECKING
 from lychd.system.services.bind import BindUseCase
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     from lychd.config.settings import SettingsSnapshot
     from lychd.system.readiness import BindingFoundation
     from lychd.system.services.binding_preflight import BindingPreflightService
@@ -19,10 +17,6 @@ def assemble_bind_use_case(
     foundation: BindingFoundation,
     preflight_service: BindingPreflightService,
     settings_snapshot: SettingsSnapshot,
-    uncaged_control_plane_secrets: Sequence[str],
-    uncaged: bool,
-    native_only: bool = False,
-    native_portal_secrets: Sequence[str] = (),
 ) -> BindUseCase:
     """Wire concrete host adapters behind the reusable bind use case."""
     from lychd.system.services.lifecycle.lock import LifecycleLock
@@ -37,13 +31,7 @@ def assemble_bind_use_case(
 
     def revalidate_foundation() -> BindingFoundation:
         settings = settings_snapshot.materialize()
-        current = preflight_service.inspect(
-            settings,
-            uncaged=uncaged,
-            native_only=native_only,
-            uncaged_control_plane_secrets=(tuple(uncaged_control_plane_secrets) if uncaged or native_only else ()),
-            native_portal_secrets=native_portal_secrets,
-        )
+        current = preflight_service.inspect(settings)
         return current.require_ready()
 
     return BindUseCase(

@@ -9,14 +9,13 @@ import signal
 from collections.abc import Callable, Generator, Sequence
 from contextlib import contextmanager
 from functools import partial
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from granian.constants import HTTPModes, Interfaces, TaskImpl
 from granian.server.embed import Server
 
 from lychd.interface.server_policy import (
     ServerRuntimePolicyError,
-    evaluate_server_runtime_policy,
     validate_server_environment,
 )
 
@@ -24,7 +23,6 @@ if TYPE_CHECKING:
     from litestar import Litestar
     from litestar.types import Receive, Scope, Send
 
-    from lychd.interface.api.lifecycle import StopAdmissionState
 
 _SIGNALS = (signal.SIGINT, signal.SIGTERM)
 _CAGED_HOST = "0.0.0.0"  # noqa: S104 -- fixed internal listener behind managed loopback publication
@@ -100,11 +98,6 @@ async def _refuse_retired_callback(scope: Scope, send: Send) -> None:
         await send({"type": "websocket.close", "code": 1012})
 
 
-def _withdraw_admission(admission: StopAdmissionState | None) -> None:
-    if admission is not None:
-        admission.withdraw()
-
-
 async def serve_application(app: Litestar, *, host: str, port: int) -> None:
     """Retire HTTP callbacks before closing the single explicit application lifespan.
 
@@ -120,7 +113,6 @@ async def serve_application(app: Litestar, *, host: str, port: int) -> None:
     callbacks_retired.set()
     stopping = started = startup_cancelled = False
     lifecycle: asyncio.Task[None] | None = None
-    admission = cast("StopAdmissionState | None", getattr(app.state, "stop_admission", None))
 
     async def application(scope: Scope, receive: Receive, send: Send) -> None:
         nonlocal active_callbacks
@@ -156,7 +148,6 @@ async def serve_application(app: Litestar, *, host: str, port: int) -> None:
     def request_stop() -> None:
         nonlocal stopping, startup_cancelled
         stopping = True
-        _withdraw_admission(admission)
         server.stop()
         if lifecycle is not None and not started and not startup_cancelled:
             startup_cancelled = True
@@ -185,40 +176,24 @@ async def serve_application(app: Litestar, *, host: str, port: int) -> None:
         await _await_lifespan(lifecycle, request_stop)
 
 
-def run_production_server(
-    *,
-    host: str,
-    port: int,
-    debug: bool = False,
-    pdb: bool = False,
-    _profile: Literal["native", "caged"] = "native",
-) -> None:
-    """Construct one captured app; only the fixed native entrypoint arms admission."""
+def run_production_server() -> None:
+    """Construct the image application with its fixed internal listener."""
     validate_server_environment(os.environ)
-    if _profile == "native":
-        evaluate_server_runtime_policy(environment={}, server_arguments=("--host", host, "--port", str(port)))
-    elif _profile != "caged" or (host, port) != (_CAGED_HOST, _CAGED_PORT):
-        message = "The managed image requires its fixed internal listener."
-        raise ServerRuntimePolicyError(message)
     from lychd.app import create_app
 
-    exports = {"LITESTAR_HOST": host, "GRANIAN_HOST": host, "LITESTAR_PORT": str(port), "GRANIAN_PORT": str(port)}
+    exports = {
+        "LITESTAR_HOST": _CAGED_HOST,
+        "GRANIAN_HOST": _CAGED_HOST,
+        "LITESTAR_PORT": str(_CAGED_PORT),
+        "GRANIAN_PORT": str(_CAGED_PORT),
+    }
     previous = {key: os.environ.get(key) for key in exports}
-    admission: StopAdmissionState | None = None
     try:
         os.environ.update(exports)
         app = create_app()
-        admission = cast("StopAdmissionState | None", getattr(app.state, "stop_admission", None))
-        if admission is not None and _profile == "native":
-            admission.arm_native_launcher()
-        if debug:
-            app.debug = True
-        if pdb:
-            app.pdb_on_exception = True
         with asyncio.Runner(loop_factory=asyncio.SelectorEventLoop) as runner:
-            runner.run(serve_application(app, host=host, port=port))
+            runner.run(serve_application(app, host=_CAGED_HOST, port=_CAGED_PORT))
     finally:
-        _withdraw_admission(admission)
         for key, value in previous.items():
             if value is None:
                 os.environ.pop(key, None)
@@ -232,7 +207,7 @@ def main(arguments: Sequence[str] | None = None) -> None:
     parser.add_argument("--caged", action="store_true", required=True, help="Run the managed image listener")
     parser.parse_args(arguments)
     try:
-        run_production_server(host=_CAGED_HOST, port=_CAGED_PORT, _profile="caged")
+        run_production_server()
     except ServerRuntimePolicyError as exc:
         parser.error(str(exc))
 

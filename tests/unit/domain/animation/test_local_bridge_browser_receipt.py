@@ -5,10 +5,10 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-import tomllib
-from importlib.metadata import version
 from pathlib import Path
 from typing import Any, cast
+
+from tests.support.local_bridge_receipt_freshness import require_historical_source_map
 
 _ROOT = Path(__file__).resolve().parents[4]
 _RECEIPT = _ROOT / "tests/fixtures/animator/local-bridge-browser-2026-10-20.json"
@@ -152,16 +152,16 @@ _SOURCES = (
     "tests/unit/domain/animation/test_local_bridge_native_tcp.py",
 )
 _DEPENDENCIES = {
-    "litestar": "2.24.0",
     "granian": "2.8.2",
+    "httpx2": "2.12.0",
+    "litestar": "2.24.0",
+    "openai": "3.28.0",
+    "psycopg": "3.3.6",
+    "pydantic": "2.14.0",
     "pydantic-ai-slim": "2.55.0",
     "pydantic-graph": "2.55.0",
-    "pydantic": "2.14.0",
-    "sqlalchemy": "2.0.54",
-    "psycopg": "3.3.6",
     "saq": "0.26.4",
-    "httpx2": "2.12.0",
-    "openai": "3.28.0",
+    "sqlalchemy": "2.0.54",
 }
 _FACTS = {
     "authentication": {
@@ -346,14 +346,14 @@ _FACTS = {
 }
 
 
-def _read() -> dict[str, Any]:
+def _read_historical() -> dict[str, Any]:
     payload = _RECEIPT.read_bytes()
     assert hashlib.sha256(payload).hexdigest() == _SHA256
     return cast("dict[str, Any]", json.loads(payload))
 
 
-def test_browser_receipt_keeps_actual_oracles_profile_and_limits() -> None:
-    receipt = _read()
+def test_historical_browser_receipt_keeps_actual_oracles_profile_and_limits() -> None:
+    receipt = _read_historical()
     assert set(receipt) == {
         "selected_dependency_versions",
         "visible_journey",
@@ -449,23 +449,17 @@ def test_browser_receipt_keeps_actual_oracles_profile_and_limits() -> None:
     assert all(re.fullmatch(r"[0-9a-f]{64}", value) for value in receipt["evidence_sha256"].values())
 
 
-def test_browser_receipt_binds_unchanged_critical_inputs() -> None:
-    receipt = _read()
-    assert set(receipt["source_fingerprints"]) == set(_SOURCES)
-    for relative in _SOURCES:
-        source = _ROOT / relative
-        assert source.is_file()
-        assert not source.is_symlink()
-        assert hashlib.sha256(source.read_bytes()).hexdigest() == receipt["source_fingerprints"][relative], relative
+def test_historical_browser_receipt_preserves_source_and_dependency_lineage() -> None:
+    receipt = _read_historical()
+    require_historical_source_map(
+        receipt, set(_SOURCES), "b0e4b9227ea2c91a12a7d5a79f9771e0c5ea071ebd30f9b48bc0a41f05b38865"
+    )
+    assert len(_SOURCES) == 136
     assert receipt["selected_dependency_versions"] == _DEPENDENCIES
-    locked = tomllib.loads((_ROOT / "uv.lock").read_text())["package"]
-    for name, expected in _DEPENDENCIES.items():
-        assert version(name) == expected, name
-        assert any(p["name"] == name and p["version"] == expected for p in locked), name
 
 
-def test_browser_receipt_has_no_private_raw_material() -> None:
-    _read()
+def test_historical_browser_receipt_has_no_private_raw_material() -> None:
+    _read_historical()
     text = _RECEIPT.read_text()
     assert not re.search(r"\b[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\b", text)
     assert not any(

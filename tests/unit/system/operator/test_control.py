@@ -125,7 +125,7 @@ def _catalog(
         units=tuple(
             OwnedUnit(
                 name=unit,
-                sources=(f"/units/{unit}",),
+                sources=(f"/units/{'lychd-vessel.container' if unit == 'lychd-vessel.service' else unit}",),
                 state=state,
                 unit_file_state=unit_file_state,
             )
@@ -785,3 +785,67 @@ def test_retiring_runner_preserves_observed_load_state_and_detail() -> None:
     runner.run(("/usr/bin/systemctl", "--user", "disable", unit.name), timeout_s=30.0)
 
     assert inventory.catalog.units == (replace(unit, state=ObservationState.INACTIVE, unit_file_state="disabled"),)
+
+
+@pytest.mark.parametrize("action", [OperatorAction.START, OperatorAction.STOP])
+@pytest.mark.parametrize("target", [OperatorTarget.SYSTEM, OperatorTarget.STORAGE])
+@pytest.mark.parametrize("state", [ObservationState.ACTIVE, ObservationState.INACTIVE, ObservationState.FAILED])
+@pytest.mark.parametrize("vessel_name", ["lychd-uncaged-vessel.service", "lychd-vessel.service"])
+def test_retired_native_binding_never_grants_control(
+    action: OperatorAction, target: OperatorTarget, state: ObservationState, vessel_name: str
+) -> None:
+    runner = _Runner()
+    catalog = _catalog(state, units=(vessel_name, "lychd-phylactery.service"))
+    catalog = replace(
+        catalog,
+        units=(replace(catalog.units[0], sources=(f"/units/{vessel_name}",)), catalog.units[1]),
+    )
+    with pytest.raises(OperatorAuthorityError, match="Retired native Vessel bindings are observational only"):
+        _control(_Inventory(catalog), runner).execute(action, target)
+    assert runner.calls == []
+
+
+@pytest.mark.parametrize("state", [ObservationState.ACTIVE, ObservationState.INACTIVE, ObservationState.FAILED])
+@pytest.mark.parametrize("vessel_name", ["lychd-uncaged-vessel.service", "lychd-vessel.service"])
+def test_retired_native_binding_blocks_retirement_before_any_effect(state: ObservationState, vessel_name: str) -> None:
+    runner = _Runner()
+    catalog = _catalog(state, units=(vessel_name, "lychd-phylactery.service"))
+    inventory = _Inventory(
+        replace(
+            catalog,
+            units=(replace(catalog.units[0], sources=(f"/units/{vessel_name}",)), catalog.units[1]),
+        )
+    )
+    service = OwnedUnitRetirementService(
+        inventory=cast("OperatorInventoryService", inventory), runner=runner, systemctl_bin="/usr/bin/systemctl"
+    )
+    with pytest.raises(OperatorError, match="Retired native Vessel bindings require manual reconciliation"):
+        service.plan()
+    assert runner.calls == []
+
+
+@pytest.mark.parametrize("action", [OperatorAction.START, OperatorAction.STOP])
+@pytest.mark.parametrize("target", [OperatorTarget.SYSTEM, OperatorTarget.STORAGE])
+@pytest.mark.parametrize("vessel_name", ["lychd-uncaged-vessel.service", "lychd-vessel.service"])
+def test_retired_native_binding_never_resolves_direct_actuation(
+    action: OperatorAction, target: OperatorTarget, vessel_name: str
+) -> None:
+    catalog = _catalog(ObservationState.INACTIVE, units=(vessel_name, "lychd-phylactery.service"))
+    catalog = replace(
+        catalog,
+        units=(replace(catalog.units[0], sources=(f"/units/{vessel_name}",)), catalog.units[1]),
+    )
+    resolver = OperatorTargetResolver(cast("OperatorInventoryService", _Inventory(catalog)))
+
+    with pytest.raises(OperatorError, match="Retired native Vessel bindings are observational only"):
+        resolver.direct_actuation_units(action.value, target, catalog=catalog)
+
+
+@pytest.mark.parametrize("vessel_name", ["lychd-uncaged-vessel.service", "lychd-vessel.service"])
+def test_retired_native_binding_remains_observable(vessel_name: str) -> None:
+    catalog = _catalog(ObservationState.ACTIVE, units=(vessel_name,))
+    catalog = replace(catalog, units=(replace(catalog.units[0], sources=(f"/units/{vessel_name}",)),))
+    resolver = OperatorTargetResolver(cast("OperatorInventoryService", _Inventory(catalog)))
+
+    assert resolver.observation_units(OperatorTarget.WORKERS) == (vessel_name,)
+    assert resolver.observation_units(OperatorTarget.SYSTEM) == (vessel_name,)

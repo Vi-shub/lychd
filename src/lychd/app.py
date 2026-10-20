@@ -104,24 +104,12 @@ class AppInit(InitPluginProtocol):
         # Local credential possession precedes the fixed Sigil; remote Ward is not delivered.
         from lychd.domain.codex.local_access import LocalOperatorAccess
         from lychd.domain.codex.middleware import sigil_auth_middleware
-        from lychd.interface.api.lifecycle import StopAdmissionState, stop_admission
-        from lychd.system.operator.admission import StopAdmissionProtocol
 
         if settings.server.web.access_password is None:
             msg = "Required local access password is unavailable in Settings."
             raise ValueError(msg)
         access_password = settings.server.web.access_password.get_secret_value()
         operator_access = LocalOperatorAccess(access_password=access_password)
-        authentication = operator_access.authenticate(username=b"magus", password=access_password.encode("ascii"))
-        if authentication is None:  # pragma: no cover - the owner received this exact credential
-            msg = "Required local access authentication is unavailable."
-            raise ValueError(msg)
-        stop_admission_state = StopAdmissionState(
-            protocol=StopAdmissionProtocol(access_password),
-            access=operator_access,
-            authentication=authentication,
-            production=self.fixture is None,
-        )
         app_config.middleware.append(
             sigil_auth_middleware(
                 operator_access=operator_access,
@@ -164,7 +152,6 @@ class AppInit(InitPluginProtocol):
                     name="altar-assets",
                 ),
                 OrchestratorController,
-                stop_admission,
                 AltarController,
                 AtlasController,
                 ArchiveController,
@@ -185,7 +172,6 @@ class AppInit(InitPluginProtocol):
                 "extensions": extensions,
                 "runes": runes,
                 "local_operator_access": operator_access,
-                "stop_admission": stop_admission_state,
                 "csrf_contract": CsrfClientContract(
                     cookie_name=csrf_config.cookie_name,
                     header_name=csrf_config.header_name,

@@ -18,9 +18,16 @@ when the fixture's meaning is part of the assertion.
 
 ### 1. The Engine (Pytest + Xdist)
 
+All Core test, lint, format-check, type and coverage processes run in the explicit OCI image
+built from `Containerfile.tests`, selected through the Makefile and `scripts/container_checks.sh`.
+The host harness may build and launch that image; it does not execute a host Vessel or fall back
+to host pytest when the engine is unavailable. Application construction and ASGI/domain helpers
+inside the image are test techniques, not another deployment profile. Installed-runtime
+qualification instead needs the actual rebuilt production Vessel image and declared boundary.
+
 Tests run serially by default because some probes share host-resource boundaries. A caller may
 select bounded `pytest-xdist` parallelism. Each ordinary invocation receives unique scratch under
-`.cache/pytest`, captured logs, and pytest's native compact report without an output wrapper.
+the disposable container's `.cache/pytest`, captured logs, and pytest's native compact report without an output wrapper.
 Caller-owned scratch and verbose diagnostics remain explicit choices. The exact switches belong
 in [CONTRIBUTING](https://github.com/hexanomicon/lychd/blob/main/CONTRIBUTING.md#test-selection).
 
@@ -45,7 +52,8 @@ select the directory instead.
 
 By default, `make test` and `make check` exclude `container`. An explicit marker expression
 replaces that exclusion. `make test-containers` admits that profile with its separate dependencies
-and a working Docker-compatible daemon. Host and external
+and an explicitly admitted Docker daemon socket through the Docker-only PostgreSQL harness. Ordinary checks receive no daemon
+socket or network; this separate PostgreSQL harness has its own declared socket/network authority. Host and external
 systems stay opt-in and need named receipts. Network and provider dependence enter a deterministic
 test only when its declared integration boundary requires them.
 
@@ -63,7 +71,8 @@ selection. Default tests, the Python umbrella, pull-request checks, and release-
 not pass `--cov`. Coverage is an opt-in gate, not an implicitly passed release condition.
 
 Pull-request, `dev` and `main` Core Python CI runs the explicit `make test-ci` selection, using
-in-process substitutes without a real host, model or container daemon. Full ordinary tests and
+in-process substitutes inside that OCI image, without a model or daemon socket in the test
+process. The outer build/launch still requires a working OCI engine. Full ordinary tests and
 disposable PostgreSQL receipts remain separate jobs in the manually dispatched Repository Checks
 workflow. A core-CI pass does not establish those broader results or waive affected-boundary
 verification. The normal `make test` and `make check` selections remain unchanged.
@@ -73,7 +82,9 @@ verification. The normal `make test` and `make check` selections remain unchange
 A repository test establishes its recorded conjunction. Real systemd, Podman, PostgreSQL, GPU,
 model, and browser behavior requires the corresponding maintained operator receipt; mocks do not
 inherit the authority of the systems they replace. [State of Work](../state-of-the-work.md)
-records that distinction.
+records that distinction. Host-native Core deployments and their test fixtures are retired;
+frozen native-profile receipts retain only their dated historical scope and cannot qualify the
+current test image or a rebuilt production image.
 
 Altar and GenUI probes may inspect rendered semantic contracts and preserve DOM or screenshot
 evidence. A missing prerequisite is `BLOCKED`, not a fabricated behavioral `FAIL`. Server state

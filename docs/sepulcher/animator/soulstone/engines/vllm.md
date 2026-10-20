@@ -96,72 +96,21 @@ shutdown still require an operator receipt. The current delivery boundary is rec
 
 ## Join one reply to durable Bridge
 
-After the warm connector passes, a separate opt-in test joins the production application factory,
-source-registered vLLM, real Dispatcher, Graph, Context, SAQ and disposable PostgreSQL. It submits
-one synthetic Bridge turn through authenticated HTTP with CSRF, requires a streamed structured
-`BridgeReply`, then checks the same settled turns and model history after a second application
-boot. The host actuator is an explicitly refusing fixture; the external model stays running.
+The former warm-model TestClient, sequential-spawn and source-native TCP selections are frozen
+historical observations, retired on 2026-10-20 at base `7057210a`. They recorded one actual
+structured Bridge reply and identical retained turns/model history after a second lifespan or
+process boot, with explicit test Settings/Runes and refusing host actuation. Their raw receipts
+and historical validators remain; no old source hash is refreshed to claim current qualification.
 
-Use the [container-test setup](https://github.com/hexanomicon/lychd/blob/main/CONTRIBUTING.md#setup-and-commands)
-with a compatible Docker backend and cached `pgvector/pgvector:pg18-trixie` plus the configured
-Ryuk image when enabled. The test refuses image pulls. Create a JSON profile outside the checkout
-with `base_url`, `model_id`, `source_revision`, `context_tokens`, `max_tokens` and
-`deadline_seconds`, using the same explicit inputs as the standalone probe. The admitted ceilings
-are 4096 context tokens, 256 output tokens and 30 seconds; at most three model POSTs may enter the
-real transport. Confirm an idle or otherwise declared load window before invoking:
+The former source-native TCP launcher and host Core test deployment are removed. There is no
+host pytest fallback. A new proof must execute Core in the explicit OCI test image or, for
+installed runtime acceptance, the actual rebuilt Vessel image with its declared PostgreSQL and
+security boundary. External warm-model use, daemon/socket authority, profiles, resource bounds
+and terminal cleanup need fresh admission; the ordinary wrapper does not forward arbitrary
+external profile files or proof environment. No replacement container runtime receipt is claimed.
 
-```bash
-LYCHD_REQUIRE_LOCAL_BRIDGE_PROOF=1 \
-LYCHD_LOCAL_BRIDGE_PROFILE=/absolute/path/local-bridge-profile.json \
-timeout --signal=TERM --kill-after=5s 210s make test-containers N=0 \
-  CONTAINER_TEST_TARGETS=tests/integration/test_local_bridge_runtime.py
-```
-
-Without explicit opt-in this case skips. Missing prerequisites under opt-in are not a qualified
-result. The model deadline is cooperative; use an outer process budget and retain uncertain
-cleanup as unknown. Copy `local-bridge-runtime/receipt.json` from the test's basetemp outside the
-checkout before a clean docs build clears `.cache`. It contains metadata, not credentials or
-conversation text.
-
-This proves two application lifespans over one disposable database through TestClient HTTP.
-For clean restart across independent Python processes, replace the selector in the same command
-with `CONTAINER_TEST_TARGETS=tests/integration/test_local_bridge_process_restart.py`. This
-Linux-only test starts two sequential `spawn` children over one parent-owned PostgreSQL. The
-first must finish application cleanup and exit before the second starts; the second must recover
-identical settled turns and model history without another model POST. Missing child metadata,
-nonzero exit, forced termination, an unreaped child or incomplete database cleanup blocks a pass.
-Both children still use TestClient HTTP, rather than a Granian TCP listener.
-
-A separately admitted [native TCP selection](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_local_bridge_native_tcp.py)
-invokes the source CLI and owned Granian launcher over loopback. Two distinct processes must
-exit normally; authenticated readiness and wrong/absent credential, foreign-Origin and
-missing-CSRF refusals precede the one admitted reply. The second boot retains identical turns
-and complete SDK history without another model POST. Its
-[maintained receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/animator/local-bridge-vllm-native-tcp.json)
-and [offline scope/freshness owner](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/animation/test_local_bridge_native_tcp_receipt.py)
-record the exact executed source, selected dependencies, independent terminal settlement and
-limits. Settings/Runes, a production-lifespan wrapper and the refusing host actuator remain test
-composition; supplemental engine disposal is test cleanup. The occurrence's native limits are
-per process; its separately observed PostgreSQL limits do not establish aggregate native RAM/CPU
-containment. New execution requires fresh source/runtime custody and finite admission.
-
-A separate [trusted installed-hybrid profile](../../../../state-of-the-work.md#current-evidence-envelope)
-uses the installed local vLLM adapter and a borrowed warm model for one useful attributed reply.
-Complete SDK history, exact durable capability/Pattern and settled turns survive two normal
-native boots without inference replay; both signed stops and the private manager exit normally.
-The inert owned model units do not start that borrowed model. Plain Docker dependencies and
-per-process/pids/monitored limits do not qualify generated rootless deployment, managed-model
-lifecycle, aggregate native caps or model bytes.
-
-A separate [trusted source-browser journey](../../../../state-of-the-work.md#current-evidence-envelope)
-qualifies its fixed keyboard/failure/useful-reply/reload profile. Crash recovery, full generated installed deployment,
-model bytes, managed activation/shutdown, shared load and general tool execution require their own trials.
-The [maintained result](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/animator/local-bridge-vllm-runtime.json)
-and the separate [clean process-restart result](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/animator/local-bridge-vllm-process-restart.json)
-retain their original dated observations. Any shared current-chain freshness join must preserve
-their complete historical bytes and require a separately accepted current TCP proof covering all
-their critical inputs; it does not rerun their TestClient transports. Copy the latter's `local-bridge-process-restart/receipt.json`
-from basetemp before cleaning the documentation cache as well.
-
-See [Soulstone Disciplines](../disciplines.md#i-the-kinetic-vllm), [vLLM](https://docs.vllm.ai/),
-and the [OpenAI-compatible connector boundary](../../connectors.md#openai-compatibility-is-per-dialect).
+The frozen trusted browser and installed-hybrid observations retain their original private
+manager, plain Docker, inert model-unit and borrowed warm-vLLM limits. They do not qualify the
+current fixture, production image, managed-model lifecycle or active container stop/start.
+[State of Work](../../../../state-of-the-work.md#current-evidence-envelope) owns the exact
+historical envelope and current proof gaps.

@@ -177,7 +177,6 @@ def test_bind_compilation_builds_runtime_metadata_without_http_or_secret_reads(m
         runes=runes,
         soulstones=declarations.soulstones,
         portals=declarations.portals,
-        uncaged=False,
     )
 
     assert "missing-tabby-auth" in request.required_secret_names
@@ -221,7 +220,6 @@ def test_runtime_identity_is_rejected_before_capability_extraction(entry: str, m
                 runes=RuneRegistry([stone]),
                 soulstones=(stone,),
                 portals=(),
-                uncaged=False,
             )
 
     with pytest.raises(ValueError, match=r"does not retain the declared Rune|must use canonical name"):

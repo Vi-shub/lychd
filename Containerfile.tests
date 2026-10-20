@@ -1,0 +1,41 @@
+# Repository checks run in this source-bound image. The production artifact is
+# built independently from Containerfile; this image is never a Vessel.
+ARG PYTHON_VERSION=3.15.0
+FROM ghcr.io/astral-sh/uv:0.13.0 AS uv
+FROM python:${PYTHON_VERSION}-slim-trixie
+
+COPY --from=uv /uv /usr/local/bin/uv
+RUN apt-get update && \
+    apt-get install --yes --no-install-recommends \
+        ca-certificates git libpq5 make podman systemd && \
+    rm -rf /var/lib/apt/lists/* && \
+    groupadd --gid 1000 checks && \
+    useradd --uid 1000 --gid 1000 --create-home checks && \
+    touch /opt/lychd-test-image
+
+ENV UV_PYTHON_DOWNLOADS=0 \
+    UV_PYTHON=/usr/local/bin/python \
+    UV_LINK_MODE=copy \
+    UV_PROJECT_ENVIRONMENT=/opt/venv \
+    UV_CACHE_DIR=/tmp/uv-cache \
+    LYCHD_TEST_CONTAINER=1 \
+    HOME=/home/checks \
+    XDG_CONFIG_HOME=/home/checks/.config \
+    XDG_DATA_HOME=/home/checks/.local/share \
+    XDG_STATE_HOME=/home/checks/.local/state \
+    XDG_CACHE_HOME=/home/checks/.cache \
+    PATH=/opt/venv/bin:$PATH
+WORKDIR /work
+COPY pyproject.toml uv.lock /work/
+RUN uv sync --locked --extra postgres-binary --group dev --group typing --group container-test \
+    --no-install-project
+# container_checks.sh assembles a separate allowlisted context, preserving the
+# production .containerignore without disclosing ignored operator material.
+COPY --chown=checks:checks . /work
+RUN rm -f /work/.dockerignore /work/.containerignore.build && \
+    uv sync --locked --extra postgres-binary --group dev --group typing --group container-test && \
+    ln -s /opt/venv /work/.venv && \
+    chown checks:checks /work
+USER checks
+ENTRYPOINT ["bash", "/work/scripts/container_checks.sh", "--inside"]
+CMD ["test"]

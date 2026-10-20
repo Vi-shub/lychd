@@ -15,15 +15,10 @@ import pytest
 from granian.constants import HTTPModes, Interfaces, TaskImpl
 from litestar import Litestar, Request, Response, get
 from litestar.background_tasks import BackgroundTask
-from litestar.exceptions import PermissionDeniedException
 from litestar.plugins import CLIPlugin
 
-from lychd.config.constants import STOP_ADMISSION_LAUNCHER_PROFILE, STOP_ADMISSION_PATH
-from lychd.domain.codex.local_access import LocalOperatorAccess
 from lychd.interface import server
-from lychd.interface.api.lifecycle import StopAdmissionState
 from lychd.interface.server_policy import ServerRuntimePolicyError
-from lychd.system.operator.admission import StopAdmissionProtocol
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
@@ -32,22 +27,6 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
 _CAGED_ADDRESS = "0.0.0.0"  # noqa: S104 -- fixed image profile; tests never open a socket
-_PASSWORD = "synthetic-native-launcher-password-000000"  # noqa: S105 - public isolated test credential
-
-
-def _admission() -> StopAdmissionState:
-    access = LocalOperatorAccess(access_password=_PASSWORD)
-    authentication = access.authenticate(username=b"magus", password=_PASSWORD.encode("ascii"))
-    assert authentication is not None
-    return StopAdmissionState(StopAdmissionProtocol(_PASSWORD), access, authentication, production=True)
-
-
-def _armed_admission(app: Litestar) -> StopAdmissionState:
-    admission = _admission()
-    admission.arm_native_launcher()
-    admission.publish()
-    app.state.stop_admission = admission
-    return admission
 
 
 class _Transport:
@@ -116,15 +95,11 @@ async def test_one_sync_and_async_lifespan_wrap_fixed_transport(monkeypatch: pyt
     @asynccontextmanager
     async def lifespan(app: Litestar) -> AsyncGenerator[None]:
         events.append("app-start")
-        assert admission.launcher_profile is None
         yield
         assert transports[0].retired.is_set()
         events.append("app-close")
 
     app = Litestar(lifespan=[lifespan], plugins=[_ServerHook(events)])
-    admission = _admission()
-    admission.publish()
-    app.state.stop_admission = admission
     transports = _transport_factory(monkeypatch)
     task = asyncio.create_task(server.serve_application(app, host="::1", port=7134))
     transport = await _started_transport(transports)
@@ -143,8 +118,6 @@ async def test_one_sync_and_async_lifespan_wrap_fixed_transport(monkeypatch: pyt
         "backlog": 1024,
     }
     _signal()
-    assert not admission.published
-    assert admission.launcher_profile is None
     await task
     assert events == ["sync-start", "app-start", "app-close", "sync-close"]
     assert transport.serve_calls == 1
@@ -231,12 +204,9 @@ async def test_stop_during_startup_cancels_once_and_never_starts_transport(monke
 
     transports = _transport_factory(monkeypatch)
     app = Litestar(lifespan=[lifespan], plugins=[_ServerHook(events)])
-    admission = _armed_admission(app)
     task = asyncio.create_task(server.serve_application(app, host="127.0.0.1", port=7134))
     await startup.wait()
     _signal()
-    assert not admission.published
-    assert admission.launcher_profile is None
     await closing.wait()
     _signal()
     task.cancel()
@@ -333,7 +303,6 @@ async def test_requests_including_post_response_work_retire_before_app_close(
         messages.append(message)
 
     app = Litestar([route], lifespan=[lifespan])
-    admission = _armed_admission(app)
     transports = _transport_factory(monkeypatch)
     task = asyncio.create_task(server.serve_application(app, host="127.0.0.1", port=7134))
     transport = await _started_transport(transports)
@@ -346,7 +315,6 @@ async def test_requests_including_post_response_work_retire_before_app_close(
     assert bool(messages) == (phase == "background")
     _request_stop(task, stop)
     await transport.retired.wait()
-    assert (admission.published, admission.launcher_profile) == (False, None)
     for _ in range(2):
         _request_stop(task, stop)
         await asyncio.sleep(0)
@@ -398,43 +366,6 @@ async def test_locked_embedded_seam_always_shuts_down_and_rejects_abnormal_worke
     shutdown.assert_awaited_once_with()
 
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize("failure", ["startup", "worker", "unexpected-exit"])
-async def test_worker_retirement_withdraws_before_embedded_shutdown_await(mocker: MockerFixture, failure: str) -> None:
-    admission = _admission()
-    admission.arm_native_launcher()
-    admission.publish()
-    shutdown_started = asyncio.Event()
-    release_shutdown = asyncio.Event()
-    embedded = object.__new__(server._EmbeddedServer)
-    embedded.interrupt_children = [0] if failure == "unexpected-exit" else []
-    embedded._retire = admission.withdraw
-    mocker.patch.object(
-        embedded, "startup", side_effect=RuntimeError("startup failed") if failure == "startup" else None
-    )
-    mocker.patch.object(
-        embedded,
-        "_serve_loop",
-        new=AsyncMock(side_effect=RuntimeError("worker failed") if failure == "worker" else None),
-    )
-
-    async def shutdown() -> None:
-        assert not admission.published
-        assert admission.launcher_profile is None
-        shutdown_started.set()
-        await release_shutdown.wait()
-
-    mocker.patch.object(embedded, "shutdown", side_effect=shutdown)
-    task = asyncio.create_task(embedded._serve(Mock(), Mock(return_value=object())))
-    await asyncio.wait_for(shutdown_started.wait(), timeout=1)
-    assert not task.done()
-    admission.publish()
-    assert admission.launcher_profile is None
-    release_shutdown.set()
-    with pytest.raises(RuntimeError, match="unexpectedly" if failure == "unexpected-exit" else "failed"):
-        await task
-
-
 @pytest.mark.parametrize("failure", [None, "factory", "close"])
 def test_production_runner_constructs_once_and_restores_actual_listener_environment(
     monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture, failure: str | None
@@ -445,15 +376,12 @@ def test_production_runner_constructs_once_and_restores_actual_listener_environm
     monkeypatch.delenv("GRANIAN_PORT", raising=False)
     keys = ("LITESTAR_HOST", "LITESTAR_PORT", "GRANIAN_HOST", "GRANIAN_PORT")
     previous = {key: os.environ.get(key) for key in keys}
-    observed: list[tuple[str, str]] = []
+    observed: list[tuple[str, int]] = []
     app = Litestar()
-    admission = _admission()
-    app.state.stop_admission = admission
 
     def factory() -> Litestar:
-        assert os.environ["LITESTAR_HOST"] == os.environ["GRANIAN_HOST"] == "127.0.0.1"
-        assert os.environ["LITESTAR_PORT"] == os.environ["GRANIAN_PORT"] == "7134"
-        assert admission.launcher_profile is None
+        assert os.environ["LITESTAR_HOST"] == os.environ["GRANIAN_HOST"] == _CAGED_ADDRESS
+        assert os.environ["LITESTAR_PORT"] == os.environ["GRANIAN_PORT"] == "8000"
         if failure == "factory":
             message = "factory failed"
             raise RuntimeError(message)
@@ -461,15 +389,8 @@ def test_production_runner_constructs_once_and_restores_actual_listener_environm
 
     async def serve(application: Litestar, *, host: str, port: int) -> None:
         assert application is app
-        assert app.debug
-        assert app.pdb_on_exception
-        assert admission.launcher_profile == STOP_ADMISSION_LAUNCHER_PROFILE
-        assert not admission.published
-        admission.publish()
-        pending = admission.protocol.request(f"http://127.0.0.1:7134{STOP_ADMISSION_PATH}", "generation")
-        admission.protocol.verify_reply(pending, admission.admit(pending))
         assert isinstance(asyncio.get_running_loop(), asyncio.SelectorEventLoop)
-        observed.append((host, str(port)))
+        observed.append((host, port))
         if failure == "close":
             message = "close failed"
             raise RuntimeError(message)
@@ -477,14 +398,12 @@ def test_production_runner_constructs_once_and_restores_actual_listener_environm
     create_app = mocker.patch("lychd.app.create_app", side_effect=factory)
     monkeypatch.setattr(server, "serve_application", serve)
     if failure is None:
-        server.run_production_server(host="127.0.0.1", port=7134, debug=True, pdb=True)
+        server.run_production_server()
     else:
         with pytest.raises(RuntimeError, match=f"{failure} failed"):
-            server.run_production_server(host="127.0.0.1", port=7134, debug=True, pdb=True)
+            server.run_production_server()
     create_app.assert_called_once_with()
-    assert observed == ([] if failure == "factory" else [("127.0.0.1", "7134")])
-    assert admission.launcher_profile is None
-    assert not admission.published
+    assert observed == ([] if failure == "factory" else [(_CAGED_ADDRESS, 8000)])
     assert {key: os.environ.get(key) for key in keys} == previous
 
 
@@ -495,7 +414,7 @@ def test_production_runner_rejects_unsafe_environment_before_factory(
     monkeypatch.setenv(key, "2")
     create_app = mocker.patch("lychd.app.create_app")
     with pytest.raises(ServerRuntimePolicyError):
-        server.run_production_server(host="127.0.0.1", port=7134)
+        server.run_production_server()
     create_app.assert_not_called()
 
 
@@ -511,43 +430,34 @@ def test_module_adapter_has_only_explicit_caged_profile(mocker: MockerFixture, a
 def test_module_adapter_selects_fixed_caged_listener(mocker: MockerFixture) -> None:
     run = mocker.patch.object(server, "run_production_server")
     server.main(["--caged"])
-    run.assert_called_once_with(host=_CAGED_ADDRESS, port=8000, _profile="caged")
+    run.assert_called_once_with()
 
 
-def test_caged_runner_shares_core_without_arming_native_profile(
-    monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture
-) -> None:
-    app = Litestar()
-    admission = _admission()
-    app.state.stop_admission = admission
-    mocker.patch("lychd.app.create_app", return_value=app)
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failure", ["startup", "worker", "unexpected-exit"])
+async def test_worker_retirement_precedes_embedded_shutdown_await(mocker: MockerFixture, failure: str) -> None:
+    retired = False
+    embedded = object.__new__(server._EmbeddedServer)
+    embedded.interrupt_children = [0] if failure == "unexpected-exit" else []
 
-    async def serve(application: Litestar, *, host: str, port: int) -> None:
-        assert application is app
-        assert (host, port) == (_CAGED_ADDRESS, 8000)
-        assert admission.launcher_profile is None
-        admission.publish()
-        pending = admission.protocol.request(f"http://127.0.0.1:7134{STOP_ADMISSION_PATH}", "generation")
-        with pytest.raises(PermissionDeniedException):
-            admission.admit(pending)
+    def retire() -> None:
+        nonlocal retired
+        retired = True
 
-    monkeypatch.setattr(server, "serve_application", serve)
-    server.run_production_server(host=_CAGED_ADDRESS, port=8000, _profile="caged")
-    assert not admission.published
-    assert admission.launcher_profile is None
+    embedded._retire = retire
+    mocker.patch.object(
+        embedded, "startup", side_effect=RuntimeError("startup failed") if failure == "startup" else None
+    )
+    mocker.patch.object(
+        embedded,
+        "_serve_loop",
+        new=AsyncMock(side_effect=RuntimeError("worker failed") if failure == "worker" else None),
+    )
 
+    async def shutdown() -> None:
+        assert retired
 
-@pytest.mark.parametrize("host", [_CAGED_ADDRESS, "localhost", "192.0.2.1"])
-def test_native_runner_rejects_non_loopback_profile_before_factory(mocker: MockerFixture, host: str) -> None:
-    factory = mocker.patch("lychd.app.create_app")
-    with pytest.raises(ServerRuntimePolicyError):
-        server.run_production_server(host=host, port=7134)
-    factory.assert_not_called()
-
-
-@pytest.mark.parametrize(("host", "port"), [("127.0.0.1", 8000), (_CAGED_ADDRESS, 8001)])
-def test_caged_runner_rejects_other_listener_before_factory(mocker: MockerFixture, host: str, port: int) -> None:
-    factory = mocker.patch("lychd.app.create_app")
-    with pytest.raises(ServerRuntimePolicyError):
-        server.run_production_server(host=host, port=port, _profile="caged")
-    factory.assert_not_called()
+    shutdown_mock = mocker.patch.object(embedded, "shutdown", side_effect=shutdown)
+    with pytest.raises(RuntimeError, match="unexpectedly" if failure == "unexpected-exit" else "failed"):
+        await embedded._serve(Mock(), Mock(return_value=object()))
+    shutdown_mock.assert_awaited_once_with()

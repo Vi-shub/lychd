@@ -62,31 +62,11 @@ class OperatorTargetResolver:
         """Return an exact dead-Vessel unit set without narrowing system intent."""
         if catalog.warning:
             raise OperatorTargetError(catalog.warning)
-        if target is OperatorTarget.SYSTEM:
-            vessels = catalog.select(_VESSEL_UNITS)
-            if len(vessels) != 1:
-                detail = "not bound" if not vessels else "both caged and uncaged units are owned"
-                message = f"System target is {detail}; cannot choose a Vessel unit."
-                raise OperatorTargetError(message)
-            if action == "start":
-                other_non_inactive = tuple(
-                    unit
-                    for unit in catalog.units
-                    if unit.name != vessels[0].name and unit.state is not ObservationState.INACTIVE
-                )
-                if other_non_inactive:
-                    detail = ", ".join(f"{unit.name}={unit.state.value}" for unit in other_non_inactive)
-                    message = (
-                        "Direct system start can bootstrap the Vessel only when "
-                        "every other exact owned unit is inactive; "
-                        f"found {detail}."
-                    )
-                    raise OperatorTargetError(message)
-                return (vessels[0].name,)
-            if action == "stop":
-                return tuple(unit.name for unit in catalog.units)
-            message = f"Unsupported direct system action: {action!r}."
+        if catalog.has_retired_native_vessel():
+            message = "Retired native Vessel bindings are observational only."
             raise OperatorTargetError(message)
+        if target is OperatorTarget.SYSTEM:
+            return self._system_actuation_units(action, catalog)
         if target is OperatorTarget.STORAGE:
             storage = catalog.select(_STORAGE_UNITS)
             if len(storage) != 1:
@@ -97,6 +77,33 @@ class OperatorTargetResolver:
             message = f"Cannot {action} Animators directly; their lifecycle must pass through the live Orchestrator."
             raise OperatorTargetError(message)
         message = f"Target '{target.value}' is observational or aggregate and cannot be {action}ed directly."
+        raise OperatorTargetError(message)
+
+    @staticmethod
+    def _system_actuation_units(action: str, catalog: OwnedUnitCatalog) -> tuple[str, ...]:
+        """Resolve the aggregate bootstrap subset after native-binding refusal."""
+        vessels = catalog.select(_VESSEL_UNITS)
+        if len(vessels) != 1:
+            message = "System target is not bound; cannot choose a Vessel unit."
+            raise OperatorTargetError(message)
+        if action == "start":
+            other_non_inactive = tuple(
+                unit
+                for unit in catalog.units
+                if unit.name != vessels[0].name and unit.state is not ObservationState.INACTIVE
+            )
+            if other_non_inactive:
+                detail = ", ".join(f"{unit.name}={unit.state.value}" for unit in other_non_inactive)
+                message = (
+                    "Direct system start can bootstrap the Vessel only when "
+                    "every other exact owned unit is inactive; "
+                    f"found {detail}."
+                )
+                raise OperatorTargetError(message)
+            return (vessels[0].name,)
+        if action == "stop":
+            return tuple(unit.name for unit in catalog.units)
+        message = f"Unsupported direct system action: {action!r}."
         raise OperatorTargetError(message)
 
     @staticmethod

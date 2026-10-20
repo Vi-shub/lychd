@@ -213,7 +213,7 @@ including an incomplete record write, fences a fresh Vessel before queues or ser
 changing configuration or restarting the process cannot release it. Observation-only convergence
 does not arm a record. Persistence failure prevents activation and fails closed.
 
-The guard is mounted read-write into the Vessel under both actuator profiles, separately from the
+The guard is mounted read-write into the managed Vessel, separately from the
 Host Reactor's read-only journal. Recovery is an explicit host operation: with lifecycle and guard
 exclusion held, attest the owned topology and prove the Vessel and the recorded Animator service
 stopped before clearing the exact pending record. Unknown identity, changed topology, pending jobs,
@@ -225,7 +225,7 @@ RuntimeActuator.apply(TransitionIntent) is the lone domain mutation port. Its cl
 logical Animator identities, no shell or unit payload. Compensation names one completed forward
 transition and is its exact typed inverse.
 
-Direct systemd is explicit uncaged mode: under the lifecycle lock it resolves registry identities,
+Direct systemd remains an explicit host-adapter test mechanism, not a host-native Core profile: under the lifecycle lock it resolves registry identities,
 attests the loaded Scribe-owned graph, requests one target transaction, awaits jobs, and classifies
 service state. Caged Host Reactor atomically publishes owner-only JSON, revalidates after claim,
 shares the lock, uses an attested absolute systemctl, and records the result; local-UID handoff is

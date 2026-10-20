@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from contextlib import AbstractContextManager
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
 from lychd.system.host_tools import trusted_host_tool
 from lychd.system.operator.control import OperatorControlService
@@ -19,9 +17,6 @@ from lychd.system.operator.retirement import OwnedUnitRetirementService
 from lychd.system.operator.storage import StorageInventoryService
 from lychd.system.operator.targets import OperatorTargetResolver
 from lychd.system.operator.units import OwnedUnitInventoryService
-
-if TYPE_CHECKING:
-    from lychd.system.operator.stop_evidence import ExitReference
 
 
 @dataclass(frozen=True)
@@ -67,24 +62,12 @@ def build_operator_services(
     )
     targets = OperatorTargetResolver(inventory)
 
-    def admit_stop(generation: str) -> None:
-        from lychd.system.operator.admission_client import StopAdmissionClient
-
-        StopAdmissionClient().admit(generation)
-
-    def hold_exit_evidence() -> AbstractContextManager[ExitReference]:
-        from lychd.system.operator.stop_evidence import hold_native_exit
-
-        return hold_native_exit()
-
     control = OperatorControlService(
         inventory=inventory,
         targets=targets,
         runner=process,
         systemctl_bin=systemctl,
         lock_factory=LifecycleLock,
-        stop_admission=admit_stop,
-        exit_reference_factory=hold_exit_evidence,
     )
     journal = JournalService(
         targets=targets,
