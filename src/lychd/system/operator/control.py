@@ -26,6 +26,11 @@ if TYPE_CHECKING:
     from lychd.system.operator.stop_evidence import ExitReference
 
 _SYSTEMCTL_TIMEOUT_SECONDS = 30.0
+_COUNTERPART_TIMEOUT_SECONDS = 3.0
+_VESSEL_COUNTERPARTS = {
+    "lychd-vessel.service": "lychd-uncaged-vessel.service",
+    "lychd-uncaged-vessel.service": "lychd-vessel.service",
+}
 _JOB_COLUMN_COUNT = 4
 _NATIVE_VESSEL_UNIT = "lychd-uncaged-vessel.service"
 logger = structlog.get_logger(__name__)
@@ -140,6 +145,8 @@ class OperatorControlService:
                 reason=message,
             )
             raise OperatorAuthorityError(message)
+        if action is OperatorAction.START and target is OperatorTarget.SYSTEM:
+            self._require_quiescent_counterpart(units[0])
         if self._systemctl is None:
             message = "systemctl is unavailable; no action was taken."
             logger.warning(
@@ -195,6 +202,49 @@ class OperatorControlService:
             units=units,
             detail=result.stdout.strip(),
         )
+
+    def _require_quiescent_counterpart(self, vessel: str) -> None:
+        """Observe the fixed opposite Vessel without granting ownership or actuation.
+
+        This bounded check follows owned revalidation under the lifecycle lock;
+        it cannot reserve the manager namespace against other clients.
+        """
+        counterpart = _VESSEL_COUNTERPARTS.get(vessel)
+        if counterpart is None or self._systemctl is None:
+            msg = "Cannot observe the exact Vessel counterpart; system start refused."
+            raise OperatorAuthorityError(msg)
+        expected = {
+            "Id": counterpart,
+            "LoadState": "loaded",
+            "ActiveState": "inactive",
+            "SubState": "dead",
+            "MainPID": "0",
+            "ControlPID": "0",
+            "Job": "",
+        }
+        argv = (self._systemctl, "--user", "show", counterpart, *(f"--property={field}" for field in expected))
+        try:
+            result = self._runner.run(argv, timeout_s=_COUNTERPART_TIMEOUT_SECONDS)
+        except ProcessInvocationError:
+            msg = f"Cannot prove counterpart {counterpart} quiescent: observation failed or timed out; system start refused."
+            raise OperatorAuthorityError(msg) from None
+        if result.returncode != 0:
+            msg = (
+                f"Cannot prove counterpart {counterpart} quiescent: observation was unsuccessful; system start refused."
+            )
+            raise OperatorAuthorityError(msg)
+        fields: dict[str, str] = {}
+        for line in result.stdout.splitlines():
+            key, separator, value = line.partition("=")
+            if not separator or key not in expected or key in fields:
+                msg = f"Counterpart {counterpart} observation is malformed; system start refused."
+                raise OperatorAuthorityError(msg)
+            fields[key] = value
+        if fields.get("LoadState") == "not-found":
+            expected["LoadState"] = "not-found"
+        if fields != expected:
+            msg = f"Counterpart {counterpart} is not proven inactive/dead without processes or a pending job; system start refused."
+            raise OperatorAuthorityError(msg)
 
     def _stop_active_system(self, planned: OwnedUnitCatalog) -> ControlResult:
         """Admit installation intent, stop the Vessel, then settle its dependencies.

@@ -12,6 +12,8 @@
   },
   "database": {
     "GPU_device_requests": false,
+    "anonymous_volumes_created": 1,
+    "anonymous_volumes_removed": 1,
     "container_removed": true,
     "created_containers": 1,
     "effective_cgroup_limits": {
@@ -73,7 +75,7 @@
     "worker": "real-in-process-SAQ"
   },
   "freshness_check": "offline-metadata-source-and-selected-dependency-check-only",
-  "identity_boundary": "One dated local omission-baseline trial with bounded critical source/test fingerprints and selected package versions. The optional thinking policy was omitted; this trial qualifies neither selecting it nor useful task completion. Neither a clean-checkout, atomic transitive environment nor model-byte attestation. Updating metadata or hashes alone does not requalify changed critical inputs. Creation investigation was omitted.",
+  "identity_boundary": "One dated local omission-baseline trial against a dirty-source candidate with bounded critical source/test fingerprints, a 1532-path candidate manifest and selected package versions. The optional thinking policy was omitted; this trial qualifies neither selecting it nor useful task completion. Neither a clean-checkout, atomic transitive environment nor model-byte attestation. Updating metadata or hashes alone does not requalify changed critical inputs. Creation investigation was omitted. The separate root independent physical-settlement receipt is required for public acceptance.",
   "model": {
     "concurrent_runs": 1,
     "context_tokens": 4096,
@@ -137,6 +139,9 @@
     "active_leases_after_each_boot": 0,
     "boots": 2,
     "external_compute_unknown": false,
+    "external_generated_token_delta": 151.0,
+    "external_prompt_token_delta": 516.0,
+    "external_successful_request_delta": 1.0,
     "lifecycle_calls": 0,
     "manifest_exact_match": true,
     "model_boundary_violations": 0,
@@ -202,21 +207,29 @@
     "start_method": "spawn",
     "start_time_identity_checked": true
   },
-  "qualification_date": "2026-10-19",
+  "qualification_date": "2026-10-20",
   "qualification_evidence": {
-    "application_receipt_sha256": "8c6fd594578ef49d2a1215b0581647f2be89b44bab16520682b3ea0560678424",
-    "candidate_manifest_sha256": "900176891efdf835ecd7372096e5e0d7d92af26f65c8fb61fc0c4968f7a6756f",
-    "coordinator_receipt_sha256": "80aac693b990e23e97e7b519657154fd58cffbaf1947b596064a2263cb1fe6bb",
-    "coordinator_source_sha256": "e81e1540890e24a81e19dfb2e8393abd9c0b078c788bc4b72baa3a73a8435b3f",
-    "model_profile_sha256": "04bd30a88d318a530e27985569e6446d149086695c77c430df212af452bc2510",
+    "application_receipt_sha256": "f6b6288102ab14db8af5bccae23499179f208556fa11bd067bc27104af7c312a",
+    "candidate_manifest_sha256": "b08e641df251d6f42abad933e60a57a09031324c19c364126e20df5c63d9991e",
+    "coordinator_receipt_sha256": "4ed83a12932f7b3450c7f310b45c37bf99928ae658e348455750deea430603ca",
+    "coordinator_source_sha256": "ba217b1f8419df81f7e8c15133de78822e87eb42135c6d98673814172b88dc23",
+    "driver_result_receipt_sha256": "1f7233e1d8ddb22bb0022fa943184f7f51d24b768355ddd048d74037c4f80218",
+    "driver_source_sha256": "74c084a7f0265bd3e4648dc437331298392d90e67636939641e85c0b1a5b0b60",
+    "input_binding_sha256": "0378b16af0a38a737bb0e3db2820b30dac8ac0c52b769fabeb3754f12fd14b0f",
+    "model_profile_sha256": "caf5ba25dfea7fe8417f4f7849fd2c789a3df999c3f60d23ce03a25d08015abb",
     "native_test_sha256_before_trial": "7cc36a27ccc473f5cd374655c2ee6aedf002d85ddf676e297c585b2de11a9454",
-    "pytest_log_sha256": "373ed41eb6c696f7fba79fd65bfe91e0d37483773b7f06fc2d1040005a9d0ca1",
-    "resource_launcher_source_sha256": "5501216f6134ad20f1f03d95734715f757369d301be8620bf5016da3b1fc0aa5",
-    "resource_receipt_sha256": "a68e523483b247325cf97ae7cc3185c1403c5d36bb553442e05c3cc4cbccf9ae"
+    "outer_receipt_sha256": "a23fecf1186c924fffb37aa62f553ae2087e5ded09ff41d62e7288ff1847b1c0",
+    "pytest_log_sha256": "741bd1d3e9c0a99fd9ffd946043917e48608d7f209309411e8aae87550c5b7d8",
+    "resource_launcher_source_sha256": "292e8a9a90c129ccd7af863f21f243702126ad1f35d175375f8c4c025c3ca7e3",
+    "resource_receipt_sha256": "9d5403b9911b573892745e9d41175ca3b553c1047d83ca9270e19b78d430904a",
+    "root_independent_settlement_sha256": "400d5d26929203952f2ea7727cb9dbfbce142f4633dd3cdb26716bc0f4627173",
+    "sdk_manifest_sha256": "bfe43b2369923a189c9f53a6228ec14940471fecf218e4eefb5d49aba4e9d01f",
+    "source_manifest_sha256": "b73451ca6345d4683d17250c7c29da9b287fe57e35d93f86e3aa0f36af3a4cdd",
+    "source_patch_sha256": "f4ae9a44fb17058a5312581189904cb2574a0cc0e498d11b4f5d4dea04bb1b7b"
   },
   "record_kind": "sanitized_public_local_bridge_native_tcp_qualification",
-  "retained_history_sha256": "8f21516d3ecc38c3a33e78eed23edcf5da42250347bb5aadbfd8f23843c783f5",
-  "retained_turns_sha256": "a463aafe351c726c43104fdf61320c3b520f805b3b1704ea12537de5b62e802b",
+  "retained_history_sha256": "febbb301042bcfca11ee3e1abf31acb285737c1cc7bfe4c4430b75f030e93d56",
+  "retained_turns_sha256": "772465b67964a14ebee62b051ceef927bf4dc9ac0c24c1615b7af7ec47868de6",
   "runner": {
     "cleanup_verified": true,
     "coordinator_cleanup_reserve_seconds": 30,
@@ -235,9 +248,11 @@
     "remaining_containers": 0,
     "remaining_volumes": 0,
     "returncode": 0,
+    "root_independent_settlement_verified": true,
     "ryuk_disabled_in_runner_process": true,
     "test_wait_seconds": 210,
-    "timed_out": false
+    "timed_out": false,
+    "warm_model_preserved_by_driver": true
   },
   "schema": "local-bridge-vllm-native-tcp@1",
   "source_fingerprints": {
@@ -306,7 +321,7 @@
     "src/lychd/system/operator/__init__.py": "b4df3abb6a07d0d1c2fa480e3443e86a671ed07c4d2551ba8e210cc1f345a427",
     "src/lychd/system/operator/admission.py": "8312e98209e267ed7bcbeeb990416cbafd36b1127c6436ef0db701d94b0c1f3b",
     "src/lychd/system/operator/composition.py": "93b13c0aedeaccbaa98d5b040c655166d4c1b6bd771bebb632a9e42313ee0bdd",
-    "src/lychd/system/operator/control.py": "f12c9fe19fff2a142ec9130e4c837e1fcb3494ba40c0da075c6e23b0be66cda2",
+    "src/lychd/system/operator/control.py": "d2f96257a34791342ed04baaee4c8809d6b12690e2b6987d875cc30859634f62",
     "src/lychd/system/operator/models.py": "202ee54fc6d4770ae49f4d08f4b5063f85e95ce33ace9426a7aa9045a2f99565",
     "src/lychd/system/services/queues.py": "cf87c902cb93be042b9c30417a70fe85158966435eb0566cd627422344d46b76",
     "tests/conftest.py": "ee6a7991363a5681b647635b7ff3a8ffa0cefb8a3c2a771ae1994d6381da5dc7",
@@ -319,14 +334,19 @@
   },
   "source_identity": {
     "atomic_transitive_closure_attested": false,
+    "candidate_manifest_sha256": "b08e641df251d6f42abad933e60a57a09031324c19c364126e20df5c63d9991e",
     "clean_checkout_observed": false,
-    "revision_observed": "31b39d03c389f09bbfe5d918f5f532cf636eb35b",
-    "scope": "bounded-critical-source-and-test-fingerprints"
+    "deleted_path_count": 0,
+    "revision_observed": "ebe4f7e72128cf54075efb3fc8d64d218c98c006",
+    "scope": "bounded-critical-source-and-test-fingerprints",
+    "source_base_tree": "454bbce20e3bf9a562b65fe4cb12109f1196a1c5",
+    "source_path_count": 1532
   },
   "status": "passed",
   "timings_seconds": {
-    "command": 22.8357,
-    "pytest": 20.49
+    "command": 30.0085,
+    "coordinator": 24.3040,
+    "pytest": 19.88
   },
   "unexercised": [
     "installed-command-or-caged-Vessel",

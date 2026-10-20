@@ -142,7 +142,11 @@ running service.
 
 **Proved now:** The closed command grammar, dry-run planners, journaled `init` and `bind`,
 bounded `status` and `logs`, guarded lifecycle control, and receipt-gated deletion
-are tested. Mutating paths use revalidation, no-follow identity checks, lifecycle locking, durable
+are tested. Direct `start system` now separately requires an exact quiescent opposite Vessel
+observation after owned-state revalidation; unknown or conflicting evidence refuses without
+adopting or controlling that counterpart. Focused tests cover both fixed identities, malformed
+replies, pending work and timeout. This is a start admission check, not continuous exclusion or
+an installed native graph qualification. Mutating paths use revalidation, no-follow identity checks, lifecycle locking, durable
 receipts, and explicit rollback or indeterminate outcomes. An unsafe shared binding site blocks
 initialization planning and the layout preflight; safe existing modes are preserved.
 
@@ -188,6 +192,7 @@ GPU receipt exists.
 
 - **Source:** [CLI assembly](https://github.com/hexanomicon/lychd/blob/main/src/lychd/__main__.py) and [layout admission](https://github.com/hexanomicon/lychd/blob/main/src/lychd/system/services/layout.py)
 - **Verification:** [CLI tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/cli/test_cli.py) and [init binding-site tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/services/test_init_binding_sites.py)
+- **Verification:** [Exact counterpart start admission](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/operator/test_vessel_counterpart.py)
 - **Verification:** [Message profile](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/operator/test_admission.py), [machine HTTP boundary](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_lifecycle_admission.py), [host client](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/operator/test_admission_client.py), and [active-stop settlement candidate](https://github.com/hexanomicon/lychd/blob/main/tests/unit/system/operator/test_active_stop.py)
 - **Source:** [Owned launcher](https://github.com/hexanomicon/lychd/blob/main/src/lychd/interface/server.py)
 - **Verification:** [Lifespan/retirement tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/domain/web/test_server.py) and [native TCP mechanism cases](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_server_process.py)

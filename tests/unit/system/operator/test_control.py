@@ -60,6 +60,34 @@ class _Runner:
         return ProcessResult(argv=argv, returncode=0)
 
 
+_COUNTERPART_SHOW = (
+    "/usr/bin/systemctl",
+    "--user",
+    "show",
+    "lychd-uncaged-vessel.service",
+    "--property=Id",
+    "--property=LoadState",
+    "--property=ActiveState",
+    "--property=SubState",
+    "--property=MainPID",
+    "--property=ControlPID",
+    "--property=Job",
+)
+
+
+class _StartRunner(_Runner):
+    def run(self, argv: tuple[str, ...], *, timeout_s: float) -> ProcessResult:
+        result = super().run(argv, timeout_s=timeout_s)
+        if argv == _COUNTERPART_SHOW:
+            return ProcessResult(
+                argv,
+                0,
+                "Id=lychd-uncaged-vessel.service\nLoadState=loaded\nActiveState=inactive\n"
+                "SubState=dead\nMainPID=0\nControlPID=0\nJob=\n",
+            )
+        return result
+
+
 class _RetiringRunner(_Runner):
     def __init__(self, inventory: _Inventory) -> None:
         super().__init__()
@@ -123,13 +151,14 @@ def _control(
 
 
 def test_start_down_system_uses_exact_owned_vessel_argv() -> None:
-    runner = _Runner()
+    runner = _StartRunner()
     control = _control(_Inventory(_catalog(ObservationState.INACTIVE)), runner)
 
     result = control.execute(OperatorAction.START)
 
     assert result.authority is VesselAuthority.DIRECT
     assert runner.calls == [
+        (_COUNTERPART_SHOW, 3.0),
         (
             (
                 "/usr/bin/systemctl",
@@ -138,7 +167,7 @@ def test_start_down_system_uses_exact_owned_vessel_argv() -> None:
                 "lychd-vessel.service",
             ),
             30.0,
-        )
+        ),
     ]
 
 
@@ -380,10 +409,13 @@ def test_direct_actuation_holds_lifecycle_lock_through_effect() -> None:
         yield
         events.append("lock-exit")
 
-    class LockAwareRunner(_Runner):
+    class LockAwareRunner(_StartRunner):
         def run(self, argv: tuple[str, ...], *, timeout_s: float) -> ProcessResult:
             events.append("systemctl")
-            assert events == ["lock-enter", "systemctl"]
+            expected = (
+                ["lock-enter", "systemctl"] if argv == _COUNTERPART_SHOW else ["lock-enter", "systemctl", "systemctl"]
+            )
+            assert events == expected
             return super().run(argv, timeout_s=timeout_s)
 
     runner = LockAwareRunner()
@@ -395,14 +427,14 @@ def test_direct_actuation_holds_lifecycle_lock_through_effect() -> None:
 
     control.execute(OperatorAction.START)
 
-    assert events == ["lock-enter", "systemctl", "lock-exit"]
+    assert events == ["lock-enter", "systemctl", "systemctl", "lock-exit"]
 
 
 def test_direct_actuation_emits_semantic_audit_events(
     mocker: MockerFixture,
 ) -> None:
     audit = mocker.patch("lychd.system.operator.control.logger")
-    runner = _Runner()
+    runner = _StartRunner()
     control = _control(_Inventory(_catalog(ObservationState.INACTIVE)), runner)
 
     control.execute(OperatorAction.START)

@@ -2,7 +2,9 @@
 
 One finite proof runs required-close failure, clean closure, and reference loss. It uses
 the actual generated native unit, CLI, owned lifespan, signed HTTP admission,
-Scribe ownership, inventory and controller. The explicit inert factory and local
+Scribe ownership, inventory and controller. The clean inert case also checks public
+start against an active foreign counterpart, then bootstraps only the owned native
+Vessel after the harness stops that counterpart. The explicit inert factory and local
 installation shim do not qualify an installed production graph or model body.
 The separate retained Scavenger case keeps Root-owned PostgreSQL external and
 qualifies only idle production publication and native Vessel stop/restart. It
@@ -46,7 +48,14 @@ from lychd.system.operator import stop_evidence
 from lychd.system.operator.admission_client import StopAdmissionClient
 from lychd.system.operator.control import OperatorControlService
 from lychd.system.operator.inventory import ConfiguredAnimatorDeclarations, OperatorInventoryService, OperatorPaths
-from lychd.system.operator.models import OperatorAction, OperatorError, OperatorTarget, VesselAuthority
+from lychd.system.operator.models import (
+    ObservationState,
+    OperatorAction,
+    OperatorAuthorityError,
+    OperatorError,
+    OperatorTarget,
+    VesselAuthority,
+)
 from lychd.system.operator.process import ProcessInvocationError, ProcessResult
 from lychd.system.operator.storage import StorageInventoryService
 from lychd.system.operator.targets import OperatorTargetResolver
@@ -74,6 +83,8 @@ from tests.support.systemd_transaction import unavailable as proof_unavailable
 pytestmark = pytest.mark.integration
 
 _VESSEL = "lychd-uncaged-vessel.service"
+_COUNTERPART = "lychd-vessel.service"
+_COUNTERPART_PROPERTIES = ("Id", "LoadState", "ActiveState", "SubState", "MainPID", "ControlPID", "Job")
 _REPOSITORY = Path(__file__).resolve().parents[2]
 _FIXTURE = _REPOSITORY / "tests/fixtures/web/systemd_server_app.py"
 _SCAVENGER_FIXTURE = _REPOSITORY / "tests/fixtures/web/native_scavenger_app.py"
@@ -246,8 +257,16 @@ class _Manager:
     def run(self, argv: tuple[str, ...], *, timeout_s: float) -> ProcessResult:
         self.attest()
         assert argv[:2] == (str(self.binaries["systemctl"]), "--user")
-        assert argv[2] in {"show", "stop", "list-jobs"}
-        assert all(not argument.endswith(".service") or argument in self.units for argument in argv[3:])
+        assert argv[2] in {"show", "start", "stop", "list-jobs"}
+        if argv[2] == "start":
+            assert _VESSEL in self.units
+            assert argv == (str(self.binaries["systemctl"]), "--user", "start", _VESSEL)
+        assert all(
+            not argument.endswith(".service")
+            or argument in self.units
+            or (argv[2] == "show" and argument == _COUNTERPART)
+            for argument in argv[3:]
+        )
         if self.deadline is not None:
             timeout_s = min(timeout_s, self.deadline - time.monotonic())
         if timeout_s <= 0:
@@ -517,6 +536,12 @@ def _prepare(
     for unit in ("basic.target", "shutdown.target"):
         (harness / unit).write_text(
             "[Unit]\nDescription=LychD private native proof support\nDefaultDependencies=no\n", encoding="utf-8"
+        )
+    if case == "clean" and scavenger_profile is None:
+        (harness / _COUNTERPART).write_text(
+            "[Unit]\nDescription=LychD foreign counterpart sentinel\n"
+            f"[Service]\nType=oneshot\nExecStart={binaries['true']}\nRemainAfterExit=yes\n",
+            encoding="utf-8",
         )
     scribe = ScribeService(output_dir=quadlet, systemd_dir=generated)
     scribe.reconcile_all((), plain_units=plain_units)
@@ -911,6 +936,138 @@ def _stop_native(
     return error
 
 
+def _counterpart_snapshot(snapshot: Mapping[str, str]) -> dict[str, str | tuple[str, ...]]:
+    """Compare every property while treating dependency names as unordered relations."""
+    relations = {
+        "Requires",
+        "RequiredBy",
+        "BindsTo",
+        "BoundBy",
+        "Before",
+        "After",
+        "Conflicts",
+        "ConflictedBy",
+        "PartOf",
+    }
+    return {key: tuple(sorted(value.split())) if key in relations else value for key, value in snapshot.items()}
+
+
+def _assert_counterpart_call(calls: list[dict[str, object]], *, active: bool) -> None:
+    observations = [call for call in calls if _COUNTERPART in cast("tuple[str, ...]", call["argv"])]
+    assert len(observations) == 1
+    call = observations[0]
+    argv = cast("tuple[str, ...]", call["argv"])
+    assert argv[2:4] == ("show", _COUNTERPART)
+    assert len(argv[4:]) == len(_COUNTERPART_PROPERTIES)
+    assert set(argv[4:]) == {f"--property={name}" for name in _COUNTERPART_PROPERTIES}
+    assert call["timeout_s"] == 3.0
+    assert call["returncode"] == 0
+    fields = dict(line.split("=", 1) for line in cast("str", call["stdout"]).splitlines())
+    assert fields == {
+        "Id": _COUNTERPART,
+        "LoadState": "loaded",
+        "ActiveState": "active" if active else "inactive",
+        "SubState": "exited" if active else "dead",
+        "MainPID": "0",
+        "ControlPID": "0",
+        "Job": "",
+    }
+
+
+def _start_native_with_counterpart(manager: _Manager, scribe: ScribeService, receipt: dict[str, Any]) -> None:
+    """Prove real public refusal and native-only bootstrap inside the existing clean case."""
+    inventory = _inventory(scribe, manager)
+    catalog = inventory.owned_units()
+    assert not catalog.warning
+    assert catalog.generation
+    assert tuple(unit.name for unit in catalog.units) == tuple(sorted(manager.units))
+    assert all(unit.state is ObservationState.INACTIVE for unit in catalog.units)
+    assert all(unit.sources == (str(manager.root / "generated" / unit.name),) for unit in catalog.units)
+    bindings = scribe.inspect_owned_bindings()
+    assert _COUNTERPART not in bindings.runtime_units
+    assert {source.name for source in bindings.systemd_sources} == set(manager.units)
+    record: dict[str, Any] = {"generation": catalog.generation, "owned_units": [asdict(unit) for unit in catalog.units]}
+    receipt["public_start"] = record
+    control = OperatorControlService(
+        inventory=inventory,
+        targets=OperatorTargetResolver(inventory),
+        runner=manager,
+        systemctl_bin=str(manager.binaries["systemctl"]),
+        lock_factory=lambda: LifecycleLock(manager.root / "lifecycle.lock"),
+    )
+    manager.attest()
+    foreign_start = run_systemctl(
+        manager.binaries["systemctl"], manager.environment, "start", "--job-mode=fail", _COUNTERPART, timeout=5.0
+    )
+    record["harness_counterpart_start"] = {"argv": foreign_start.args, "returncode": foreign_start.returncode}
+    assert foreign_start.returncode == 0, foreign_start.stderr
+    active = read_properties(
+        systemctl=manager.binaries["systemctl"], environment=manager.environment, units=(_COUNTERPART,)
+    )
+    record["counterpart_active"] = active
+    assert active[_COUNTERPART]["FragmentPath"] == str(manager.root / "harness" / _COUNTERPART)
+    assert active[_COUNTERPART]["InvocationID"]
+    assert active[_COUNTERPART]["ActiveState"] == "active"
+    manager.calls = []
+    record["refused_calls"] = manager.calls
+    with _control_deadline(), pytest.raises(OperatorAuthorityError) as refused:
+        control.execute(OperatorAction.START, OperatorTarget.SYSTEM)
+    record["refusal"] = str(refused.value)
+    assert all(cast("tuple[str, ...]", call["argv"])[2] == "show" for call in manager.calls)
+    _assert_counterpart_call(manager.calls, active=True)
+    unchanged = read_properties(
+        systemctl=manager.binaries["systemctl"], environment=manager.environment, units=(*manager.units, _COUNTERPART)
+    )
+    record["after_refusal"] = unchanged
+    assert _counterpart_snapshot(unchanged[_COUNTERPART]) == _counterpart_snapshot(active[_COUNTERPART])
+    assert all(unchanged[unit]["ActiveState"] == "inactive" for unit in manager.units)
+    assert scribe.inspect_owned_bindings() == bindings
+    _resume_native_after_counterpart(manager, scribe, control, record)
+    assert scribe.inspect_owned_bindings() == bindings
+
+
+def _resume_native_after_counterpart(
+    manager: _Manager,
+    scribe: ScribeService,
+    control: OperatorControlService,
+    record: dict[str, Any],
+) -> None:
+    manager.attest()
+    foreign_stop = run_systemctl(
+        manager.binaries["systemctl"], manager.environment, "stop", "--job-mode=fail", _COUNTERPART, timeout=5.0
+    )
+    record["harness_counterpart_stop"] = {"argv": foreign_stop.args, "returncode": foreign_stop.returncode}
+    assert foreign_stop.returncode == 0, foreign_stop.stderr
+    inactive = read_properties(
+        systemctl=manager.binaries["systemctl"], environment=manager.environment, units=(_COUNTERPART,)
+    )
+    record["counterpart_inactive"] = inactive
+    assert inactive[_COUNTERPART]["ActiveState"] == "inactive"
+    manager.calls = []
+    record["accepted_calls"] = manager.calls
+    with _control_deadline():
+        result = control.execute(OperatorAction.START, OperatorTarget.SYSTEM)
+    assert result.authority is VesselAuthority.DIRECT
+    assert result.units == (_VESSEL,)
+    _assert_counterpart_call(manager.calls, active=False)
+    effects = [
+        cast("tuple[str, ...]", call["argv"])
+        for call in manager.calls
+        if cast("tuple[str, ...]", call["argv"])[2] != "show"
+    ]
+    assert effects == [(str(manager.binaries["systemctl"]), "--user", "start", _VESSEL)]
+    assert cast("tuple[str, ...]", manager.calls[-2]["argv"])[2:4] == ("show", _COUNTERPART)
+    assert cast("tuple[str, ...]", manager.calls[-1]["argv"])[2:] == ("start", _VESSEL)
+    settled = read_properties(
+        systemctl=manager.binaries["systemctl"], environment=manager.environment, units=(*manager.units, _COUNTERPART)
+    )
+    record["after_start"] = settled
+    assert _counterpart_snapshot(settled[_COUNTERPART]) == _counterpart_snapshot(inactive[_COUNTERPART])
+    assert settled[_VESSEL]["ActiveState"] == "active"
+    assert all(settled[unit]["ActiveState"] == "inactive" for unit in manager.units if unit != _VESSEL)
+    assert scribe.inspect_owned_bindings().generation == record["generation"]
+
+
 def _ready_retained(manager: _Manager, retained: RetainedScavenger) -> None:
     deadline = time.monotonic() + _LISTENER_SECONDS
     with httpx.Client(trust_env=False, follow_redirects=False, timeout=0.5) as client:
@@ -1072,8 +1229,13 @@ def _case(  # noqa: PLR0915, PLR0912, C901 - finite proof and cleanup stay expli
                 owned[pid] = process
             if pinned_inputs is not None:
                 _require_native_inputs(scribe, root, pinned_inputs)
+            if case == "clean" and scavenger_profile is None:
+                _start_native_with_counterpart(manager, scribe, receipt)
+                start_units = dependencies
+            else:
+                start_units = (*dependencies, _VESSEL)
             started = run_systemctl(
-                binaries["systemctl"], environment, "start", "--job-mode=fail", *dependencies, _VESSEL, timeout=5.0
+                binaries["systemctl"], environment, "start", "--job-mode=fail", *start_units, timeout=5.0
             )
             assert started.returncode == 0, started.stderr
             if retained is None:

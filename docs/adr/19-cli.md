@@ -78,6 +78,16 @@ target. Direct control accepts only the help-advertised lifecycle subset and exa
 user units. Before an effect it holds the lifecycle lock and revalidates binding generation, unit
 identity/state, and Vessel authority, refusing unknown, split, or ambiguous state.
 
+Before direct `start system` submits the owned Vessel start, a separate bounded observation of
+its exact opposite fixed Vessel name must prove it quiescent. The counterpart may be loaded or
+manager-attested not-found, but must be inactive/dead with no main/control process or pending job.
+A successful exact property reply is required; failed, unknown, malformed, nonzero or transitional
+observations refuse. This check follows owned-generation/state revalidation under the lifecycle
+lock. It grants no ownership or authority to stop, replace or disable the counterpart and does not
+change storage-only control or stop admission. The observation is not an atomic reservation of
+the user manager namespace: other manager clients can race after the final check. A native-only
+installed profile must separately qualify its stop and dependency authority in that environment.
+
 The active `stop system` contract is installation-scoped admission through the
 [local message-authentication profile](09-security.md#local-installation-stop-admission), followed
 by exact host completion. The HTTP handler admits or refuses without acquiring the lifecycle lock,
