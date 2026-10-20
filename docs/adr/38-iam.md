@@ -116,6 +116,96 @@ Extensions cannot remove Ward from a protected route, create a universal Sigil, 
 peer-declared scope directly into local power. Audit retains the admitted evidence and decision
 generations without exposing credential secrets.
 
+## Host-enrolled candidate profile
+
+The inactive `host-opaque-candidate@1` service foundation admits explicit trusted-host
+composition only. The host supplies the existing Phylactery session factory and stable issuer
+UUID; it alone enrolls immutable human/service/peer/node Principals and changes exact assignments.
+A human enrollment creates a distinct shared User relation. Enrollment creates no permission.
+No application route, middleware, browser or existing Bridge conversation selects this profile.
+
+An enrollment returns a freshly random 256-bit opaque credential once. PostgreSQL retains only
+its SHA-256 digest, exact issuer/protocol/audience, lifetime and revocation generation. A successful
+one-time exchange creates a separate random authentication Session secret and marks the credential
+exchanged under the Principal lock. Session tokens are bearer possession evidence within their
+bounded lifetime; they do not authorize an object by themselves. Unknown credentials, issuer or
+audience mismatch, expiry, repeated exchange and revocation refuse. The host must retain secrets
+in its credential owner; this service does not read an ambient credential or repair a lost token.
+
+Each protected publication freshly resolves the Session, Credential and Principal, then queries
+one exact subject/action/candidate UUID/audience/purpose assignment. Assignments permit only
+candidate inspect, admit, read or decide in this namespace; they do not authorize actual custody,
+adoption, repository writes, activation or an existing application object. Policy changes advance
+the Principal policy generation; mandatory expected-generation binding fences prepared work.
+Principal, credential and Session revocations are monotonic, and no cache or historical Grant
+can bypass fresh resolution after restart.
+
+This profile requires actual transactional PostgreSQL/asyncpg READ COMMITTED operation. Each
+Session must bind every Ward model to one AsyncEngine; pre-bound AsyncConnection and differing
+Ward model binds refuse. Before application SQL, admission checks the checked-out DBAPI connection
+is not in AUTOCOMMIT, then checks `SHOW transaction_isolation` is exactly `read committed` and the
+actual asyncpg connection is inside a server transaction. Other or unknown states refuse. SHOW
+alone is insufficient in AUTOCOMMIT, where row locks immediately release. Admission changes neither
+caller engine configuration nor transaction isolation. This statement-snapshot prerequisite
+allows child Credential/Session reads after acquiring the Principal lock to see revocations committed
+while discovery or lock acquisition waited. REPEATABLE READ can retain a snapshot from the earlier
+Session lookup even if locking an unchanged Principal succeeds, so it is not admitted here.
+
+All these operations serialize on the permanent Principal row. After outside preparation,
+publication first commits a uniquely identified `publication-attempt` in Ward's existing audit,
+bound to the issuer, actual identities/generations and exact requested operation/policy generation.
+An eligible attempt starts with unknown outcome. That transaction ends before a second transaction
+reacquires the Principal lock and freshly checks all current evidence and database-clock expiry.
+Only then may a trusted synchronous callback immediately hand off its projection without yielding.
+Revocation or policy change between transactions prevents that handoff and retains refusal.
+The attempt identity appears in callback attribution and error notes; it supplies no permit,
+resume operation, deduplication or retry authority.
+
+Eligible attempts conservatively remain unknown even when the callback returns: this seam has no
+delivery oracle. Callback, commit or acknowledgement failures preserve the original exception and
+retained attempt without implying that disclosure did not occur. No rollback can erase the initial
+acknowledged attempt. A failed initial audit commit permits no handoff; acknowledgement loss can
+still leave an unknown retained attempt. No exactly-once effect or automatic retry is admitted.
+
+The same callback contract runs before preparation and at the store boundary. Detectable coroutine,
+async-generator and generator functions or callable-object methods refuse. A callback must return
+None; a returned coroutine is closed and a returned Task/Future cancelled before yielding, and any
+non-None result fails with unknown outcome. No asynchronous return is awaited. These checks catch
+composition mistakes: arbitrary trusted synchronous code can still schedule hidden work, block,
+or hand off before raising, and is outside hostile containment. The callback permits only immediate
+in-process projection handoff, with no await, blocking I/O or external effect. Attribution remains
+secret-free historical context. A future consumer must integrate its own owner/sharing-aware
+content query and exact content/operation binding; this assignment query supplies no object bytes.
+
+Fixed audit events retain identities, exact operation and generations without token or payload
+bytes. No cleanup or token recovery is admitted. The migration locks all Ward tables and refuses
+downgrade while any identity, assignment, Session or audit remains. This inactive local foundation
+supplies no remote ingress, general IAM activation, physical containment or native receipt.
+
+## Closed inactive candidate operation
+
+A separately composed, isolated trusted-host candidate consumer may connect Ward to physical
+custody. This is distinct from `publish`: the projection callback above retains its no-I/O rule.
+The fixed consumer owns one private candidate store and serializes access and shutdown before
+entering custody. Its transaction-scoped synchronous authorizer queries the same Ward predicates,
+exact assignments, generations and database clock at every physical custody gate while retaining
+the Principal row lock. SQLAlchemy's synchronous transaction bridge may yield for database I/O;
+ordinary filesystem I/O deliberately blocks inline. This profile promises neither production
+event-loop responsiveness, deadlines nor hostile containment. Detached attribution, worker-thread
+handoffs and caller-supplied inspectors cannot replace the live transaction.
+
+The consumer binds exact retained bytes, candidate UUID, known selection/closure plan and assigned
+participants. Inspection, import, structural admission, case binding, assessment and decision have
+separate exact purposes. Every operation binds its expected current policy generation. Its private
+authorizer expires on exit and cannot be returned as a Grant. Actual custody and Creation receipts
+own effects; Ward's conservative attempt audit remains attribution with unknown outcome. There is
+no shared filesystem/database transaction or automatic replay after uncertainty.
+
+Native assessments require an assigned Principal distinct from the proposer. Creation retains
+current-authorized attribution with the exact assessment/decision body. Only inactive hold/reject
+decisions are admitted; no source write, executor, positive OwnerAdmission or activation follows.
+Changed bytes, selection, policy, roles or custody identity invalidate affected preparation.
+
 ## Trusted local custody {#trusted-local-custody}
 
 The Designed [Reliquary profile](06-persistence.md#reliquary-custody-designed)
@@ -215,8 +305,9 @@ never a remote credential. Its dedicated password is unavailable to shared-Pod m
 rotation replaces that secret and restarts the Vessel. No cookie, network-origin header, or
 unauthenticated bootstrap route supplies fallback authority.
 
-This Covenant records **Designed** law. No credential-backed Principal, remote session, object
-authorization, delegation, revocation, tenant isolation, or IAM audit service ships.
+This Covenant records **Designed** law. The inactive local candidate profile above supplies no
+registered application service. Remote Principal enrollment, remote sessions, general object
+authorization, delegation, tenant isolation and deployed IAM remain undelivered.
 [State of Work](../state-of-the-work.md#remote-iam) owns the exact boundary.
 
 ## Consequences

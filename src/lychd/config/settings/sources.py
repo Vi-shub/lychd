@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Generator
+from contextlib import contextmanager
+from contextvars import ContextVar
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast, override
 
@@ -12,6 +16,33 @@ from pydantic_settings import BaseSettings, EnvSettingsSource, PydanticBaseSetti
 from lychd.config.settings.server import ServerSettings
 
 MOUNTED_SECRETS_DIR = Path("/run/secrets")
+
+
+@dataclass(frozen=True, slots=True)
+class RuntimeSecretCapture:
+    """Non-secret provenance of one successful selected startup capture."""
+
+    profile: str
+    names: tuple[str, ...]
+
+
+@dataclass(slots=True)
+class _CaptureScope:
+    result: RuntimeSecretCapture | None = None
+
+
+_CAPTURE_SCOPE: ContextVar[_CaptureScope | None] = ContextVar("runtime_secret_capture", default=None)
+
+
+@contextmanager
+def runtime_secret_capture() -> Generator[_CaptureScope]:
+    """Isolate provenance for nested and concurrent Settings constructions."""
+    scope = _CaptureScope()
+    token = _CAPTURE_SCOPE.set(scope)
+    try:
+        yield scope
+    finally:
+        _CAPTURE_SCOPE.reset(token)
 
 
 class RuntimeSecretsSource(PydanticBaseSettingsSource):
@@ -152,6 +183,15 @@ class RuntimeSecretsSource(PydanticBaseSettingsSource):
         except (OSError, PodmanSecretStoreError):
             msg = "Selected Podman runtime credentials are unavailable."
             raise ValueError(msg) from None
+        if (scope := _CAPTURE_SCOPE.get()) is not None:
+            scope.result = RuntimeSecretCapture(
+                profile="podman-core@1",
+                names=(
+                    server.database.runtime_password_secret,
+                    server.web.secret_key_secret,
+                    server.web.access_password_secret,
+                ),
+            )
         return {"server": credentials}
 
     def _reject_toml_credentials(self) -> None:

@@ -10,9 +10,19 @@ from sqlalchemy import case, func, select, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import aliased
 
+from lychd.compositions.creation.native_candidate import (
+    NATIVE_PROFILE,
+    NativeAssessment,
+    NativeBinding,
+    NativeDecision,
+    NativeEntry,
+    NativeRequest,
+    NativeView,
+)
 from lychd.compositions.creation.schemas import (
     FEEDBACK_LIMIT,
     INPUT_TOKENS,
+    OUTPUT_BYTES,
     OUTPUT_TOKENS,
     RESPONSE_BYTES,
     SUMMARY_REASON_CODES,
@@ -46,6 +56,8 @@ from lychd.db.models.run import Run
 from lychd.db.models.run_delivery import RunDelivery
 from lychd.domain.codex.sigil import Sigil
 from lychd.domain.cortex.runs import TERMINAL_STATUSES
+from lychd.domain.ward.service import Action as WardAction
+from lychd.domain.ward.service import Operation
 
 
 class DbCreationStore:
@@ -59,6 +71,8 @@ class DbCreationStore:
         row = await session.scalar(select(CreationCase).where(CreationCase.id == case_id).with_for_update())
         if row is None:
             refuse("unknown_case")
+        if row.profile_bytes == canonical(NATIVE_PROFILE):
+            refuse("native_case_requires_native_owner")
         if digest(row.request_bytes) != row.request_digest or digest(row.profile_bytes) != row.profile_digest:
             refuse("custody_digest")
         if row.candidate_bytes is not None and digest(row.candidate_bytes) != row.candidate_digest:
@@ -936,3 +950,225 @@ class DbCreationStore:
                 assessments=assessments,
                 decisions=decisions,
             )
+
+    @staticmethod
+    def _native_case(session: Any, request: NativeRequest) -> tuple[CreationCase, NativeBinding]:
+        case_id = request.case_id
+        row = session.scalar(
+            select(CreationCase)
+            .where(
+                CreationCase.id == case_id,
+                CreationCase.request_bytes == canonical(request),
+                CreationCase.profile_bytes == canonical(NATIVE_PROFILE),
+            )
+            .with_for_update()
+        )
+        if row is None or row.profile_bytes != canonical(NATIVE_PROFILE):
+            refuse("native_case")
+        admission = session.get(CreationAdmission, row.current_admission_id)
+        if (
+            admission is None
+            or admission.case_id != case_id
+            or admission.run_id is not None
+            or row.slot is not None
+            or row.verdict_bytes is not None
+            or row.status != "native-inactive"
+            or digest(row.request_bytes) != row.request_digest
+            or digest(row.profile_bytes) != row.profile_digest
+            or row.candidate_bytes is None
+            or digest(row.candidate_bytes) != row.candidate_digest
+        ):
+            refuse("native_custody")
+        binding = NativeBinding.model_validate_json(admission.binding_bytes)
+        if (
+            canonical(binding.request) != row.request_bytes
+            or binding.request.case_id != case_id
+            or binding.request.admission_id != admission.id
+            or canonical(
+                {"reference": binding.record.reference.model_dump(mode="json"), "binding_digest": binding.digest}
+            )
+            != row.candidate_bytes
+        ):
+            refuse("native_binding")
+        return row, binding
+
+    @staticmethod
+    def _native_entry(row: CreationFeedback) -> NativeEntry:
+        if digest(row.body_bytes) != row.body_digest:
+            refuse("native_feedback_custody")
+        body = (NativeAssessment if row.kind == "assessment" else NativeDecision).model_validate_json(row.body_bytes)
+        if isinstance(body, NativeAssessment):
+            if (
+                row.report_bytes != body.report.encode()
+                or row.report_digest != digest(body.report.encode())
+                or row.assessment_id is not None
+            ):
+                refuse("native_report_custody")
+        elif row.assessment_id != body.assessment_id or row.report_bytes is not None or row.report_digest is not None:
+            refuse("native_decision_custody")
+        return NativeEntry(
+            identity=row.id,
+            sequence=row.sequence,
+            body_digest=row.body_digest,
+            body=body,
+            attribution=tuple(sorted(decode(row.attribution_bytes).items())),
+        )
+
+    def _native_bind(self, session: Any, scope: Any, binding: NativeBinding) -> None:
+        """Lock the Principal, disjoint case-absence namespace, then exact case.
+
+        Feedback locks Principal, case, then its global one-bigint identity. The
+        two-int case namespace cannot collide with that feedback identity lock.
+        """
+        if scope.operation != Operation(WardAction.ADMIT, binding.request.plan.candidate_id, "native:bind"):
+            refuse("native_operation")
+        actor = scope.check(session, scope.operation)
+        if actor.principal_id != binding.request.plan.proposer:
+            refuse("native_proposer")
+        session.execute(
+            text("SELECT pg_advisory_xact_lock(727162, :key)"),
+            {"key": int.from_bytes(binding.request.case_id.bytes[:4], "big", signed=True)},
+        )
+        row = session.scalar(select(CreationCase.id).where(CreationCase.id == binding.request.case_id))
+        if row is not None:
+            _, retained = self._native_case(session, binding.request)
+            if retained != binding:
+                refuse("native_binding_replay")
+            scope.check(session, scope.operation)
+            return
+        now = session.scalar(select(func.clock_timestamp()))
+        if binding.request.deadline.utcoffset() is None or now >= binding.request.deadline:
+            refuse("native_preparation_expired")
+        candidate = canonical(
+            {"reference": binding.record.reference.model_dump(mode="json"), "binding_digest": binding.digest}
+        )
+        if len(candidate) > OUTPUT_BYTES:
+            refuse("native_reference_bound")
+        scope.check(session, scope.operation)
+        request, profile = canonical(binding.request), canonical(NATIVE_PROFILE)
+        session.add(
+            CreationCase(
+                id=binding.request.case_id,
+                request_bytes=request,
+                request_digest=digest(request),
+                profile_bytes=profile,
+                profile_digest=digest(profile),
+                deadline=binding.request.deadline,
+                slot=None,
+                status="native-inactive",
+                cancelled=False,
+                current_admission_id=binding.request.admission_id,
+                candidate_bytes=candidate,
+                candidate_digest=digest(candidate),
+            )
+        )
+        session.flush()
+        session.add(
+            CreationAdmission(
+                id=binding.request.admission_id,
+                case_id=binding.request.case_id,
+                binding_bytes=canonical(binding),
+            )
+        )
+        session.flush()
+        scope.check(session, scope.operation)
+
+    def _native_feedback(
+        self,
+        session: Any,
+        scope: Any,
+        request: NativeRequest,
+        body: NativeAssessment | NativeDecision,
+    ) -> None:
+        """Append current-attributed inactive evidence, preserving existing replay custody."""
+        purpose = "native:assess" if isinstance(body, NativeAssessment) else "native:decide"
+        if scope.operation != Operation(WardAction.DECIDE, request.plan.candidate_id, purpose):
+            refuse("native_operation")
+        case_id = request.case_id
+        _, binding = self._native_case(session, request)
+        actor = scope.check(session, scope.operation)
+        plan = binding.request.plan
+        assessment = isinstance(body, NativeAssessment)
+        if (
+            plan.candidate_id != scope.operation.object_id
+            or body.target_digest != binding.digest
+            or actor.principal_id != (plan.verifier if assessment else plan.decision_owner)
+            or (assessment and actor.principal_id == plan.proposer)
+        ):
+            refuse("native_feedback_authority")
+        identity = body.assessment_id if assessment else body.decision_id
+        session.execute(
+            text("SELECT pg_advisory_xact_lock(:key)"), {"key": int.from_bytes(identity.bytes[:8], "big", signed=True)}
+        )
+        encoded = canonical(body)
+        existing = session.scalar(
+            select(CreationFeedback).where(
+                CreationFeedback.id == identity,
+                CreationFeedback.case_id == case_id,
+            )
+        )
+        if (
+            existing is None
+            and session.scalar(select(CreationFeedback.id).where(CreationFeedback.id == identity)) is not None
+        ):
+            refuse("native_feedback_replay")
+        if existing is not None:
+            if existing.case_id != case_id or existing.body_bytes != encoded:
+                refuse("native_feedback_replay")
+            self._native_entry(existing)
+            scope.check(session, scope.operation)
+            return
+        records = list(
+            session.scalars(
+                select(CreationFeedback).where(CreationFeedback.case_id == case_id).order_by(CreationFeedback.sequence)
+            )
+        )
+        kind = "assessment" if assessment else "decision"
+        if sum(item.kind == kind for item in records) >= FEEDBACK_LIMIT:
+            refuse("native_feedback_capacity")
+        if isinstance(body, NativeAssessment):
+            if tuple(item.criterion for item in body.observations) != plan.criteria:
+                refuse("native_criterion_closure")
+        else:
+            assessments = [item for item in records if item.kind == "assessment"]
+            if not assessments or (assessments[-1].id, assessments[-1].body_digest) != (
+                body.assessment_id,
+                body.assessment_digest,
+            ):
+                refuse("native_latest_assessment")
+            self._native_entry(assessments[-1])
+        actor = scope.check(session, scope.operation)
+        attribution = {name: str(getattr(actor, name)) for name in actor.__dataclass_fields__}
+        attribution["role"] = "independent-reviewer" if assessment else "inactive-decision-owner"
+        session.add(
+            CreationFeedback(
+                id=identity,
+                case_id=case_id,
+                sequence=records[-1].sequence + 1 if records else 1,
+                kind=kind,
+                assessment_id=None if assessment else body.assessment_id,
+                body_bytes=encoded,
+                body_digest=digest(encoded),
+                report_bytes=body.report.encode() if isinstance(body, NativeAssessment) else None,
+                report_digest=digest(body.report.encode()) if isinstance(body, NativeAssessment) else None,
+                attribution_bytes=canonical(attribution),
+            )
+        )
+        session.flush()
+        scope.check(session, scope.operation)
+
+    def _native_view(self, session: Any, scope: Any, request: NativeRequest) -> NativeView:
+        if scope.operation != Operation(WardAction.READ, request.plan.candidate_id, "native:view"):
+            refuse("native_operation")
+        case_id = request.case_id
+        _, binding = self._native_case(session, request)
+        if binding.request.plan.candidate_id != scope.operation.object_id:
+            refuse("native_object")
+        entries = tuple(
+            self._native_entry(row)
+            for row in session.scalars(
+                select(CreationFeedback).where(CreationFeedback.case_id == case_id).order_by(CreationFeedback.sequence)
+            )
+        )
+        scope.check(session, scope.operation)
+        return NativeView(binding=binding, entries=entries)

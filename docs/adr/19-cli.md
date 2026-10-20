@@ -71,6 +71,19 @@ native cancellation survives cleanup classification. `--uncaged` changes the com
 not silent unit enablement. Planned binding truth belongs here; current host inventory belongs to
 `status`.
 
+`--native-only` is a separate opt-in, mutually exclusive with `--uncaged`. It compiles exactly
+one native Vessel and omits the caged Vessel and the Pod's application-listener publication.
+PostgreSQL, image-owned migration, declarations and configured Reactor dependencies remain.
+The native unit uses the installed executable, explicit XDG roots, loopback database endpoint
+and `podman-core@1` startup credential source. Preflight requires that source's captured runtime
+provenance under [Configuration](12-configuration.md#explicit-native-core-credential-source),
+without requiring the image's administrative credentials in the native process. Existing caged
+or mixed generations refuse; bind does not convert, stop or adopt them. Foreign-file, receipt
+and transaction-generation checks remain authoritative. Binding this fileset neither starts nor
+enables it, nor qualifies installed native operation.
+Both fixed Vessel identities are reserved against native-only contributions, including their
+source/runtime spellings and references from contributed container unit directives.
+
 ### Start, stop, observe, and read
 
 For `lychd start [TARGET]` and `lychd stop [TARGET]`, omission means the source-owned `system`

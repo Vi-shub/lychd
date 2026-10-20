@@ -162,6 +162,12 @@ def init_codex(
     help="Show the exact plan without LychD-managed changes; host probes may update tool-owned metadata.",
 )
 @click.option(
+    "--native-only",
+    is_flag=True,
+    default=False,
+    help="Bind only the native Vessel, retaining image-owned storage and migration; requires explicit runtime capture.",
+)
+@click.option(
     "--uncaged",
     is_flag=True,
     default=False,
@@ -170,18 +176,22 @@ def init_codex(
 def bind_quadlets(
     dry_run: bool,  # noqa: FBT001 - Click owns these boolean option contracts
     uncaged: bool,  # noqa: FBT001 - Click owns this boolean option contract
+    native_only: bool,  # noqa: FBT001 - Click owns this boolean option contract
 ) -> None:
     """Compile intent, preview one generation, then bind it transactionally.
 
     Click owns loading and operator narration. ``BindUseCase`` owns lock-time
     revalidation, core-secret creation, the atomic Scribe commit, and exactly
-    one user-manager reload. The optional uncaged unit is merely another member
-    of the same complete desired binding set and is never enabled implicitly.
+    one user-manager reload. The selected profile determines the complete desired
+    binding set; no service is started or enabled implicitly.
     """
+    if uncaged and native_only:
+        msg = "--native-only and --uncaged are mutually exclusive."
+        raise click.UsageError(msg)
     from lychd.cli.binding import BindingCommandSession
 
     console = get_console()
-    session = BindingCommandSession.inspect(uncaged=uncaged)
+    session = BindingCommandSession.inspect(uncaged=uncaged, native_only=native_only)
     _render_binding_preflight(preflight=session.preflight, console=console)
     prepared = session.prepare()
     _render_binding_plan(
@@ -205,7 +215,10 @@ def bind_quadlets(
         console.print(f"  [dim]Provisioned secrets: {', '.join(result.created_secrets)}[/]")
 
     console.print("\n[bold green]✓ The circle is bound.[/]")
-    if uncaged:
+    if native_only:
+        console.print("  [dim]One native Vessel binding is inscribed; no service was started or enabled.[/]")
+        console.print("  [dim]Installed native operation requires separate host qualification.[/]")
+    elif uncaged:
         _describe_uncaged_vessel(console=console)
     else:
         console.print("  [dim]You may now summon the declared system: lychd start[/]")

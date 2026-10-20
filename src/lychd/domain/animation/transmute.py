@@ -210,8 +210,9 @@ class Transmuter:
         portals: Sequence[PortalConfig] | None = None,
         runes: RuneRegistry | None = None,
         runtime_plans: Sequence[RuntimePlan] | None = None,
+        native_only: bool = False,
     ) -> list[QuadletBase]:
-        """Convert Soulstone Runes into a complete Quadlet manifest set."""
+        """Compile declarations, optionally leaving the application to a native unit."""
         from lychd.config.runes.registry import RuneRegistry
 
         settings = self._settings
@@ -231,6 +232,8 @@ class Transmuter:
             )
             for contributor in self._contributors
         )
+        if native_only:
+            self._validate_native_contributions(contributions)
         resolved_runtime_plans = (
             tuple(runtime_plans)
             if runtime_plans is not None
@@ -251,7 +254,9 @@ class Transmuter:
 
         # 1. The Sepulcher (Pod): core ports + contribution ports (contributor order).
         contribution_ports = [port for contribution in contributions for port in contribution.pod_ports]
-        manifests.append(self._create_pod(settings, contribution_ports, resolved_runtime_plans))
+        manifests.append(
+            self._create_pod(settings, contribution_ports, resolved_runtime_plans, native_only=native_only)
+        )
 
         # 2. The Core Rituals (Vessel, Phylactery).
         manifests.extend(
@@ -259,6 +264,7 @@ class Transmuter:
                 settings,
                 resolved_portals,
                 resolved_soulstones,
+                native_only=native_only,
             )
         )
 
@@ -351,6 +357,31 @@ class Transmuter:
         )
 
     @staticmethod
+    def _validate_native_contributions(contributions: Sequence[QuadletContribution]) -> None:
+        """Reserve both Vessel identities across contributed sources and unit edges."""
+        reserved = {
+            f"{stem}{suffix}"
+            for stem in ("lychd-vessel", "lychd-uncaged-vessel")
+            for suffix in ("", ".container", ".service")
+        }
+        for contribution in contributions:
+            for container in contribution.containers:
+                references = {
+                    container.container_name,
+                    container.pod,
+                    container.pod_service,
+                    *container.wants,
+                    *container.requires,
+                    *container.after,
+                    *container.binds_to,
+                    *container.conflicts,
+                    *container.wanted_by,
+                }
+                if collision := reserved.intersection(references):
+                    msg = f"Native-only contributions cannot use reserved Vessel identities: {', '.join(sorted(collision))}"
+                    raise ValueError(msg)
+
+    @staticmethod
     def _normalize_contribution(
         contribution: QuadletContribution,
     ) -> QuadletContribution:
@@ -367,6 +398,8 @@ class Transmuter:
         settings: Settings,
         extra_ports: list[str],
         runtime_plans: Sequence[RuntimePlan],
+        *,
+        native_only: bool = False,
     ) -> QuadletPod:
         """Define the physical boundary of the Sepulcher.
 
@@ -374,7 +407,7 @@ class Transmuter:
         order -- a contributor can never reorder or shadow a core port.
         """
         ports = [
-            f"127.0.0.1:{settings.server.port}:{CONTAINER_LYCHD_PORT}",
+            *([] if native_only else [f"127.0.0.1:{settings.server.port}:{CONTAINER_LYCHD_PORT}"]),
             f"127.0.0.1:{settings.server.database.port}:{CONTAINER_POSTGRES_PORT}",
             *(f"127.0.0.1:{mapping}" for mapping in extra_ports),
         ]
@@ -383,10 +416,14 @@ class Transmuter:
             msg = "Runtime plans cannot request a negative pod shared-memory capacity"
             raise ValueError(msg)
         shared_memory_bytes = sum(shared_memory_requirements)
-        return QuadletPod(
+        pod = QuadletPod(
             publish_ports=ports,
             shm_size=self._format_memory_size(shared_memory_bytes) if shared_memory_bytes else None,
         )
+        if native_only and any(int(port.split(":")[1]) == settings.server.port for port in pod.publish_ports):
+            msg = "A Pod contribution cannot publish the native Vessel listener port."
+            raise ValueError(msg)
+        return pod
 
     def _format_memory_size(self, size_bytes: int) -> str:
         """Render an exact byte requirement in the largest integral Quadlet unit."""
@@ -439,6 +476,8 @@ class Transmuter:
         settings: Settings,
         portals: Sequence[PortalConfig],
         soulstones: Sequence[SoulstoneConfig],
+        *,
+        native_only: bool = False,
     ) -> list[QuadletContainer]:
         """Define the persistent core services (Vessel, Phylactery).
 
@@ -550,7 +589,7 @@ class Transmuter:
             wanted_by=[],
         )
 
-        return [vessel, phylactery, migrator]
+        return [phylactery, migrator] if native_only else [vessel, phylactery, migrator]
 
     def _transmute_soulstone(
         self,

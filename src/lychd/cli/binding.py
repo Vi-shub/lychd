@@ -47,9 +47,10 @@ class BindingCommandSession:
     preflight_service: BindingPreflightService
     preflight: BindingPreflightReport
     uncaged: bool
+    native_only: bool = False
 
     @classmethod
-    def inspect(cls, *, uncaged: bool) -> BindingCommandSession:
+    def inspect(cls, *, uncaged: bool, native_only: bool = False) -> BindingCommandSession:
         """Load declared intent once and inspect prerequisites without effects."""
         from lychd.config.runes.registry import load_rune_registry
         from lychd.config.settings.root import get_settings
@@ -69,8 +70,14 @@ class BindingCommandSession:
         preflight = preflight_service.inspect(
             settings,
             uncaged=uncaged,
+            native_only=native_only,
             uncaged_control_plane_secrets=(
-                uncaged_control_plane_secret_names(declarations.soulstones) if uncaged else ()
+                uncaged_control_plane_secret_names(declarations.soulstones) if uncaged or native_only else ()
+            ),
+            native_portal_secrets=(
+                tuple(portal.api_key_secret_name for portal in declarations.portals if portal.api_key_secret_name)
+                if native_only
+                else ()
             ),
         )
         return cls(
@@ -82,6 +89,7 @@ class BindingCommandSession:
             preflight_service=preflight_service,
             preflight=preflight,
             uncaged=uncaged,
+            native_only=native_only,
         )
 
     def prepare(self) -> PreparedBinding:
@@ -95,13 +103,22 @@ class BindingCommandSession:
             soulstones=self.soulstones,
             portals=self.portals,
             uncaged=self.uncaged,
+            native_only=self.native_only,
         )
         use_case = assemble_bind_use_case(
             foundation=foundation,
             preflight_service=self.preflight_service,
             settings_snapshot=self.settings_snapshot,
-            uncaged_control_plane_secrets=(uncaged_control_plane_secret_names(self.soulstones) if self.uncaged else ()),
+            uncaged_control_plane_secrets=(
+                uncaged_control_plane_secret_names(self.soulstones) if self.uncaged or self.native_only else ()
+            ),
+            native_portal_secrets=(
+                tuple(portal.api_key_secret_name for portal in self.portals if portal.api_key_secret_name)
+                if self.native_only
+                else ()
+            ),
             uncaged=self.uncaged,
+            native_only=self.native_only,
         )
         return PreparedBinding(
             request=request,

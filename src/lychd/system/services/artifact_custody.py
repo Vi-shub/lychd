@@ -29,6 +29,7 @@ from lychd.domain.artifact_custody import (
     MAX_HOLDS,
     MAX_METADATA_BYTES,
     MAX_PAYLOAD_BYTES,
+    PROFILE,
     Action,
     Admission,
     AdmissionTarget,
@@ -38,6 +39,7 @@ from lychd.domain.artifact_custody import (
     Continuity,
     Control,
     CustodyCode,
+    CustodyProfile,
     CustodyRefused,
     CustodyState,
     CustodyValue,
@@ -65,6 +67,7 @@ from lychd.domain.artifact_custody import (
     bind_decision,
     canonical_bytes,
     digest_bytes,
+    profile_media_type,
     record_digest,
 )
 from lychd.domain.artifacts import ArtifactRef
@@ -209,14 +212,16 @@ class LocalArtifactCustody:
         return self._binding
 
     @classmethod
-    def create(cls, root: Path, *, authorizer: Authorizer) -> Self:
-        """Initialize only an explicitly supplied, empty, existing owned 0700 root."""
+    def create(cls, root: Path, *, authorizer: Authorizer, profile: CustodyProfile = PROFILE) -> Self:
+        """Initialize an empty owned 0700 root with one explicit closed profile."""
+        profile_media_type(profile)
         store = cls(root=root, authorizer=authorizer)
         try:
             store._root_fd = store._descriptors.add(_open_root(root))
             if _directory_names(store._root_fd):
                 raise RecoveryRequired
             store._binding = RootBinding(
+                profile=profile,
                 store_id=uuid4(),
                 owner_uid=os.getuid(),
                 root=_token(os.fstat(store._root_fd)),
@@ -439,7 +444,7 @@ class LocalArtifactCustody:
         spec = ImportSpec(
             request_id=record.request_id,
             owner=record.owner,
-            media_type="audio/wav",
+            media_type=profile_media_type(record.binding.profile),
             classification=record.reference.classification,
             producer_claim=record.producer_claim,
             source_claim=record.source_claim,
@@ -645,6 +650,8 @@ class LocalArtifactCustody:
         if type(content) is not bytes or len(content) > MAX_PAYLOAD_BYTES:
             raise CustodyRefused(CustodyCode.INPUT)
         with self._operation():
+            if spec.media_type != profile_media_type(self.binding.profile):
+                raise CustodyRefused(CustodyCode.INPUT)
             payload_digest = digest_bytes(content)
             fingerprint = _fingerprint(spec, subject, payload_digest)
             existing = self._views.get(spec.request_id)

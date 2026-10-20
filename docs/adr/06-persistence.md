@@ -187,6 +187,20 @@ contract; [State](../state-of-the-work.md#artifact-reference-contract) owns impl
 
 ### Identity and quarantine
 
+An explicitly selected `native-candidate-json@1` profile reuses this same physical custody
+and lifecycle for bounded immutable candidate JSON bytes. It accepts only
+`application/vnd.lychd.native-candidate+json`, with the same 1 MiB payload bound; the default
+`same-host-trusted-bootstrap@1` profile remains restricted to WAV. Profiles do not mix within a
+root. Candidate inspection requires canonical typed JSON binding an inactive stage, base commit
+declaration, purpose, exact selected and allowed logical paths, and regular-file bytes with
+`0644` or `0755` modes, sizes and digests. Required Core, coupled-extension, lock, configuration,
+schema, Pattern, policy, history and recovery declarations name only selected files; every file
+has a declaration. Empty declarations explicitly describe their absence. Duplicate or ambiguous
+paths, unknown kinds, undeclared bytes and mismatched references refuse inspection. This profile
+accepts no filesystem source input or archive extraction. Admission proves structural custody
+only: it authenticates neither the declared Git base nor compatibility, owner verdicts,
+candidate construction, execution, promotion or activation under [Evolution](18-evolution.md).
+
 An import binds a store UUID and caller-owned request UUID to
 `urn:lychd:artifact:<store-uuid>:<request-uuid>`. Only validated internal UUIDs determine storage
 names; an arbitrary reference, producer label, path, or URL never supplies a filesystem component.
@@ -436,6 +450,24 @@ mission or action remains, including settled history. The refusal check and remo
 tables against concurrent writes in a fixed order. Export, explicit erasure, archival and
 incompatible-record migration require a later owned operation; downgrade cannot erase or rewrite
 retained records to make itself succeed.
+
+### Inactive native candidate custody
+
+An explicitly tagged `native-candidate-inactive@1` path reuses Creation's case, admission and
+append-only feedback records. It binds one exact Reliquary candidate record, structural admission,
+literal bundle digest, known selected Core/coupled closure and review plan. It has no execution
+slot, model attempt, Run or semantic verdict. The preparation deadline governs initial binding;
+later review does not renew it. Existing public-source investigation rules remain separate and
+refuse this profile.
+
+The native admission retains the bounded complete binding; the case retains a bounded reference
+and digest rather than copying source payload bytes. Independently attributed assessments and
+hold/reject decisions retain exact targets and permanent caller-owned identities. Current Ward
+authority and attribution participate in their insertion transaction. Exact retries return retained
+truth after fresh authorization; changed bodies conflict. Lost acknowledgements require exact
+identity lookup, never another semantic append. Physical custody survives a failed case transaction;
+neither owner claims atomicity with the other or erases uncertainty by replay. Existing retained
+Creation history and its downgrade refusal continue to apply; no new generic ledger is introduced.
 
 ### Atlas records
 

@@ -29,6 +29,7 @@ from lychd.db.models.scout import ScoutAttempt, ScoutBudget
 from lychd.db.models.session import Session
 from lychd.db.models.soulstone import SoulstoneRecord
 from lychd.db.models.step import Step
+from lychd.db.models.ward import WardAudit, WardCredential, WardPermission, WardPrincipal, WardSession, WardUser
 
 __all__ = [
     "ArchiveEmbeddingGeneration",
@@ -62,4 +63,10 @@ __all__ = [
     "Session",
     "SoulstoneRecord",
     "Step",
+    "WardAudit",
+    "WardCredential",
+    "WardPermission",
+    "WardPrincipal",
+    "WardSession",
+    "WardUser",
 ]

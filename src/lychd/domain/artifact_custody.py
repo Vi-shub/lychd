@@ -1,4 +1,4 @@
-"""Immutable evidence for the explicit trusted-host artifact custody profile."""
+"""Immutable evidence for closed, explicitly selected trusted-host custody profiles."""
 
 from __future__ import annotations
 
@@ -15,6 +15,10 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from lychd.domain.artifacts import ArtifactRef
 
 PROFILE = "same-host-trusted-bootstrap@1"
+NATIVE_CANDIDATE_PROFILE = "native-candidate-json@1"
+NATIVE_CANDIDATE_MEDIA_TYPE = "application/vnd.lychd.native-candidate+json"
+type CustodyProfile = Literal["same-host-trusted-bootstrap@1", "native-candidate-json@1"]
+type CustodyMediaType = Literal["audio/wav", "application/vnd.lychd.native-candidate+json"]
 MAX_PAYLOAD_BYTES = 1_048_576
 MAX_METADATA_BYTES = 16_384
 MAX_HOLDS = 16
@@ -34,7 +38,7 @@ class FileToken(CustodyValue):
 
 
 class RootBinding(CustodyValue):
-    profile: Literal["same-host-trusted-bootstrap@1"] = "same-host-trusted-bootstrap@1"
+    profile: CustodyProfile = "same-host-trusted-bootstrap@1"
     schema_version: Literal[1] = 1
     store_id: UUID
     owner_uid: int = Field(ge=0)
@@ -50,7 +54,7 @@ class Subject(CustodyValue):
 class ImportSpec(CustodyValue):
     request_id: UUID
     owner: Subject
-    media_type: Literal["audio/wav"] = "audio/wav"
+    media_type: CustodyMediaType = "audio/wav"
     classification: Literal["public", "internal", "private", "restricted"] = "private"
     producer_claim: Label | None = None
     source_claim: Label | None = None
@@ -74,7 +78,10 @@ class ArtifactRecord(CustodyValue):
     def exact_identity(self) -> ArtifactRecord:
         if self.reference.artifact_id != artifact_id(self.binding.store_id, self.request_id):
             raise CustodyRefused(CustodyCode.REFERENCE)
-        if self.reference.media_type != "audio/wav" or self.reference.size > MAX_PAYLOAD_BYTES:
+        if (
+            self.reference.media_type != profile_media_type(self.binding.profile)
+            or self.reference.size > MAX_PAYLOAD_BYTES
+        ):
             raise CustodyRefused(CustodyCode.INPUT)
         return self
 
@@ -367,6 +374,15 @@ class CustodyPort(Protocol):
 
 def artifact_id(store_id: UUID, request_id: UUID) -> str:
     return f"urn:lychd:artifact:{store_id}:{request_id}"
+
+
+def profile_media_type(profile: CustodyProfile) -> CustodyMediaType:
+    """Keep each named profile closed; no caller-defined media or inspector registry."""
+    if profile == PROFILE:
+        return "audio/wav"
+    if profile == NATIVE_CANDIDATE_PROFILE:
+        return NATIVE_CANDIDATE_MEDIA_TYPE
+    raise CustodyRefused(CustodyCode.INPUT)
 
 
 def canonical_bytes(value: CustodyValue) -> bytes:

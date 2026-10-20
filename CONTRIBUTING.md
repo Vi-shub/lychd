@@ -109,6 +109,13 @@ cherry-picking or squash/rebase promotion between the long-lived branches: that 
 different history and may create an untested combination. Keep `dev` when cleaning up merged
 branches. Main publication updates the documentation site; it is not a package release.
 
+The operator-authorized finite foundations task of 20 October 2026 uses a task-scoped
+exception: Lead may integrate reviewed, green candidates directly into `main`, without a PR,
+`dev` mutation, or force-push. The ordinary branch and promotion policy above remains in force
+for other work. The next human integration step is to merge the resulting `main` history into
+`dev`, preserve ancestry, resolve conflicts, and verify the combined result before further
+ordinary promotion.
+
 ### Issues and the board
 
 - **In progress:** implementation is underway. **Review:** the implementation, tests and docs

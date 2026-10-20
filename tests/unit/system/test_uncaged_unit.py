@@ -173,3 +173,41 @@ def test_bind_uncaged_writes_unit_and_reports_preparation_boundary(
     # Bind reloads its declared files without starting or enabling a unit.
     mocks.systemd.assert_called_once_with(systemctl_bin="/usr/bin/systemctl")
     assert mocks.systemd.return_value.method_calls == [mocker.call.daemon_reload()]
+
+
+def test_bind_native_only_is_explicit_and_has_no_start_or_enable_effect(
+    runner: CliRunner,
+    mocker: MockerFixture,
+) -> None:
+    mocks = _mock_bind_pass(mocker)
+    result = runner.invoke(bind_quadlets, ["--native-only"])
+    assert result.exit_code == 0, result.output
+    native = mocks.scribe.reconcile_all.call_args.kwargs["plain_units"]["lychd-uncaged-vessel.service"]
+    assert 'Environment="LYCHD_RUNTIME_SECRETS=podman-core@1"' in native
+    assert "One native Vessel binding is inscribed" in result.output
+    assert "requires separate host qualification" in result.output
+    assert mocks.systemd.return_value.method_calls == [mocker.call.daemon_reload()]
+
+
+def test_bind_profiles_are_mutually_exclusive_before_loading_settings(
+    runner: CliRunner,
+    mocker: MockerFixture,
+) -> None:
+    session = mocker.patch("lychd.cli.binding.BindingCommandSession.inspect")
+    result = runner.invoke(bind_quadlets, ["--native-only", "--uncaged"])
+    assert result.exit_code == 2
+    assert "mutually exclusive" in result.output
+    session.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "override",
+    [
+        {"requires": ["foreign.service\nExecStart=/other"]},
+        {"after": ["../foreign.service"]},
+        {"requires": ["same.service", "same.service"]},
+    ],
+)
+def test_native_service_rejects_unsafe_dependency_edges(override: dict[str, object]) -> None:
+    with pytest.raises(ValueError, match=r"single-line|unit-name|duplicate"):
+        SystemdService.model_validate({"exec_start": _GOLDEN_EXEC, **override})

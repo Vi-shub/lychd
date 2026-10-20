@@ -141,6 +141,18 @@ the earlier failure. The result is a retained disposition and, only when eligibl
 Promotion Request**. Source selection, collective promotion approval and each target owner's
 fresh effect-time checks remain separate. A recorded judgment neither migrates nor activates.
 
+### Retain an inactive local judgment
+
+An isolated native candidate consumer may retain exact inactive bundle custody, an assigned
+independent reviewer's assessment and a current-attributed hold/reject decision through the existing
+Creation owner. Structural admission proves the retained canonical bytes only. A reviewer report
+remains an attributed claim with explicit exposure, observations and limitations; self inspection,
+mechanical comparison or a passing subset cannot become independent compatibility evidence.
+Deferred constructor containment and missing mandatory receipts remain explicit hold reasons.
+This passage launches no foreign runtime, creates no positive OwnerAdmission and authorizes no
+promotion request, repository write or activation. Its separate blocking host authority boundary
+is governed by [IAM](38-iam.md#closed-inactive-candidate-operation).
+
 ### Start the changed body as a new generation {#replace-the-generation-not-its-memory}
 
 A promoted Core or coupled extension change activates as a new Vessel process generation.

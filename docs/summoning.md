@@ -323,6 +323,30 @@ an absolute host path outside Codex, Crypt, systemd-unit, and Reactor control ro
 external secret only under its exact reported name. Edit the Rune or settings that produced the
 generated units; LychD will regenerate the files from those declarations.
 
+### Explicit native-only binding candidate
+
+For a separately prepared installation with existing runtime Podman secrets, the opt-in profile
+previews one native Vessel while retaining PostgreSQL and the image-owned migration gate:
+
+```bash
+LYCHD_RUNTIME_SECRETS=podman-core@1 lychd bind --native-only --dry-run
+LYCHD_RUNTIME_SECRETS=podman-core@1 lychd bind --native-only
+```
+
+Use the installed executable from the recorded environment, with a migration image from the same
+source and lock. The three runtime secret references must already resolve through the
+[explicit native source](adr/12-configuration.md#explicit-native-core-credential-source).
+Unavailable credentials refuse; do not supply bootstrap or Phoenix passwords to this native
+process. The image-owned PostgreSQL/migration units retain their separate administrative secrets.
+Portal or Soulstone control credentials needing Podman mounts are refused by this profile.
+
+The desired set contains `lychd-uncaged-vessel.service`, no `lychd-vessel.container`, and no Pod
+publication of the application port. It preserves the database publication and declared services.
+`--uncaged` retains its separate additive dual behavior and cannot be combined with `--native-only`.
+An existing caged or mixed generation refuses; these commands provide no conversion procedure.
+Bind only inscribes and reloads. Installed startup, useful work, restart and complete shutdown
+still require their own host qualification; this candidate does not establish those outcomes.
+
 ## The Awakening — draw the Circle and make the First Invocation {#the-awakening}
 
 The body is bound but still. Normal caged startup brings up the pod, PostgreSQL **Phylactery**,

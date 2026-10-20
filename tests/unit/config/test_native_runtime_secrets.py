@@ -465,3 +465,46 @@ def test_converted_none_selection_is_not_an_exact_profile_string(
     with pytest.raises(ValueError, match="Unsupported LYCHD_RUNTIME_SECRETS"):
         Settings(**options)
     _assert_no_podman(selected)
+
+
+def test_selected_capture_provenance_survives_snapshot_without_sources(
+    selected: _SecretHarness,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = Settings()
+    capture = settings.runtime_secret_capture
+    assert capture is not None
+    assert capture.profile == "podman-core@1"
+    assert capture.names == _RUNTIME_NAMES
+    assert "runtime_secret_capture" not in settings.model_dump_json()
+    assert "runtime_secret_capture" not in Settings.model_json_schema()["properties"]
+    snapshot = SettingsSnapshot.capture(settings)
+    reads = tuple(selected.reads)
+    monkeypatch.setenv("LYCHD_RUNTIME_SECRETS", "invalid-after-capture")
+    restored = snapshot.materialize()
+    assert restored.runtime_secret_capture == capture
+    _assert_runtime_values(restored, selected.values, _RUNTIME_NAMES)
+    assert tuple(selected.reads) == reads
+
+
+def test_later_selection_cannot_attest_an_earlier_legacy_capture(
+    monkeypatch: pytest.MonkeyPatch,
+    secrets: _SecretHarness,
+) -> None:
+    settings = Settings()
+    monkeypatch.setenv("LYCHD_RUNTIME_SECRETS", "podman-core@1")
+    assert settings.runtime_secret_capture is None
+    assert SettingsSnapshot.capture(settings).materialize().runtime_secret_capture is None
+    _assert_no_podman(secrets)
+
+
+def test_failed_selected_capture_does_not_leak_provenance_to_next_construction(
+    monkeypatch: pytest.MonkeyPatch,
+    secrets: _SecretHarness,
+) -> None:
+    monkeypatch.setenv("LYCHD_RUNTIME_SECRETS", "podman-core@1")
+    secrets.fail_name = _RUNTIME_NAMES[-1]
+    with pytest.raises(ValueError, match="unavailable"):
+        Settings()
+    monkeypatch.delenv("LYCHD_RUNTIME_SECRETS")
+    assert Settings().runtime_secret_capture is None

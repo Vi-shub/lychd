@@ -497,6 +497,8 @@ class SystemdService(BaseModel):
     description: str = "LychD Vessel (uncaged)"
     exec_start: str  # "<sys.prefix>/bin/lychd serve --host 127.0.0.1 --port <port>"
     environment: dict[str, str] = Field(default_factory=lambda: {"LYCHD_MODE": "uncaged"})
+    requires: list[str] = Field(default_factory=list)
+    after: list[str] = Field(default_factory=list)
     restart: str = "on-failure"
     wanted_by: str = "default.target"
 
@@ -523,6 +525,12 @@ class SystemdService(BaseModel):
             systemd_environment_assignment(key, value)
         return values
 
+    @field_validator("requires", "after")
+    @classmethod
+    def validate_dependencies(cls, values: list[str], info: ValidationInfo) -> list[str]:
+        """Confine dependency edges to exact duplicate-free unit names."""
+        return _validate_unit_name_list(values, field_name=f"SystemdService.{info.field_name}")
+
     @property
     def filename(self) -> str:
         """The on-disk unit filename (e.g. ``lychd-vessel.service``)."""
@@ -541,6 +549,8 @@ class SystemdService(BaseModel):
         lines = [
             "[Unit]",
             f"Description={self.description}",
+            *([f"Requires={' '.join(self.requires)}"] if self.requires else []),
+            *([f"After={' '.join(self.after)}"] if self.after else []),
             "",
             "[Service]",
             f"ExecStart={self.exec_start}",

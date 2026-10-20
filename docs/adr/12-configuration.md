@@ -317,6 +317,18 @@ mutation, automatic rotation or reload. Existing caged and dual binding generati
 it implicitly; a coherent native-only installed generation needs its own binding and lifecycle
 evidence.
 
+Native-only bind requires provenance from a successful explicit `podman-core@1` Settings
+construction: the exact profile and three declared secret names are retained privately with
+that Settings generation and its snapshot. They are never inferred from later environment
+values or credential equality. Preflight requires those names to match current declarations,
+all three captured runtime values to exist, and bootstrap/Phoenix values to remain absent.
+The three native runtime names are required existing Podman inputs at initial planning and
+apply; only image-owned bootstrap/Phoenix names retain absent-secret generation authority.
+Image-owned migration retains bootstrap authority. Snapshot restoration and locked preflight
+perform no additional credential reads; existing bind secret-presence and fileset generation
+checks still apply. Provenance does not attest atomic secret rotation or retained database-role
+currency, which remain outside this binding proof.
+
 ### Policy and derived projections
 
 In the accepted design, Codex also sets the privacy/egress baseline (thresholds, anonymization requirement, destination

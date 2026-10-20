@@ -21,6 +21,8 @@ def assemble_bind_use_case(
     settings_snapshot: SettingsSnapshot,
     uncaged_control_plane_secrets: Sequence[str],
     uncaged: bool,
+    native_only: bool = False,
+    native_portal_secrets: Sequence[str] = (),
 ) -> BindUseCase:
     """Wire concrete host adapters behind the reusable bind use case."""
     from lychd.system.services.lifecycle.lock import LifecycleLock
@@ -38,7 +40,9 @@ def assemble_bind_use_case(
         current = preflight_service.inspect(
             settings,
             uncaged=uncaged,
-            uncaged_control_plane_secrets=(tuple(uncaged_control_plane_secrets) if uncaged else ()),
+            native_only=native_only,
+            uncaged_control_plane_secrets=(tuple(uncaged_control_plane_secrets) if uncaged or native_only else ()),
+            native_portal_secrets=native_portal_secrets,
         )
         return current.require_ready()
 

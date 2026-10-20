@@ -2490,16 +2490,15 @@ attestation plane, canonical source on Radicle, Radicle node topology or downstr
 
 **State:** Designed
 
-**Proved now:** IAM law assigns remote identity and authorization to Ward rather than the loopback
-Sigil.
+**Proved now:** The inactive `host-opaque-candidate@1` Ward foundation and a separately composed closed native-candidate consumer have a fresh combined disposable-PostgreSQL observation: 23 tests passed, comprising 18 Ward cases and five current-authority passage cases. Ward exercises the full real bootstrap/HBA and Alembic chain, including 0019↔0020 and restricted-runtime DML/DDL refusals. The native fixture instead creates isolated Ward/Creation tables through metadata DDL; its five passes qualify the declared authority/custody passage, not a second full migration-chain receipt. That passage binds exact retained candidate bytes and plan, an independent attributed assessment and inactive hold/reject decisions; it exercises actual Principal-lock waiting and committed revocation, database-clock expiry after real staging, serialized shutdown, exact retained-identity reconciliation after injected post-commit acknowledgement loss, and refusal of mapper/table/prebound-connection escapes before effects. Three cached PG objects and their anonymous volumes settled; Root separately recorded retained process/cgroup absence and protected warm/model-state preservation. The earlier Ward-only failed-then-passed receipt remains separate historical evidence. The new offline architecture oracle checks the new admission's critical source pins and selected lock versions; it does not rerun PostgreSQL.
 
-**Do not expect yet:** There is no credential-backed principal, remote session, object authority,
-delegation, revocation, tenant isolation, or audit contract.
+**Do not expect yet:** This isolated trusted-host passage is unregistered in the application. It supplies no installed body/CLI, foreign-constructor execution or containment, remote IAM/device enrollment, production activation, positive OwnerAdmission/promotion, repository write, general owned-content integration, genuine application/database-process restart, shared filesystem/database transaction, exactly-once effect or native/hostile aggregate containment. Reopening a service is not process-restart evidence. Acknowledgement faults are injected after actual commit; no physically broken database connection is proved. Ward's conservative eligible publication audit remains unknown. Remote identity and general activation remain Designed.
 
 **Evidence**
 
 - **Topic:** [Ward](./sepulcher/extensions/ward.md)
-- **Law:** [IAM](./adr/38-iam.md)
+- **Law:** [IAM](./adr/38-iam.md), [Persistence](./adr/06-persistence.md), [Evolution](./adr/18-evolution.md)
+- **Verification:** [Combined actual PostgreSQL receipt](https://github.com/hexanomicon/lychd/blob/main/tests/fixtures/ward/ward-native-postgres-2026-10-20.json), [offline receipt scope and freshness](https://github.com/hexanomicon/lychd/blob/main/tests/architecture/test_ward_native_postgres_receipt.py), [Ward PostgreSQL cases](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_ward_pg.py), and [native authority cases](https://github.com/hexanomicon/lychd/blob/main/tests/integration/test_native_candidate_authority_pg.py)
 
 ### A2A and Intercom {#a2a-intercom}
 

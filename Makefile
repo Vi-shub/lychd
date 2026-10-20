@@ -24,7 +24,7 @@ PYTEST_TARGETS ?= tests
 # Automatic CI covers these in-process contracts; host/filesystem qualification
 # and disposable PostgreSQL remain separate. Keep the full test/check defaults.
 CI_PYTEST_TARGETS := tests/unit/config tests/unit/db \
-	tests/architecture/test_release_legal_artifacts.py \
+	tests/architecture/test_release_legal_artifacts.py tests/architecture/test_ward_native_postgres_receipt.py \
 	tests/unit/test_app.py tests/unit/cli/test_cli.py \
 	tests/unit/system/operator tests/unit/cli/test_operator.py \
 	tests/unit/cli/test_deletion_retirement.py \
@@ -32,6 +32,8 @@ CI_PYTEST_TARGETS := tests/unit/config tests/unit/db \
 	tests/unit/system/services/test_init_binding_sites.py tests/unit/system/services/test_bind_compilation.py \
 	tests/unit/system/test_schemas.py tests/unit/system/services/test_artifact_custody.py \
 	tests/unit/system/services/test_artifact_publication.py \
+	tests/unit/system/services/test_native_candidate_custody.py \
+	tests/unit/system/services/test_native_candidate_authority.py \
 	tests/unit/system/test_scout_worker.py tests/unit/system/test_scout_rss_worker.py \
 	tests/unit/system/services/test_scout_extraction.py \
 	tests/unit/system/services/test_scout_rss_extraction.py \
@@ -41,6 +43,7 @@ CI_PYTEST_TARGETS := tests/unit/config tests/unit/db \
 	tests/unit/domain/test_artifact_custody.py tests/unit/domain/test_evolution.py \
 	tests/unit/domain/animation tests/unit/domain/cortex tests/unit/domain/delegation \
 	tests/unit/domain/orchestration tests/unit/domain/privacy tests/unit/domain/web tests/unit/domain/scout \
+	tests/unit/domain/ward \
 	tests/unit/extensions tests/unit/lib tests/unit/compositions tests/agents tests/web \
 	tests/integration/test_configuration_workflows.py \
 	tests/integration/test_bridge_casting_workflow.py \
@@ -48,6 +51,7 @@ CI_PYTEST_TARGETS := tests/unit/config tests/unit/db \
 	tests/integration/test_crypt_extension_vertical.py \
 	tests/integration/test_extension_configuration.py
 CONTAINER_TEST_TARGETS ?= tests/integration/test_db_consent_pg.py \
+	tests/integration/test_ward_pg.py tests/integration/test_native_candidate_authority_pg.py \
 	tests/integration/test_db_blockworld_pg.py \
 	tests/integration/test_database_authority_pg.py \
 	tests/integration/test_db_atlas_pg.py \
