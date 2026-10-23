@@ -1,4 +1,8 @@
 {
+  "code_evidence": {
+    "joined_test_sha256_before_trial": "00e24103a907b1aa4d1b518d7bd38267a3b2d5cdd4fce1db923f6f239d11c7d2",
+    "owned_runner_source_sha256": "7f0a7ecf8469e348cfc22928ebd66f25e4e2e6fd57899037cf641a277ed11d31"
+  },
   "database": {
     "container_removed": true,
     "created_containers": 1,
@@ -46,7 +50,7 @@
     "worker": "real-in-process-SAQ"
   },
   "freshness_check": "offline-metadata-source-and-selected-dependency-check-only",
-  "identity_boundary": "One dated local trial with bounded critical source/test fingerprints and selected package versions. Neither a clean-checkout, atomic transitive environment nor model-byte attestation. Updating metadata or hashes alone does not requalify changed critical inputs.",
+  "identity_boundary": "One dated local trial with bounded critical source/test fingerprints and selected package versions. Neither a clean-checkout, atomic transitive environment nor model-byte attestation. Private trial evidence remains local behind random opaque references. Updating metadata or hashes alone does not requalify changed critical inputs.",
   "model": {
     "context_tokens": 4096,
     "cooperative_deadline_seconds": 30,
@@ -75,16 +79,14 @@
     "warm_on_both_boots": true,
     "wire_finish_reason": "tool_calls"
   },
-  "qualification_date": "2026-10-15",
-  "qualification_evidence": {
-    "app_receipt_sha256": "82d352316bd66fc2df32de34cf1fb9bcad54e5b41125e98dfd2680aef762726e",
-    "joined_test_sha256_before_trial": "00e24103a907b1aa4d1b518d7bd38267a3b2d5cdd4fce1db923f6f239d11c7d2",
-    "model_profile_sha256": "1c1c73bf27c21fb3e3e58cdb08b6917b7a045643257d04ca0e81e30a2fb6c6b1",
-    "owned_runner_receipt_sha256": "aa417748cf587c29c79224dd9a26de05ceb68589b81b68e5115459ee98b2bf50",
-    "owned_runner_source_sha256": "6910a1e8c1ef213f482ce4a0a68586dc936d7beb676571d7004bac8d6667e7a9"
+  "qualification_date": "2026-10-22",
+  "qualification_evidence_ids": {
+    "app_receipt": "ed0c9e29-4216-4e70-b0a4-9b9f9a7477f7",
+    "model_profile": "d958d089-7bdf-4af3-b0f8-ee27b1180e88",
+    "owned_runner_receipt": "12620ad7-8ba4-4d7d-8b12-cca96f90ba79"
   },
   "record_kind": "sanitized_public_local_bridge_qualification",
-  "retained_history_sha256": "e0b81baca01bdf1e79094367de27ec396a045c24bce1c546cfdf82deca11bc0e",
+  "retained_history_evidence_id": "4f5fcdf6-4f9d-4093-9515-69c882fde6c1",
   "runner": {
     "cleanup_verified": true,
     "default_make_ryuk_profile": false,
@@ -98,7 +100,7 @@
     "ryuk_disabled_in_runner_process": true,
     "unresolved_creates": 0
   },
-  "schema": "local-bridge-vllm-runtime@1",
+  "schema": "local-bridge-vllm-runtime@2",
   "source_fingerprints": {
     "scripts/local_model_probe.py": "a8904d9e1b777e880d63a8e455cd07bff8819d9ff1edeb211b693e9eeb8957c5",
     "src/lychd/agents/context_limits.py": "dd283fd293c2caf3d521d4e23cd33fd509fb82a2624f213b9d3a49530f92bdd4",
@@ -125,15 +127,15 @@
     "src/lychd/domain/codex/middleware.py": "9853769b5b5cacb9817395896d6dc6cea42533370d3febddf73226cee752496c",
     "src/lychd/domain/cortex/context.py": "89eec82da27f308363e6ffe2495ee7660945bf6c0b7cea768d6da3aadf14400d",
     "src/lychd/domain/cortex/dispatcher.py": "648b0b36315622b54bae87f4342d66d2db187c0e15ca6563659316b016575713",
-    "src/lychd/domain/cortex/engine.py": "2276bced167e86019f0c366111030a0c42206981999aa76fe4a274a238091fc7",
-    "src/lychd/domain/cortex/graph_runner.py": "3362590fcd682f1124a92fc7375358084782b1cc71a651201d8d5b1e1676a239",
+    "src/lychd/domain/cortex/engine.py": "6074852ffddaf355417ac3b1842b7a1a4392a87f3f4d145b6ea7538cf00e249b",
+    "src/lychd/domain/cortex/graph_runner.py": "ae11e79bbc363c6fd5191da03f67d141925fb0e92918aacab37f51d3bf744ec5",
     "src/lychd/domain/cortex/leases.py": "29a1fc205fedd317b1814e635e7198b3cfc66fa6d7e2cfa64357c3ca21d8bbf2",
-    "src/lychd/domain/cortex/ledger.py": "d25b769d89f7098a1c902ae45f3ce5664309ad49ca1acc9f187809e9e9930597",
+    "src/lychd/domain/cortex/ledger.py": "140c1926ae3a21d4fbb8622dad254b108d2ef613afe9b0e755c8a5ef77f2dffb",
     "src/lychd/extensions/builtin/animator/soulstones/vllm.py": "0c51c18cab31a9b7fe798ad83a7df9809d0cbf6f206345df5e0bc30de453c1b8",
     "src/lychd/extensions/builtin/animator/vllm/register.py": "3eeca6c19c3be7e85d9fead659a03c4cd4d35b79357d207ba5decba8af029839",
     "src/lychd/extensions/context.py": "3a5bff1bc1e14ace4310cf713bf76a97d8e539171b35dc2c55baa17dd7102e27",
     "src/lychd/extensions/manager.py": "750a4f2ec7034a75940c318a8e4e21c36e83fc3e1b357aff9772b311bbdda52d",
-    "src/lychd/ghouls/runs.py": "c18fe3ccd330dd17db540f18f6b0780fe7910a4bd0629d7aa19feca870097d18",
+    "src/lychd/ghouls/runs.py": "a3bf43b05b8054a2fa0c0907ab9a8192e1cf30403368d67299184b34d81ede21",
     "src/lychd/interface/api/lifecycle.py": "a8feea8caefba3c640360851ade444349ec0c4b93f334092384a6d00d19aa98a",
     "src/lychd/interface/server_policy.py": "702ff8945dd1ac9f1907b3f0f6ffa5b697446b3af1312fb6e33e0b16b3cbcd74",
     "src/lychd/interface/web/altar_services.py": "79aa6d63a86ac1d4281d0fa431c505685bb221b16b3fbd865e75e73b83d22c53",
@@ -147,14 +149,14 @@
   },
   "source_identity": {
     "atomic_transitive_closure_attested": false,
-    "base_revision_declared": "58bbd7206d8cec61c228cda32ef33f6babed0a66",
+    "base_revision_declared": "0e0dc859699edf279aecc17d0eff0a9ac97945ed",
     "clean_checkout_attested": false,
     "scope": "bounded-critical-source-and-test-fingerprints"
   },
   "status": "passed",
   "timings_seconds": {
-    "command": 14.2669,
-    "pytest": 12.79
+    "command": 17.7054,
+    "pytest": 16.675
   },
   "unexercised": [
     "browser-and-full-accessibility",

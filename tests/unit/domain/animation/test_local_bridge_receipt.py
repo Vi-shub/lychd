@@ -7,6 +7,7 @@ import tomllib
 from hashlib import sha256
 from importlib.metadata import version
 from pathlib import Path
+from uuid import UUID
 
 _ROOT = Path(__file__).resolve().parents[4]
 _RECEIPT = _ROOT / "tests/fixtures/animator/local-bridge-vllm-runtime.json"
@@ -92,21 +93,22 @@ def test_maintained_local_bridge_receipt_keeps_its_exact_boundary() -> None:
         "outcome",
         "database",
         "runner",
-        "retained_history_sha256",
+        "retained_history_evidence_id",
         "timings_seconds",
-        "qualification_evidence",
+        "qualification_evidence_ids",
+        "code_evidence",
         "dependency_versions",
         "source_fingerprints",
         "freshness_check",
         "identity_boundary",
         "unexercised",
     }
-    assert receipt["schema"] == "local-bridge-vllm-runtime@1"
+    assert receipt["schema"] == "local-bridge-vllm-runtime@2"
     assert receipt["record_kind"] == "sanitized_public_local_bridge_qualification"
-    assert receipt["qualification_date"] == "2026-10-15"
+    assert receipt["qualification_date"] == "2026-10-22"
     assert receipt["status"] == "passed"
     assert receipt["source_identity"] == {
-        "base_revision_declared": "58bbd7206d8cec61c228cda32ef33f6babed0a66",
+        "base_revision_declared": "0e0dc859699edf279aecc17d0eff0a9ac97945ed",
         "clean_checkout_attested": False,
         "atomic_transitive_closure_attested": False,
         "scope": "bounded-critical-source-and-test-fingerprints",
@@ -186,8 +188,9 @@ def test_maintained_local_bridge_receipt_keeps_its_exact_boundary() -> None:
         "evolution-and-promotion",
         "remote-access-and-hostile-browser",
     }
-    assert len(receipt["retained_history_sha256"]) == 64
-    assert set(receipt["retained_history_sha256"]) <= set("0123456789abcdef")
+    history_id = UUID(receipt["retained_history_evidence_id"])
+    assert history_id.version == 4
+    assert str(history_id) == receipt["retained_history_evidence_id"]
     # This is a metadata/freshness gate, not a replay or a new live result.
     assert receipt["freshness_check"] == "offline-metadata-source-and-selected-dependency-check-only"
     assert not any(
@@ -203,6 +206,14 @@ def test_maintained_local_bridge_receipt_keeps_its_exact_boundary() -> None:
             "response_id",
             "session_id",
             "run_id",
+            "retained_history_sha256",
+            "retained_turns_sha256",
+            "app_receipt_sha256",
+            "owned_runner_receipt_sha256",
+            "model_profile_sha256",
+            "candidate_manifest_sha256",
+            "command_declaration_sha256",
+            "pytest_log_sha256",
         )
     )
 
@@ -210,13 +221,10 @@ def test_maintained_local_bridge_receipt_keeps_its_exact_boundary() -> None:
 def test_maintained_local_bridge_receipt_matches_critical_sources() -> None:
     receipt = json.loads(_RECEIPT.read_text())
     assert set(receipt["source_fingerprints"]) == _SOURCES
-    evidence = receipt["qualification_evidence"]
+    evidence = receipt["code_evidence"]
     assert set(evidence) == {
         "joined_test_sha256_before_trial",
-        "app_receipt_sha256",
-        "owned_runner_receipt_sha256",
         "owned_runner_source_sha256",
-        "model_profile_sha256",
     }
     assert (
         evidence["joined_test_sha256_before_trial"]
@@ -225,6 +233,14 @@ def test_maintained_local_bridge_receipt_matches_critical_sources() -> None:
     for digest in evidence.values():
         assert len(digest) == 64
         assert set(digest) <= set("0123456789abcdef")
+    evidence_ids = receipt["qualification_evidence_ids"]
+    assert set(evidence_ids) == {"app_receipt", "owned_runner_receipt", "model_profile"}
+    all_ids = [*evidence_ids.values(), receipt["retained_history_evidence_id"]]
+    assert len(set(all_ids)) == 4
+    for identity in all_ids:
+        parsed = UUID(identity)
+        assert parsed.version == 4
+        assert str(parsed) == identity
     for path, digest in receipt["source_fingerprints"].items():
         assert sha256((_ROOT / path).read_bytes()).hexdigest() == digest, path
 

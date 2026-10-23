@@ -1,4 +1,8 @@
 {
+  "code_evidence": {
+    "owned_runner_source_sha256": "7f0a7ecf8469e348cfc22928ebd66f25e4e2e6fd57899037cf641a277ed11d31",
+    "process_test_sha256_before_trial": "9621a9209499c7f552b024e18a1621f132964b87e9d7f0f9d38bbb780515eaa9"
+  },
   "database": {
     "container_removed": true,
     "created_containers": 1,
@@ -46,7 +50,7 @@
     "worker": "real-in-process-SAQ"
   },
   "freshness_check": "offline-metadata-source-and-selected-dependency-check-only",
-  "identity_boundary": "One dated local trial with bounded critical source/test fingerprints and selected package versions. Neither a clean-checkout, atomic transitive environment nor model-byte attestation. Updating metadata or hashes alone does not requalify changed critical inputs.",
+  "identity_boundary": "One dated local trial with bounded critical source/test fingerprints and selected package versions. Neither a clean-checkout, atomic transitive environment nor model-byte attestation. Private trial evidence remains local behind random opaque references. Updating metadata or hashes alone does not requalify changed critical inputs.",
   "model": {
     "context_tokens": 4096,
     "cooperative_deadline_seconds": 30,
@@ -105,20 +109,18 @@
     "shutdown": "clean-TestClient-lifespan",
     "start_method": "spawn"
   },
-  "qualification_date": "2026-10-15",
-  "qualification_evidence": {
-    "app_receipt_sha256": "13bbbc4e410ab211ef9108af7728f49f5cd8c63da8d49dc770bed9ab7706d1b3",
-    "candidate_manifest_sha256": "8bbf60ea24037828b7edb2e35d096618b1dd270323c553ce487dcf8114267911",
-    "command_declaration_sha256": "ef3714546a24f32c055859cb197e87075451196a37650f281825ed816888d924",
-    "model_profile_sha256": "1c1c73bf27c21fb3e3e58cdb08b6917b7a045643257d04ca0e81e30a2fb6c6b1",
-    "owned_runner_receipt_sha256": "79a1101ab76cf952959041b7fa92f0e90d68c17d2b8bc405fe58e2a2ad6f7505",
-    "owned_runner_source_sha256": "5bdd5eb11ba212249aa84c8feba3729952abb4061a01509a21a157cbfea3cadd",
-    "process_test_sha256_before_trial": "9621a9209499c7f552b024e18a1621f132964b87e9d7f0f9d38bbb780515eaa9",
-    "pytest_log_sha256": "255701f7c7dcb08c1f4d6485350695985a966325d3bc19fb5beee11a107fda44"
+  "qualification_date": "2026-10-22",
+  "qualification_evidence_ids": {
+    "app_receipt": "574f336b-283d-4052-ac60-77e0aaeb8fb8",
+    "candidate_manifest": "a87185d6-df7f-4c03-8d41-2919b4023b06",
+    "command_declaration": "d33db351-54fd-4659-a578-a72b336e1911",
+    "model_profile": "2746e212-2754-469d-853b-d4e2798f0f70",
+    "owned_runner_receipt": "48dd937e-b2ac-44e3-aece-3fc1dd1a08af",
+    "pytest_log": "8bba2678-283b-4bc8-884f-d51a446e5771"
   },
   "record_kind": "sanitized_public_local_bridge_process_qualification",
-  "retained_history_sha256": "1f700ced80ee78ab7c20412bc68eeb88a243f161b9865ef002b5df496dcfdb11",
-  "retained_turns_sha256": "4811d155031b8dd00f8de4e94adf67cc663d1573f8f2be61d62a8612bccee2cb",
+  "retained_history_evidence_id": "a6b9e42a-def3-46b6-8c99-a6e76bcaeeb5",
+  "retained_turns_evidence_id": "5a192f1c-a7ef-4a98-a003-452d7835014f",
   "runner": {
     "cleanup_deadline_seconds": 20,
     "cleanup_verified": true,
@@ -139,7 +141,7 @@
     "ryuk_disabled_in_runner_process": true,
     "unresolved_creates": 0
   },
-  "schema": "local-bridge-vllm-process-restart@1",
+  "schema": "local-bridge-vllm-process-restart@2",
   "source_fingerprints": {
     "scripts/local_model_probe.py": "a8904d9e1b777e880d63a8e455cd07bff8819d9ff1edeb211b693e9eeb8957c5",
     "src/lychd/agents/context_limits.py": "dd283fd293c2caf3d521d4e23cd33fd509fb82a2624f213b9d3a49530f92bdd4",
@@ -166,15 +168,15 @@
     "src/lychd/domain/codex/middleware.py": "9853769b5b5cacb9817395896d6dc6cea42533370d3febddf73226cee752496c",
     "src/lychd/domain/cortex/context.py": "89eec82da27f308363e6ffe2495ee7660945bf6c0b7cea768d6da3aadf14400d",
     "src/lychd/domain/cortex/dispatcher.py": "648b0b36315622b54bae87f4342d66d2db187c0e15ca6563659316b016575713",
-    "src/lychd/domain/cortex/engine.py": "2276bced167e86019f0c366111030a0c42206981999aa76fe4a274a238091fc7",
-    "src/lychd/domain/cortex/graph_runner.py": "3362590fcd682f1124a92fc7375358084782b1cc71a651201d8d5b1e1676a239",
+    "src/lychd/domain/cortex/engine.py": "6074852ffddaf355417ac3b1842b7a1a4392a87f3f4d145b6ea7538cf00e249b",
+    "src/lychd/domain/cortex/graph_runner.py": "ae11e79bbc363c6fd5191da03f67d141925fb0e92918aacab37f51d3bf744ec5",
     "src/lychd/domain/cortex/leases.py": "29a1fc205fedd317b1814e635e7198b3cfc66fa6d7e2cfa64357c3ca21d8bbf2",
-    "src/lychd/domain/cortex/ledger.py": "d25b769d89f7098a1c902ae45f3ce5664309ad49ca1acc9f187809e9e9930597",
+    "src/lychd/domain/cortex/ledger.py": "140c1926ae3a21d4fbb8622dad254b108d2ef613afe9b0e755c8a5ef77f2dffb",
     "src/lychd/extensions/builtin/animator/soulstones/vllm.py": "0c51c18cab31a9b7fe798ad83a7df9809d0cbf6f206345df5e0bc30de453c1b8",
     "src/lychd/extensions/builtin/animator/vllm/register.py": "3eeca6c19c3be7e85d9fead659a03c4cd4d35b79357d207ba5decba8af029839",
     "src/lychd/extensions/context.py": "3a5bff1bc1e14ace4310cf713bf76a97d8e539171b35dc2c55baa17dd7102e27",
     "src/lychd/extensions/manager.py": "750a4f2ec7034a75940c318a8e4e21c36e83fc3e1b357aff9772b311bbdda52d",
-    "src/lychd/ghouls/runs.py": "c18fe3ccd330dd17db540f18f6b0780fe7910a4bd0629d7aa19feca870097d18",
+    "src/lychd/ghouls/runs.py": "a3bf43b05b8054a2fa0c0907ab9a8192e1cf30403368d67299184b34d81ede21",
     "src/lychd/interface/api/lifecycle.py": "a8feea8caefba3c640360851ade444349ec0c4b93f334092384a6d00d19aa98a",
     "src/lychd/interface/server_policy.py": "702ff8945dd1ac9f1907b3f0f6ffa5b697446b3af1312fb6e33e0b16b3cbcd74",
     "src/lychd/interface/web/altar_services.py": "79aa6d63a86ac1d4281d0fa431c505685bb221b16b3fbd865e75e73b83d22c53",
@@ -189,14 +191,14 @@
   },
   "source_identity": {
     "atomic_transitive_closure_attested": false,
-    "base_revision_declared": "58bbd7206d8cec61c228cda32ef33f6babed0a66",
+    "base_revision_declared": "0e0dc859699edf279aecc17d0eff0a9ac97945ed",
     "clean_checkout_attested": false,
     "scope": "bounded-critical-source-and-test-fingerprints"
   },
   "status": "passed",
   "timings_seconds": {
-    "command": 16.8196,
-    "pytest": 15.4
+    "command": 20.758,
+    "pytest": 19.7611
   },
   "unexercised": [
     "browser-and-full-accessibility",
