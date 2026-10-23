@@ -32,6 +32,8 @@ async def connected(
     monkeypatch: pytest.MonkeyPatch,
     handler: Callable[[httpx.Request], httpx.Response]
     | Callable[[httpx.Request], Coroutine[None, None, httpx.Response]],
+    *,
+    hold_seconds: int | None = None,
 ) -> AsyncGenerator[tuple[CompanionControl, companion_lab.CompanionConsole, FakeBridge, httpx.AsyncClient, list[int]]]:
     fake = FakeBridge()
     bridge = fake.bridge()
@@ -52,6 +54,7 @@ async def connected(
         context=console.control_context,
         record=console.record_gesture,
         stop=console.begin_stop,
+        hold_seconds=hold_seconds,
     )
     console.control = control
     await session.open()

@@ -20,7 +20,7 @@ public final class FixtureObservation {
     static volatile int readableCases;
     static volatile boolean hiddenHudChecked, menuHudChecked;
     static volatile ProtocolFixture fixture;
-    static volatile boolean scenariosPassed;
+    static volatile boolean scenariosPassed, fixedScenariosPassed, heldScenariosPassed;
 
     private FixtureObservation() { }
     public static synchronized void initialized(VoiceClient instance) {
@@ -87,6 +87,9 @@ public final class FixtureObservation {
         boolean fixtureClosed = current != null && current.closeAndAudit();
         int records = current == null ? 0 : current.records();
         int stops = current == null ? 0 : current.stops();
+        int holds = current == null ? 0 : current.holds();
+        int releases = current == null ? 0 : current.releases();
+        int heldStops = current == null ? 0 : current.heldStops();
         boolean protocolHealthy = current != null && current.healthy();
         String receipt = "{\"protocol\":1,\"actual_client_stopping\":true,\"production_initializations\":"
                 + initCount + ",\"scenarios_passed\":" + scenariosPassed
@@ -95,6 +98,10 @@ public final class FixtureObservation {
                 + ",\"fixture_closed_and_workers_dead\":" + fixtureClosed
                 + ",\"protocol_healthy\":" + protocolHealthy
                 + ",\"record_ingress\":" + records + ",\"stop_ingress\":" + stops
+                + ",\"hold_ingress\":" + holds + ",\"release_ingress\":" + releases
+                + ",\"held_stop_ingress\":" + heldStops
+                + ",\"fixed_scenarios_passed\":" + fixedScenariosPassed
+                + ",\"held_scenarios_passed\":" + heldScenariosPassed
                 + ",\"own_hud_observations\":" + hudCount
                 + ",\"readable_cases\":" + readableCases + ",\"hidden_hud_checked\":" + hiddenHudChecked
                 + ",\"menu_hud_checked\":" + menuHudChecked + ",\"geometry_healthy\":" + geometryHealthy
@@ -107,7 +114,8 @@ public final class FixtureObservation {
             throw new IllegalStateException("Client control fixture audit write failed");
         }
         check(initCount == 1 && scenariosPassed && productionClosed && productionWorkersDead
-                && fixtureClosed && protocolHealthy && records == 5 && stops == 4 && hudCount > 0
+                && fixtureClosed && protocolHealthy && records == 5 && stops == 5 && heldStops == 1
+                && holds == 2 && releases == 1 && fixedScenariosPassed && heldScenariosPassed && hudCount > 0
                 && readableCases == 5 && hiddenHudChecked && menuHudChecked && geometryHealthy,
                 "actual lifecycle audit failed");
     }

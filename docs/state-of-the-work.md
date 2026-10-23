@@ -1503,6 +1503,25 @@ relationship to Minecraft. This is an engineering publication check, not legal a
 gameplay/speech qualification. Distributing a compiled mod still requires identifying and providing
 its exact corresponding source; a development version or mutable source URL alone is insufficient.
 
+The explicit held-input increment adds a third unbound client mapping and host `--hold-seconds`
+opt-in. It retains the fixed recording profile and original voice identity/deadline; release has
+its own bounded forwarding window and worker. Release-before-start tombstones prevent delayed
+capture, while stop remains independently reserved. Unreleased duration/sample limits, short or
+invalid PCM, cancellation and unproved retirement discard the utterance before transcription.
+Fifty-four held host cases and forty Java cases passed, with 344 affected host cases in total.
+Independent review found and corrected unrelated-key collision and late-start-error HUD regressions.
+
+The actual software client retained its original five-record/four-stop chain, then exercised two
+synthetic Num Enter holds, one original-ID release and one menu cancellation without release or
+replay. Final lifecycle evidence retained five fixed records, five total stops and retired workers
+on Vulkan llvmpipe, without GPU or audio devices. Actual `arecord` 1.2.16 on ALSA `null` also passed
+the production held helper with partial PCM, intentional SIGINT/status 1 and retired process group.
+Separately, a real owned synthetic PCM feeder crossed local held-control HTTP, CPU Whisper,
+native Run/Graph and the empty lab's night-clock action exactly once, then generated a Supertonic
+reply and closed stopped. Physical keys/focus, FIFINE capture, playback, hearing and human Slovak
+accuracy remain unqualified; wake words and continuous capture remain unfinished. The maintained
+held-input cohort preserves the historical evidence rather than treating it as reexecuted.
+
 The maintained CPU-only headless qualification records observed head turning and movement,
 priority stop with queued cancellation, native event correlation, strict HTTP admission,
 same-boot deduplication, a deliberately lost acknowledgement without repost, and a same-world

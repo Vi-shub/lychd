@@ -294,13 +294,47 @@ provider, model, device, profile file or game authority and does not qualify lan
 
 ### Optional focused-game controls
 
+The held-input extension adds a third, initially unbound push-to-talk mapping beside
+fixed-duration recording and stop. With the matching private control and speech profiles,
+explicit `--hold-seconds 15` enables held capture with a fifteen-second maximum. The six-field
+control profile stays unchanged; `record_seconds` still selects the fixed recording duration.
+Choose each binding in the private Minecraft instance's Controls screen; no particular key is
+a universal default.
+
+Press requests capture for one original voice occurrence. Release finishes that same capture
+and permits its existing transcription/native admission only after at least 250 milliseconds
+of usable captured PCM and confirmed recorder retirement. Releasing before capture arms
+discards the gesture. Reaching the hard limit without release also discards it. Holding either
+capture key never repeats an utterance. Continuous listening and wake words remain unimplemented;
+these controls need no global keyboard hook or administrator privileges.
+
+Menu, pause, focus, world and observed host-context boundaries suppress a held release and
+request best-effort stop for outstanding dispatched input. They also discard unsent old work.
+All three controls must be released before another fresh edge. A console `:target` change
+selects later input; an already-owned hold retains its captured target. A host-context change can
+trigger client cancellation only after the client observes it.
+
+Private `/v1/hold` and `/v1/release` control mutations retain the original voice UUID, context,
+generation and absolute instruction expiry. Release has a separately frozen three-second
+forwarding window; it cannot renew the original deadline. Per-phase digests retain duplicate
+observations, and bounded release-before-start tombstones prevent delayed capture. The exact
+six-field private profile and fixed `/v1/record` operation retain their existing meanings.
+Held capture accepts only bounded even PCM after intentional SIGINT and confirmed recorder-group
+retirement; canceled, too-short, forced or uncertain retirement never supplies transcription.
+The early-finish exit-status rule is qualified against local ALSA `arecord` 1.2.16 on its `null`
+device; it does not establish compatibility with every recorder version or a physical input.
+Release requests and actual captured PCM/retirement remain distinct from physical microphone or
+hearing proof. [State of Work](../../state-of-the-work.md#composition-portfolio-delivery) owns
+qualification; physical keys, microphone capture and human hearing still need live acceptance.
+
 The separate [voice client](https://github.com/hexanomicon/lychd/tree/main/clients/minecraft-voice)
 installs only in the local Fabric player instance. Its README owns the pinned build, private
 profile shape and installation. The dedicated-server actuator remains a separate artifact.
 Without the instance's explicit `config/lychd-voice.json`, controls and network workers are absent.
-Both mappings default to unbound; select record and stop in Minecraft's Controls screen. A
-function key for stop also works through the client's menu input path. Physical focus, key
-handling and audio require their own live acceptance.
+All three mappings default to unbound; select fixed recording, held recording and stop in
+Minecraft's Controls screen. A function key for stop also works through the client's menu input
+path. Stop keeps priority over capture. Physical focus, key handling and audio require their
+own live acceptance.
 
 Opt the foreground console into the matching private control profile with `--control-profile`;
 that file must be inside its declared private workspace. The distinct control bearer never uses
@@ -310,18 +344,20 @@ provider selection or game command. The profile's player and server address guar
 client context; they neither select the host's follow target nor authenticate the game server.
 Linux/POSIX private-file custody is required; Windows and remote multiplayer are unqualified.
 
-One fresh press requests one bounded utterance. Holding a key does not repeat; focus/world/menu
-changes require release before a new edge and discard unsent old work. Original UUID, context,
-generation and deadlines precede worker waiting. The complete instruction lifetime must fit the
-remaining console session; it is never shortened or renewed. Ordinary work and stop have separate
-bounded workers and finite histories. Stop fences the existing console queue synchronously,
-and a fresh same-session stop remains available after recording authority expires to retire
+One fresh press requests one bounded utterance. Original UUID, context, generation and deadlines
+precede worker waiting. The complete instruction lifetime must fit the remaining console session;
+it is never shortened or renewed. Ordinary work, held release and stop use separately reserved
+bounded workers, so a blocked start exchange cannot occupy the release or stop lane. Identity
+histories remain finite. Stop fences the existing console queue synchronously, and a fresh
+same-session stop remains available after recording authority expires to retire
 already-owned audio. Final console shutdown seals recording before its final audio retirement.
 A lost mutation acknowledgement permits only lookup of that original UUID, never replay.
 
-The local Slovak/Czech/English multiline HUD separates requested/pending input, known game
-outcome, reply generation, playback and retained evidence. It receives no recognized words or
-foreign diagnostic prose. Terminal native evidence cannot regress to an older pending snapshot.
+The local Slovak/Czech/English multiline HUD distinguishes a capture request from the host's
+first observed PCM (`recording`) and recorder retirement (`finishing`). These stages remain
+separate from known game outcome, reply generation, playback and retained evidence. It receives
+no recognized words or foreign diagnostic prose. Terminal native evidence cannot regress to an
+older pending snapshot.
 Its context guards and status labels are source contracts, not proof of a physical key press,
 active microphone or heard reply. Retire uncertain audio through the console before starting a
 new session; a changed console session requires an explicit client restart.

@@ -45,8 +45,11 @@ The following deliberately invalid placeholders are an example shape, not a work
 ```
 
 This is the separately generated **console control** token, never the dedicated actuator token.
-The local console must explicitly opt into the same control profile. The endpoint permits only
-literal IPv4 `127.0.0.1` and an explicit port, with no URL path, userinfo, query or fragment.
+The local console must explicitly opt into the same control profile. Held input additionally
+requires a local speech profile and an explicit console maximum: `--hold-seconds 15` enables
+a fifteen-second hold. The option accepts 1–15 whole seconds without changing the six-field
+profile or `record_seconds`. The endpoint permits only literal IPv4 `127.0.0.1` and an explicit
+port, with no URL path, userinfo, query or fragment.
 `server_address` is only an exact local context comparison with Minecraft's current server
 address; it never chooses the HTTP destination or the console's follow target. `player_id`
 must equal the actual local player's UUID. Remote multiplayer capture remains unqualified.
@@ -57,29 +60,44 @@ must be a non-symlink current-user-owned directory without group/other write per
 read uses no-follow open and before/after identity, size and modification checks. Custody does
 not defend against a malicious process running as that same user; Windows custody is unqualified.
 
-Both mappings start **unbound**. Select the desired keys under normal Controls → LychD local
-voice. This avoids installing an accidental default conflict. Choose a keyboard function key,
-Pause, Print Screen or Scroll Lock for stop if it must work inside menus/text entry. Other
-keyboard keys can stop while gameplay has no screen/overlay. Mouse bindings use vanilla mapping
-state only during gameplay. Both down at once, or the same binding for both, selects stop.
+All three mappings start **unbound**: fixed-duration recording, held push-to-talk and stop.
+Select each key under normal Controls → LychD local voice in the private Minecraft instance;
+no particular key is a universal default. Existing chosen record and stop bindings keep their
+meanings. Choose a keyboard function key, Pause, Print Screen or Scroll Lock for stop if it
+must work inside menus/text entry. Other keyboard keys can stop while gameplay has no
+screen/overlay. Mouse bindings use vanilla mapping state only during gameplay. Stop keeps
+priority over capture, including a shared stop binding.
 
-A fresh press requests one finite capture using the profile's 1–15 second duration. Holding a
-key does not repeat. Recording additionally needs the matched server/player, active window,
-unpaused current world, no screen or overlay and a control view no older than 1500 ms that
-allows recording. Focus, world, menu, session or host-context changes require releasing both
-controls before another fresh edge. A press made while ineligible is never replayed later.
-Remapping while held is not a supported way to produce a fresh physical edge; release first.
+A fresh fixed-record press requests one finite capture using the profile's 1–15 second duration.
+A held-input press requests capture; release finishes that same voice occurrence for
+transcription and native admission. It needs at least 250 milliseconds of usable captured PCM.
+A release before capture arms, or the maximum duration reached without release, discards the
+utterance. Neither capture key repeats while held. Continuous listening and wake words remain
+unimplemented; the client needs no global keyboard hook or administrator privileges.
+
+Recording additionally needs the matched server/player, active window, unpaused current world,
+no screen or overlay and a control view no older than 1500 ms that allows recording. Menu,
+pause, focus, world, session or observed host-context changes suppress the held release and
+require releasing all three controls before another fresh edge. A press made while ineligible
+is never replayed later. Remapping while held is not a supported way to produce a fresh physical
+edge; release first. The console's `:target` selects later input; an already-owned hold retains
+its captured target. A host-context change can trigger client cancellation only after the
+client observes it.
 
 Each gesture gets its original UUID, session/context/generation and deadlines before any worker
 wait. A queued record is cancelled when its original client epoch is invalidated; delayed work
 never renews its 3 second admission window or instruction expiry. The full instruction lifetime
 must fit the remaining session at both press and dispatch; it is never shortened to fit.
-Focus/world loss with an
-outstanding dispatched gesture makes one best-effort stop request through the independently
-reserved worker. This does not establish that a disconnected console or microphone stopped;
-the host's hard finite capture still bounds the attempt.
+Menu, pause, focus, world or observed host-context boundaries with an outstanding dispatched
+gesture make one best-effort stop request through the independently reserved worker. This does
+not establish that a disconnected console or microphone stopped; the host's hard finite
+capture still bounds the attempt.
 
-Ordinary work and stop use separate single-worker, one-entry-queue lanes. HTTP uses fresh direct
+Ordinary work, held release and stop use separate single-worker, one-entry-queue lanes. A blocked
+start exchange cannot occupy the reserved release or stop lane. A release keeps the original
+hold envelope and UUID, with a separate three-second forwarding window capped by the original
+instruction expiry. Neither phase can renew the instruction, and a release received before its
+start leaves a bounded tombstone that prevents delayed capture. HTTP uses fresh direct
 IPv4 sockets, exact Host and bearer headers, a 2 second complete-exchange budget, bounded framing
 and typed JSON, and no proxies, redirect following or mutation retries. Unknown acknowledgement
 only permits lookup of the original UUID. One poll is in flight at a time and polls start at most
@@ -95,7 +113,9 @@ containing that exact known stop. Exhausted finite client histories also prevent
 
 The local multiline HUD shows a short gesture UUID and closed Slovak, Czech or English stages,
 using English for other languages. `requested` and HTTP 202/pending do not mean that the
-microphone is active or the game applied an action. Game result, reply generation, playback and
+microphone is active or the game applied an action. Held `recording` reports the host's first
+observed PCM; `finishing` reports recorder retirement after release. These are separate from
+physical microphone and hearing proof. Game result, reply generation, playback and
 evidence results remain separate, including when a known game result has a failed spoken reply.
 Host-fixed feedback is bounded, checked for control/formatting characters and rendered literally.
 No transcript is available. Playback-player exit does not establish that a person heard audio.
@@ -140,8 +160,11 @@ and F1 recovery. F1/menu absence windows also require GUI extraction progress. I
 fixture returns synthetic mixed game/reply/playback/evidence results; it makes
 no native host command, microphone, synthesis or playback request. Success requires the completed
 scenario chain, normal framework exit and a new `lychd-client-control-audit.json` from the actual
-client-stopping event, registered by a passive production-init observer after production's stop hook,
-including five record requests, four stops and retired workers. Test classes/resources are absent
+client-stopping event, registered by a passive production-init observer after production's stop hook.
+The original five-record/four-stop chain completes before a separate reconnect exercises synthetic
+Num Enter: one hold across polls, one original-ID release and a second hold cancelled by menu entry
+without release or replay. The final audit requires five fixed records, two holds, one release,
+five total stops including one held cancellation, and retired workers. Test classes/resources are absent
 from the default binary and source jars. Fabric replaces input/focus handling for this test, so
 its result cannot qualify physical keys, focus, a human microphone or hearing.
 

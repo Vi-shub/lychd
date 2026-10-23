@@ -9,6 +9,10 @@ import java.util.function.Function;
 final class HudText {
     private static final Map<String, String[]> WORDS = Map.ofEntries(
             word("record", "Hlas", "Hlas", "Voice"), word("stop", "Stop", "Stop", "Stop"),
+            word("hold_requested", "držanie vyžiadané; uvoľni na spracovanie", "držení vyžádáno; uvolni pro zpracování", "hold requested; release to process"),
+            word("release_requested", "ukončenie záznamu vyžiadané", "ukončení záznamu vyžádáno", "capture finish requested"),
+            word("recording", "prijímanie audia", "přijímání audia", "receiving audio"),
+            word("finishing", "ukončovanie záznamu", "ukončování záznamu", "finishing capture"),
             word("requested", "vyžiadané", "vyžádáno", "requested"),
             word("not_sent", "neodoslané", "neodesláno", "not sent"),
             word("pending", "čaká na výsledok", "čeká na výsledek", "result pending"),

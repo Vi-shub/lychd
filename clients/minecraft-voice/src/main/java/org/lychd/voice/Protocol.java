@@ -32,6 +32,18 @@ final class Protocol {
             return (base + "}").getBytes(StandardCharsets.US_ASCII);
         }
     }
+    record Release(Gesture original, long releasedAt, long releaseBefore) {
+        byte[] bytes() {
+            String base = new String(original.bytes(), StandardCharsets.US_ASCII);
+            return (base.substring(0, base.length() - 1) + ",\"released_at_ms\":" + releasedAt
+                    + ",\"release_before_ms\":" + releaseBefore + "}").getBytes(StandardCharsets.US_ASCII);
+        }
+    }
+    static Release release(Gesture original, long now) {
+        if (!original.operation().equals("record") || now < original.createdAt() || now >= original.expiresAt())
+            throw Json.invalid();
+        return new Release(original, now, Math.min(Math.addExact(now, 3000), original.expiresAt()));
+    }
     static Gesture gesture(String operation, State state, long now, long epoch, String id) {
         return new Gesture(operation, id, state.sessionId, state.contextId, state.generation,
                 now, Math.addExact(now, 3000), Math.addExact(now, state.instructionTimeout), epoch);
@@ -45,7 +57,7 @@ final class Protocol {
         if (data.get("voice") != null) {
             Map<String, Object> voice = map(data.get("voice")); keys(voice, "request_id", "phase");
             voiceId = uuid(voice, "request_id");
-            phase = choice(voice, "phase", false, "waiting_audio", "recording_pending", "reading_audio", "transcribing");
+            phase = choice(voice, "phase", false, "waiting_audio", "recording_pending", "recording", "finishing", "reading_audio", "transcribing");
         }
         return new State(uuid(data, "session_id"), hex(data, "context_id"), integer(data, "generation", 0, Integer.MAX_VALUE),
                 integer(data, "session_expires_at_ms", 1, Long.MAX_VALUE), integer(data, "instruction_timeout_ms", 1000, 60000),
@@ -67,7 +79,7 @@ final class Protocol {
         String stopId = data.get("server_stop_id") == null ? null : uuid(data, "server_stop_id");
         return new Operation(uuid(data, "request_id"), choice(data, "operation", false, "record", "stop"),
                 choice(data, "status", false, "pending", "known", "refused", "unknown"),
-                choice(data, "phase", true, "waiting_audio", "recording_pending", "reading_audio", "transcribing", "queued"),
+                choice(data, "phase", true, "waiting_audio", "recording_pending", "recording", "finishing", "reading_audio", "transcribing", "queued"),
                 choice(data, "game_kind", true, "applied", "refused", "cancelled", "expired", "unknown", "no_action", "clarification"),
                 language, feedback, choice(data, "native_evidence_status", true, "pending", "recorded", "failed", "not_requested"),
                 choice(data, "reply_status", true, "not_attempted", "generated", "failed", "cancelled_server_work_unknown"),

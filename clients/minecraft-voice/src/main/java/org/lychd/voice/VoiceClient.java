@@ -20,7 +20,7 @@ public final class VoiceClient implements ClientModInitializer {
     private VoiceController controller;
     private VoiceWorkers workers;
     private Profile profile;
-    private KeyMapping record, stop;
+    private KeyMapping record, talk, stop;
 
     @Override public void onInitializeClient() {
         Minecraft client = Minecraft.getInstance();
@@ -32,10 +32,11 @@ public final class VoiceClient implements ClientModInitializer {
         if (profile == null) return;
         KeyMapping.Category category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("lychd_voice", "controls"));
         record = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.lychd_voice.record", InputConstants.UNKNOWN.getValue(), category));
+        talk = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.lychd_voice.talk", InputConstants.UNKNOWN.getValue(), category));
         stop = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.lychd_voice.stop", InputConstants.UNKNOWN.getValue(), category));
         LoopbackTransport transport = new LoopbackTransport(profile);
         workers = new VoiceWorkers(transport);
-        controller = new VoiceController(transport, workers.ordinary(), workers.stop());
+        controller = new VoiceController(transport, workers.ordinary(), workers.finish(), workers.stop());
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);
         HudElementRegistry.attachElementAfter(VanillaHudElements.OVERLAY_MESSAGE,
                 Identifier.fromNamespaceAndPath("lychd_voice", "status"), this::renderHud);
@@ -50,12 +51,15 @@ public final class VoiceClient implements ClientModInitializer {
                 && profile.serverAddress.equals(client.getCurrentServer().ip);
         boolean menuFree = client.gui.screen() == null && client.gui.overlay() == null;
         InputConstants.Key recordKey = KeyMappingHelper.getBoundKeyOf(record);
+        InputConstants.Key talkKey = KeyMappingHelper.getBoundKeyOf(talk);
         InputConstants.Key stopKey = KeyMappingHelper.getBoundKeyOf(stop);
         boolean recordDown = physicalDown(record, recordKey, menuFree);
+        boolean holdDown = physicalDown(talk, talkKey, menuFree);
         boolean stopDown = physicalDown(stop, stopKey, menuFree);
         boolean menuStopSafe = stopKey.getType() == InputConstants.Type.KEYBOARD && nonTextKey(stopKey.getValue());
         controller.tick(new EdgeGuard.Input(client.level, matched, client.isWindowActive(), menuFree,
-                client.isPaused(), recordDown, stopDown, menuStopSafe, !record.isUnbound() && record.same(stop)));
+                client.isPaused(), recordDown, holdDown, stopDown, menuStopSafe,
+                !stop.isUnbound() && record.same(stop), !stop.isUnbound() && talk.same(stop)));
     }
 
     private void renderHud(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {

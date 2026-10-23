@@ -19,14 +19,30 @@ class VoiceControllerTest {
     static final class Transport implements ControlTransport {
         final List<Sent> sent = new ArrayList<>();
         String context = "a".repeat(64);
-        boolean loseRecord;
+        boolean loseRecord, loseHold, loseRelease, refuseRelease;
+        String releaseResult = "pending";
+        int holdResponse = 202;
+        Runnable onHold;
         @Override public Response request(String method, String path, byte[] body) throws IOException {
             sent.add(new Sent(method, path, body));
             if (path.equals("/v1/state")) return new Response(200, ProtocolTest.bytes(ProtocolTest.state(context, 0)));
             if (method.equals("POST")) {
                 if (path.equals("/v1/record") && loseRecord) throw new IOException("synthetic lost acknowledgement");
+                if (path.equals("/v1/hold") && onHold != null) onHold.run();
+                if (path.equals("/v1/hold") && loseHold) throw new IOException("synthetic lost start acknowledgement");
+                if (path.equals("/v1/release") && loseRelease) throw new IOException("synthetic lost finish acknowledgement");
+                if (path.equals("/v1/release") && refuseRelease)
+                    return new Response(409, ProtocolTest.bytes("{\"protocol\":1,\"status\":\"refused\"}"));
                 Map<String, Object> data = Json.object(body, 2048);
-                return new Response(202, ProtocolTest.bytes(ProtocolTest.operation((String) data.get("request_id"), path.substring(4), "pending")));
+                String kind = path.equals("/v1/hold") || path.equals("/v1/release") ? "record" : path.substring(4);
+                String view = ProtocolTest.operation((String) data.get("request_id"), kind,
+                        path.equals("/v1/release") ? releaseResult : "pending");
+                if (path.equals("/v1/release") && releaseResult.equals("known")) {
+                    view = view.replace("\"native_evidence_status\":null", "\"native_evidence_status\":\"not_requested\"")
+                            .replace("\"reply_status\":null", "\"reply_status\":\"not_attempted\"")
+                            .replace("\"playback\":null", "\"playback\":\"not_attempted\"");
+                }
+                return new Response(path.equals("/v1/hold") ? holdResponse : 202, ProtocolTest.bytes(view));
             }
             return new Response(200, ProtocolTest.bytes(ProtocolTest.operation(path.substring("/v1/operations/".length()), "record", "pending")));
         }
@@ -35,14 +51,17 @@ class VoiceControllerTest {
     }
     static final class Fixture {
         final AtomicLong now = new AtomicLong(1000);
-        final Lane ordinary = new Lane(), priority = new Lane();
+        final Lane ordinary = new Lane(), finish = new Lane(), priority = new Lane();
         final Transport transport = new Transport();
         final Object world = new Object();
         int sequence;
-        final VoiceController controller = new VoiceController(transport, ordinary, priority, now::get,
+        final VoiceController controller = new VoiceController(transport, ordinary, finish, priority, now::get,
                 () -> String.format("00000000-0000-4000-8000-%012d", ++sequence));
         void tick(boolean focused, boolean rec, boolean stop) {
-            controller.tick(new EdgeGuard.Input(world, true, focused, true, false, rec, stop, true, false));
+            controller.tick(new EdgeGuard.Input(world, true, focused, true, false, rec, false, stop, true, false, false));
+        }
+        void held(boolean hold) {
+            controller.tick(new EdgeGuard.Input(world, true, true, true, false, false, hold, false, true, false, false));
         }
         void prepare() { tick(true, false, false); ordinary.run(); tick(true, false, false); }
     }
@@ -152,5 +171,110 @@ class VoiceControllerTest {
         assertEquals(0, delayed.transport.posts("record"));
         assertEquals(id, delayed.controller.hud().requestId());
         assertEquals("not_sent", delayed.controller.hud().localStage());
+    }
+    @Test void heldReleaseBeforeWorkerDispatchCancelsWithoutEitherMutation() {
+        Fixture f = new Fixture(); f.prepare();
+        f.now.set(1100); f.held(true);
+        assertEquals("hold_requested", f.controller.hud().localStage());
+        f.now.set(1200); f.held(false);
+        f.ordinary.run();
+        assertEquals(0, f.transport.posts("hold")); assertEquals(0, f.transport.posts("release"));
+        assertTrue(f.finish.queue.isEmpty()); assertEquals("not_sent", f.controller.hud().localStage());
+    }
+    @Test void releaseBeforeStartAcknowledgementUsesIndependentLaneAndCannotRegressItsHud() {
+        Fixture f = new Fixture(); f.prepare();
+        f.now.set(1100); f.held(true); String id = f.controller.hud().requestId();
+        f.transport.onHold = () -> {
+            f.now.set(1200); f.held(false);
+            assertEquals("release_requested", f.controller.hud().localStage());
+            f.finish.run();
+        };
+        f.ordinary.run();
+        assertEquals(1, f.transport.posts("hold")); assertEquals(1, f.transport.posts("release"));
+        assertEquals("release_requested", f.controller.hud().localStage());
+        Sent start = f.transport.sent.stream().filter(item -> item.path.equals("/v1/hold")).findFirst().orElseThrow();
+        Sent end = f.transport.sent.stream().filter(item -> item.path.equals("/v1/release")).findFirst().orElseThrow();
+        Map<String, Object> original = Json.object(start.body, 2048), release = Json.object(end.body, 2048);
+        original.forEach((key, value) -> assertEquals(value, release.get(key), key));
+        assertEquals(id, release.get("request_id")); assertEquals(1200L, release.get("released_at_ms"));
+        assertEquals(4200L, release.get("release_before_ms"));
+        f.held(false); assertTrue(f.finish.queue.isEmpty());
+    }
+    @Test void finishRejectionLostResponseAndFullLaneContainWithoutRetrying() {
+        for (int failure = 0; failure < 3; failure++) {
+            Fixture f = new Fixture(); f.prepare();
+            f.now.set(1100); f.held(true); f.ordinary.run();
+            f.transport.loseRelease = failure == 0; f.transport.refuseRelease = failure == 1;
+            if (failure == 2) { f.finish.offer(() -> { }); f.finish.offer(() -> { }); }
+            f.now.set(1200); f.held(false);
+            if (failure < 2) f.finish.run();
+            assertEquals(1, f.priority.queue.size()); f.priority.run();
+            assertEquals(1, f.transport.posts("stop"));
+            for (int tick = 0; tick < 3; tick++) f.held(false);
+            assertEquals(failure < 2 ? 1 : 0, f.transport.posts("release"));
+        }
+    }
+    @Test void everyHeldBoundaryCancelsQueuedFinishAndRequestsOneStop() {
+        for (int boundary = 0; boundary < 7; boundary++) {
+            Fixture f = new Fixture(); f.prepare();
+            f.now.set(1100); f.held(true); f.ordinary.run();
+            f.now.set(1200); f.held(false); // Finish has its original physical timestamp before boundary.
+            f.now.set(1250);
+            f.controller.tick(new EdgeGuard.Input(boundary == 0 ? new Object() : f.world,
+                    boundary != 1, boundary != 2, boundary != 3, boundary == 4,
+                    false, false, boundary == 5, true, false, false));
+            if (boundary == 6) {
+                f.transport.context = "b".repeat(64);
+                f.now.set(2000); f.held(false); f.ordinary.run(); f.held(false);
+            }
+            f.finish.run();
+            assertEquals(0, f.transport.posts("release"), "boundary " + boundary);
+            assertEquals(1, f.priority.queue.size(), "boundary " + boundary); f.priority.run();
+            assertEquals(1, f.transport.posts("stop"));
+        }
+    }
+    @Test void delayedFinishNeverRenewsReleaseDeadlineAndTyped200StartIsAccepted() {
+        Fixture f = new Fixture(); f.prepare(); f.transport.holdResponse = 200;
+        f.now.set(1100); f.held(true); f.ordinary.run();
+        assertEquals("hold_requested", f.controller.hud().localStage());
+        f.now.set(1200); f.held(false);
+        f.now.set(4200); f.finish.run();
+        assertEquals(0, f.transport.posts("release")); assertEquals(1, f.priority.queue.size());
+        f.priority.run(); assertEquals(1, f.transport.posts("stop"));
+    }
+    @Test void lostStartAcknowledgementStillFinishesOnlyTheOriginalGesture() {
+        Fixture f = new Fixture(); f.prepare(); f.transport.loseHold = true;
+        f.now.set(1100); f.held(true); String id = f.controller.hud().requestId(); f.ordinary.run();
+        assertEquals("unknown", f.controller.hud().localStage());
+        f.now.set(1200); f.held(false); f.finish.run();
+        assertEquals(1, f.transport.posts("hold")); assertEquals(1, f.transport.posts("release"));
+        Sent end = f.transport.sent.stream().filter(item -> item.path.equals("/v1/release")).findFirst().orElseThrow();
+        assertEquals(id, Json.object(end.body, 2048).get("request_id"));
+    }
+    @Test void typedUnknownOrRefusedFinishAlsoUsesReservedContainment() {
+        for (String status : new String[] {"unknown", "refused"}) {
+            Fixture f = new Fixture(); f.prepare(); f.transport.releaseResult = status;
+            f.now.set(1100); f.held(true); f.ordinary.run();
+            f.now.set(1200); f.held(false); f.finish.run();
+            assertEquals(1, f.priority.queue.size()); f.priority.run();
+            assertEquals(1, f.transport.posts("stop")); assertEquals(1, f.transport.posts("release"));
+        }
+    }
+    @Test void acceptedIndependentFinishSurvivesLateFailedStartExchange() {
+        for (String status : new String[] {"pending", "known"}) {
+            Fixture f = new Fixture(); f.prepare(); f.transport.loseHold = true;
+            f.transport.releaseResult = status;
+            VoiceController.Hud[] finishView = new VoiceController.Hud[1];
+            f.now.set(1100); f.held(true);
+            f.transport.onHold = () -> {
+                f.now.set(1200); f.held(false); f.finish.run();
+                finishView[0] = f.controller.hud();
+                assertEquals(status, finishView[0].result().status());
+            };
+            f.ordinary.run();
+            assertEquals(finishView[0], f.controller.hud(), status);
+            assertEquals(1, f.transport.posts("hold")); assertEquals(1, f.transport.posts("release"));
+            assertTrue(f.priority.queue.isEmpty());
+        }
     }
 }

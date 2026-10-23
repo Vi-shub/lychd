@@ -79,4 +79,29 @@ class ProtocolTest {
         assertTrue(HudText.render(hud, "cs_cz").contains("hra: provedeno"));
         assertFalse(en.contains("heard")); assertFalse(en.contains("microphone active"));
     }
+    @Test void releaseRetainsEveryOriginalFieldAndFreezesItsOwnForwardingDeadline() {
+        Protocol.State view = Protocol.state(bytes(state("b".repeat(64), 7)));
+        Protocol.Gesture original = Protocol.gesture("record", view, 1234, 9, REQUEST);
+        Protocol.Release release = Protocol.release(original, 5234);
+        Map<String, Object> start = Json.object(original.bytes(), 2048);
+        Map<String, Object> finish = Json.object(release.bytes(), 2048);
+        start.forEach((key, value) -> assertEquals(value, finish.get(key), key));
+        assertEquals(start.size() + 2, finish.size());
+        assertEquals(5234L, finish.get("released_at_ms"));
+        assertEquals(8234L, finish.get("release_before_ms"));
+        assertArrayEquals(release.bytes(), release.bytes());
+        assertEquals(11234, Protocol.release(original, 11000).releaseBefore());
+        assertThrows(IllegalArgumentException.class, () -> Protocol.release(original, 11234));
+        assertThrows(IllegalArgumentException.class, () -> Protocol.release(original, 1000));
+        for (String phase : new String[] {"recording", "finishing"}) {
+            assertEquals(phase, Protocol.operation(bytes(operation(REQUEST, "record", "pending")
+                    .replace("\"phase\":null", "\"phase\":\"" + phase + "\""))).phase());
+        }
+        for (String locale : new String[] {"en_us", "sk_sk", "cs_cz"}) {
+            assertFalse(HudText.render(new VoiceController.Hud(REQUEST, "record", "hold_requested", "recording", null), locale)
+                    .contains("unknown"));
+            assertFalse(HudText.render(new VoiceController.Hud(REQUEST, "record", "release_requested", "finishing", null), locale)
+                    .contains("unknown"));
+        }
+    }
 }

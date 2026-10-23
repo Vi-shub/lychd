@@ -126,6 +126,15 @@ class RecordGesture:
     request_id: str
     generation: int
     expires_at_ms: int
+    released: asyncio.Event | None = field(default=None, repr=False, compare=False)
+    hold_seconds: int | None = None
+
+
+@dataclass
+class _HeldRecord:
+    envelope: dict[str, Any]
+    released: asyncio.Event
+    release_digest: str | None = None
 
 
 @dataclass
@@ -166,14 +175,18 @@ class CompanionControl:
         record: Callable[[RecordGesture, ControlContext], asyncio.Task[None]],
         stop: Callable[[], asyncio.Task[CompanionResult]],
         max_attempts: int = MAX_CONTROL_ATTEMPTS,
+        hold_seconds: int | None = None,
         clock: Callable[[], float] = time.time,
     ) -> None:
         """Bind one finite console and its existing capture/stop ownership callbacks."""
         self.profile = ControlProfile(**asdict(profile))
         if type(max_attempts) is not int or not 1 <= max_attempts <= MAX_CONTROL_ATTEMPTS:
             raise CompanionControlError
+        if hold_seconds is not None and (type(hold_seconds) is not int or not 1 <= hold_seconds <= MAX_CAPTURE_SECONDS):
+            raise CompanionControlError
         self.expires_at_ms, self.context, self.record, self.stop = expires_at_ms, context, record, stop
         self.max_attempts, self.clock = max_attempts, clock
+        self.hold_seconds = hold_seconds
         self.session_id = str(uuid4())
         self._profile_digest = sha256(json.dumps(asdict(self.profile), sort_keys=True).encode()).hexdigest()
         self._server: asyncio.Server | None = None
@@ -181,6 +194,7 @@ class CompanionControl:
         self._writers: set[asyncio.StreamWriter] = set()
         self._settlements: set[asyncio.Task[CompanionResult]] = set()
         self._operations: dict[str, _Operation] = {}
+        self._holds: dict[str, _HeldRecord] = {}
         self._record_count = self._stop_count = 0
         self._last_record: str | None = None
         self._last_stop: str | None = None
@@ -334,17 +348,23 @@ class CompanionControl:
             identity = canonical_uuid(path.removeprefix("/v1/operations/"))
             operation = self.operation(identity)
             return (404, {"protocol": 1, "status": "not_found"}) if operation is None else (200, operation)
-        if method != "POST" or path not in {"/v1/record", "/v1/stop"}:
+        if method != "POST" or path not in {"/v1/record", "/v1/stop", "/v1/hold", "/v1/release"}:
             raise CompanionControlError
+        if path in {"/v1/hold", "/v1/release"} and self.hold_seconds is None:
+            raise CompanionControlError(409)
+        if path == "/v1/release":
+            return self._release(raw)
         return self._mutate(path, raw, fence)
 
     @staticmethod
     def _envelope(path: str, raw: bytes) -> dict[str, Any]:
         keys = {"protocol", "session_id", "request_id", "created_at_ms", "admit_before_ms"}
         strings = {"session_id", "request_id"}
-        if path == "/v1/record":
+        if path in {"/v1/record", "/v1/hold", "/v1/release"}:
             keys |= {"context_id", "generation", "expires_at_ms"}
             strings.add("context_id")
+        if path == "/v1/release":
+            keys |= {"released_at_ms", "release_before_ms"}
         body = _object(raw, keys, MAX_CONTROL_BODY)
         if any(type(body[key]) is not str for key in strings):
             raise CompanionControlError
@@ -386,10 +406,68 @@ class CompanionControl:
             or now >= body["expires_at_ms"]
         ):
             raise CompanionControlError(409)
-        return self._admit_record(identity, digest, body["expires_at_ms"], fence, current)
+        return self._admit_record(
+            identity,
+            digest,
+            body["expires_at_ms"],
+            fence,
+            current,
+            held_body=body if path == "/v1/hold" else None,
+        )
+
+    def _release(self, raw: bytes) -> tuple[int, dict[str, Any]]:
+        """Finish only the original hold; an early release permanently fences its later start."""
+        body = self._envelope("/v1/release", raw)
+        if body["protocol"] != 1 or body["session_id"] != self.session_id:
+            raise CompanionControlError(409)
+        identity = body["request_id"]
+        digest = sha256(b"/v1/release\x00" + raw).hexdigest()
+        held, previous = self._holds.get(identity), self._operations.get(identity)
+        if held is not None and held.release_digest is not None:
+            if digest != held.release_digest:
+                raise CompanionControlError(409)
+            return 200, deepcopy(self._operations[identity].view)
+        if held is None and previous is not None:
+            if previous.digest == digest:
+                return 200, deepcopy(previous.view)
+            raise CompanionControlError(409)
+        now = int(self.clock() * 1000)
+        if (
+            body["release_before_ms"] != min(body["released_at_ms"] + GESTURE_ADMISSION_MS, body["expires_at_ms"])
+            or body["released_at_ms"] < body["created_at_ms"]
+            or body["released_at_ms"] > now + MAX_FUTURE_SKEW_MS
+            or now >= body["release_before_ms"]
+            or now >= body["expires_at_ms"]
+            or body["released_at_ms"] >= body["expires_at_ms"]
+            or body["admit_before_ms"] != body["created_at_ms"] + GESTURE_ADMISSION_MS
+            or body["expires_at_ms"] > self.expires_at_ms
+        ):
+            raise CompanionControlError(408)
+        original = {key: value for key, value in body.items() if key not in {"released_at_ms", "release_before_ms"}}
+        if held is None:
+            if self._record_count >= self.max_attempts:
+                raise CompanionControlError(429)
+            # This consumes a finite identity slot, not a new capture or native Run.
+            self._record_count += 1
+            tombstone = _operation(identity, "record", digest)
+            tombstone.view["status"] = "refused"
+            self._operations[identity], self._last_record = tombstone, identity
+            return 200, deepcopy(tombstone.view)
+        if original != held.envelope or body["generation"] != self.context().generation:
+            raise CompanionControlError(409)
+        held.release_digest = digest
+        held.released.set()
+        return 202, deepcopy(self._operations[identity].view)
 
     def _admit_record(
-        self, identity: str, digest: str, expiry: int, fence: ControlContext, current: ControlContext
+        self,
+        identity: str,
+        digest: str,
+        expiry: int,
+        fence: ControlContext,
+        current: ControlContext,
+        *,
+        held_body: dict[str, Any] | None = None,
     ) -> tuple[int, dict[str, Any]]:
         if self._sealed or self._record_count >= self.max_attempts:
             raise CompanionControlError(429)
@@ -401,7 +479,15 @@ class CompanionControl:
             operation.view["status"] = "refused"
             return 409, deepcopy(operation.view)
         try:
-            task = self.record(RecordGesture(identity, fence.generation, expiry), fence)
+            released = None if held_body is None else asyncio.Event()
+            if held_body is not None and released is not None:
+                self._holds[identity] = _HeldRecord(dict(held_body), released)
+            task = self.record(
+                RecordGesture(
+                    identity, fence.generation, expiry, released, self.hold_seconds if released is not None else None
+                ),
+                fence,
+            )
         except (ValueError, RuntimeError):
             operation.view["status"] = "refused"
             return 409, deepcopy(operation.view)
@@ -472,6 +558,8 @@ class CompanionControl:
         elif kind == "voice_stage" and event.get("phase") in {
             "waiting_audio",
             "recording_pending",
+            "recording",
+            "finishing",
             "reading_audio",
             "transcribing",
         }:

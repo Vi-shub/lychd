@@ -6,13 +6,13 @@ import java.util.UUID;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
-/** Small synchronized client actor. Tick owns physical input; two bounded lanes own all network IO. */
+/** Small synchronized client actor. Tick owns physical input; three bounded lanes own all network IO. */
 final class VoiceController {
     interface Lane { boolean offer(Runnable work); }
     record Hud(String requestId, String operation, String localStage, String phase, Protocol.Operation result) { }
     private static final byte[] EMPTY = new byte[0];
     private final ControlTransport transport;
-    private final Lane ordinaryLane, stopLane;
+    private final Lane ordinaryLane, finishLane, stopLane;
     private final LongSupplier clock;
     private final Supplier<String> ids;
     private final EdgeGuard edges = new EdgeGuard();
@@ -27,20 +27,23 @@ final class VoiceController {
     private static final class Work {
         final Protocol.Gesture gesture;
         final long pollUntil;
+        final boolean held;
+        Protocol.Release release;
+        boolean releaseDispatched, releaseInFlight, releaseSuppressed, releaseAcknowledged;
         Protocol.Operation observation;
         boolean dispatched, active = true, uncertain, stopRequested;
-        Work(Protocol.Gesture gesture, long sessionExpiry) {
-            this.gesture = gesture;
+        Work(Protocol.Gesture gesture, long sessionExpiry, boolean held) {
+            this.gesture = gesture; this.held = held;
             pollUntil = gesture.operation().equals("stop") ? gesture.createdAt() + 60000
                     : Math.min(sessionExpiry, gesture.expiresAt() + 60000);
         }
     }
 
-    VoiceController(ControlTransport transport, Lane ordinaryLane, Lane stopLane) {
-        this(transport, ordinaryLane, stopLane, System::currentTimeMillis, () -> UUID.randomUUID().toString());
+    VoiceController(ControlTransport transport, Lane ordinaryLane, Lane finishLane, Lane stopLane) {
+        this(transport, ordinaryLane, finishLane, stopLane, System::currentTimeMillis, () -> UUID.randomUUID().toString());
     }
-    VoiceController(ControlTransport transport, Lane ordinaryLane, Lane stopLane, LongSupplier clock, Supplier<String> ids) {
-        this.transport = transport; this.ordinaryLane = ordinaryLane; this.stopLane = stopLane;
+    VoiceController(ControlTransport transport, Lane ordinaryLane, Lane finishLane, Lane stopLane, LongSupplier clock, Supplier<String> ids) {
+        this.transport = transport; this.ordinaryLane = ordinaryLane; this.finishLane = finishLane; this.stopLane = stopLane;
         this.clock = clock; this.ids = ids;
     }
 
@@ -50,9 +53,13 @@ final class VoiceController {
         EdgeGuard.Decision decision = edges.update(next, contextVersion);
         if (decision.boundary()) hud = null;
         if (decision.boundary() && record != null && !record.dispatched && record.active) cancelUnsent(record);
-        if (decision.lostWorldOrFocus() && needsStop(record) && !record.stopRequested) requestStop(now);
+        if (decision.boundary() && record != null && record.held) record.releaseSuppressed = true;
+        if ((decision.lostWorldOrFocus() || decision.boundary() && record != null && record.held)
+                && needsStop(record) && !record.stopRequested) requestStop(now);
         if (decision.action() == EdgeGuard.Action.STOP) requestStop(now);
-        else if (decision.action() == EdgeGuard.Action.RECORD && recordEligible(now)) requestRecord(now);
+        else if (decision.action() == EdgeGuard.Action.RELEASE) requestRelease(now);
+        else if ((decision.action() == EdgeGuard.Action.RECORD || decision.action() == EdgeGuard.Action.HOLD)
+                && recordEligible(now)) requestRecord(now, decision.action() == EdgeGuard.Action.HOLD);
         retireTimedOut(record, now); retireTimedOut(stop, now);
         poll(now);
     }
@@ -67,22 +74,70 @@ final class VoiceController {
         return !retired && records < 128 && input != null && input.matched() && input.focused()
                 && input.menuFree() && !input.paused() && fresh(now) && recordLifetimeFits(now) && state.canRecord()
                 && !state.stopping() && !state.audioBlocked() && !active(record)
+                && (record == null || !record.releaseInFlight)
                 && (stop == null || stop.observation != null && stop.observation.status().equals("known")
                 && stateAt >= stop.gesture.createdAt() && state.lastStop() != null
                 && state.lastStop().requestId().equals(stop.gesture.requestId())
                 && state.lastStop().status().equals("known"));
     }
-    private void requestRecord(long now) {
-        Work work = new Work(Protocol.gesture("record", state, now, edges.epoch(), ids.get()), state.sessionExpiresAt());
+    private void requestRecord(long now, boolean held) {
+        Work work = new Work(Protocol.gesture("record", state, now, edges.epoch(), ids.get()), state.sessionExpiresAt(), held);
         record = work; records++;
-        hud = new Hud(work.gesture.requestId(), "record", "requested", null, null);
+        hud = new Hud(work.gesture.requestId(), "record", held ? "hold_requested" : "requested", null, null);
         if (!ordinaryLane.offer(() -> mutate(work))) cancelUnsent(work);
     }
+    private void requestRelease(long now) {
+        Work work = record;
+        if (work == null || !work.held || !work.active || work.release != null
+                || work.releaseSuppressed || work.stopRequested) return;
+        if (!work.dispatched) { cancelUnsent(work); return; }
+        try { work.release = Protocol.release(work.gesture, now); }
+        catch (IllegalArgumentException | ArithmeticException exception) { failRelease(work, now); return; }
+        local(work, "release_requested");
+        work.releaseInFlight = true;
+        if (!finishLane.offer(() -> finish(work))) {
+            work.releaseInFlight = false; failRelease(work, now);
+        }
+    }
+    private void failRelease(Work work, long now) {
+        work.releaseSuppressed = true; unknown(work);
+        if (!work.stopRequested) requestStop(now);
+    }
+    private void finish(Work work) {
+        synchronized (this) {
+            long now = clock.getAsLong();
+            if (work.releaseSuppressed || work.stopRequested || closed) { work.releaseInFlight = false; return; }
+            if (work.release == null || work.releaseDispatched || now < work.release.releasedAt()
+                    || now >= work.release.releaseBefore() || work.gesture.epoch() != edges.epoch()
+                    || input == null || !input.matched() || !input.focused() || !input.menuFree() || input.paused()
+                    || state == null || !state.sessionId().equals(work.gesture.sessionId())
+                    || !state.contextId().equals(work.gesture.contextId()) || state.generation() != work.gesture.generation()) {
+                work.releaseInFlight = false; failRelease(work, now); return;
+            }
+            work.releaseDispatched = true;
+        }
+        try {
+            ControlTransport.Response response = transport.request("POST", "/v1/release", work.release.bytes());
+            synchronized (this) {
+                if (response.status() == 200 || response.status() == 202) {
+                    Protocol.Operation observation = Protocol.operation(response.body());
+                    if (matches(work, observation) && !observation.status().equals("refused")
+                            && !observation.status().equals("unknown")) {
+                        work.releaseAcknowledged = true; accept(work, observation);
+                    }
+                    else failRelease(work, clock.getAsLong());
+                } else failRelease(work, clock.getAsLong());
+            }
+        } catch (IOException | RuntimeException exception) {
+            synchronized (this) { failRelease(work, clock.getAsLong()); }
+        } finally { synchronized (this) { work.releaseInFlight = false; } }
+    }
     private void requestStop(long now) {
+        if (record != null) record.releaseSuppressed = true;
         // Session expiry fences recording and context polling, never the reserved retirement stop.
         if (state == null || sessionLost || stopSealed || stops >= 64 || active(stop)) return;
         if (record != null && !record.dispatched && record.active) cancelUnsent(record);
-        Work work = new Work(Protocol.gesture("stop", state, now, edges.epoch(), ids.get()), state.sessionExpiresAt());
+        Work work = new Work(Protocol.gesture("stop", state, now, edges.epoch(), ids.get()), state.sessionExpiresAt(), false);
         stop = work; stops++;
         if (record != null) record.stopRequested = true;
         hud = new Hud(work.gesture.requestId(), "stop", "requested", null, null);
@@ -104,13 +159,17 @@ final class VoiceController {
             work.dispatched = true;
         }
         try {
-            ControlTransport.Response response = transport.request("POST", "/v1/" + work.gesture.operation(), work.gesture.bytes());
+            ControlTransport.Response response = transport.request("POST", work.held ? "/v1/hold" : "/v1/" + work.gesture.operation(), work.gesture.bytes());
             synchronized (this) {
-                if (response.status() == 202) accept(work, Protocol.operation(response.body()));
+                // The independent finish response supersedes every older start response or failure.
+                if (work.held && work.releaseAcknowledged) return;
+                if (response.status() == 200 || response.status() == 202) accept(work, Protocol.operation(response.body()));
                 else if (isRefusal(response)) { work.active = false; local(work, "refused"); }
                 else unknown(work);
             }
-        } catch (IOException | RuntimeException exception) { synchronized (this) { unknown(work); } }
+        } catch (IOException | RuntimeException exception) {
+            synchronized (this) { if (!work.held || !work.releaseAcknowledged) unknown(work); }
+        }
     }
     private boolean recordEligibleForDispatch(Work work, long now) {
         return !retired && fresh(now) && recordLifetimeFits(now)
@@ -134,9 +193,12 @@ final class VoiceController {
             hud = new Hud(work.gesture.requestId(), work.gesture.operation(), stage, null, work.observation);
         }
     }
+    private static boolean matches(Work work, Protocol.Operation observation) {
+        return observation.requestId().equals(work.gesture.requestId())
+                && observation.operation().equals(work.gesture.operation());
+    }
     private void accept(Work work, Protocol.Operation observation) {
-        if (!observation.requestId().equals(work.gesture.requestId())
-                || !observation.operation().equals(work.gesture.operation())) { unknown(work); return; }
+        if (!matches(work, observation)) { unknown(work); return; }
         if (work.observation != null && work.observation.terminal() && !observation.terminal()) return;
         work.observation = observation; work.uncertain = false;
         work.active = !(observation.operation().equals("stop") ? observation.terminal() : observation.settled());
@@ -146,8 +208,16 @@ final class VoiceController {
         }
         if (!closed && work.gesture.epoch() == edges.epoch() && hud != null
                 && hud.requestId().equals(work.gesture.requestId())) {
-            hud = new Hud(work.gesture.requestId(), work.gesture.operation(), observation.status(), observation.phase(), observation);
+            project(work, observation.status(), observation.phase(), observation);
         }
+    }
+    private void project(Work work, String stage, String phase, Protocol.Operation observation) {
+        if (work.held && stage.equals("pending")) {
+            stage = work.release != null ? "release_requested" : "hold_requested";
+            if (work.release != null && ("recording".equals(phase) || "recording_pending".equals(phase)
+                    || "waiting_audio".equals(phase))) phase = null;
+        }
+        hud = new Hud(work.gesture.requestId(), work.gesture.operation(), stage, phase, observation);
     }
     private void retireTimedOut(Work work, long now) {
         if (active(work) && now >= work.pollUntil) {
@@ -162,7 +232,7 @@ final class VoiceController {
         if (!(input.matched() && input.focused()) && !active(record) && !active(stop)) return;
         Work lookup = active(stop) && stop.dispatched ? stop : active(record) && record.dispatched ? record : null;
         if ((sessionExpired || retired) && lookup == null) return;
-        // Alternate state and own-operation reads. One poll in flight across both lanes, at most 2 Hz.
+        // Alternate state and own-operation reads. One poll in flight across the query lanes, at most 2 Hz.
         boolean operationRead = lookup != null && (sessionExpired || retired || state == null || now - stateAt < 1000);
         Work selected = operationRead ? lookup : null;
         String path = selected == null ? "/v1/state" : "/v1/operations/" + selected.gesture.requestId();
@@ -208,7 +278,7 @@ final class VoiceController {
         if (queryEpoch == edges.epoch() && record != null && record.gesture.epoch() == edges.epoch()
                 && next.voiceRequestId() != null && next.voiceRequestId().equals(record.gesture.requestId())
                 && hud != null && hud.requestId().equals(record.gesture.requestId()) && record.observation == null) {
-            hud = new Hud(record.gesture.requestId(), "record", "pending", next.voicePhase(), null);
+            project(record, "pending", next.voicePhase(), null);
         }
     }
 

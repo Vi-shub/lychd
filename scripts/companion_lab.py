@@ -53,7 +53,12 @@ from lychd.system.services.companion_control import (
 )
 from lychd.system.services.companion_session import CompanionSession, LocalCompanionRunner, SessionResult
 from lychd.system.services.speech_probe import SpeechProbe
-from lychd.system.services.voice_capture import VoiceCaptureError, VoiceCaptureUnsettled, capture_utterance
+from lychd.system.services.voice_capture import (
+    VoiceCaptureError,
+    VoiceCaptureUnsettled,
+    capture_held_utterance,
+    capture_utterance,
+)
 from lychd.system.services.voice_playback import VoicePlaybackError, VoicePlaybackUnsettled, play_reply
 from scripts.voice_probe import PrivateWorkspace
 
@@ -226,7 +231,9 @@ def _measure(timing: _VoiceTiming | None, name: str) -> Generator[None]:
             timing.end(name, status)
 
 
-type VoicePhase = Literal["waiting_audio", "recording_pending", "reading_audio", "transcribing"]
+type VoicePhase = Literal[
+    "waiting_audio", "recording_pending", "recording", "finishing", "reading_audio", "transcribing"
+]
 type ReplyPhase = Literal["waiting_audio", "synthesizing", "generated", "player_pending"]
 
 
@@ -449,10 +456,11 @@ class CompanionConsole:
             raise ValueError(msg)
         return self._begin_voice(
             None,
-            seconds=control.profile.record_seconds,
+            seconds=control.profile.record_seconds if gesture.released is None else gesture.hold_seconds,
             context=_CapturedInstruction(
                 gesture.request_id, gesture.generation, context.target_id, gesture.expires_at_ms
             ),
+            released=gesture.released,
         )
 
     def status(self) -> dict[str, Any]:
@@ -787,7 +795,14 @@ class CompanionConsole:
     def begin_voice(self, path: Path | None = None, *, seconds: int = 3) -> asyncio.Task[None]:
         return self._begin_voice(path, seconds=seconds, context=self._capture_instruction())
 
-    def _begin_voice(self, path: Path | None, *, seconds: int, context: _CapturedInstruction) -> asyncio.Task[None]:
+    def _begin_voice(
+        self,
+        path: Path | None,
+        *,
+        seconds: int | None,
+        context: _CapturedInstruction,
+        released: asyncio.Event | None = None,
+    ) -> asyncio.Task[None]:
         if type(seconds) is not int or not 1 <= seconds <= 15:  # noqa: PLR2004 - recorder contract
             msg = "Capture requires 1-15 whole seconds."
             raise ValueError(msg)
@@ -801,7 +816,9 @@ class CompanionConsole:
             raise ValueError(msg)
         timing = _VoiceTiming(context, supplied=path is not None, files=self.files, present=self.present)
         self._voice_stage(context, "waiting_audio", supplied=path is not None)
-        self.voice_task = asyncio.create_task(self._voice(path, seconds, context, timing), name="companion-utterance")
+        self.voice_task = asyncio.create_task(
+            self._voice(path, seconds, context, timing, released=released), name="companion-utterance"
+        )
         self.voice_task.add_done_callback(self._voice_settled)
         self.voice_task.add_done_callback(lambda _: timing.retire("voice"))
         return self.voice_task
@@ -810,11 +827,25 @@ class CompanionConsole:
         if task is self.voice_task:
             self._voice_operation = None
 
-    async def _capture(self, seconds: int) -> bytes:
+    async def _capture(
+        self, seconds: int, *, released: asyncio.Event | None = None, context: _CapturedInstruction | None = None
+    ) -> bytes:
         """Reopen only settled capture failures; unknown ownership keeps audio latched."""
-        self.present({"capture": "active", "seconds": seconds})
+        if released is None:
+            self.present({"capture": "active", "seconds": seconds})
         try:
-            content = await capture_utterance(seconds=seconds)
+            if released is None:
+                content = await capture_utterance(seconds=seconds)
+            else:
+                if context is None or released.is_set():
+                    msg = "Released hold cannot open a recorder later."
+                    raise VoiceCaptureError(msg)
+                content = await capture_held_utterance(
+                    released=released,
+                    max_seconds=seconds,
+                    on_started=lambda: self._voice_stage(context, "recording", supplied=False),
+                    on_finishing=lambda: self._voice_stage(context, "finishing", supplied=False),
+                )
         except asyncio.CancelledError:
             # The helper joins owned retirement before propagating cancellation.
             self.present({"capture": "off"})
@@ -831,7 +862,13 @@ class CompanionConsole:
         return content
 
     async def _voice(  # noqa: PLR0915 - one occurrence keeps host stages, cancellation and final evidence together
-        self, path: Path | None, seconds: int, context: _CapturedInstruction, timing: _VoiceTiming
+        self,
+        path: Path | None,
+        seconds: int,
+        context: _CapturedInstruction,
+        timing: _VoiceTiming,
+        *,
+        released: asyncio.Event | None = None,
     ) -> None:
         """Retain failed host boundaries without rewriting native or stop dispositions."""
         speech = self.speech
@@ -864,12 +901,25 @@ class CompanionConsole:
                     failure = "capture_failed"
                     self._voice_stage(context, "recording_pending", supplied=False)
                     with _measure(timing, "capture"):
-                        content = await self._capture(seconds)
+                        content = (
+                            await self._capture(seconds)
+                            if released is None
+                            else await self._capture(seconds, released=released, context=context)
+                        )
                 else:
                     failure = "audio_read_failed"
                     self._voice_stage(context, "reading_audio", supplied=True)
                     with _measure(timing, "supplied_audio_read"):
                         content = self.files.read(path, MAX_INPUT_BYTES)
+            if released is not None and (
+                not released.is_set()
+                or self._stopping
+                or self._audio_blocked
+                or generation != self.session.capture_generation()
+                or context.expires_at_ms <= int(time.time() * 1000)
+            ):
+                msg = "Held instruction expired or stopped before transcription."
+                raise VoiceCaptureError(msg)
             failure = "source_retention_failed"
             with _measure(timing, "source_retention"):
                 artifact = self._retain_voice_artifact(identity, "source", content)
@@ -1158,6 +1208,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--speech-profile", type=Path)
     result.add_argument("--intent-profile", type=Path)
     result.add_argument("--control-profile", type=Path)
+    result.add_argument("--hold-seconds", type=int, choices=range(1, 16), metavar="1-15")
     result.add_argument("--instruction-timeout", type=float, default=30)
     result.add_argument("--language", choices=("sk", "cs", "en"))
     result.add_argument("--reply-language", choices=("sk", "cs", "en"))
@@ -1222,6 +1273,9 @@ async def run(args: argparse.Namespace) -> None:
         if args.control_profile is None
         else load_control_profile(files.read(args.control_profile, MAX_PROFILE_BYTES))
     )
+    if args.hold_seconds is not None and (control_profile is None or speech is None):
+        msg = "Held input requires explicit game controls and a local speech profile."
+        raise ValueError(msg)
     minimum, maximum = args.bounds[:3], args.bounds[3:]
     policy = CompanionPolicy(
         session_id=str(uuid4()),
@@ -1262,6 +1316,7 @@ async def run(args: argparse.Namespace) -> None:
             record=console.record_gesture,
             stop=console.begin_stop,
             max_attempts=min(args.max_actions, MAX_CONTROL_ATTEMPTS),
+            hold_seconds=args.hold_seconds,
         )
     loop = asyncio.get_running_loop()
     main = asyncio.current_task()

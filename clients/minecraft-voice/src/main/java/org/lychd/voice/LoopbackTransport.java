@@ -24,7 +24,7 @@ final class LoopbackTransport implements ControlTransport {
 
     @Override public Response request(String method, String path, byte[] body) throws IOException {
         if (closed || body.length > 2048 || !(method.equals("GET") || method.equals("POST"))
-                || !(path.equals("/v1/state") || path.equals("/v1/record") || path.equals("/v1/stop")
+                || !(path.equals("/v1/state") || path.equals("/v1/record") || path.equals("/v1/hold") || path.equals("/v1/release") || path.equals("/v1/stop")
                 || path.matches("/v1/operations/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"))) {
             throw failure();
         }

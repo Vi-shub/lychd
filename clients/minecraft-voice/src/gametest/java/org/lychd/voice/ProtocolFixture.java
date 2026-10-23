@@ -32,13 +32,16 @@ final class ProtocolFixture {
     private final long sessionExpiry = startedAt + 120000;
     private final Map<String, byte[]> operations = new LinkedHashMap<>();
     private final Map<Integer, String> recordIds = new LinkedHashMap<>();
+    private final Map<Integer, String> holdIds = new LinkedHashMap<>();
+    private final Map<String, Map<String, Object>> holdEnvelopes = new LinkedHashMap<>();
+    private final java.util.Set<String> releasedHolds = new java.util.HashSet<>();
     private final Map<Integer, String> stopIds = new LinkedHashMap<>();
     private final AtomicReference<String> failure = new AtomicReference<>();
     private String context = CONTEXT_ONE;
     private long generation = 1;
     private byte[] lastRecord, lastStop;
-    private String pendingRecord;
-    private int records, stops, stateReads;
+    private String pendingRecord, pendingPhase = "recording_pending";
+    private int records, stops, stateReads, holds, releases, heldStops;
     private boolean blockNext, pendingNext, closed;
     private volatile Gate gate;
 
@@ -97,6 +100,29 @@ final class ProtocolFixture {
                     synchronized (this) { response = operations.get(id); }
                     FixtureObservation.check(response != null, "lookup was not an owned operation");
                     send(exchange, 200, response);
+                } else if (post && path.equals("/v1/hold")) {
+                    byte[] response;
+                    synchronized (this) {
+                        Map<String, Object> body = Json.object(request, 2048);
+                        String id = validateGesture(body, true);
+                        FixtureObservation.check(operations.size() < 16 && !operations.containsKey(id)
+                                && pendingRecord == null, "unique finite held ingress");
+                        holds++; holdIds.put(holds, id); holdEnvelopes.put(id, Map.copyOf(body));
+                        response = ascii(raw(operation(id, "record", true)).replace("recording_pending", "recording"));
+                        operations.put(id, response); lastRecord = response;
+                        pendingRecord = id; pendingPhase = "recording";
+                    }
+                    send(exchange, 202, response);
+                } else if (post && path.equals("/v1/release")) {
+                    byte[] response;
+                    synchronized (this) {
+                        String id = validateRelease(Json.object(request, 2048));
+                        FixtureObservation.check(id.equals(pendingRecord) && releasedHolds.add(id), "one owned held release");
+                        releases++;
+                        response = operation(id, "record", false);
+                        operations.put(id, response); lastRecord = response; pendingRecord = null;
+                    }
+                    send(exchange, 202, response);
                 } else if (post && (path.equals("/v1/record") || path.equals("/v1/stop"))) {
                     boolean record = path.equals("/v1/record");
                     Gate held;
@@ -110,12 +136,18 @@ final class ProtocolFixture {
                             pendingNext = false;
                             response = operation(id, "record", pending);
                             lastRecord = response;
-                            pendingRecord = pending ? id : null;
+                            pendingRecord = pending ? id : null; pendingPhase = "recording_pending";
                             held = blockNext ? new Gate() : null;
                             blockNext = false;
                             if (held != null) { held.enteredAt = System.nanoTime(); gate = held; }
                         } else {
                             stops++; stopIds.put(stops, id);
+                            if (pendingRecord != null) {
+                                if (holdEnvelopes.containsKey(pendingRecord)) heldStops++;
+                                byte[] cancelled = ascii(raw(operation(pendingRecord, "record", false))
+                                        .replace("\"game_kind\":\"no_action\"", "\"game_kind\":\"cancelled\""));
+                                operations.put(pendingRecord, cancelled); lastRecord = cancelled; pendingRecord = null;
+                            }
                             response = operation(id, "stop", false);
                             lastStop = response;
                             held = null;
@@ -169,6 +201,22 @@ final class ProtocolFixture {
         return id;
     }
 
+    private String validateRelease(Map<String, Object> body) {
+        Protocol.keys(body, "protocol", "session_id", "request_id", "created_at_ms", "admit_before_ms",
+                "context_id", "generation", "expires_at_ms", "released_at_ms", "release_before_ms");
+        String id = Protocol.uuid(body, "request_id");
+        Map<String, Object> original = holdEnvelopes.get(id);
+        FixtureObservation.check(original != null, "release owns original hold");
+        original.forEach((key, value) -> FixtureObservation.check(value.equals(body.get(key)), "unchanged release envelope"));
+        long now = System.currentTimeMillis();
+        long expiry = (Long) original.get("expires_at_ms");
+        long released = Protocol.integer(body, "released_at_ms", (Long) original.get("created_at_ms"), now + 1000);
+        long before = Protocol.integer(body, "release_before_ms", 1, Long.MAX_VALUE);
+        FixtureObservation.check(before == Math.min(released + 3000, expiry) && now < before && now < expiry,
+                "original release forwarding deadline");
+        return id;
+    }
+
     private byte[] operation(String id, String kind, boolean pending) {
         String stop = kind.equals("stop") ? "\"" + UUID.randomUUID() + "\"" : "null";
         String response = "{\"request_id\":\"" + id + "\",\"operation\":\"" + kind
@@ -204,7 +252,7 @@ final class ProtocolFixture {
 
     private byte[] stateBytes() {
         String voice = pendingRecord == null ? "null"
-                : "{\"request_id\":\"" + pendingRecord + "\",\"phase\":\"recording_pending\"}";
+                : "{\"request_id\":\"" + pendingRecord + "\",\"phase\":\"" + pendingPhase + "\"}";
         byte[] bytes = ascii("{\"protocol\":1,\"session_id\":\"" + session + "\",\"context_id\":\"" + context
                 + "\",\"generation\":" + generation + ",\"session_expires_at_ms\":" + sessionExpiry
                 + ",\"instruction_timeout_ms\":" + INSTRUCTION_TIMEOUT
@@ -223,6 +271,11 @@ final class ProtocolFixture {
         exchange.getResponseBody().write(bytes);
     }
     synchronized int records() { return records; }
+    synchronized int holds() { return holds; }
+    synchronized int releases() { return releases; }
+    synchronized int heldStops() { return heldStops; }
+    synchronized String holdId(int index) { return holdIds.get(index); }
+    synchronized Protocol.Operation holdResult(int index) { return Protocol.operation(operations.get(holdIds.get(index))); }
     synchronized int stops() { return stops; }
     synchronized int stateReads() { return stateReads; }
     boolean healthy() { return failure.get() == null; }

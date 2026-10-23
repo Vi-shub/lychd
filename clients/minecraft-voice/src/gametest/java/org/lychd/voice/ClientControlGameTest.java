@@ -21,6 +21,7 @@ import net.minecraft.network.chat.FormattedText;
 /** Sequential actual-client qualification; Fabric input/focus is synthetic, not physical SDL evidence. */
 public final class ClientControlGameTest implements FabricClientGameTest {
     private static final int RECORD = InputConstants.KEY_F8;
+    private static final int TALK = InputConstants.KEY_NUMPADENTER;
     private static final int STOP = InputConstants.KEY_F9;
     private static final UUID EXPECTED_PLAYER = UUID.fromString("23b3ecc2-026f-3a15-a197-ac0e44cdc79f");
     private ProtocolFixture fixture;
@@ -40,9 +41,12 @@ public final class ClientControlGameTest implements FabricClientGameTest {
                 && profile.playerId.equals(EXPECTED_PLAYER.toString()), "exact offline synthetic identity");
         context.runOnClient(ignored -> {
             KeyMapping record = KeyMapping.get("key.lychd_voice.record");
+            KeyMapping talk = KeyMapping.get("key.lychd_voice.talk");
             KeyMapping stop = KeyMapping.get("key.lychd_voice.stop");
             FixtureObservation.check(record != null && stop != null && record.isUnbound() && stop.isUnbound(),
                     "actual production mappings start unbound");
+            FixtureObservation.check(talk != null && talk.isUnbound(), "actual third mapping starts unbound");
+            talk.setKey(InputConstants.Type.KEYBOARD.getOrCreate(TALK));
             record.setKey(InputConstants.Type.KEYBOARD.getOrCreate(RECORD));
             stop.setKey(InputConstants.Type.KEYBOARD.getOrCreate(STOP));
             KeyMapping.resetMapping();
@@ -190,21 +194,80 @@ public final class ClientControlGameTest implements FabricClientGameTest {
                 context.runOnClient(minecraft -> FixtureObservation.check(minecraft.level == null && minecraft.player == null,
                         "actual world retired"));
                 FixtureObservation.check(fixture.healthy(), "closed local protocol validation");
+                FixtureObservation.fixedScenariosPassed = true;
+                // Preserve the complete original five-record/four-stop chain before exercising held input.
+                TestDedicatedServerConnection heldConnection = server.connect();
+                try {
+                    context.waitFor(minecraft -> minecraft.level != null && minecraft.player != null
+                            && minecraft.getCurrentServer() != null && minecraft.isWindowActive()
+                            && minecraft.gui.screen() == null && minecraft.gui.overlay() == null, 400);
+                    heldScenarios();
+                } finally {
+                    input.releaseKey(TALK); heldConnection.close();
+                }
                 FixtureObservation.scenariosPassed = true;
             } finally {
                 ProtocolFixture.Gate gate = fixture.gate();
                 if (gate != null) gate.release();
                 input.releaseKey(RECORD);
                 input.releaseKey(STOP);
+                input.releaseKey(TALK);
                 if (!disconnected) connection.close();
             }
         }
         // Framework completion is separate from the later actual CLIENT_STOPPING receipt.
     }
 
+    private void heldScenarios() {
+        released(); eligible();
+        input.holdKey(TALK);
+        await(() -> fixture.holds() == 1, 4000, "Num Enter held start through third production mapping");
+        ownHeldHud(1, "hold_requested", "recording");
+        int stateReads = fixture.stateReads();
+        holdFor(1150);
+        await(() -> fixture.stateReads() > stateReads, 2000, "held Num Enter across state polling");
+        FixtureObservation.check(fixture.holds() == 1 && fixture.releases() == 0,
+                "holding Num Enter neither replays nor submits");
+        counts(5, 4);
+        input.releaseKey(TALK);
+        await(() -> fixture.releases() == 1, 4000, "physical Num Enter release finishes original hold");
+        await(() -> fixture.holdResult(1).settled() && FixtureObservation.state().lastRecord() != null
+                && FixtureObservation.state().lastRecord().requestId().equals(fixture.holdId(1))
+                && FixtureObservation.state().lastRecord().settled(), 4000, "released own hold settled through state");
+        ownHeldHud(1, "known", null);
+        context.takeScreenshot("lychd-held-num-enter");
+        released(); eligible();
+        input.holdKey(TALK);
+        await(() -> fixture.holds() == 2, 4000, "fresh second Num Enter hold");
+        context.setScreen(FixtureMenu::new);
+        await(() -> fixture.stops() == 5 && fixture.heldStops() == 1, 4000, "menu boundary independently cancels held capture");
+        FixtureObservation.check(fixture.releases() == 1, "menu entry did not submit a release");
+        context.setScreen(() -> null);
+        holdFor(700);
+        FixtureObservation.check(fixture.holds() == 2 && fixture.releases() == 1,
+                "held Num Enter after menu return does not replay or submit");
+        released(); stopAcknowledged(5);
+        FixtureObservation.check(fixture.records() == 5 && fixture.stops() == 5 && fixture.holds() == 2
+                && fixture.releases() == 1 && fixture.heldStops() == 1, "held scenarios retain original fixed counts");
+        FixtureObservation.heldScenariosPassed = true;
+    }
+    private void ownHeldHud(int index, String stage, String phase) {
+        int after = FixtureObservation.renderedPanels();
+        List<String> expected = context.computeOnClient(minecraft -> {
+            var hud = new VoiceController.Hud(fixture.holdId(index), "record", stage, phase, fixture.holdResult(index));
+            int width = Math.min(480, minecraft.getWindow().getGuiScaledWidth() - 16);
+            return HudText.paragraphs(hud, minecraft.options.languageCode).stream()
+                    .flatMap(text -> minecraft.font.splitIgnoringLanguage(Component.literal(text), width).stream())
+                    .map(FormattedText::getString).toList();
+        });
+        await(() -> FixtureObservation.renderedPanels() > after && FixtureObservation.sawPanel(expected), 4000,
+                "fresh passive correlated held status panel");
+        FixtureObservation.check(FixtureObservation.geometryHealthy(), "held status rows fit actual geometry");
+    }
     private void released() {
         input.releaseKey(RECORD);
         input.releaseKey(STOP);
+        input.releaseKey(TALK);
         context.waitTicks(3);
     }
     private void eligible() {

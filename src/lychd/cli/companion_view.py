@@ -35,6 +35,8 @@ _LABELS = {
     "reply": ("Hlasová odpoveď", "Hlasová odpověď", "Voice reply"),
     "waiting_audio": ("čaká na zvuk", "čeká na zvuk", "waiting for audio"),
     "recording_pending": ("záznam vyžiadaný", "záznam vyžádán", "recording requested"),
+    "recording": ("prijíma audio", "přijímá audio", "receiving audio"),
+    "finishing": ("ukončuje záznam", "ukončuje záznam", "finishing capture"),
     "reading_audio": ("číta dodaný zvuk", "čte dodaný zvuk", "reading supplied audio"),
     "transcribing": ("rozpoznáva", "rozpoznává", "recognizing"),
     "synthesizing": ("pripravuje hlas", "připravuje hlas", "preparing voice"),
@@ -155,7 +157,7 @@ _LABELS = {
         "Language unchanged; finish or stop the voice input and reply first.",
     ),
 }
-_VOICE_PHASES = ("waiting_audio", "recording_pending", "reading_audio", "transcribing")
+_VOICE_PHASES = ("waiting_audio", "recording_pending", "recording", "finishing", "reading_audio", "transcribing")
 _REPLY_PHASES = ("waiting_audio", "synthesizing", "generated", "player_pending")
 _KINDS = ("applied", "refused", "cancelled", "expired", "unknown", "no_action", "clarification", "known")
 _MAX_ITEMS = 16
