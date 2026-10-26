@@ -1,4 +1,4 @@
-"""Opt-in actual PostgreSQL0016 lineage, catalog, retention and DDL rollback.
+"""Opt-in actual PostgreSQL 0022 lineage, catalog, retention and DDL rollback.
 
 Only LYCHD_INTERCOM_TEST_DATABASE_URL admits an explicitly disposable database.
 The public Intercom tables must be empty before destructive empty-schema tests.
@@ -98,15 +98,15 @@ def _check_head_compatibility(url: str) -> None:
         asyncio.run(_compare_catalogs(url))
         command.check(_config(url))
     finally:
-        command.downgrade(_config(url), "0016")
+        command.downgrade(_config(url), "0022")
 
 
 def test_late_upgrade_failure_rolls_back_all_seven_tables_and_version(
     pg_url: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    command.upgrade(_config(pg_url), "0016")
+    command.upgrade(_config(pg_url), "0022")
     _empty(pg_url)
-    command.downgrade(_config(pg_url), "0015")
+    command.downgrade(_config(pg_url), "0021")
     original = op.create_table
 
     def fail_late(name: str, *args: Any, **kwargs: Any) -> Any:
@@ -119,12 +119,12 @@ def test_late_upgrade_failure_rolls_back_all_seven_tables_and_version(
         with monkeypatch.context() as patch:
             patch.setattr(op, "create_table", fail_late)
             with pytest.raises(RuntimeError, match="Injected final Intercom"):
-                command.upgrade(_config(pg_url), "0016")
-        assert _version(pg_url) == "0015"
+                command.upgrade(_config(pg_url), "0022")
+        assert _version(pg_url) == "0021"
         for table in _TABLES:
             assert _run(pg_url, "SELECT to_regclass(:relation)::text", {"relation": "public." + table}) == [(None,)]
     finally:
-        command.upgrade(_config(pg_url), "0016")
+        command.upgrade(_config(pg_url), "0022")
     _check_head_compatibility(pg_url)
 
 
@@ -141,12 +141,12 @@ JOIN pg_class c ON c.oid=k.conrelid WHERE c.relname LIKE 'intercom_%' AND k.cont
         assert all(action == "r" for _, action in foreign)
         command.check(_config(pg_url))
     finally:
-        command.downgrade(_config(pg_url), "0016")
+        command.downgrade(_config(pg_url), "0022")
 
 
 @pytest.mark.parametrize("owner", ["capacity", "peer"])
 def test_even_uncharged_capacity_or_peer_alone_refuses_downgrade(pg_url: str, owner: str) -> None:
-    command.upgrade(_config(pg_url), "0016")
+    command.upgrade(_config(pg_url), "0022")
     _empty(pg_url)
     identity = str(uuid4())
     table = "intercom_" + owner
@@ -161,8 +161,8 @@ VALUES(CAST(:id AS uuid),'{}',repeat('a',64),1,1,0,false,'{}',now(),now())"""
     _run(pg_url, statement, {"id": identity})
     try:
         with pytest.raises(DBAPIError, match="Retained Intercom custody prevents downgrade"):
-            command.downgrade(_config(pg_url), "0015")
-        assert _version(pg_url) == "0016"
+            command.downgrade(_config(pg_url), "0021")
+        assert _version(pg_url) == "0022"
         statement = "SELECT count(*) FROM " + table + " WHERE id=CAST(:id AS uuid)"  # noqa: S608 - two fixed owner tables
         assert _run(pg_url, statement, {"id": identity}) == [(1,)]
         for name in _TABLES:
@@ -175,7 +175,7 @@ VALUES(CAST(:id AS uuid),'{}',repeat('a',64),1,1,0,false,'{}',now(),now())"""
 def test_empty_downgrade_locks_all_seven_tables_before_custody_check_then_round_trips(
     pg_url: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    command.upgrade(_config(pg_url), "0016")
+    command.upgrade(_config(pg_url), "0022")
     _empty(pg_url)
     original = op.execute
     observed: list[str] = []
@@ -198,11 +198,11 @@ AND l.pid=pg_backend_pid() ORDER BY c.relname""")
     try:
         with monkeypatch.context() as patch:
             patch.setattr(op, "execute", observe)
-            command.downgrade(_config(pg_url), "0015")
+            command.downgrade(_config(pg_url), "0021")
         assert observed == list(_TABLES)
-        assert _version(pg_url) == "0015"
+        assert _version(pg_url) == "0021"
     finally:
-        command.upgrade(_config(pg_url), "0016")
+        command.upgrade(_config(pg_url), "0022")
     _check_head_compatibility(pg_url)
 
 
@@ -214,5 +214,5 @@ def test_catalog_oracle_detects_missing_real_check_then_restores_empty_schema(pg
         with pytest.raises(AssertionError, match="intercom_capacity"):
             asyncio.run(_compare_catalogs(pg_url))
     finally:
-        command.downgrade(_config(pg_url), "0015")
-        command.upgrade(_config(pg_url), "0016")
+        command.downgrade(_config(pg_url), "0021")
+        command.upgrade(_config(pg_url), "0022")

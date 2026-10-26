@@ -1,4 +1,4 @@
-"""Actual0017 PostgreSQL schema, ownership audit, rollback and retained evidence.
+"""Actual 0023 PostgreSQL schema, ownership audit, rollback and retained evidence.
 
 Only the explicit disposable Intercom test URL admits these destructive empty
 schema checks. Metadata creates the expected catalog oracle, never the migrated
@@ -110,7 +110,7 @@ def _delete_custody(url: str, ids: dict[str, str]) -> None:
 
 
 def test_native_migration_matches_actual_orm_columns_checks_indexes_and_foreign_keys(pg_url: str) -> None:
-    command.upgrade(_config(pg_url), "0017")
+    command.upgrade(_config(pg_url), "0023")
     asyncio.run(_compare_catalogs(pg_url))
     command.check(_config(pg_url))
 
@@ -118,9 +118,9 @@ def test_native_migration_matches_actual_orm_columns_checks_indexes_and_foreign_
 def test_late_native_upgrade_failure_rolls_back_columns_constraints_and_version(
     pg_url: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    command.upgrade(_config(pg_url), "0017")
+    command.upgrade(_config(pg_url), "0023")
     _empty(pg_url)
-    command.downgrade(_config(pg_url), "0016")
+    command.downgrade(_config(pg_url), "0022")
     original = op.create_check_constraint
 
     def fail_late(name: Any, *args: Any, **kwargs: Any) -> Any:
@@ -133,8 +133,8 @@ def test_late_native_upgrade_failure_rolls_back_columns_constraints_and_version(
         with monkeypatch.context() as patch:
             patch.setattr(op, "create_check_constraint", fail_late)
             with pytest.raises(RuntimeError, match="Injected final native"):
-                command.upgrade(_config(pg_url), "0017")
-        assert _version(pg_url) == "0016"
+                command.upgrade(_config(pg_url), "0023")
+        assert _version(pg_url) == "0022"
         assert (
             _run(
                 pg_url,
@@ -145,14 +145,14 @@ OR (table_name='intercom_task' AND column_name LIKE 'native_%'))""",
             == []
         )
     finally:
-        command.upgrade(_config(pg_url), "0017")
+        command.upgrade(_config(pg_url), "0023")
 
 
 @pytest.mark.parametrize("invalid", ["multiple", "ownerless", "unexplained-peer"])
 def test_upgrade_refuses_ambiguous_legacy_ownership_without_inference(pg_url: str, invalid: str) -> None:
-    command.upgrade(_config(pg_url), "0017")
+    command.upgrade(_config(pg_url), "0023")
     _empty(pg_url)
-    command.downgrade(_config(pg_url), "0016")
+    command.downgrade(_config(pg_url), "0022")
     identity = _seed_run(pg_url, status="awaiting_delegate" if invalid == "ownerless" else "running")
     consent = str(uuid4())
     try:
@@ -172,19 +172,19 @@ VALUES(CAST(:consent AS uuid),CAST(:id AS uuid),'proof','proof','{}','pending',n
         elif invalid == "unexplained-peer":
             _run(pg_url, "UPDATE run SET source='peer_public' WHERE id=CAST(:id AS uuid)", {"id": identity})
         with pytest.raises(DBAPIError, match="Native peer migration"):
-            command.upgrade(_config(pg_url), "0017")
-        assert _version(pg_url) == "0016"
+            command.upgrade(_config(pg_url), "0023")
+        assert _version(pg_url) == "0022"
         assert _run(pg_url, "SELECT count(*) FROM run WHERE id=CAST(:id AS uuid)", {"id": identity}) == [(1,)]
     finally:
         _run(pg_url, "UPDATE run SET consent_id=NULL WHERE id=CAST(:id AS uuid)", {"id": identity})
         _run(pg_url, "DELETE FROM consent WHERE id=CAST(:consent AS uuid)", {"consent": consent})
         _run(pg_url, "DELETE FROM run WHERE id=CAST(:id AS uuid)", {"id": identity})
-        command.upgrade(_config(pg_url), "0017")
+        command.upgrade(_config(pg_url), "0023")
 
 
 @pytest.mark.parametrize("retained", ["admission", "native-task", "closure", "reauthorization"])
 def test_downgrade_refuses_every_retained_native_history_even_after_terminal_run(pg_url: str, retained: str) -> None:
-    command.upgrade(_config(pg_url), "0017")
+    command.upgrade(_config(pg_url), "0023")
     _empty(pg_url)
     run_id = _seed_run(pg_url, source="peer_public" if retained == "admission" else "cli", status="done")
     ids = None
@@ -212,8 +212,8 @@ native_enqueue_seq=0,native_step_id='step',native_occurrence_id='occurrence' WHE
                     {**ids, "evidence": '[{"subject":"test"}]'},
                 )
         with pytest.raises(DBAPIError, match="Retained native peer custody"):
-            command.downgrade(_config(pg_url), "0016")
-        assert _version(pg_url) == "0017"
+            command.downgrade(_config(pg_url), "0022")
+        assert _version(pg_url) == "0023"
         assert _run(pg_url, "SELECT count(*) FROM run WHERE id=CAST(:id AS uuid)", {"id": run_id}) == [(1,)]
     finally:
         if ids is not None:
@@ -224,7 +224,7 @@ native_enqueue_seq=0,native_step_id='step',native_occurrence_id='occurrence' WHE
 def test_empty_native_downgrade_holds_run_and_task_exclusive_locks_before_guard(
     pg_url: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    command.upgrade(_config(pg_url), "0017")
+    command.upgrade(_config(pg_url), "0023")
     _empty(pg_url)
     original = op.execute
     observed: list[str] = []
@@ -247,15 +247,15 @@ AND l.pid=pg_backend_pid() ORDER BY c.relname""")
     try:
         with monkeypatch.context() as patch:
             patch.setattr(op, "execute", observe)
-            command.downgrade(_config(pg_url), "0016")
+            command.downgrade(_config(pg_url), "0022")
         assert observed == ["intercom_task", "run"]
-        assert _version(pg_url) == "0016"
+        assert _version(pg_url) == "0022"
     finally:
-        command.upgrade(_config(pg_url), "0017")
+        command.upgrade(_config(pg_url), "0023")
 
 
 def test_catalog_oracle_detects_missing_actual_peer_owner_check(pg_url: str) -> None:
-    command.upgrade(_config(pg_url), "0017")
+    command.upgrade(_config(pg_url), "0023")
     _empty(pg_url)
     _run(pg_url, "ALTER TABLE run DROP CONSTRAINT ck_run_single_wait_owner")
     try:
@@ -266,5 +266,5 @@ def test_catalog_oracle_detects_missing_actual_peer_owner_check(pg_url: str) -> 
             item for item in orm_registry.metadata.tables["run"].constraints if item.name == "ck_run_single_wait_owner"
         )
         _run(pg_url, str(AddConstraint(constraint).compile(dialect=dialect())))
-        command.downgrade(_config(pg_url), "0016")
-        command.upgrade(_config(pg_url), "0017")
+        command.downgrade(_config(pg_url), "0022")
+        command.upgrade(_config(pg_url), "0023")

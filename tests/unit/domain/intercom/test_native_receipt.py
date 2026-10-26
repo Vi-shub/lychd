@@ -11,9 +11,9 @@ from uuid import UUID
 import pytest
 
 from tests.unit.domain.intercom.test_receipt import (
-    _HISTORICAL_DEPENDENCIES,
-    _require_current_qualification,
-    _source_pins,
+    _HISTORICAL_DEPENDENCIES,  # pyright: ignore[reportPrivateUsage] - shared receipt oracle
+    _require_current_qualification,  # pyright: ignore[reportPrivateUsage]
+    _source_pins,  # pyright: ignore[reportPrivateUsage]
 )
 
 _ROOT = Path(__file__).resolve().parents[4]

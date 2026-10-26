@@ -2,9 +2,9 @@
 
 ## Reporting a vulnerability
 
-Please do not open a public issue for a suspected vulnerability.
+Do not post vulnerability details in public issues.
 
-Use GitHub's private vulnerability reporting for this repository when the **Report a vulnerability** action is available. If that interface is unavailable, email **security@mechanimous.ai**.
+Use GitHub's private vulnerability reporting for this repository when the **Report a vulnerability** action is available. If it is unavailable, open a public issue asking the maintainers for a private reporting channel. Include no vulnerability details, reproduction steps, logs, credentials, or affected-system information in that issue.
 
 Include, where possible:
 

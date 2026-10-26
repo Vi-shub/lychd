@@ -246,7 +246,7 @@ it("closes the About disclosure on Escape and restores focus to its trigger", as
 
   await fireEvent.click(trigger);
   expect(disclosure.open).toBe(true);
-  const aboutLink = screen.getByRole("link", { name: "Project source · MPL-2.0" });
+  const aboutLink = screen.getByRole("link", { name: __LYCHD_SOURCE_LABEL__ });
   aboutLink.focus();
   expect(document.activeElement).toBe(aboutLink);
   await fireEvent.keyDown(window, { key: "Escape" });

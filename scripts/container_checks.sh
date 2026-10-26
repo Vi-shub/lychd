@@ -92,7 +92,7 @@ trap 'exit 143' TERM
 
 # Explicit roots only. In particular, .git, private .agents state, local envs,
 # caches, dependency installs, and arbitrary untracked root files never cross.
-inputs=(AGENTS.md CONTRIBUTING.md README.md LICENSE THIRD_PARTY_NOTICES.md
+inputs=(AGENTS.md CONTRIBUTING.md README.md ROADMAP.md LICENSE THIRD_PARTY_NOTICES.md
     Makefile Containerfile Containerfile.tests pyproject.toml uv.lock
     .containerignore .python-version .nvmrc zensical.toml
     .github .agents/scopes .agents/workflows clients docs docs-theme examples scripts src tests)

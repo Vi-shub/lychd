@@ -1,4 +1,4 @@
-"""Sealed Ward history and unchanged mechanism lineage; never rerun PostgreSQL."""
+"""Seal Ward history and refuse changed mechanism qualification; never rerun PostgreSQL."""
 
 from __future__ import annotations
 
@@ -278,9 +278,9 @@ _DEPENDENCIES = frozenset(_KEYS["root.dependency_versions"])
 _MIGRATIONS = frozenset(path for path in _SOURCES if path.startswith("src/lychd/db/migrations/versions/"))
 
 
-# The old complete qualification is historical. These seven retired configuration/fixture
-# inputs no longer describe this runtime; the other 59 inputs have only separately
-# checked byte continuity. Current configuration needs a distinct OCI occurrence.
+# The original retirement excluded exactly these seven configuration/fixture inputs.
+# Later source changes invalidate the remaining mechanism continuity check rather
+# than expanding that historical exception or renewing any observed fingerprint.
 _RETIRED_OCCURRENCE_INPUTS = {
     "docs/adr/12-configuration.md": "2d03734b40dcb54e416e926a22eb3be64954e0dd07dcadde3976d4e8001662f9",
     "pyproject.toml": "dccbffe885f53d943b56234802ccae58280ca9095f2094371941b597139f184d",
@@ -460,9 +460,11 @@ def test_retirement_cannot_excuse_an_unchanged_ward_input() -> None:
         _require_retired_inputs(receipt, widened)
 
 
-def test_unchanged_ward_mechanism_inputs_preserve_historical_lineage() -> None:
-    receipt = _load()
+def _require_current_mechanism_inputs(receipt: dict[str, Any], *, root: Path = _ROOT) -> None:
+    """Check the original source, migration and dependency closure before reuse."""
     _require_retired_inputs(receipt, _RETIRED_OCCURRENCE_INPUTS)
+    assert set(receipt["source_fingerprints"]) == _SOURCES
+    assert set(receipt["dependency_versions"]) == _DEPENDENCIES
     live = {
         path: digest
         for path, digest in receipt["source_fingerprints"].items()
@@ -470,14 +472,16 @@ def test_unchanged_ward_mechanism_inputs_preserve_historical_lineage() -> None:
     }
     assert len(live) == 59
     for path, digest in live.items():
-        assert sha256((_ROOT / path).read_bytes()).hexdigest() == digest, path
+        source = root / path
+        assert source.is_file(), f"source inventory changed: {path} is missing"
+        assert sha256(source.read_bytes()).hexdigest() == digest, f"source inventory changed: {path}"
     assert {
-        str(path.relative_to(_ROOT)) for path in (_ROOT / "src/lychd/db/migrations/versions").glob("*.py")
-    } == _MIGRATIONS
-    lock = tomllib.loads((_ROOT / "uv.lock").read_text())
+        str(path.relative_to(root)) for path in (root / "src/lychd/db/migrations/versions").glob("*.py")
+    } == _MIGRATIONS, "migration inventory changed"
+    lock = tomllib.loads((root / "uv.lock").read_text())
     assert receipt["dependency_versions"] == {
         package["name"]: package["version"] for package in lock["package"] if package["name"] in _DEPENDENCIES
-    }
+    }, "dependency lock inventory changed"
     # Installed metadata is a current offline freshness check, not a new trial SDK attestation.
     for name, expected in receipt["dependency_versions"].items():
         try:
@@ -485,11 +489,64 @@ def test_unchanged_ward_mechanism_inputs_preserve_historical_lineage() -> None:
         except PackageNotFoundError:
             assert name in {"docker", "testcontainers"}
         else:
-            assert installed == expected, name
-    assert receipt["python_version"] == (_ROOT / ".python-version").read_text().strip()
+            assert installed == expected, f"installed dependency changed: {name}"
+    assert receipt["python_version"] == (root / ".python-version").read_text().strip(), "Python input changed"
     assert receipt["freshness_check"] == (
         "offline-current-critical-source-and-selected-lock-check-only-not-a-runtime-rerun"
     )
+
+
+def test_historical_ward_mechanism_receipt_cannot_qualify_merged_inputs() -> None:
+    with pytest.raises(AssertionError, match="source inventory changed"):
+        _require_current_mechanism_inputs(_load())
+
+
+def _write_dependency_lock(root: Path, dependencies: dict[str, str]) -> None:
+    (root / "uv.lock").write_text(
+        "".join(f'[[package]]\nname = "{name}"\nversion = "{value}"\n' for name, value in dependencies.items())
+    )
+
+
+def _current_input_fixture(root: Path) -> dict[str, Any]:
+    """Build inert exact inputs solely to exercise the offline freshness oracle."""
+    receipt = _load()
+    for relative in _SOURCES - _RETIRED_OCCURRENCE_INPUTS.keys():
+        content = receipt["python_version"] if relative == ".python-version" else f"synthetic input: {relative}"
+        source = root / relative
+        source.parent.mkdir(parents=True, exist_ok=True)
+        source.write_text(content)
+        receipt["source_fingerprints"][relative] = sha256(source.read_bytes()).hexdigest()
+    for name in _DEPENDENCIES:
+        try:
+            receipt["dependency_versions"][name] = version(name)
+        except PackageNotFoundError:
+            assert name in {"docker", "testcontainers"}
+    _write_dependency_lock(root, receipt["dependency_versions"])
+    return receipt
+
+
+@pytest.mark.parametrize(
+    "mutation", ["source", "missing-source", "migration", "lock", "installed-dependency", "python"]
+)
+def test_current_mechanism_oracle_requires_exact_original_closure(tmp_path: Path, mutation: str) -> None:
+    receipt = _current_input_fixture(tmp_path)
+    _require_current_mechanism_inputs(receipt, root=tmp_path)
+    source = tmp_path / "src/lychd/domain/ward/service.py"
+    if mutation == "source":
+        source.write_text("changed source")
+    elif mutation == "missing-source":
+        source.unlink()
+    elif mutation == "migration":
+        (tmp_path / "src/lychd/db/migrations/versions/9999_unqualified.py").write_text("unqualified migration")
+    elif mutation == "lock":
+        (tmp_path / "uv.lock").write_text("package = []")
+    elif mutation == "installed-dependency":
+        receipt["dependency_versions"]["pytest"] = "not-the-installed-version"
+        _write_dependency_lock(tmp_path, receipt["dependency_versions"])
+    else:
+        receipt["python_version"] = "not-the-declared-version"
+    with pytest.raises(AssertionError, match="changed"):
+        _require_current_mechanism_inputs(receipt, root=tmp_path)
 
 
 @pytest.mark.parametrize(

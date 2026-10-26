@@ -683,7 +683,12 @@ class RunEngine:
             if existing is not None:
                 self._validate_admission_replay(intent, existing, scout_declaration, feed_declaration, peer_declaration)
                 validate = partial(
-                    self._validate_admission_replay, intent, existing, scout_declaration, feed_declaration, peer_declaration
+                    self._validate_admission_replay,
+                    intent,
+                    existing,
+                    scout_declaration,
+                    feed_declaration,
+                    peer_declaration,
                 )
                 if await self._repair_replayed_admission(existing, retain_before_publish, validate=validate):
                     validate()
@@ -905,14 +910,14 @@ class RunEngine:
                 msg = "delegated_rite@2 requires its configured runtime binding before admission."
                 raise ValueError(msg)
             return intent.model_copy(update={"admitted_delegation": self.delegation_binding})
-        if workflow.manifest.key == "bridge_chat" and workflow.manifest.revision == "5":
-            return self._bind_semantic(intent)
-        if workflow.manifest.key != "bridge_chat" or workflow.manifest.revision not in {"2", "3"}:
+        if workflow.manifest.key != "bridge_chat" or workflow.manifest.revision not in {"2", "3", "5"}:
             return intent
         return await self._bind_configured_bridge_intent(intent, workflow)
 
     async def _bind_configured_bridge_intent(self, intent: Intent, workflow: Workflow) -> Intent:
-        """Bind model demand only for the configured Bridge2/3 branch."""
+        """Bind only the configured Bridge preference, Archive or semantic branch."""
+        if workflow.manifest.revision == "5":
+            return self._bind_semantic(intent)
         if workflow.manifest.revision == "2" and self.bridge_preference is not None:
             decision = await self._select_bridge_preference()
             return intent.model_copy(

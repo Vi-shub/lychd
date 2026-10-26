@@ -252,6 +252,7 @@ async def test_json_payload_and_database_reconstruction_retain_binding_and_legac
         error=record.error,
         consent_id=record.consent_id,
         delegated_job_id=record.delegated_job_id,
+        peer_task_id=record.peer_task_id,
         created_at=record.created_at,
         updated_at=record.updated_at,
         started_at=record.started_at,

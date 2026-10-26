@@ -72,13 +72,13 @@ def _check_head_compatibility(url: str) -> None:
     try:
         command.check(_config(url))
     finally:
-        command.downgrade(_config(url), "0015")
+        command.downgrade(_config(url), "0021")
 
 
 def test_upgrade_late_failure_rolls_back_both_ddl_and_version_then_empty_round_trip_matches_orm(
     pg_url: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    command.upgrade(_config(pg_url), "0014")
+    command.upgrade(_config(pg_url), "0020")
     original = op.create_table
 
     def fail_late(name: str, *args: Any, **kwargs: Any) -> Any:
@@ -90,11 +90,11 @@ def test_upgrade_late_failure_rolls_back_both_ddl_and_version_then_empty_round_t
     with monkeypatch.context() as patch:
         patch.setattr(op, "create_table", fail_late)
         with pytest.raises(RuntimeError, match="Injected late disclosure"):
-            command.upgrade(_config(pg_url), "0015")
-    assert _version_and_tables(pg_url) == [("0014", None, None)]
-    command.upgrade(_config(pg_url), "0015")
+            command.upgrade(_config(pg_url), "0021")
+    assert _version_and_tables(pg_url) == [("0020", None, None)]
+    command.upgrade(_config(pg_url), "0021")
     _check_head_compatibility(pg_url)
-    assert _version_and_tables(pg_url) == [("0015", "privacy_disclosure_capacity", "privacy_disclosure_transmission")]
+    assert _version_and_tables(pg_url) == [("0021", "privacy_disclosure_capacity", "privacy_disclosure_transmission")]
     for model in (DisclosureCapacityRecord, DisclosureTransmission):
         columns = _run(
             pg_url,
@@ -111,22 +111,22 @@ WHERE conrelid='privacy_disclosure_transmission'::regclass AND contype='f' ORDER
         ("fk_privacy_disclosure_transmission_delivery_id_run_delivery", "r"),
         ("fk_privacy_disclosure_transmission_run_id_run", "r"),
     ]
-    command.downgrade(_config(pg_url), "0014")
-    assert _version_and_tables(pg_url) == [("0014", None, None)]
-    command.upgrade(_config(pg_url), "0015")
+    command.downgrade(_config(pg_url), "0020")
+    assert _version_and_tables(pg_url) == [("0020", None, None)]
+    command.upgrade(_config(pg_url), "0021")
     _check_head_compatibility(pg_url)
 
 
 def test_even_uncharged_capacity_alone_refuses_downgrade_without_erasing_either_table(pg_url: str) -> None:
-    command.upgrade(_config(pg_url), "0015")
+    command.upgrade(_config(pg_url), "0021")
     identity = str(uuid4())
     _run(pg_url, _CAPACITY_INSERT, {"id": identity})
     try:
         assert _run(pg_url, "SELECT count(*) FROM privacy_disclosure_transmission") == [(0,)]
         with pytest.raises(DBAPIError, match="Retained disclosure custody prevents downgrade"):
-            command.downgrade(_config(pg_url), "0014")
+            command.downgrade(_config(pg_url), "0020")
         assert _version_and_tables(pg_url) == [
-            ("0015", "privacy_disclosure_capacity", "privacy_disclosure_transmission")
+            ("0021", "privacy_disclosure_capacity", "privacy_disclosure_transmission")
         ]
         assert _run(
             pg_url,
@@ -168,7 +168,7 @@ CAST(:occurrence AS uuid),CAST(:attempt AS uuid),decode('00','hex'),repeat('a',6
 
 
 def test_transmission_alone_in_every_disposition_refuses_downgrade_and_restricts_both_owners(pg_url: str) -> None:
-    command.upgrade(_config(pg_url), "0015")
+    command.upgrade(_config(pg_url), "0021")
     values = _retained_transmission(pg_url)
     try:
         assert _run(pg_url, "SELECT count(*) FROM privacy_disclosure_capacity") == [(0,)]
@@ -188,9 +188,9 @@ WHERE id=CAST(:transmission AS uuid)""",
                     },
                 )
             with pytest.raises(DBAPIError, match="Retained disclosure custody prevents downgrade"):
-                command.downgrade(_config(pg_url), "0014")
+                command.downgrade(_config(pg_url), "0020")
             assert _version_and_tables(pg_url) == [
-                ("0015", "privacy_disclosure_capacity", "privacy_disclosure_transmission")
+                ("0021", "privacy_disclosure_capacity", "privacy_disclosure_transmission")
             ]
             assert _run(
                 pg_url,
@@ -210,7 +210,7 @@ WHERE id=CAST(:transmission AS uuid)""",
 def test_downgrade_holds_both_access_exclusive_locks_before_testing_custody(
     pg_url: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    command.upgrade(_config(pg_url), "0015")
+    command.upgrade(_config(pg_url), "0021")
     original = op.execute
     observations: list[tuple[str, str]] = []
 
@@ -231,13 +231,13 @@ AND l.mode='AccessExclusiveLock' AND l.granted AND l.pid=pg_backend_pid() ORDER 
 
     with monkeypatch.context() as patch:
         patch.setattr(op, "execute", observe)
-        command.downgrade(_config(pg_url), "0014")
+        command.downgrade(_config(pg_url), "0020")
     assert observations == [
         ("privacy_disclosure_capacity", "AccessExclusiveLock"),
         ("privacy_disclosure_transmission", "AccessExclusiveLock"),
     ]
-    assert _version_and_tables(pg_url) == [("0014", None, None)]
-    command.upgrade(_config(pg_url), "0015")
+    assert _version_and_tables(pg_url) == [("0020", None, None)]
+    command.upgrade(_config(pg_url), "0021")
     _check_head_compatibility(pg_url)
 
 
@@ -304,7 +304,7 @@ def test_migrated_columns_checks_foreign_keys_and_indexes_match_orm_catalog(pg_u
     try:
         asyncio.run(_compare_catalogs(pg_url))
     finally:
-        command.downgrade(_config(pg_url), "0015")
+        command.downgrade(_config(pg_url), "0021")
 
 
 def test_catalog_comparison_detects_a_missing_check_constraint(pg_url: str) -> None:
@@ -319,5 +319,5 @@ def test_catalog_comparison_detects_a_missing_check_constraint(pg_url: str) -> N
             asyncio.run(_compare_catalogs(pg_url))
     finally:
         # Restore only this empty, disposable proof schema from the migration.
-        command.downgrade(_config(pg_url), "0014")
-        command.upgrade(_config(pg_url), "0015")
+        command.downgrade(_config(pg_url), "0020")
+        command.upgrade(_config(pg_url), "0021")

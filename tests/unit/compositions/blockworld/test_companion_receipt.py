@@ -4,8 +4,12 @@ from __future__ import annotations
 
 import json
 from hashlib import sha256
+from importlib.metadata import version
 from pathlib import Path
+from typing import Any
 from uuid import UUID
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[4]
 RECEIPT = ROOT / "tests/fixtures/blockworld/companion-cpu-runtime.json"
@@ -116,14 +120,92 @@ def test_local_control_qualification_keeps_wire_and_physical_interaction_distinc
         assert parsed.version == 4
 
 
-def test_companion_qualification_source_freshness() -> None:
-    receipt = json.loads(RECEIPT.read_text())
+def _require_current_qualification(receipt: dict[str, Any], *, root: Path, sources: set[str]) -> None:
+    """Require the complete bounded source, lock and installed dependency inventory."""
+    root = root.resolve()
+    pins = receipt["source_fingerprints"]
+    assert pins, "Source inventory is empty"
+    assert set(pins) == sources, "Source inventory is stale"
+    for name, digest in pins.items():
+        relative = Path(name)
+        assert not relative.is_absolute()
+        assert ".." not in relative.parts
+        assert ".venv" not in relative.parts
+        assert len(digest) == 64
+        assert set(digest) <= set("0123456789abcdef")
+        source = (root / relative).resolve()
+        assert source.is_relative_to(root), "Source inventory escapes its root"
+        assert source.is_file(), f"Source inventory is stale: {name} is missing"
+        assert sha256(source.read_bytes()).hexdigest() == digest, f"Source inventory is stale: {name}"
+    lock = (root / "uv.lock").resolve()
+    assert lock.is_relative_to(root)
+    assert sha256(lock.read_bytes()).hexdigest() == receipt["uv_lock_sha256"], "Dependency lock is stale"
+    dependencies = receipt["dependency_versions"]
+    assert dependencies
+    for name, expected in dependencies.items():
+        assert version(name) == expected, f"Dependency inventory is stale: {name}"
+
+
+def test_companion_qualification_preserves_historical_receipt() -> None:
+    raw = RECEIPT.read_bytes()
+    assert sha256(raw).hexdigest() == "333dea5171de7a9df78d7269e0f5ccd7b561c0f033e65f1a58400d162228430a"
+    receipt = json.loads(raw)
     assert receipt["schema"] == "companion-cpu-runtime@1"
     assert receipt["status"] == "passed-with-explicit-human-checks-pending"
-    assert set(receipt["source_fingerprints"]) == qualified_sources()
-    for name, digest in receipt["source_fingerprints"].items():
-        assert sha256((ROOT / name).read_bytes()).hexdigest() == digest, name
-    assert sha256((ROOT / "uv.lock").read_bytes()).hexdigest() == receipt["uv_lock_sha256"]
+    assert receipt["qualification_date"] == "2026-10-22"
+    assert receipt["held_input_requalification"]["qualification_date"] == "2026-10-23"
+    assert receipt["source_identity"]["base_revision_declared"] == "0e0dc859699edf279aecc17d0eff0a9ac97945ed"
+
+
+def test_historical_companion_receipt_cannot_qualify_the_changed_dependency_lock() -> None:
+    with pytest.raises(AssertionError, match="Dependency lock is stale"):
+        _require_current_qualification(json.loads(RECEIPT.read_text()), root=ROOT, sources=qualified_sources())
+
+
+@pytest.mark.parametrize("change", ["source", "missing", "inventory", "lock", "dependency"])
+def test_current_companion_qualification_refuses_changed_inputs(tmp_path: Path, change: str) -> None:
+    source = tmp_path / "probe.py"
+    source.write_bytes(b"bounded source")
+    lock = tmp_path / "uv.lock"
+    lock.write_bytes(b"bounded dependency lock")
+    receipt: dict[str, Any] = {
+        "source_fingerprints": {"probe.py": sha256(source.read_bytes()).hexdigest()},
+        "uv_lock_sha256": sha256(lock.read_bytes()).hexdigest(),
+        "dependency_versions": {"httpx": version("httpx")},
+    }
+    _require_current_qualification(receipt, root=tmp_path, sources={"probe.py"})
+    if change == "source":
+        source.write_bytes(b"changed source")
+    elif change == "missing":
+        source.unlink()
+    elif change == "inventory":
+        receipt["source_fingerprints"]["unqualified.py"] = "0" * 64
+    elif change == "lock":
+        lock.write_bytes(b"changed dependency lock")
+    else:
+        receipt["dependency_versions"]["httpx"] = "not-the-installed-version"
+    with pytest.raises(AssertionError, match="is stale"):
+        _require_current_qualification(receipt, root=tmp_path, sources={"probe.py"})
+
+
+@pytest.mark.parametrize("relative", ["../outside.py", "/outside.py", ".venv/probe.py"])
+def test_current_companion_qualification_refuses_unsafe_source_inventory(relative: str, tmp_path: Path) -> None:
+    with pytest.raises(AssertionError):
+        _require_current_qualification({"source_fingerprints": {relative: "0" * 64}}, root=tmp_path, sources={relative})
+
+
+def test_current_companion_qualification_refuses_escaping_symlink(tmp_path: Path) -> None:
+    root = tmp_path / "checkout"
+    root.mkdir()
+    outside = tmp_path / "outside.py"
+    outside.write_bytes(b"outside source")
+    (root / "probe.py").symlink_to(outside)
+    with pytest.raises(AssertionError, match="escapes its root"):
+        _require_current_qualification(
+            {"source_fingerprints": {"probe.py": sha256(outside.read_bytes()).hexdigest()}},
+            root=root,
+            sources={"probe.py"},
+        )
 
 
 def test_publication_packaging_keeps_runtime_and_human_qualification_separate() -> None:

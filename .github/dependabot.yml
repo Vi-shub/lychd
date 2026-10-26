@@ -1,14 +1,17 @@
 version: 2
 
+# Version-update PRs are paused during the solo-main phase.
+# Restore positive limits when team integration starts (planned 2026-11-02).
 updates:
-  - package-ecosystem: pip
+  - package-ecosystem: uv
     directory: /
+    target-branch: dev
     schedule:
       interval: weekly
       day: monday
       time: "06:00"
       timezone: Europe/Bratislava
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 0
     groups:
       python-dependencies:
         patterns:
@@ -16,12 +19,13 @@ updates:
 
   - package-ecosystem: npm
     directory: /clients/web
+    target-branch: dev
     schedule:
       interval: weekly
       day: monday
       time: "06:15"
       timezone: Europe/Bratislava
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 0
     groups:
       web-dependencies:
         patterns:
@@ -29,12 +33,13 @@ updates:
 
   - package-ecosystem: github-actions
     directory: /
+    target-branch: dev
     schedule:
       interval: weekly
       day: monday
       time: "06:30"
       timezone: Europe/Bratislava
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 0
     groups:
       workflow-actions:
         patterns:

@@ -27,7 +27,7 @@ route is useful for baseline protocol testing, but cannot satisfy the protected 
 qualification used the official SDK's real dispatcher and task store with explicitly test-only
 signing middleware; the middleware is not an upstream SDK feature.
 
-Apply the normal database migration gate before using the session. Revision `0016` adds the
+Apply the normal database migration gate before using the session. Revision `0022` adds the
 seven Intercom custody tables. It refuses downgrade while any retains a row, including unused
 capacity. The session itself has no migration or reset command.
 
@@ -118,10 +118,10 @@ containment, general remote IAM and private-input anonymization are outside its 
 
 ## Native public peer Run
 
-Apply revision `0017` through the normal migration gate. It binds a peer task to its exact Run,
+Apply revision `0023` through the normal migration gate. It binds a peer task to its exact Run,
 station, request, pinned Pattern and actual Step/occurrence. It refuses inconsistent legacy wait
 owners and refuses downgrade while native task, Run, closure or reauthorization evidence remains.
-The existing `0016` retention rule still applies to all seven Intercom tables.
+The existing `0022` retention rule still applies to all seven Intercom tables.
 
 Use the same dedicated operator credential, workload key and exact public configuration:
 

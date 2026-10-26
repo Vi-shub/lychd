@@ -326,7 +326,7 @@ def test_generated_migration_has_one_head_and_retention_guard() -> None:
     revision = scripts.get_revision("0020")
     assert revision is not None
     assert revision.down_revision == "0019"
-    assert scripts.get_current_head() == "0020"
+    assert scripts.get_current_head() == "0023"
     output = StringIO()
     context = MigrationContext.configure(dialect_name="postgresql", opts={"as_sql": True, "output_buffer": output})
     with Operations.context(context):
