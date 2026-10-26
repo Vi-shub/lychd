@@ -347,9 +347,9 @@ Humans need not spend their time translating an already settled contract into ro
 Neither a persuasive agent nor a busy maintainer can waive a failed mandatory gate.
 
 Use [CONTRIBUTING](https://github.com/hexanomicon/lychd/blob/main/CONTRIBUTING.md#branches-and-everyday-collaboration)
-for the current repository process: task branches and ordinary PRs target `dev`; maintainers
-integrate serially and verify the resulting exact snapshot; `main` advances by fast-forward to
-the tested object. Appropriate maintainers can act without a founder-only queue. Expertise-based
+for the current collaboration phase and its branch and promotion procedure. Integrate candidates
+serially and verify the resulting exact snapshot. Appropriate maintainers can act without a
+founder-only queue. Expertise-based
 adjacent review is especially useful for shared API, checkpoint and effect-settlement changes.
 
 The author supplies the complete candidate and observed checks. A separate verifier examines

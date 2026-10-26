@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from lychd.domain.cortex.events import RunEventBus
     from lychd.domain.cortex.priority import Priority
     from lychd.domain.delegation.ports import DelegatedAgentCoordinatorPort
+    from lychd.domain.intercom.native import PeerWorkflowPort
     from lychd.domain.orchestration.schema import TransitionPlan
     from lychd.domain.scout.feed import ScoutFeedWorkflowPort
     from lychd.domain.scout.profile import ScoutWorkflowPort
@@ -116,6 +117,7 @@ class WorkflowServices:
     scout: ScoutWorkflowPort | None = None
     feed_scout: ScoutFeedWorkflowPort | None = None
     scavenger: ScavengerWorkflowPort | None = None
+    peer: PeerWorkflowPort | None = None
 
 
 def default_sigil() -> Sigil:

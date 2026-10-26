@@ -33,6 +33,7 @@ if TYPE_CHECKING:
     from lychd.domain.cortex.ledger import RunLedger
     from lychd.domain.cortex.stasis import StasisStore
     from lychd.domain.delegation.ports import DelegatedAgentCoordinatorPort
+    from lychd.domain.intercom.native import PeerWorkflowPort
     from lychd.domain.scout.feed import ScoutFeedWorkflowPort
     from lychd.domain.scout.profile import ScoutWorkflowPort
     from lychd.domain.web.fragments import FragmentRegistry
@@ -96,6 +97,7 @@ class RunSubstrate:
     scout: ScoutWorkflowPort | None = None
     feed_scout: ScoutFeedWorkflowPort | None = None
     scavenger: ScavengerWorkflowPort | None = None
+    peer: PeerWorkflowPort | None = None
 
     def build_services(self, *, sigil: Sigil | None = None) -> WorkflowServices:
         """Assemble run services with the persisted caller identity.
@@ -125,6 +127,7 @@ class RunSubstrate:
             scout=self.scout,
             feed_scout=self.feed_scout,
             scavenger=self.scavenger,
+            peer=self.peer,
             archive_subject_provider=(
                 (lambda: subject_resolver(sigil_provider())) if subject_resolver is not None else None
             ),

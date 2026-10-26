@@ -55,7 +55,6 @@ def codex_service(
 def test_lychd_toml_is_valid_and_round_trips_through_settings(
     codex_service: CodexService,
     codex_paths: dict[str, Path],
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     codex_service.inscribe()
 
@@ -79,7 +78,6 @@ def test_lychd_toml_is_valid_and_round_trips_through_settings(
     assert "# Local llama.cpp:" in rendered
     assert "# Other choices:" in rendered
 
-    monkeypatch.setattr(settings_module, "PATH_LYCHD_TOML", toml_path)
     reparsed = Settings()
 
     assert reparsed.model_dump(mode="json", exclude_none=True) == content

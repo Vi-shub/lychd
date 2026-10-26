@@ -1,4 +1,9 @@
 {
+  "code_evidence": {
+    "coordinator_source_sha256": "e81e1540890e24a81e19dfb2e8393abd9c0b078c788bc4b72baa3a73a8435b3f",
+    "joined_test_sha256_before_trial": "00e24103a907b1aa4d1b518d7bd38267a3b2d5cdd4fce1db923f6f239d11c7d2",
+    "resource_launcher_source_sha256": "5501216f6134ad20f1f03d95734715f757369d301be8620bf5016da3b1fc0aa5"
+  },
   "database": {
     "container_removed": true,
     "created_containers": 1,
@@ -46,7 +51,7 @@
     "worker": "real-in-process-SAQ"
   },
   "freshness_check": "offline-metadata-source-and-selected-dependency-check-only",
-  "identity_boundary": "One dated local omission-baseline trial with bounded critical source/test fingerprints and selected package versions. The optional thinking policy was omitted; this trial qualifies neither selecting it nor useful task completion. Neither a clean-checkout, atomic transitive environment nor model-byte attestation. Updating metadata or hashes alone does not requalify changed critical inputs. Creation investigation was omitted.",
+  "identity_boundary": "One dated local omission-baseline trial with bounded critical source/test fingerprints and selected package versions. The optional thinking policy was omitted; this trial qualifies neither selecting it nor useful task completion. Neither a clean-checkout, atomic transitive environment nor model-byte attestation. Updating metadata or hashes alone does not requalify changed critical inputs. Creation investigation was omitted. Private trial evidence remains local behind random opaque references; the 26 October representation redaction does not renew this historical qualification.",
   "model": {
     "context_tokens": 4096,
     "cooperative_deadline_seconds": 30,
@@ -76,19 +81,21 @@
     "wire_finish_reason": "tool_calls"
   },
   "qualification_date": "2026-10-19",
-  "qualification_evidence": {
-    "application_receipt_sha256": "f6a2a6b0a6efb0b6df8a419b14a99ed6d97b77adea24077ac17454b0948da1db",
-    "candidate_manifest_sha256": "1a6a075c20fe9e7b6bfec9eab4bfbf54d660241f9d2d2c7c4b5d375a86dcd619",
-    "coordinator_receipt_sha256": "0f143a71869c8110e42538f9d64a92d5dec9ef9c7a927f8c30ab65612b58df81",
-    "coordinator_source_sha256": "e81e1540890e24a81e19dfb2e8393abd9c0b078c788bc4b72baa3a73a8435b3f",
-    "joined_test_sha256_before_trial": "00e24103a907b1aa4d1b518d7bd38267a3b2d5cdd4fce1db923f6f239d11c7d2",
-    "model_profile_sha256": "5b397e1c90b67da5d6172873b794bb12e47c64ecd668d3d1527c456496b9932d",
-    "pytest_log_sha256": "7d312f71116d6d71f5ce02e7ce24856b380d302bc2962e43e74d15fd9ec8b591",
-    "resource_launcher_source_sha256": "5501216f6134ad20f1f03d95734715f757369d301be8620bf5016da3b1fc0aa5",
-    "resource_receipt_sha256": "0fa63bf437ba676878b74115f984c63bd3a388ac3e9189f67183913e2aa8277b"
+  "qualification_evidence_ids": {
+    "application_receipt": "0a0390da-8f90-478d-aba3-994794b05c13",
+    "candidate_manifest": "d74c9492-2d61-4103-95b8-2f7136cd31af",
+    "coordinator_receipt": "15345fad-c667-45bc-9b36-a3e6a63fb452",
+    "model_profile": "3097752e-ddef-4242-9d26-cb047dc363d2",
+    "pytest_log": "77b9fa7e-f28f-4e83-b168-58402943540c",
+    "resource_receipt": "8bc689e9-8bf5-4bc8-8827-db3148d3109c"
   },
   "record_kind": "sanitized_public_local_bridge_qualification",
-  "retained_history_sha256": "7c075a8409f8d80ea93a0831f0c72c1a8a71d1ff55e625d256209dcb02da8eef",
+  "representation_redaction": {
+    "redacted_on": "2026-10-26",
+    "kind": "private-evidence-fingerprints-to-opaque-references",
+    "new_runtime_qualification": false
+  },
+  "retained_history_evidence_id": "6ce0788e-d39f-4b56-9dbe-298925ec8025",
   "runner": {
     "cleanup_verified": true,
     "coordinator_cleanup_reserve_seconds": 30,
@@ -107,7 +114,7 @@
     "test_wait_seconds": 210,
     "unresolved_creates": 0
   },
-  "schema": "local-bridge-vllm-runtime@1",
+  "schema": "local-bridge-vllm-runtime@2",
   "source_fingerprints": {
     "scripts/local_model_probe.py": "a8904d9e1b777e880d63a8e455cd07bff8819d9ff1edeb211b693e9eeb8957c5",
     "src/lychd/agents/context_limits.py": "dd283fd293c2caf3d521d4e23cd33fd509fb82a2624f213b9d3a49530f92bdd4",

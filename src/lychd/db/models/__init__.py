@@ -20,8 +20,18 @@ from lychd.db.models.creation import (
 )
 from lychd.db.models.delegated_host import DelegatedHostDispositionRecord
 from lychd.db.models.delegation import DelegatedAgentEventRecord, DelegatedAgentJobRecord
+from lychd.db.models.intercom import (
+    IntercomCapacity,
+    IntercomCredential,
+    IntercomDeclaration,
+    IntercomOutbox,
+    IntercomPeer,
+    IntercomTask,
+    IntercomTransmission,
+)
 from lychd.db.models.karma import Karma
 from lychd.db.models.nexus import NexusSwapRequest
+from lychd.db.models.privacy import DisclosureCapacityRecord, DisclosureTransmission
 from lychd.db.models.run import Run
 from lychd.db.models.run_delivery import RunDelivery
 from lychd.db.models.scavenger import ScavengerObservation
@@ -52,6 +62,15 @@ __all__ = [
     "DelegatedAgentEventRecord",
     "DelegatedAgentJobRecord",
     "DelegatedHostDispositionRecord",
+    "DisclosureCapacityRecord",
+    "DisclosureTransmission",
+    "IntercomCapacity",
+    "IntercomCredential",
+    "IntercomDeclaration",
+    "IntercomOutbox",
+    "IntercomPeer",
+    "IntercomTask",
+    "IntercomTransmission",
     "Karma",
     "NexusSwapRequest",
     "Run",

@@ -51,6 +51,7 @@ def test_upgrade_is_atomic_and_empty_round_trip_has_no_schema_drift(
         pg_url, "SELECT version_num,to_regclass('public.scout_budget')::text FROM lychd_db_version"
     ) == [("0013", None)]
     command.upgrade(migration.config(pg_url), "0014")
+    # Alembic compares all registered metadata, so parity requires the current head.
     command.upgrade(migration.config(pg_url), "head")
     command.check(migration.config(pg_url))
     command.downgrade(migration.config(pg_url), "0014")

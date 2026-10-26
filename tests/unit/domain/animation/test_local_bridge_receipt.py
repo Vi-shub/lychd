@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from uuid import UUID
 
 from tests.support.local_bridge_receipt_freshness import (
     read_historical_receipt,
@@ -111,19 +112,26 @@ def test_historical_local_bridge_receipt_keeps_its_exact_boundary() -> None:
         "outcome",
         "database",
         "runner",
-        "retained_history_sha256",
+        "retained_history_evidence_id",
         "timings_seconds",
-        "qualification_evidence",
+        "qualification_evidence_ids",
+        "code_evidence",
+        "representation_redaction",
         "dependency_versions",
         "source_fingerprints",
         "freshness_check",
         "identity_boundary",
         "unexercised",
     }
-    assert receipt["schema"] == "local-bridge-vllm-runtime@1"
+    assert receipt["schema"] == "local-bridge-vllm-runtime@2"
     assert receipt["record_kind"] == "sanitized_public_local_bridge_qualification"
     assert receipt["qualification_date"] == "2026-10-19"
     assert receipt["status"] == "passed"
+    assert receipt["representation_redaction"] == {
+        "redacted_on": "2026-10-26",
+        "kind": "private-evidence-fingerprints-to-opaque-references",
+        "new_runtime_qualification": False,
+    }
     assert "The optional thinking policy was omitted" in receipt["identity_boundary"]
     assert "Creation investigation was omitted." in receipt["identity_boundary"]
     assert receipt["source_identity"] == {
@@ -214,8 +222,9 @@ def test_historical_local_bridge_receipt_keeps_its_exact_boundary() -> None:
         "evolution-and-promotion",
         "remote-access-and-hostile-browser",
     }
-    assert len(receipt["retained_history_sha256"]) == 64
-    assert set(receipt["retained_history_sha256"]) <= set("0123456789abcdef")
+    history_id = UUID(receipt["retained_history_evidence_id"])
+    assert history_id.version == 4
+    assert str(history_id) == receipt["retained_history_evidence_id"]
     # The original freshness label describes the dated receipt, never this current test.
     assert receipt["freshness_check"] == "offline-metadata-source-and-selected-dependency-check-only"
     assert not any(
@@ -231,6 +240,14 @@ def test_historical_local_bridge_receipt_keeps_its_exact_boundary() -> None:
             "response_id",
             "session_id",
             "run_id",
+            "retained_history_sha256",
+            "retained_turns_sha256",
+            "application_receipt_sha256",
+            "coordinator_receipt_sha256",
+            "resource_receipt_sha256",
+            "model_profile_sha256",
+            "candidate_manifest_sha256",
+            "pytest_log_sha256",
         )
     )
 
@@ -238,17 +255,11 @@ def test_historical_local_bridge_receipt_keeps_its_exact_boundary() -> None:
 def test_historical_local_bridge_receipt_preserves_source_lineage() -> None:
     receipt = read_historical_receipt(_RECEIPT)
     require_historical_source_map(receipt, _SOURCES, "d7d6c42e6f8f1501d05f32839087da327cb4217f16ade9e0345e4982fc62f4de")
-    evidence = receipt["qualification_evidence"]
+    evidence = receipt["code_evidence"]
     assert set(evidence) == {
-        "application_receipt_sha256",
-        "candidate_manifest_sha256",
-        "coordinator_receipt_sha256",
         "coordinator_source_sha256",
         "joined_test_sha256_before_trial",
-        "model_profile_sha256",
-        "pytest_log_sha256",
         "resource_launcher_source_sha256",
-        "resource_receipt_sha256",
     }
     assert (
         evidence["joined_test_sha256_before_trial"]
@@ -262,6 +273,21 @@ def test_historical_local_bridge_receipt_preserves_source_lineage() -> None:
     for digest in evidence.values():
         assert len(digest) == 64
         assert set(digest) <= set("0123456789abcdef")
+    evidence_ids = receipt["qualification_evidence_ids"]
+    assert set(evidence_ids) == {
+        "application_receipt",
+        "candidate_manifest",
+        "coordinator_receipt",
+        "model_profile",
+        "pytest_log",
+        "resource_receipt",
+    }
+    all_ids = [*evidence_ids.values(), receipt["retained_history_evidence_id"]]
+    assert len(set(all_ids)) == 7
+    for identity in all_ids:
+        parsed = UUID(identity)
+        assert parsed.version == 4
+        assert str(parsed) == identity
     require_historical_tcp_coverage(_ROOT, _SOURCES, _SOURCES)
 
 

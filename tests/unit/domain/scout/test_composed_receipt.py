@@ -7,24 +7,24 @@ import tomllib
 from hashlib import sha256
 from importlib.metadata import version
 from pathlib import Path
+from typing import Any
+from uuid import UUID
+
+import pytest
 
 
-def test_maintained_composed_passage_matches_source_and_dependencies() -> None:
-    root = Path(__file__).resolve().parents[4]
-    receipt = json.loads((root / "tests/fixtures/scout/linux-composed-runtime.json").read_text())
-    assert receipt["schema"] == "scout-composed-local-proof@1"
-    assert receipt["status"] == "passed"
-    assert receipt["network"] == "isolated-loopback-only"
-    assert receipt["admission"] == "credential-consent-store-issued-claim"
-    assert receipt["execution"] == "explicit-service-and-node-choreography"
-    assert receipt["model"] == "deterministic-FunctionModel"
-    assert set(receipt["unexercised"]) == {
-        "HTTP-routes",
-        "SAQ-worker-process",
-        "Graph-checkpoint-resume",
-        "model-inference",
-        "public-Internet",
-    }
+def _require_current_source_freshness(root: Path, receipt: dict[str, Any]) -> None:
+    """A historical observation cannot qualify current critical source bytes."""
+    assert receipt.get("qualification_scope", "current") == "current", "historical receipt is not current qualification"
+    for path, digest in receipt["source_fingerprints"].items():
+        assert sha256((root / path).read_bytes()).hexdigest() == digest, path
+
+
+def _require_current_dependencies(root: Path, receipt: dict[str, Any]) -> None:
+    """Keep selected package and private-reference checks for a future current trial."""
+    evidence_id = UUID(receipt["qualification_evidence_id"])
+    assert evidence_id.version == 4
+    assert str(evidence_id) == receipt["qualification_evidence_id"]
     dependencies = {
         name: version(name)
         for name in (
@@ -42,7 +42,49 @@ def test_maintained_composed_passage_matches_source_and_dependencies() -> None:
     locked = tomllib.loads((root / "uv.lock").read_text())
     dependencies["docker"] = next(item["version"] for item in locked["package"] if item["name"] == "docker")
     assert receipt["dependency_versions"] == dependencies
-    assert set(receipt["source_fingerprints"]) == {
+
+
+def test_composed_passage_preserves_its_declared_qualification_scope() -> None:
+    root = Path(__file__).resolve().parents[4]
+    raw = (root / "tests/fixtures/scout/linux-composed-runtime.json").read_bytes()
+    receipt = json.loads(raw)
+    scope = receipt.get("qualification_scope", "current")
+    assert scope in {"current", "historical"}
+    assert receipt["schema"] == "scout-composed-local-proof@1"
+    assert receipt["status"] == "passed"
+    assert receipt["network"] == "isolated-loopback-only"
+    assert receipt["admission"] == "credential-consent-store-issued-claim"
+    assert receipt["execution"] == "explicit-service-and-node-choreography"
+    assert receipt["model"] == "deterministic-FunctionModel"
+    assert receipt["record_kind"] == "sanitized_public_composed_qualification"
+    assert set(receipt["unexercised"]) == {
+        "HTTP-routes",
+        "SAQ-worker-process",
+        "Graph-checkpoint-resume",
+        "model-inference",
+        "public-Internet",
+    }
+    if scope == "historical":
+        assert sha256(raw).hexdigest() == "81fe67208e0e5d625b114d0f257291628572884fc43351e36107fdd4d9ebac33"
+        assert receipt["observed_on"] == "2026-10-19"
+        assert receipt["historical_retirement"] == {
+            "retired_on": "2026-10-26",
+            "reason": "integrated-source-closure-changed",
+            "no_current_qualification": True,
+        }
+        assert receipt["dependency_versions"] == {
+            "asyncpg": "0.32.0",
+            "sqlalchemy": "2.0.54",
+            "docker": "7.2.0",
+            "h11": "0.16.0",
+            "dnspython": "2.8.0",
+            "pydantic": "2.14.0",
+            "pydantic-ai-slim": "2.55.0",
+            "pydantic-graph": "2.55.0",
+        }
+    else:
+        _require_current_dependencies(root, receipt)
+    expected_sources = {
         "src/lychd/domain/codex/local_access.py",
         "src/lychd/domain/codex/ledger.py",
         "src/lychd/domain/cortex/bridge_preference.py",
@@ -77,12 +119,20 @@ def test_maintained_composed_passage_matches_source_and_dependencies() -> None:
         "tests/scout_fixtures.py",
         "tests/scout_network_fixture.py",
         "tests/scout_postgres_fixture.py",
+        "tests/postgres_model_tables.py",
         "tests/scout_workflow_fixture.py",
         "tests/integration/test_scout_extraction_runtime.py",
         "tests/integration/test_scout_composed_runtime.py",
     }
-    for path, digest in receipt["source_fingerprints"].items():
-        assert sha256((root / path).read_bytes()).hexdigest() == digest, path
+    if scope == "historical":
+        expected_sources.remove("tests/postgres_model_tables.py")
+    assert set(receipt["source_fingerprints"]) == expected_sources
+    if scope == "current":
+        _require_current_source_freshness(root, receipt)
+    assert not any(
+        item in json.dumps(receipt)
+        for item in ("/home/", "/tmp/", '"container_id"', '"python_root"')  # noqa: S108 - refuse private paths
+    )
     database = receipt["database"]
     assert database["network"] == "none"
     assert database["published_ports"] is False
@@ -106,3 +156,19 @@ def test_maintained_composed_passage_matches_source_and_dependencies() -> None:
         assert passage["usage"]["wire_bytes"] > 0
         assert passage["usage"]["transmissions"] > 0
         assert set(passage["tls_versions"]) <= {"TLSv1.2", "TLSv1.3"}
+
+
+def test_current_source_freshness_refuses_historical_observations(tmp_path: Path) -> None:
+    with pytest.raises(AssertionError, match="historical receipt is not current qualification"):
+        _require_current_source_freshness(tmp_path, {"qualification_scope": "historical", "source_fingerprints": {}})
+
+
+def test_current_source_freshness_detects_changed_critical_inputs(tmp_path: Path) -> None:
+    source = tmp_path / "critical.py"
+    source.write_bytes(b"original critical input")
+    receipt = {"source_fingerprints": {"critical.py": sha256(source.read_bytes()).hexdigest()}}
+    _require_current_source_freshness(tmp_path, receipt)
+
+    source.write_bytes(b"changed critical input")
+    with pytest.raises(AssertionError, match=r"critical\.py"):
+        _require_current_source_freshness(tmp_path, receipt)

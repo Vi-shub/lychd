@@ -21,7 +21,7 @@ import asyncio
 from collections.abc import AsyncIterator, Iterator
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 from uuid import UUID
 
 import pytest
@@ -31,7 +31,7 @@ pytest.importorskip("testcontainers", reason="optional disposable PostgreSQL rec
 
 from pydantic import BaseModel
 from pydantic_graph import BaseNode, End, GraphRunContext
-from sqlalchemy import select, text
+from sqlalchemy import Table, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from testcontainers.community.postgres import PostgresContainer
@@ -75,6 +75,7 @@ from lychd.domain.delegation.models import (
 from lychd.domain.delegation.services import IllegalDelegatedAgentTransitionError
 from lychd.domain.orchestration.schema import TransitionTrace
 from lychd.domain.web.schemas import BridgeTurn
+from tests.postgres_model_tables import with_referenced_tables
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
@@ -104,6 +105,7 @@ async def pg_factory(pg_url: str) -> AsyncIterator[async_sessionmaker[AsyncSessi
         DelegatedAgentJobRecord.__table__,
         DelegatedAgentEventRecord.__table__,
     ]
+    tables = with_referenced_tables(cast("list[Table]", tables))
     async with engine.begin() as connection:
         await connection.run_sync(Run.metadata.drop_all, tables=tables)
         await connection.run_sync(Run.metadata.create_all, tables=tables)
@@ -1500,6 +1502,7 @@ async def test_reconcile_orphaned_running_lands_terminal_step(
         stasis_store=InMemoryStasisStore(),
         consents=None,
         delegates=None,
+        peer=None,
         effects=None,
         context=_NoRunContext(),
     )

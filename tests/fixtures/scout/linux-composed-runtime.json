@@ -132,5 +132,11 @@
     "anonymous_volume_count": 1
   },
   "record_kind": "sanitized_public_composed_qualification",
-  "observed_on": "2026-10-19"
+  "observed_on": "2026-10-19",
+  "qualification_scope": "historical",
+  "historical_retirement": {
+    "retired_on": "2026-10-26",
+    "reason": "integrated-source-closure-changed",
+    "no_current_qualification": true
+  }
 }

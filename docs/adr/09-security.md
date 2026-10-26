@@ -178,6 +178,14 @@ not supply classification. Ordinary chat, model output or copied Context cannot 
 declaration merely by containing the same URL. Missing lineage, known restricted influence and
 prohibited categories retain the refusal rules below.
 
+The [outbound public-text peer profile](26-a2a.md#peer-task-jsonrpc-1) has a separate dedicated
+operator-authored-text source adapter. It requires actual local authentication and a distinct
+current classification action, and binds the exact complete text, source/influence facts,
+category, purpose, enrolled target and policy generation. This is an attributed assertion of
+publicness, not a PII detector or proof of original authorship. Known restricted ancestry,
+unknown lineage, prohibited categories and local-only constraints still refuse. Text equality,
+ordinary chat, ASR, model output and a serialized declaration cannot supply this authority.
+
 A coding runtime's child provider request is a separate `PortalTarget`; the outer job decision
 cannot authorize an unknown series of model calls. A black-box runtime that cannot keep its network
 behind the admitted Provider Gate is ineligible for automated remote execution. Transparent MITM,
@@ -195,6 +203,9 @@ value, credential, or live Sigil/capability/grant/lease handle.
 
 Within the trusted local Scout profile, its host-bound local subject and authentication generation
 occupy the identity binding without claiming an enrolled Ward Principal or remote credential.
+The public-text peer profile likewise binds its authenticated local initiator separately from
+the enrolled workload/remote peer identities. Its explicit operator-operation binding is an
+alternative to native Run binding, never a UUID placed in a Run/occurrence slot by convention.
 
 `EgressDecision` is restricted, local-only, non-exportable, and non-bearer evidence. It never enters
 the provider, peer, runtime, callback, log, Loom, or telemetry payload. The Gate passes only the
@@ -218,6 +229,69 @@ external/idempotency identity, road decision, and—when present—Cut/token nam
 target, actor, policy, custody route, semantic retry, resume with changed body, or fallback creates a
 new road decision and, when transformation is required, a new Cut. Uncertain effects reconcile;
 they never silently become a new semantic attempt.
+
+#### Offline disclosure-accounting qualification
+
+`closed-diagnostic-recording@1` is a local qualification profile for durable disclosure
+admission and consumption. It accepts only the complete canonical bytes of the existing
+`closed-diagnostic@1` candidate, under a separately host-pinned synthetic **export** binding.
+The expected actor, Sigil digest, consumer, purpose and exact target cannot be taken from the
+candidate's own Cut as their authority. This profile neither declares an enrolled A2A peer nor
+admits a Portal, credential, network destination or arbitrary source material.
+
+An acknowledged fresh database claim consumes one use and the complete candidate size against
+stable host and purpose capacity and the individual Cut's disclosure ceiling. Host and purpose
+identity are independent of Cut, attempt, transmission and Run identities; a new identifier,
+renamed configuration or changed policy cannot reset retained capacity. Configuration changes
+that disagree with retained ceilings refuse rather than minting a fresh account. No charge is
+refunded after a claim, including refusal, expiry, cancellation or uncertain recording.
+
+Only the trusted recording owner may turn its fresh claim into one process-local activation.
+It consumes that activation before invoking its concrete bounded synchronous recorder, after
+rechecking the host binding, Cut, expiry, current policy and exact Run effect fence. No await
+separates the final check from the recorder handoff. The recorder receives exactly the candidate
+bytes, without a decision envelope; no callback, caller-selected implementation, URL or filesystem
+destination is admitted. Claim and completion shapes, copied objects and restored rows are not
+live authority.
+
+This profile linearizes admission before a local recorder call. A database Run lock does not
+fence a later cancellation after commit, and no transaction spans an external effect. A future
+transport owns its additional effect-time and complete-wire obligations: wrappers, authentication,
+headers, polling and artifact requests cannot inherit this candidate's verification. Offline
+recording is an acceptance witness for the accounting primitive, not evidence of A2A exchange,
+remote disclosure safety, general anonymization or a normal application egress path.
+
+#### Public-text peer network handoff
+
+The Intercom profile requires its own typed network admission and custody. A closed diagnostic
+recorder claim, Cut shape, Scout locator declaration or transport class grants it no authority.
+Policy-independent pinned socket/TLS mechanisms may be reused under the mandatory Intercom gate;
+Scout's source/locator policy is not peer trust.
+
+The gate verifies the independently admitted public source and exact enrolled `A2ATarget`, then
+seals the complete application request after authentication headers are prepared. Public protocol
+wrappers, workload identifiers, nonce, path, poll parameters and TLS hostname have explicit
+disclosure bases too. Every connect/TLS/application send checks current authority and consumes
+its finite committed allowance in the same loop turn as the nonblocking syscall. TLS ciphertext
+is bound to the complete sealed application value; the gate never claims to reconstruct it by
+decrypting traffic. No private decision, source manifest, operator subject, credential or receipt
+metadata may be appended to wire. No DNS or ambient proxy/redirect/retry road is opened.
+
+Fresh physical signature wrappers over one retained semantic body require a new complete-wire
+decision; they do not authorize repeating an unknown effect. Poll and cancellation requests have
+their own exact source/target/purpose decision. Durable counters charge full declared application
+bytes and conservative network allowance without refund; observed accepted network bytes are
+reported separately. Failure to commit, verify current authority or reconcile an old attempt
+cannot activate transport. This public-input profile does not authorize private Context, a
+general anonymizer, voice offload or a new provider/peer fallback.
+
+The [native public peer station](26-a2a.md#native-public-peer-station) adds an exact real
+Run/station/source/target association. A process-owned live permit requires actual current
+operator authentication and canonical ownership; retained admission, Sigil and checkpoint shapes
+cannot construct it. Fresh authenticated reauthorization after restart cannot rearm a claimed or
+closed semantic task. Run/claim fencing is checked at each physical handoff and before adoption
+or resume. Trusted local cancellation may close adoption and retire local exchanges without
+remote permission; remote poll/cancel still requires its own current exact authority and capacity.
 
 #### Thresholds and refusal
 

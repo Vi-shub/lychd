@@ -4,6 +4,9 @@ This is the coding-agent entrypoint for [LychD](README.md). It routes context an
 repository-wide working contract. [CONTRIBUTING.md](CONTRIBUTING.md) owns setup, commands, and
 human-facing contribution rules.
 
+Before choosing a branch, committing, pushing, or opening a pull request, read the
+[current collaboration phase](CONTRIBUTING.md#branches-and-everyday-collaboration).
+
 ## Authority
 
 - ADRs own accepted architectural decisions.

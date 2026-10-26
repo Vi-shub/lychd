@@ -168,5 +168,7 @@ Work](../../state-of-the-work.md#extension-activation-contributions) owns delive
 Change the owned schema, registration, or contributor together with a test of the affected
 behavior, then rerun the focused selection above. Follow the
 [contribution quality checks](https://github.com/hexanomicon/lychd/blob/main/CONTRIBUTING.md#quality-checks)
-for the applicable lint, format, type, and repository gates. Before opening a PR to `dev`, describe
-the boundary the change establishes and the evidence that supports it.
+for the applicable lint, format, type, and repository gates. Describe the boundary the change
+establishes and the evidence that supports it. Follow the
+[current collaboration phase](https://github.com/hexanomicon/lychd/blob/main/CONTRIBUTING.md#branches-and-everyday-collaboration)
+for branch and submission procedure.

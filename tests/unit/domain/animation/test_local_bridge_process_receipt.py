@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import re
 import sys
+from uuid import UUID
 
 import pytest
 from scripts.local_model_probe import ProbeProfile
@@ -29,9 +30,38 @@ _PROCESS_TEST = "tests/integration/test_local_bridge_process_restart.py"
 def test_historical_process_receipt_preserves_qualification_and_privacy_boundary() -> None:
     text = _RECEIPT.read_text()
     receipt = read_historical_receipt(_RECEIPT)
-    assert receipt["schema"] == "local-bridge-vllm-process-restart@1"
+    assert set(receipt) == {
+        "code_evidence",
+        "database",
+        "dependency_versions",
+        "execution",
+        "freshness_check",
+        "identity_boundary",
+        "model",
+        "outcome",
+        "processes",
+        "qualification_date",
+        "qualification_evidence_ids",
+        "record_kind",
+        "representation_redaction",
+        "retained_history_evidence_id",
+        "retained_turns_evidence_id",
+        "runner",
+        "schema",
+        "source_fingerprints",
+        "source_identity",
+        "status",
+        "timings_seconds",
+        "unexercised",
+    }
+    assert receipt["schema"] == "local-bridge-vllm-process-restart@2"
     assert receipt["qualification_date"] == "2026-10-19"
     assert receipt["status"] == "passed"
+    assert receipt["representation_redaction"] == {
+        "redacted_on": "2026-10-26",
+        "kind": "private-evidence-fingerprints-to-opaque-references",
+        "new_runtime_qualification": False,
+    }
     assert "The optional thinking policy was omitted" in receipt["identity_boundary"]
     assert "Creation investigation was omitted." in receipt["identity_boundary"]
     assert receipt["source_identity"] == {
@@ -117,8 +147,10 @@ def test_historical_process_receipt_preserves_qualification_and_privacy_boundary
         "managed-model-lifecycle",
     } <= set(receipt["unexercised"])
     assert receipt["freshness_check"] == "offline-metadata-source-and-selected-dependency-check-only"
-    for key in ("retained_history_sha256", "retained_turns_sha256"):
-        assert re.fullmatch(r"[0-9a-f]{64}", receipt[key])
+    for key in ("retained_history_evidence_id", "retained_turns_evidence_id"):
+        identity = UUID(receipt[key])
+        assert identity.version == 4
+        assert str(identity) == receipt[key]
     assert not any(
         forbidden in text
         for forbidden in (
@@ -137,6 +169,14 @@ def test_historical_process_receipt_preserves_qualification_and_privacy_boundary
             '"container_id"',
             '"prompt"',
             '"message_history"',
+            "retained_history_sha256",
+            "retained_turns_sha256",
+            "application_receipt_sha256",
+            "coordinator_receipt_sha256",
+            "resource_receipt_sha256",
+            "model_profile_sha256",
+            "candidate_manifest_sha256",
+            "pytest_log_sha256",
         )
     )
 
@@ -148,18 +188,12 @@ def test_historical_process_receipt_preserves_source_lineage_and_provenance() ->
         historical._SOURCES | {_PROCESS_TEST},
         "196767d06e885806550783359a4fece1c2b9ef5cde202eed99e29d757b2334e5",
     )
-    evidence = receipt["qualification_evidence"]
+    evidence = receipt["code_evidence"]
     assert evidence["process_test_sha256_before_trial"] == receipt["source_fingerprints"][_PROCESS_TEST]
     assert set(evidence) == {
-        "application_receipt_sha256",
-        "candidate_manifest_sha256",
-        "coordinator_receipt_sha256",
         "coordinator_source_sha256",
-        "model_profile_sha256",
         "process_test_sha256_before_trial",
-        "pytest_log_sha256",
         "resource_launcher_source_sha256",
-        "resource_receipt_sha256",
     }
     assert evidence["coordinator_source_sha256"] == "e81e1540890e24a81e19dfb2e8393abd9c0b078c788bc4b72baa3a73a8435b3f"
     assert (
@@ -168,6 +202,21 @@ def test_historical_process_receipt_preserves_source_lineage_and_provenance() ->
     )
     for digest in evidence.values():
         assert re.fullmatch(r"[0-9a-f]{64}", digest)
+    evidence_ids = receipt["qualification_evidence_ids"]
+    assert set(evidence_ids) == {
+        "application_receipt",
+        "candidate_manifest",
+        "coordinator_receipt",
+        "model_profile",
+        "pytest_log",
+        "resource_receipt",
+    }
+    all_ids = [*evidence_ids.values(), receipt["retained_history_evidence_id"], receipt["retained_turns_evidence_id"]]
+    assert len(set(all_ids)) == 8
+    for identity in all_ids:
+        parsed = UUID(identity)
+        assert parsed.version == 4
+        assert str(parsed) == identity
     require_historical_tcp_coverage(_ROOT, historical._SOURCES, historical._SOURCES | {_PROCESS_TEST})
 
 

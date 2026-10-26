@@ -1,8 +1,11 @@
 """Seal dated pre-removal observations without qualifying current container code.
 
 The 20 October container-only decision retired host-native Core deployment and
-its qualification drivers. Original receipt bytes, source maps and facts remain
-historical evidence; no live file or installed dependency comparison renews them.
+its qualification drivers. Source maps and dated facts remain historical evidence;
+no live file or installed dependency comparison renews them. The two 19 October
+receipts use a 26 October
+representation-only privacy redaction; their replacement byte seals attest that
+redacted representation, never a new runtime qualification.
 """
 
 # ruff: noqa: INP001 - existing tests/support namespace is intentional
@@ -16,8 +19,8 @@ from typing import Any, cast
 
 _HISTORICAL_SHA256 = {
     "local-bridge-vllm-native-tcp.json": "e63e321998d70d2a8901d610c687e95c289d7d667fb9986c6d1052020fd68831",
-    "local-bridge-vllm-runtime.json": "20d5a529338815bd43588e87fac91f1041aacaf2f470fe62db4d414d8f0033e2",
-    "local-bridge-vllm-process-restart.json": "a6571c0f111ba3178dc10c0ee0d962e13bfd236c634a187abee038fbaec38a24",
+    "local-bridge-vllm-runtime.json": "a15c5eed284eb101fce340d697e25dd975d72b4891723429d0a3d47cfeec6c44",
+    "local-bridge-vllm-process-restart.json": "ec32ecb083efacddab98d8cc772be317e455b22ed2a75f44b3b328250bc5a579",
 }
 
 # Deliberate evidence-contract retirement; this is not a fingerprint renewal.
@@ -51,7 +54,7 @@ HISTORICAL_NATIVE_SOURCES = frozenset(
 
 
 def read_historical_receipt(path: Path) -> dict[str, Any]:
-    """Seal the complete original bytes before validating their dated facts."""
+    """Seal the complete retained representation before validating its dated facts."""
     expected = _HISTORICAL_SHA256[path.name]
     raw = path.read_bytes()
     assert sha256(raw).hexdigest() == expected, "historical receipt bytes changed"

@@ -1,4 +1,9 @@
 {
+  "code_evidence": {
+    "coordinator_source_sha256": "e81e1540890e24a81e19dfb2e8393abd9c0b078c788bc4b72baa3a73a8435b3f",
+    "process_test_sha256_before_trial": "9621a9209499c7f552b024e18a1621f132964b87e9d7f0f9d38bbb780515eaa9",
+    "resource_launcher_source_sha256": "5501216f6134ad20f1f03d95734715f757369d301be8620bf5016da3b1fc0aa5"
+  },
   "database": {
     "container_removed": true,
     "created_containers": 1,
@@ -46,7 +51,7 @@
     "worker": "real-in-process-SAQ"
   },
   "freshness_check": "offline-metadata-source-and-selected-dependency-check-only",
-  "identity_boundary": "One dated local omission-baseline trial with bounded critical source/test fingerprints and selected package versions. The optional thinking policy was omitted; this trial qualifies neither selecting it nor useful task completion. Neither a clean-checkout, atomic transitive environment nor model-byte attestation. Updating metadata or hashes alone does not requalify changed critical inputs. Creation investigation was omitted.",
+  "identity_boundary": "One dated local omission-baseline trial with bounded critical source/test fingerprints and selected package versions. The optional thinking policy was omitted; this trial qualifies neither selecting it nor useful task completion. Neither a clean-checkout, atomic transitive environment nor model-byte attestation. Updating metadata or hashes alone does not requalify changed critical inputs. Creation investigation was omitted. Private trial evidence remains local behind random opaque references; the 26 October representation redaction does not renew this historical qualification.",
   "model": {
     "context_tokens": 4096,
     "cooperative_deadline_seconds": 30,
@@ -106,20 +111,22 @@
     "start_method": "spawn"
   },
   "qualification_date": "2026-10-19",
-  "qualification_evidence": {
-    "application_receipt_sha256": "df97f67977dec314c67b79f7ee088b48d483a5e8e629788e68dfa6d95d989821",
-    "candidate_manifest_sha256": "d059e501e5a03642f6c0f7d5b64fefd9358e1e708de6216a47588231df1c75d7",
-    "coordinator_receipt_sha256": "a0a89376c83a9f9eff3e482776510d12b3ea4f8df3ebde48cfb877feb1a9b292",
-    "coordinator_source_sha256": "e81e1540890e24a81e19dfb2e8393abd9c0b078c788bc4b72baa3a73a8435b3f",
-    "model_profile_sha256": "1d2294244ad22c36019aaefd9ca9c3a4bad8d3874408e0e3245c5728a648dc6d",
-    "process_test_sha256_before_trial": "9621a9209499c7f552b024e18a1621f132964b87e9d7f0f9d38bbb780515eaa9",
-    "pytest_log_sha256": "7aa3aa81f274f891131c5e5412cb01a8b5d721701f96343b24282871f2721cf4",
-    "resource_launcher_source_sha256": "5501216f6134ad20f1f03d95734715f757369d301be8620bf5016da3b1fc0aa5",
-    "resource_receipt_sha256": "55da2cb0797531f1a27e245f5366d5f940b65adb8273a567fb0437ff74d12c79"
+  "qualification_evidence_ids": {
+    "application_receipt": "972ce5f5-dd46-4637-afd2-72578cb9417c",
+    "candidate_manifest": "949f00da-a622-4fad-9398-ae277025d7e7",
+    "coordinator_receipt": "a83ff80b-03b2-4346-aec3-b7d8edcb4b75",
+    "model_profile": "1fef0edf-c69e-4ba8-8edd-34a4a3d48d66",
+    "pytest_log": "21188d10-d374-4dff-93ea-e19633ab05d0",
+    "resource_receipt": "51ded0f8-96e0-420b-82f1-811c89c01ba9"
   },
   "record_kind": "sanitized_public_local_bridge_process_qualification",
-  "retained_history_sha256": "0134df3b92f543af08c85df7e2d0224ec4606722b8531dbd8927c5a1980bc899",
-  "retained_turns_sha256": "ad4ba2bc6cb29064c2a03b1926950ea72047c9f7c751229070ccd22330f953f9",
+  "representation_redaction": {
+    "redacted_on": "2026-10-26",
+    "kind": "private-evidence-fingerprints-to-opaque-references",
+    "new_runtime_qualification": false
+  },
+  "retained_history_evidence_id": "86260a7e-789c-4de8-806d-23c340e44a0e",
+  "retained_turns_evidence_id": "b25c3ff0-f0d4-40f6-9b36-a36d5d763020",
   "runner": {
     "cleanup_verified": true,
     "coordinator_cleanup_reserve_seconds": 30,
@@ -141,7 +148,7 @@
     "test_wait_seconds": 210,
     "unresolved_creates": 0
   },
-  "schema": "local-bridge-vllm-process-restart@1",
+  "schema": "local-bridge-vllm-process-restart@2",
   "source_fingerprints": {
     "scripts/local_model_probe.py": "a8904d9e1b777e880d63a8e455cd07bff8819d9ff1edeb211b693e9eeb8957c5",
     "src/lychd/agents/context_limits.py": "dd283fd293c2caf3d521d4e23cd33fd509fb82a2624f213b9d3a49530f92bdd4",

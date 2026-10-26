@@ -1,9 +1,9 @@
-<!-- Base branch: dev for ordinary contributions, including forks. main remains the public default. -->
+<!-- Follow the current collaboration phase in CONTRIBUTING.md for whether a PR is needed and which base branch to use. -->
 
 ## Change and scope
 
 <!-- Explain the problem, resulting behavior and the boundary of this change. -->
-<!-- Link work with "Refs #…". A PR to dev does not close an issue via closing keywords. Close it after full acceptance and promotion to main; a partial PR does not complete its parent outcome. -->
+<!-- Link work with "Refs #…". Close an issue only after full acceptance and required changes reach main; a partial PR does not complete its parent outcome. -->
 
 ## Verification
 

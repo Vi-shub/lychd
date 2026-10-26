@@ -44,7 +44,21 @@ acceptance; the [delivery ledger](docs/state-of-the-work.md) keeps the remaining
 
 ## Branches and everyday collaboration
 
-**Send ordinary pull requests to `dev`, including contributions from forks.** `main` stays the
+### Current phase: direct work on main
+
+**Until the team starts on 2 November 2026, authorised work is committed and pushed directly to
+`main`.** Do not open a pull request or create a feature branch by default during this solo
+phase; use one only when the operator explicitly requests it. An isolated checkout may still
+help combine or verify changes without requiring a PR. Preserve unrelated work and shared history.
+
+Read the complete change, run the checks appropriate to it and record the resulting commit and
+evidence. Direct-to-main work retains the same quality, source and delivery boundaries. It adds
+no mandatory reviewer count or founder-only queue.
+
+### Team phase: integration through dev
+
+**From 2 November 2026, when the team starts, send ordinary pull requests to `dev`, including
+contributions from forks.** `main` stays the
 default branch and the source of published documentation; it records the last deliberately
 verified snapshot. `dev` is the shared integration branch.
 
@@ -87,6 +101,9 @@ do not impose a new approval count or change the branch/promotion policy below.
 
 ### Promote a tested snapshot
 
+This promotion procedure applies to the team phase. During the current solo phase, verify the
+authorised change and push it directly to `main` as described above.
+
 Record the exact candidate commit, checks and relevant untested boundaries in the linked issue or
 PR; small direct fixes may use the commit's CI record and an accompanying note. A candidate
 includes all of its earlier changes. Verify that it belongs to `dev`, then advance
@@ -109,12 +126,10 @@ cherry-picking or squash/rebase promotion between the long-lived branches: that 
 different history and may create an untested combination. Keep `dev` when cleaning up merged
 branches. Main publication updates the documentation site; it is not a package release.
 
-The operator-authorized finite foundations task of 20 October 2026 uses a task-scoped
-exception: Lead may integrate reviewed, green candidates directly into `main`, without a PR,
-`dev` mutation, or force-push. The ordinary branch and promotion policy above remains in force
-for other work. The next human integration step is to merge the resulting `main` history into
-`dev`, preserve ancestry, resolve conflicts, and verify the combined result before further
-ordinary promotion.
+The finite-foundations task of 20 October 2026 used a task-scoped direct-to-main exception.
+The operator's 26 October instruction establishes the current solo-main phase above for
+authorised work generally. Before team integration begins, bring `main` history into `dev`,
+preserve ancestry and verify the combined result.
 
 ### Issues and the board
 
@@ -126,7 +141,7 @@ ordinary promotion.
 - **Done:** the full issue criteria are verified, required changes are on `main`, and affected
   documentation is current. A partial PR does not complete its parent issue.
 
-Closing keywords in a PR targeting `dev` do not close its issue while `main` is the default.
+During the team phase, closing keywords in a PR targeting `dev` do not close its issue while `main` is the default.
 Use explicit issue references during development, then close completed issues and set Done after
 promotion. The promoting maintainer updates those issues and the board, or names who will.
 Review, acceptance and promotion are recorded manually; a green CI run or merged PR
@@ -252,6 +267,13 @@ Disposable PostgreSQL receipts are an explicit host-integration profile, not par
 ```bash
 LYCHD_TEST_ENGINE=docker LYCHD_TEST_DAEMON_SOCKET=/absolute/path/to/owned-docker.sock make test-containers
 ```
+
+The bounded [Intercom operator session](docs/sepulcher/intercom.md) uses the production outbound
+public-text service. Its two PostgreSQL modules additionally accept only an explicitly supplied
+disposable `LYCHD_INTERCOM_TEST_DATABASE_URL`; the migration module needs empty public Intercom
+tables. They do not start a container implicitly. The independent SDK qualification uses a separate
+Python environment and test-only signing middleware; it does not add the SDK to production
+dependencies. `uv run --locked python scripts/intercom_lab.py --help` performs no external effect.
 
 The check image includes the separate `container-test` dependency group. This target requires
 an explicitly named absolute Docker daemon socket; it admits that socket and host
