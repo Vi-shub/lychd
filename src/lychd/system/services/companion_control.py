@@ -119,6 +119,7 @@ class ControlContext:
     audio_blocked: bool
     voice_request_id: str | None
     voice_phase: str | None
+    question_revision: int = 0
 
 
 @dataclass(frozen=True)
@@ -194,6 +195,7 @@ class CompanionControl:
         self._writers: set[asyncio.StreamWriter] = set()
         self._settlements: set[asyncio.Task[CompanionResult]] = set()
         self._operations: dict[str, _Operation] = {}
+        self._dialogue_actions: dict[str, str] = {}
         self._holds: dict[str, _HeldRecord] = {}
         self._record_count = self._stop_count = 0
         self._last_record: str | None = None
@@ -210,6 +212,7 @@ class CompanionControl:
                     context.generation,
                     context.target_id,
                     context.instruction_timeout_ms,
+                    context.question_revision,
                 ]
             ).encode()
         ).hexdigest()
@@ -533,12 +536,14 @@ class CompanionControl:
         )
         self._sealed |= result.kind == "unknown"
 
-    def observe(self, event: dict[str, Any]) -> None:
+    def observe(self, event: dict[str, Any]) -> None:  # noqa: C901 - project existing closed host operation variants
         """Project only correlated host-owned closed facts, never raw recognized words."""
         operation = self._operations.get(event.get("request_id", ""))
         if operation is None or operation.view["operation"] != "record":
             return
         view, kind = operation.view, event.get("kind")
+        if self._observe_dialogue(event, view):
+            return
         if self._observe_voice_failure(event, view, kind):
             return
         if kind in {"reply_evidence", "speech_failed", "reply_evidence_failed"}:
@@ -576,6 +581,26 @@ class CompanionControl:
             "clarification",
         }:
             self._observe_result(event, view, kind)
+
+    def _observe_dialogue(self, event: dict[str, Any], view: dict[str, Any]) -> bool:
+        kind = event.get("kind")
+        if kind == "dialogue":
+            self._observe_feedback(event, view)
+            if event.get("phase") == "execute" and type(event.get("proposal_request_id")) is str:
+                self._dialogue_actions[event["request_id"]] = event["proposal_request_id"]
+                view.update(status="pending", phase="queued")
+            elif view["game_kind"] is None:
+                view.update(status="known", phase=None)
+            return True
+        if (
+            kind == "dialogue_outcome"
+            and self._dialogue_actions.get(event["request_id"]) == event.get("action_request_id")
+            and event.get("game_kind")
+            in {"applied", "refused", "cancelled", "expired", "unknown", "no_action", "clarification"}
+        ):
+            self._observe_result(event, view, event["game_kind"])
+            return True
+        return False
 
     @staticmethod
     def _observe_voice_failure(event: dict[str, Any], view: dict[str, Any], kind: str | None) -> bool:

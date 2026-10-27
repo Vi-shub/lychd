@@ -10,6 +10,7 @@ from lychd.db.models.atlas import AtlasProjectRecord, AtlasRequestRecord
 from lychd.db.models.blockworld import BlockworldPlacementAction, BlockworldPlacementMission
 from lychd.db.models.checkpoint import RunCheckpoint
 from lychd.db.models.codex import CodexPreauthorization
+from lychd.db.models.companion_memory import CompanionRecipe
 from lychd.db.models.consent import Consent
 from lychd.db.models.creation import (
     CreationAdmission,
@@ -53,6 +54,7 @@ __all__ = [
     "BlockworldPlacementAction",
     "BlockworldPlacementMission",
     "CodexPreauthorization",
+    "CompanionRecipe",
     "Consent",
     "CreationAdmission",
     "CreationAttempt",

@@ -26,6 +26,11 @@ from lychd.compositions.blockworld.companion import (
     parse_text,
     strict_json,
 )
+from lychd.compositions.blockworld.companion_dialogue import (
+    CompanionDialogue,
+    DialogueContext,
+    DialogueDecision,
+)
 from lychd.compositions.blockworld.companion_feedback import feedback_text, reply_text, voice_failure_text
 from lychd.compositions.blockworld.companion_intent import (
     CompanionInstruction,
@@ -34,6 +39,7 @@ from lychd.compositions.blockworld.companion_intent import (
     revalidate_intent_profile,
     validate_raw_instruction,
 )
+from lychd.compositions.blockworld.companion_memory import DialogueLanguage, SessionRecipeStore
 from lychd.domain.artifacts import ArtifactRef
 from lychd.domain.speech_probe import (
     MAX_INPUT_BYTES,
@@ -64,8 +70,10 @@ from scripts.voice_probe import PrivateWorkspace
 
 if TYPE_CHECKING:
     from rich.console import Console
+    from sqlalchemy.ext.asyncio import AsyncEngine
 
 STOP_WORDS = frozenset({":stop", "stop", "zastav", "stoj", "stůj", "stuj"})
+MAX_DIALOGUE_INPUTS = 8
 MAX_CONSOLE_BYTES = 1024
 MAX_RECEIPT_BYTES = 2_097_152
 
@@ -76,6 +84,7 @@ class _CapturedInstruction:
     generation: int
     target_id: str | None
     expires_at_ms: int
+    question_revision: int = 0
 
 
 @dataclass(frozen=True)
@@ -84,6 +93,7 @@ class _ConsoleInput:
     generation: int
     expires_at_ms: int
     eligible: bool
+    question_revision: int = 0
 
 
 class _InstructionRefusedError(ValueError):
@@ -206,7 +216,7 @@ class _VoiceTiming:
         event: dict[str, Any] = {"kind": "voice_timing", **document}
         try:
             self.files.write_new(path, json.dumps(document, allow_nan=False).encode())
-        except Exception:  # noqa: BLE001 - timing custody has no native or audio authority
+        except Exception:  # noqa: BLE001 - presentation cannot erase a known result or bypass owned retirement
             event["kind"] = "timing_evidence_failed"
         else:
             event["timing_evidence_path"] = str(path)
@@ -346,10 +356,21 @@ class CompanionConsole:
         intent_profile: CompanionIntentProfile | None = None,
         instruction_timeout_s: float = 30,
         output: Literal["json", "human"] = "json",
+        dialogue: CompanionDialogue | None = None,
     ) -> None:
         """Bind explicit session and optional speech; microphone capture stays disarmed."""
         self.files, self.session, self.speech = files, session, speech
+        if dialogue is not None and intent_profile is not None:
+            msg = "Reviewed dialogue cannot use the execution-coupled model interpreter."
+            raise ValueError(msg)
+        self.dialogue = dialogue
+        self._dialogue_lock = asyncio.Lock()
+        self._dialogue_tasks: set[asyncio.Task[None]] = set()
+        self._dialogue_audio: asyncio.Task[None] | None = None
+        self._dialogue_delivery_ids: dict[str, str] = {}
         self.language, self.reply_language, self.play_replies = language, reply_language, play_replies
+        if dialogue is not None:
+            dialogue.response_language = cast("DialogueLanguage", reply_language or language or "en")
         self.target_id = None if target_id is None else canonical_uuid(target_id)
         if output not in {"json", "human"}:
             msg = "Console output must be json or human."
@@ -442,6 +463,7 @@ class CompanionConsole:
             audio_blocked=self._audio_blocked,
             voice_request_id=None if self._voice_operation is None else self._voice_operation.request_id,
             voice_phase=None if self._voice_operation is None else self._voice_operation.phase,
+            question_revision=0 if self.dialogue is None else self.dialogue.revision,
         )
 
     def record_gesture(self, gesture: RecordGesture, context: ControlContext) -> asyncio.Task[None]:
@@ -458,7 +480,11 @@ class CompanionConsole:
             None,
             seconds=control.profile.record_seconds if gesture.released is None else gesture.hold_seconds,
             context=_CapturedInstruction(
-                gesture.request_id, gesture.generation, context.target_id, gesture.expires_at_ms
+                gesture.request_id,
+                gesture.generation,
+                context.target_id,
+                gesture.expires_at_ms,
+                context.question_revision,
             ),
             released=gesture.released,
         )
@@ -491,7 +517,7 @@ class CompanionConsole:
             raw = json.dumps(document, ensure_ascii=False, allow_nan=False).encode()
             if len(raw) > MAX_RECEIPT_BYTES:
                 msg = "Native evidence exceeds the private receipt bound."
-                raise ValueError(msg)  # noqa: TRY301 - malformed evidence follows the same custody failure path
+                raise ValueError(msg)  # noqa: TRY301 - a bounded receipt has the same failure settlement
             path = self.files.root / f"{uuid4()}-native.json"
             self.files.write_new(path, raw)
         except (OSError, RuntimeError, TypeError, ValueError):
@@ -518,11 +544,14 @@ class CompanionConsole:
             self.session.capture_generation() if generation is None else generation,
             self.target_id,
             int((time.time() + self.instruction_timeout_s) * 1000),
+            0 if self.dialogue is None else self.dialogue.revision,
         )
 
     def _capture_line(self) -> _ConsoleInput:
         context = self._capture_instruction()
-        return _ConsoleInput(context.request_id, context.generation, context.expires_at_ms, not self._stopping)
+        return _ConsoleInput(
+            context.request_id, context.generation, context.expires_at_ms, not self._stopping, context.question_revision
+        )
 
     def _line_context(self, item: _ConsoleInput) -> _CapturedInstruction:
         if not item.eligible or self._stopping or item.generation != self.session.capture_generation():
@@ -532,7 +561,9 @@ class CompanionConsole:
             msg = "Console input expired before handling."
             raise ValueError(msg)
         # :target and following commands retain their order even within one fd read.
-        return _CapturedInstruction(item.request_id, item.generation, self.target_id, item.expires_at_ms)
+        return _CapturedInstruction(
+            item.request_id, item.generation, self.target_id, item.expires_at_ms, item.question_revision
+        )
 
     def _admit_input(
         self,
@@ -579,7 +610,7 @@ class CompanionConsole:
 
         return request, future
 
-    def _submit(  # noqa: C901 - keep admitted outcome and observational callback ownership together
+    def _submit(
         self,
         text: str,
         *,
@@ -588,8 +619,198 @@ class CompanionConsole:
         source_artifacts: tuple[ArtifactRef, ...] = (),
         timing: _VoiceTiming | None = None,
     ) -> asyncio.Future[SessionResult]:
+        if self.dialogue is None:
+            return self._submit_native(
+                text, source=source, context=context, source_artifacts=source_artifacts, timing=timing
+            )
+        if len(self._dialogue_tasks) >= MAX_DIALOGUE_INPUTS:
+            msg = "Dialogue input capacity reached."
+            raise _InstructionRefusedError(msg)
+        caller: asyncio.Future[SessionResult] = asyncio.get_running_loop().create_future()
+        task = asyncio.create_task(
+            self._dialogue_submit(text, source, context, source_artifacts, timing, caller), name="companion-dialogue"
+        )
+        self._dialogue_tasks.add(task)
+        task.add_done_callback(self._dialogue_tasks.discard)
+        return caller
+
+    def _check_dialogue_context(self, context: _CapturedInstruction) -> None:
+        if (
+            self._stopping
+            or context.generation != self.session.capture_generation()
+            or context.target_id != self.target_id
+            or context.expires_at_ms <= int(time.time() * 1000)
+        ):
+            if self.dialogue is not None:
+                self.dialogue.cancel()
+            msg = "Dialogue input is expired, stopped or bound to an old target."
+            raise _InstructionRefusedError(msg)
+
+    async def _dialogue_submit(
+        self,
+        text: str,
+        source: Literal["text", "transcript"],
+        context: _CapturedInstruction,
+        artifacts: tuple[ArtifactRef, ...],
+        timing: _VoiceTiming | None,
+        caller: asyncio.Future[SessionResult],
+    ) -> None:
+        dialogue = self.dialogue
+        if dialogue is None:
+            msg = "Dialogue is not selected."
+            raise ValueError(msg)
+        handed_off = False
+        action_identity = context.request_id
+        try:
+            async with self._dialogue_lock:
+                self._check_dialogue_context(context)
+                if self._dialogue_audio is not None and not self._dialogue_audio.done():
+                    self._dialogue_audio.cancel()
+                    await complete_under_cancellation(asyncio.gather(self._dialogue_audio, return_exceptions=True))
+                    self._check_dialogue_context(context)
+                async with asyncio.timeout(7):
+                    decision = await dialogue.receive(
+                        text,
+                        DialogueContext(
+                            context.request_id,
+                            context.generation,
+                            context.target_id,
+                            context.expires_at_ms,
+                            source,
+                            artifacts,
+                            context.question_revision,
+                        ),
+                        cast("DialogueLanguage", self.language or "en"),
+                        now_ms=int(time.time() * 1000),
+                    )
+                self._check_dialogue_context(context)
+                self._show_dialogue(decision, context)
+                if decision.request is None:
+                    caller.set_result(SessionResult(context.request_id, None, "clarification", decision.phase))
+                    return
+                # Reuse the original proposal, not the identity/deadline of the spoken yes.
+                request = decision.request
+                action_identity = request.request_id
+                self._dialogue_delivery_ids[request.request_id] = context.request_id
+                original = _CapturedInstruction(
+                    request.request_id,
+                    request.generation,
+                    context.target_id,
+                    request.expires_at_ms or context.expires_at_ms,
+                )
+                self._check_dialogue_context(original)
+                handed_off = True
+                native = self._submit_native(
+                    request.transcript,
+                    source=request.source,
+                    context=original,
+                    source_artifacts=request.source_artifacts,
+                    timing=timing,
+                    prepared=request,
+                )
+            result = await asyncio.shield(native)
+            if not caller.done():
+                caller.set_result(result)
+        except asyncio.CancelledError:
+            if not handed_off:
+                self._dialogue_delivery_ids.pop(action_identity, None)
+            if not caller.done():
+                caller.cancel()
+            raise
+        except Exception:  # noqa: BLE001 - contain private adapter errors without replay
+            dialogue.cancel()
+            self._dialogue_delivery_ids.pop(action_identity, None)
+            kind = "unknown" if handed_off else "refused"
+            self.present(
+                {
+                    "kind": kind,
+                    "request_id": action_identity,
+                    "detail": "Dialogue or memory unavailable; no automatic retry.",
+                }
+            )
+            if not caller.done():
+                caller.set_result(SessionResult(action_identity, None, kind, "Dialogue or memory unavailable."))
+
+    def _show_dialogue(self, decision: DialogueDecision, context: _CapturedInstruction) -> None:
+        event: dict[str, Any] = {
+            "kind": "dialogue",
+            "request_id": context.request_id,
+            "proposal_request_id": None if decision.request is None else decision.request.request_id,
+            "phase": decision.phase,
+            "run_id": None,
+            "game_status": "unreported",
+            "feedback": {"language": self.reply_language or self.language or "en", "text": decision.text},
+            "speech_text": decision.speech_text or decision.text,
+        }
+        self.files.write_new(
+            self.files.root / f"{uuid4()}-dialogue.json", json.dumps(event, ensure_ascii=False).encode()
+        )
+        self.present(event)
+        if decision.text and self.speech is not None and self.reply_language is not None:
+            task = asyncio.create_task(self._dialogue_reply(event, context.generation), name="companion-dialogue-reply")
+            self._dialogue_audio = task
+            self.replies.add(task)
+            self._audio_replies.add(task)
+            task.add_done_callback(self.replies.discard)
+            task.add_done_callback(self._audio_replies.discard)
+
+    def _relay_dialogue_outcome(self, document: dict[str, Any]) -> None:
+        """Preserve confirmation feedback through the surviving native reply, even during stop."""
+        action_id = document["request_id"]
+        delivery_id = self._dialogue_delivery_ids.get(action_id)
+        if delivery_id is None or delivery_id == action_id:
+            return
+        relay: dict[str, Any] = {
+            "kind": "dialogue_outcome",
+            "request_id": delivery_id,
+            "action_request_id": action_id,
+            "run_id": document["run_id"],
+            "game_kind": document["kind"],
+            "feedback": document["feedback"],
+        }
+        try:
+            self.files.write_new(
+                self.files.root / f"{uuid4()}-dialogue-outcome.json", json.dumps(relay, ensure_ascii=False).encode()
+            )
+        except (OSError, ValueError):
+            relay["evidence_status"] = "failed"
+            self.present({"kind": "dialogue_evidence_failed", "request_id": delivery_id})
+        else:
+            relay["evidence_status"] = "recorded"
+        self.present(relay)
+
+    async def _dialogue_reply(self, event: dict[str, Any], generation: int) -> None:
+        evidence = {
+            **event,
+            "artifact_id": str(uuid4()),
+            "reply_status": "not_attempted",
+            "reply_audio": None,
+            "synthesis_observation": None,
+            "playback": "not_attempted",
+            "human_hearing": "unconfirmed",
+        }
+        try:
+            await self._reply_audio(evidence, event["speech_text"], generation)
+        finally:
+            self._reply_operations.pop(event["request_id"], None)
+            self._retain_reply(evidence)
+
+    def _submit_native(  # noqa: C901 - keep native admission, caller and reply ownership together
+        self,
+        text: str,
+        *,
+        source: Literal["text", "transcript"],
+        context: _CapturedInstruction,
+        source_artifacts: tuple[ArtifactRef, ...] = (),
+        timing: _VoiceTiming | None = None,
+        prepared: CompanionRequest | None = None,
+    ) -> asyncio.Future[SessionResult]:
         """Attach reply ownership only after command admission has returned its future."""
-        request, future = self._admit_input(text, source=source, context=context, source_artifacts=source_artifacts)
+        if prepared is None:
+            request, future = self._admit_input(text, source=source, context=context, source_artifacts=source_artifacts)
+        else:
+            request = CompanionRequest.model_validate(prepared.model_dump())
+            future = self.session.enqueue(request, captured_generation=context.generation)
         if timing is not None:
             timing.begin("native_wait")
 
@@ -641,6 +862,37 @@ class CompanionConsole:
         request: CompanionRequest | CompanionInstruction,
         timing: _VoiceTiming | None = None,
     ) -> None:
+        await self._reply_native(future, request, timing)
+        if self.dialogue is not None and isinstance(request, CompanionRequest):
+            result = future.result()
+            async with self._dialogue_lock:
+                decision = self.dialogue.complete(
+                    request,
+                    None if result is None else result.result,
+                    None if result is None else result.run_id,
+                    now_ms=int(time.time() * 1000),
+                )
+                if decision is not None:
+                    delivery_id = self._dialogue_delivery_ids.pop(request.request_id, request.request_id)
+                    try:
+                        self._show_dialogue(
+                            decision,
+                            _CapturedInstruction(
+                                delivery_id, request.generation, self.target_id, int((time.time() + 60) * 1000)
+                            ),
+                        )
+                    except (OSError, ValueError):
+                        self.dialogue.cancel()
+                        self.present({"kind": "dialogue_evidence_failed", "request_id": request.request_id})
+                else:
+                    self._dialogue_delivery_ids.pop(request.request_id, None)
+
+    async def _reply_native(
+        self,
+        future: asyncio.Future[SessionResult | None],
+        request: CompanionRequest | CompanionInstruction,
+        timing: _VoiceTiming | None = None,
+    ) -> None:
         """Own one request's outcome and receipt; stop cancels only its audio stage."""
         result = await complete_under_cancellation(future)
         self._reply_outcomes.pop(request.request_id, None)
@@ -671,6 +923,7 @@ class CompanionConsole:
         )
         document["feedback"] = {"language": language, "text": text}
         self.present(document)
+        self._relay_dialogue_outcome(document)
         if self.speech is None or self.reply_language is None:
             return
         evidence: dict[str, Any] = {
@@ -734,7 +987,7 @@ class CompanionConsole:
                 return
             evidence["reply_status"] = "generated"
             self._reply_stage(evidence["request_id"], "generated")
-            path = self.files.root / f"{evidence['request_id']}-reply.wav"
+            path = self.files.root / f"{evidence.get('artifact_id', evidence['request_id'])}-reply.wav"
             try:
                 with _measure(timing, "reply_artifact_retention"):
                     self.files.write_new(path, content)
@@ -761,7 +1014,7 @@ class CompanionConsole:
 
     def _retain_reply(self, evidence: dict[str, Any]) -> None:
         """Publish only retained receipt paths, with closed correlated failure codes."""
-        path = self.files.root / f"{evidence['request_id']}-reply-evidence.json"
+        path = self.files.root / f"{evidence.get('artifact_id', evidence['request_id'])}-reply-evidence.json"
         try:
             raw = json.dumps(evidence, ensure_ascii=False, allow_nan=False).encode()
             if len(raw) > MAX_RECEIPT_BYTES:
@@ -948,14 +1201,14 @@ class CompanionConsole:
             else:
                 failure = "admission_unknown"
                 with _measure(timing, "admission"):
-                    self._submit(
+                    admitted = self._submit(
                         transcript.text,
                         source="transcript",
                         context=context,
                         source_artifacts=(artifact, transcript_artifact),
                         timing=timing,
                     )
-                record["kind"] = "queued"
+                await self._voice_admission_record(admitted, record)
         except asyncio.CancelledError:
             record["kind"] = "cancelled_server_inference_unknown"
             raise
@@ -970,6 +1223,13 @@ class CompanionConsole:
                     self.files.write_new(self.files.root / f"{identity}-voice.json", json.dumps(record).encode())
             except (OSError, RuntimeError, ValueError):
                 self.present({"kind": "voice_evidence_failed", "request_id": identity})
+
+    async def _voice_admission_record(self, admitted: asyncio.Future[SessionResult], record: dict[str, Any]) -> None:
+        if self.dialogue is None:
+            record["kind"] = "queued"
+            return
+        local = await asyncio.shield(admitted)
+        record.update(kind=local.kind, action_request_id=local.request_id)
 
     def _retain_voice_artifact(
         self, identity: str, part: Literal["source", "transcript"], content: bytes
@@ -1036,8 +1296,10 @@ class CompanionConsole:
         """Fence and cancel synchronously before returning owned asynchronous settlement."""
         self._stopping += 1
         try:
+            if self.dialogue is not None:
+                self.dialogue.cancel()
             settlement = self.session.stop()
-            tasks = [*self._audio_replies]
+            tasks = [*self._audio_replies, *self._dialogue_tasks]
             if (
                 self.voice_task is not None
                 and not self.voice_task.done()
@@ -1108,7 +1370,9 @@ class CompanionConsole:
         ready: dict[str, Any] = {
             "ready": True,
             "commands": "stav | čakaj | nasleduj ma | choď X Y Z | pozri X Y Z | blok X Y Z | povedz TEXT | stop",
-            "console": ":record [1-15] | :wav ABS_PATH | :target UUID | :language [INPUT [REPLY]] | :status | :quit",
+            "console": ":record [1-15] | :wav ABS_PATH | :target UUID | :language [INPUT [REPLY]] | :forget PHRASE | :status | :quit",
+            "dialogue_selected": self.dialogue is not None,
+            "confirmation": None if self.dialogue is None else self.dialogue.confirmation,
         }
         if self.output == "human":
             ready.update(
@@ -1154,14 +1418,60 @@ class CompanionConsole:
         elif line.startswith(":wav "):
             self._begin_voice(Path(line[5:]), seconds=3, context=context)
         elif line.startswith(":target "):
+            if self.dialogue is not None:
+                self.dialogue.cancel()
             self.target_id = canonical_uuid(line[8:].strip())
             self.present({"target_id": self.target_id})
-        elif line == ":status":
-            self.present(self.status())
-        elif line.startswith(":language"):
-            self._language_command(line, context.request_id)
+        elif self._local_command(line, context):
+            return
         elif line:
             self._submit(line, source="text", context=context)
+
+    def _local_command(self, line: str, context: _CapturedInstruction) -> bool:
+        if line == ":status":
+            self.present(self.status())
+        elif line.startswith(":forget ") and self.dialogue is not None:
+            if len(self._dialogue_tasks) >= MAX_DIALOGUE_INPUTS:
+                msg_0 = "Dialogue input capacity reached."
+                raise _InstructionRefusedError(msg_0)
+            task = asyncio.create_task(self._forget_phrase(line[8:], context), name="companion-forget")
+            self._dialogue_tasks.add(task)
+            task.add_done_callback(self._dialogue_tasks.discard)
+        elif line.startswith(":language"):
+            self._language_command(line, context.request_id)
+        else:
+            return False
+        return True
+
+    async def _forget_phrase(self, phrase: str, context: _CapturedInstruction) -> None:
+        if self.dialogue is None:
+            return
+        try:
+            async with self._dialogue_lock, asyncio.timeout(7):
+                self._check_dialogue_context(context)
+                self.dialogue.cancel()
+                removed = await self.dialogue.store.forget(cast("DialogueLanguage", self.language or "en"), phrase)
+                self._check_dialogue_context(context)
+                self.present(
+                    {
+                        "kind": "dialogue",
+                        "request_id": context.request_id,
+                        "phase": "forgotten",
+                        "removed": removed,
+                        "feedback": {
+                            "language": self.language or "en",
+                            "text": "Fráza odstránená." if removed else "Fráza sa nenašla.",
+                        },
+                    }
+                )
+        except (OSError, RuntimeError, ValueError, TimeoutError):
+            self.present(
+                {
+                    "kind": "refused",
+                    "request_id": context.request_id,
+                    "detail": "Memory unavailable; no automatic retry.",
+                }
+            )
 
     def _language_command(self, line: str, request_id: str) -> None:
         """Validate both local choices atomically without mutating already-owned work."""
@@ -1190,6 +1500,9 @@ class CompanionConsole:
             if reply_language is not None:
                 self.speech.profile.language_for_synthesis(reply_language)
             self.language, self.reply_language = language, reply_language
+            if self.dialogue is not None:
+                self.dialogue.cancel()
+                self.dialogue.response_language = cast("DialogueLanguage", reply_language or language)
         self.present(
             {
                 "kind": "language",
@@ -1207,6 +1520,9 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--bridge-profile", type=Path, required=True)
     result.add_argument("--speech-profile", type=Path)
     result.add_argument("--intent-profile", type=Path)
+    result.add_argument("--dialogue", action="store_true")
+    result.add_argument("--confirmation", choices=("always", "unremembered", "never"), default="unremembered")
+    result.add_argument("--memory-profile", type=Path)
     result.add_argument("--control-profile", type=Path)
     result.add_argument("--hold-seconds", type=int, choices=range(1, 16), metavar="1-15")
     result.add_argument("--instruction-timeout", type=float, default=30)
@@ -1255,7 +1571,36 @@ def _load_speech(files: PrivateWorkspace, path: Path | None) -> SpeechProbe | No
     return None
 
 
-async def run(args: argparse.Namespace) -> None:
+def _load_dialogue(
+    args: argparse.Namespace,
+    files: PrivateWorkspace,
+    binding: BridgeBinding,
+    intent_profile: CompanionIntentProfile | None,
+) -> tuple[AsyncEngine | None, CompanionDialogue | None]:
+    """Select disposable or explicit verified PostgreSQL recipes; activate no service."""
+    memory_engine: AsyncEngine | None = None
+    dialogue: CompanionDialogue | None = None
+    if getattr(args, "memory_profile", None) is not None and not getattr(args, "dialogue", False):
+        msg = "Memory profile requires explicit dialogue selection."
+        raise ValueError(msg)
+    if getattr(args, "dialogue", False):
+        if intent_profile is not None:
+            msg = "Reviewed dialogue does not select the execution-coupled interpreter."
+            raise ValueError(msg)
+        from lychd.compositions.blockworld.companion_memory import RecipeStore
+
+        store: RecipeStore = SessionRecipeStore()
+        if getattr(args, "memory_profile", None) is not None:
+            from lychd.db.companion_memory_profile import open_recipe_store
+
+            memory_engine, store = open_recipe_store(files.read(args.memory_profile, MAX_PROFILE_BYTES), binding)
+        dialogue = CompanionDialogue(
+            store, confirmation=args.confirmation, allow_weather=args.allow_weather, allow_time=args.allow_time
+        )
+    return memory_engine, dialogue
+
+
+async def run(args: argparse.Namespace) -> None:  # noqa: C901, PLR0912 - explicit owner cleanup after optional assembly
     if not 1 <= args.duration <= 1800:  # noqa: PLR2004 - bounded interactive lab session
         msg = "Session duration must be 1-1800 seconds."
         raise ValueError(msg)
@@ -1268,6 +1613,7 @@ async def run(args: argparse.Namespace) -> None:
     intent_profile = (
         None if args.intent_profile is None else load_intent_profile(files.read(args.intent_profile, MAX_PROFILE_BYTES))
     )
+    memory_engine, dialogue = _load_dialogue(args, files, binding, intent_profile)
     control_profile = (
         None
         if args.control_profile is None
@@ -1306,6 +1652,7 @@ async def run(args: argparse.Namespace) -> None:
         intent_profile=intent_profile,
         instruction_timeout_s=args.instruction_timeout,
         output=args.output,
+        dialogue=dialogue,
     )
     session.record = console.record
     if control_profile is not None:
@@ -1339,6 +1686,8 @@ async def run(args: argparse.Namespace) -> None:
             try:
                 await session.aclose()
             finally:
+                if memory_engine is not None:
+                    await memory_engine.dispose()
                 for sig in (signal.SIGINT, signal.SIGTERM):
                     loop.remove_signal_handler(sig)
 

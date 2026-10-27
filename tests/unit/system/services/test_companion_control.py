@@ -42,6 +42,50 @@ def encode(document: dict[str, Any]) -> bytes:
     return json.dumps(document, separators=(",", ":")).encode()
 
 
+@pytest.mark.asyncio
+async def test_dialogue_question_change_invalidates_an_earlier_gesture() -> None:
+    async with owner() as fake:
+        old = fake.record_document()
+        fence = fake.current
+        fake.current = replace(fake.current, question_revision=1)
+        assert_refused(fake, "/v1/record", encode(old), 409, fence=fence)
+        assert fake.records == []
+
+
+@pytest.mark.asyncio
+async def test_confirmation_view_gets_only_its_bound_action_outcome() -> None:
+    async with owner() as fake:
+        body = fake.record_document()
+        fake.dispatch("/v1/record", encode(body))
+        request_id, action_id = body["request_id"], identity(700)
+        fake.control.observe(
+            {"kind": "dialogue", "request_id": request_id, "phase": "execute", "proposal_request_id": action_id}
+        )
+        _, state = fake.dispatch("/v1/state", method="GET")
+        assert state["last_record"]["game_kind"] is None
+        assert state["last_record"]["status"] == "pending"
+        fake.control.observe(
+            {
+                "kind": "dialogue_outcome",
+                "request_id": request_id,
+                "action_request_id": identity(701),
+                "game_kind": "applied",
+            }
+        )
+        _, state = fake.dispatch("/v1/state", method="GET")
+        assert state["last_record"]["game_kind"] is None
+        fake.control.observe(
+            {
+                "kind": "dialogue_outcome",
+                "request_id": request_id,
+                "action_request_id": action_id,
+                "game_kind": "applied",
+            }
+        )
+        _, state = fake.dispatch("/v1/state", method="GET")
+        assert state["last_record"]["game_kind"] == "applied"
+
+
 class Owner:
     """Synchronous console fence plus separately released, test-owned settlements."""
 

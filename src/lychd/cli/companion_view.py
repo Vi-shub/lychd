@@ -439,6 +439,15 @@ def _timing(event: Mapping[str, Any], language: Language) -> str | None:
     return f"{_identity(event, language)} {_label('timing', language)}: {'; '.join(fields)}."
 
 
+def _dialogue(event: Mapping[str, Any], language: Language) -> str | None:
+    if event.get("kind") == "dialogue":
+        feedback = event.get("feedback")
+        if isinstance(feedback, Mapping):
+            supplied = cast("Mapping[str, Any]", feedback)
+            return f"{_identity(event, language)} {_literal(supplied.get('text'), language, limit=1600)}"
+    return None
+
+
 def format_companion_event(event: Mapping[str, Any], *, language: Language) -> str | None:
     """Project supplied event facts and private words as bounded literal text.
 
@@ -463,7 +472,7 @@ def format_companion_event(event: Mapping[str, Any], *, language: Language) -> s
             )
             fields.append(f"{_label(key, language)}={selected}")
         return f"{_identity(event, language)} {_label('languages', language)}: {'; '.join(fields)}."
-    for formatter in (_timing, _input, _audio, _result, _binding):
+    for formatter in (_dialogue, _timing, _input, _audio, _result, _binding):
         line = formatter(event, language)
         if line is not None:
             return line

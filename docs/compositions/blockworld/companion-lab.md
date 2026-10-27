@@ -202,6 +202,74 @@ The CLI's bounds narrow admission; the server configuration owns the continuing 
 
 ## Explicit operation
 
+### Reviewed phrases and confirmations
+
+The opt-in `--dialogue` console profile develops a model-free conversation before the ordinary
+FIFO. Ask `možnosti`, `možnosti počasia`, `možnosti času` (or Czech/English equivalents), choose
+a numbered option or give an exact supported command, then answer its confirmation. An unknown
+phrase can be associated with the selected command after execution. The catalogue describes
+the host's closed operations and selected permissions; it is not a live registry of every game
+command. Structure placement and `/summon` currently have no admitted actuator and must be
+reported unavailable, without inventing choices or executing chat as a console command.
+
+`--confirmation unremembered` is the dialogue default. Effects require confirmation unless an
+exact reviewed phrase explicitly permits skipping it. `always` requires it even for remembered
+phrases; `never` omits this conversational check. State and cell reads do not need effect
+confirmation. These settings do not replace native admission, server permissions or stop.
+The confirmation repeats the concrete command. Only an unambiguous `áno`/`ano`/`yes` admits that
+frozen proposal. Rejection, another instruction, expiry, target change or stop discards it.
+Selection and confirmation cannot renew the original instruction deadline or stop generation.
+
+Only a matched applied result may lead to `Je to v poriadku?`. A positive answer then offers
+remembering; `áno` retains the meaning, while `áno bez potvrdenia` additionally permits future
+confirmation skipping in `unremembered` mode. Negative, unknown, cancelled or failed outcomes
+never teach a phrase. Matching is exact after Unicode normalization, case folding and outer
+whitespace removal, partitioned by language and configured server/actor namespace. A remembered
+follow command binds the currently selected target anew; it cannot retain an old player UUID.
+Every reuse creates a fresh request and re-enters the ordinary native checks. Original strict
+commands cannot be redefined as a different action.
+
+Without a separately selected memory database profile, reviewed phrases last only for this
+console session. Cross-session records belong to Phylactery, not a JSON shadow database or the
+public-note Archive. The explicit private `--memory-profile` selects a prepared local PostgreSQL
+connection and owner; startup neither provisions nor migrates it. A missing schema or storage
+failure refuses memory access rather than pretending it was a cache miss or retrying an action.
+The profile is separate from voice/model selection. `:forget PHRASE` removes one exact phrase
+in the current language and namespace; forgetting does not undo a game action.
+
+This is a bounded lab dialogue, not durable Consent, full agent memory, semantic matching or an
+arbitrary-command interpreter. Its pending conversation does not survive restart. Live voice,
+game, PostgreSQL and timing qualification remain separate from offline source checks.
+
+For a later voice trial, append `--dialogue --confirmation unremembered
+--instruction-timeout 60` to the existing launch command. Selection and a spoken confirmation
+share that original sixty-second lifetime. No model interpreter is selected by this profile.
+The memory profile has exactly `version` (integer 1), `owner_id` (UUID), literal-loopback `host`,
+`port`, `user`, `database` and private `password`. Use the prepared data-only runtime role;
+administrative credentials are refused by the ordinary connection authority guard. Keep this
+file in the declared private workspace. Never put it in the checkout or command-line arguments.
+
+### Dump & Search score
+
+`blockworld.companion.search@1` is an explicitly assembled, inactive native Pattern:
+Dump → LiteralSearch → Report. A source adapter returns at most 256 items/128 KiB, exact
+source/revision/digest and whether the catalogue is complete. Escaped literal matching first
+narrows a request such as `castle` or `hrad`; the result keeps the match count, at most sixteen
+candidates and three short choices with source-provided characteristics. A truncated dump cannot
+claim how many matches exist in its unseen remainder. Data labels are discovery facts, never
+instructions or executable commands.
+
+A separately supplied ranking proposal contains only candidate IDs and binds the exact source,
+query and candidate digest. It can reorder those choices but cannot invent an item or authorize
+its execution. This is the input boundary for later admitted agent work, not a delivered
+subagent adapter. It launches no agent, model or foreign runtime. A future delegation must use
+the existing AgentJob/Graph authority and privacy boundaries; this score cannot bypass them.
+
+The current game bridge has no structure/entity catalogue adapter. Consequently this score is
+testable with an injected catalogue but is not connected to spoken castle search or live
+structure/summon execution. Those require their own authoritative catalogue and typed game
+operations. The spoken companion continues to report them unavailable.
+
 The [Java project](https://github.com/hexanomicon/lychd/blob/main/clients/minecraft/README.md) owns the pinned build and server-side
 installation. The Python entry is `scripts/companion_lab.py`; it opens one private external
 workspace, an exact bridge profile, fresh finite policy and the existing native memory runtime.
