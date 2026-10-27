@@ -181,6 +181,7 @@
   <details class="application-menu" {@attach manageAboutDisclosure}>
     <summary>Applications</summary>
     <nav aria-label="Applications">
+      <a href={resolve("/canvas")} aria-current={page.url.pathname === "/canvas" ? "page" : undefined}>Canvas</a>
       <a href={resolve("/scavenger")} aria-current={page.url.pathname === "/scavenger" ? "page" : undefined}>Scavenger market</a>
     </nav>
   </details>

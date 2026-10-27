@@ -551,6 +551,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/canvas/contracts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Contracts */
+        get: operations["getCanvasContracts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/canvas/documents/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Document */
+        post: operations["validateCanvasDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/canvas/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Review */
+        post: operations["reviewCanvasProposal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/creation/investigations": {
         parameters: {
             query?: never;
@@ -1314,6 +1365,168 @@ export interface components {
             /** @enum {string} */
             subject_profile: "Bazaar@1" | "Technology@1";
             travel_delivery: string;
+        };
+        /** CanvasArtwork */
+        CanvasArtwork: {
+            alt: string;
+            png_data_url: string;
+            provenance: string;
+        };
+        /** CanvasBounds */
+        CanvasBounds: {
+            height: number;
+            width: number;
+            x: number;
+            y: number;
+        };
+        /** CanvasContracts */
+        CanvasContracts: {
+            /**
+             * @default canvas.board
+             * @constant
+             */
+            composition: "canvas.board";
+            /**
+             * @default lychd.canvas.document/1
+             * @constant
+             */
+            document_format: "lychd.canvas.document/1";
+            /**
+             * @default false
+             * @constant
+             */
+            image_generation: false;
+            /**
+             * @default false
+             * @constant
+             */
+            model_transmission: false;
+            /**
+             * @default lychd.canvas.selection/1
+             * @constant
+             */
+            packet_format: "lychd.canvas.selection/1";
+            /**
+             * @default lychd.canvas.proposal/1
+             * @constant
+             */
+            proposal_format: "lychd.canvas.proposal/1";
+            /**
+             * @default 1
+             * @constant
+             */
+            revision: 1;
+            /**
+             * @default lychd.canvas/1
+             * @constant
+             */
+            scene_format: "lychd.canvas/1";
+            /**
+             * @default false
+             * @constant
+             */
+            server_retention: false;
+        };
+        /** CanvasCrop */
+        CanvasCrop: {
+            bounds: components["schemas"]["CanvasBounds"];
+            height: number;
+            png_data_url: string;
+            width: number;
+        };
+        /** CanvasDocument */
+        CanvasDocument: {
+            /** @constant */
+            format: "lychd.canvas.document/1";
+            future: components["schemas"]["CanvasScene"][];
+            past: components["schemas"]["CanvasScene"][];
+            scene: components["schemas"]["CanvasScene"];
+        };
+        /** CanvasEdge */
+        CanvasEdge: {
+            id: string;
+            label: string;
+            source: string;
+            source_stroke_ids: string[];
+            target: string;
+        };
+        /** CanvasNode */
+        CanvasNode: {
+            artwork: components["schemas"]["CanvasArtwork"] | null;
+            height: number;
+            id: string;
+            /** @enum {string} */
+            kind: "box" | "database" | "service" | "person" | "note";
+            label: string;
+            pinned: boolean;
+            source_stroke_ids: string[];
+            width: number;
+            x: number;
+            y: number;
+        };
+        /** CanvasPacket */
+        CanvasPacket: {
+            crop: components["schemas"]["CanvasCrop"] | null;
+            /** @constant */
+            format: "lychd.canvas.selection/1";
+            instruction: string;
+            scene: components["schemas"]["CanvasScene"];
+            selection: components["schemas"]["CanvasSelection"];
+        };
+        /** CanvasPoint */
+        CanvasPoint: {
+            x: number;
+            y: number;
+        };
+        /** CanvasProposal */
+        CanvasProposal: {
+            archive_stroke_ids: string[];
+            author: string;
+            base_revision: number;
+            edges: components["schemas"]["CanvasEdge"][];
+            /** @constant */
+            format: "lychd.canvas.proposal/1";
+            id: string;
+            nodes: components["schemas"]["CanvasNode"][];
+            scene_id: string;
+            selection_ids: string[];
+            summary: string;
+        };
+        /** CanvasReviewRequest */
+        CanvasReviewRequest: {
+            packet: components["schemas"]["CanvasPacket"];
+            proposal: components["schemas"]["CanvasProposal"];
+        };
+        /** CanvasReviewResult */
+        CanvasReviewResult: {
+            scene: components["schemas"]["CanvasScene"];
+            summary: string;
+        };
+        /** CanvasScene */
+        CanvasScene: {
+            edges: components["schemas"]["CanvasEdge"][];
+            /** @constant */
+            format: "lychd.canvas/1";
+            id: string;
+            nodes: components["schemas"]["CanvasNode"][];
+            revision: number;
+            strokes: components["schemas"]["CanvasStroke"][];
+            title: string;
+        };
+        /** CanvasSelection */
+        CanvasSelection: {
+            bounds: components["schemas"]["CanvasBounds"];
+            object_ids: string[];
+            revision: number;
+            scene_id: string;
+        };
+        /** CanvasStroke */
+        CanvasStroke: {
+            archived: boolean;
+            color: string;
+            id: string;
+            points: components["schemas"]["CanvasPoint"][];
+            width: number;
         };
         /** CaseView */
         CaseView: {
@@ -3853,6 +4066,92 @@ export interface operations {
             };
             /** @description Additional response */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+        };
+    };
+    getCanvasContracts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Request fulfilled, document follows */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CanvasContracts"];
+                };
+            };
+        };
+    };
+    validateCanvasDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CanvasDocument"];
+            };
+        };
+        responses: {
+            /** @description Request fulfilled, document follows */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CanvasDocument"];
+                };
+            };
+            /** @description Additional response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkError"];
+                };
+            };
+        };
+    };
+    reviewCanvasProposal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CanvasReviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Request fulfilled, document follows */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CanvasReviewResult"];
+                };
+            };
+            /** @description Additional response */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };

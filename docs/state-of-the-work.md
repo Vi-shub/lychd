@@ -1144,6 +1144,36 @@ future refactoring seam, but hard-coded dark surfaces remain in the main backgro
 static artwork. There is no complete contrast matrix or bright/dim production-browser receipt;
 ADR 15's bounded operator-palette contract is design law, not delivered configurability.
 
+### Canvas board authoring {#canvas-board-authoring}
+
+**State:** Partial
+
+**Proved now:** Canvas supplies a portable board authoring profile at `/canvas`: actual pointer
+strokes, native nodes and connections, whole-object region selection, original geometry and a
+same-revision bounded PNG packet, deterministic text, optional local PNG artwork, explicitly local
+Tidy, bounded CPU arrangement, proposal preview/apply/reject and undo/redo. Portable JSON files
+retain the current scene and bounded history; browser drafts claim no automatic retention.
+Closed Composition-owned contracts and stateless scoped HTTP validation refuse stale or
+out-of-selection changes, dangling references, invalid geometry and unbounded image envelopes.
+Browser and Python share a conservative numeric size budget and common parity fixtures.
+The development-only source preview omits protected status polling, so offline authoring needs
+no sign-in; the compiled application keeps its authenticated shell and API boundaries.
+
+**Boundary — Not yet:** There is no native vision transmission, live microphone, automatic model
+interpretation, generated-art engine, server-retained board, collaborative editing, registered
+Canvas Pattern or Invocation. The example proposal is manually authored by Codex from a captured
+selection and imported; it is not a live inference receipt. Local PNG envelope validation does
+not prove compressed pixels render correctly. No GPU, model, Comfy deployment, broad touch or
+cross-engine browser qualification is established. Canvas does not edit Loom scores, Atlas
+judgments or Orb evidence, and layout creates no semantic relation or execution authority.
+
+**Evidence**
+
+- **Source:** [Canvas records](https://github.com/hexanomicon/lychd/blob/main/src/lychd/compositions/canvas/schemas.py), [pure review](https://github.com/hexanomicon/lychd/blob/main/src/lychd/compositions/canvas/operations.py), [stateless API](https://github.com/hexanomicon/lychd/blob/main/src/lychd/interface/web/canvas.py), [client engine](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/canvas/engine.ts), and [Canvas surface](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/CanvasView.svelte)
+- **Verification:** [Domain and parity tests](https://github.com/hexanomicon/lychd/blob/main/tests/unit/compositions/test_canvas.py), [HTTP admission tests](https://github.com/hexanomicon/lychd/blob/main/tests/web/test_canvas.py), [client engine tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/canvas/engine.test.ts), [gesture/review tests](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/lib/components/canvas/CanvasView.test.ts), [offline preview test](https://github.com/hexanomicon/lychd/blob/main/clients/web/src/routes/canvas/layout.test.ts), and [manual model example](https://github.com/hexanomicon/lychd/blob/main/examples/canvas/README.md)
+- **Law:** [Frontend](./adr/15-frontend.md#canvas-portable-board-authoring)
+- **Topic:** [Canvas](./compositions/canvas/index.md)
+
 ### Atlas undertaking map {#atlas-projects}
 
 **State:** Partial

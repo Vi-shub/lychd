@@ -1106,6 +1106,599 @@
         "title": "CampaignSeed",
         "type": "object"
       },
+      "CanvasArtwork": {
+        "additionalProperties": false,
+        "properties": {
+          "alt": {
+            "maxLength": 240,
+            "type": "string"
+          },
+          "png_data_url": {
+            "maxLength": 699074,
+            "type": "string"
+          },
+          "provenance": {
+            "maxLength": 240,
+            "type": "string"
+          }
+        },
+        "required": [
+          "alt",
+          "png_data_url",
+          "provenance"
+        ],
+        "title": "CanvasArtwork",
+        "type": "object"
+      },
+      "CanvasBounds": {
+        "additionalProperties": false,
+        "properties": {
+          "height": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 400000.0,
+            "type": "number"
+          },
+          "width": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 400000.0,
+            "type": "number"
+          },
+          "x": {
+            "maximum": 102000.0,
+            "minimum": -102000.0,
+            "type": "number"
+          },
+          "y": {
+            "maximum": 102000.0,
+            "minimum": -102000.0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "height",
+          "width",
+          "x",
+          "y"
+        ],
+        "title": "CanvasBounds",
+        "type": "object"
+      },
+      "CanvasContracts": {
+        "additionalProperties": false,
+        "properties": {
+          "composition": {
+            "const": "canvas.board",
+            "default": "canvas.board",
+            "type": "string"
+          },
+          "document_format": {
+            "const": "lychd.canvas.document/1",
+            "default": "lychd.canvas.document/1",
+            "type": "string"
+          },
+          "image_generation": {
+            "const": false,
+            "default": false,
+            "type": "boolean"
+          },
+          "model_transmission": {
+            "const": false,
+            "default": false,
+            "type": "boolean"
+          },
+          "packet_format": {
+            "const": "lychd.canvas.selection/1",
+            "default": "lychd.canvas.selection/1",
+            "type": "string"
+          },
+          "proposal_format": {
+            "const": "lychd.canvas.proposal/1",
+            "default": "lychd.canvas.proposal/1",
+            "type": "string"
+          },
+          "revision": {
+            "const": 1,
+            "default": 1,
+            "type": "integer"
+          },
+          "scene_format": {
+            "const": "lychd.canvas/1",
+            "default": "lychd.canvas/1",
+            "type": "string"
+          },
+          "server_retention": {
+            "const": false,
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "required": [],
+        "title": "CanvasContracts",
+        "type": "object"
+      },
+      "CanvasCrop": {
+        "additionalProperties": false,
+        "properties": {
+          "bounds": {
+            "$ref": "#/components/schemas/CanvasBounds"
+          },
+          "height": {
+            "maximum": 1024.0,
+            "minimum": 1.0,
+            "type": "integer"
+          },
+          "png_data_url": {
+            "maxLength": 699074,
+            "type": "string"
+          },
+          "width": {
+            "maximum": 1024.0,
+            "minimum": 1.0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "bounds",
+          "height",
+          "png_data_url",
+          "width"
+        ],
+        "title": "CanvasCrop",
+        "type": "object"
+      },
+      "CanvasDocument": {
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "const": "lychd.canvas.document/1",
+            "type": "string"
+          },
+          "future": {
+            "items": {
+              "$ref": "#/components/schemas/CanvasScene"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "past": {
+            "items": {
+              "$ref": "#/components/schemas/CanvasScene"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "scene": {
+            "$ref": "#/components/schemas/CanvasScene"
+          }
+        },
+        "required": [
+          "format",
+          "future",
+          "past",
+          "scene"
+        ],
+        "title": "CanvasDocument",
+        "type": "object"
+      },
+      "CanvasEdge": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "maxLength": 36,
+            "minLength": 36,
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 240,
+            "type": "string"
+          },
+          "source": {
+            "maxLength": 36,
+            "minLength": 36,
+            "type": "string"
+          },
+          "source_stroke_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 300,
+            "type": "array"
+          },
+          "target": {
+            "maxLength": 36,
+            "minLength": 36,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "source",
+          "source_stroke_ids",
+          "target"
+        ],
+        "title": "CanvasEdge",
+        "type": "object"
+      },
+      "CanvasNode": {
+        "additionalProperties": false,
+        "properties": {
+          "artwork": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CanvasArtwork"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "height": {
+            "maximum": 1600.0,
+            "minimum": 32.0,
+            "type": "number"
+          },
+          "id": {
+            "maxLength": 36,
+            "minLength": 36,
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "box",
+              "database",
+              "service",
+              "person",
+              "note"
+            ],
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 240,
+            "type": "string"
+          },
+          "pinned": {
+            "type": "boolean"
+          },
+          "source_stroke_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 300,
+            "type": "array"
+          },
+          "width": {
+            "maximum": 1600.0,
+            "minimum": 32.0,
+            "type": "number"
+          },
+          "x": {
+            "maximum": 100000.0,
+            "minimum": -100000.0,
+            "type": "number"
+          },
+          "y": {
+            "maximum": 100000.0,
+            "minimum": -100000.0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "artwork",
+          "height",
+          "id",
+          "kind",
+          "label",
+          "pinned",
+          "source_stroke_ids",
+          "width",
+          "x",
+          "y"
+        ],
+        "title": "CanvasNode",
+        "type": "object"
+      },
+      "CanvasPacket": {
+        "additionalProperties": false,
+        "properties": {
+          "crop": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CanvasCrop"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "format": {
+            "const": "lychd.canvas.selection/1",
+            "type": "string"
+          },
+          "instruction": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "scene": {
+            "$ref": "#/components/schemas/CanvasScene"
+          },
+          "selection": {
+            "$ref": "#/components/schemas/CanvasSelection"
+          }
+        },
+        "required": [
+          "crop",
+          "format",
+          "instruction",
+          "scene",
+          "selection"
+        ],
+        "title": "CanvasPacket",
+        "type": "object"
+      },
+      "CanvasPoint": {
+        "additionalProperties": false,
+        "properties": {
+          "x": {
+            "maximum": 100000.0,
+            "minimum": -100000.0,
+            "type": "number"
+          },
+          "y": {
+            "maximum": 100000.0,
+            "minimum": -100000.0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "x",
+          "y"
+        ],
+        "title": "CanvasPoint",
+        "type": "object"
+      },
+      "CanvasProposal": {
+        "additionalProperties": false,
+        "properties": {
+          "archive_stroke_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 128,
+            "type": "array"
+          },
+          "author": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "base_revision": {
+            "maximum": 9007199254740991.0,
+            "minimum": 1.0,
+            "type": "integer"
+          },
+          "edges": {
+            "items": {
+              "$ref": "#/components/schemas/CanvasEdge"
+            },
+            "maxItems": 256,
+            "type": "array"
+          },
+          "format": {
+            "const": "lychd.canvas.proposal/1",
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 36,
+            "minLength": 36,
+            "type": "string"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/CanvasNode"
+            },
+            "maxItems": 128,
+            "type": "array"
+          },
+          "scene_id": {
+            "maxLength": 36,
+            "minLength": 36,
+            "type": "string"
+          },
+          "selection_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 128,
+            "minItems": 1,
+            "type": "array"
+          },
+          "summary": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "archive_stroke_ids",
+          "author",
+          "base_revision",
+          "edges",
+          "format",
+          "id",
+          "nodes",
+          "scene_id",
+          "selection_ids",
+          "summary"
+        ],
+        "title": "CanvasProposal",
+        "type": "object"
+      },
+      "CanvasReviewRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "packet": {
+            "$ref": "#/components/schemas/CanvasPacket"
+          },
+          "proposal": {
+            "$ref": "#/components/schemas/CanvasProposal"
+          }
+        },
+        "required": [
+          "packet",
+          "proposal"
+        ],
+        "title": "CanvasReviewRequest",
+        "type": "object"
+      },
+      "CanvasReviewResult": {
+        "additionalProperties": false,
+        "properties": {
+          "scene": {
+            "$ref": "#/components/schemas/CanvasScene"
+          },
+          "summary": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "scene",
+          "summary"
+        ],
+        "title": "CanvasReviewResult",
+        "type": "object"
+      },
+      "CanvasScene": {
+        "additionalProperties": false,
+        "properties": {
+          "edges": {
+            "items": {
+              "$ref": "#/components/schemas/CanvasEdge"
+            },
+            "maxItems": 256,
+            "type": "array"
+          },
+          "format": {
+            "const": "lychd.canvas/1",
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 36,
+            "minLength": 36,
+            "type": "string"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/CanvasNode"
+            },
+            "maxItems": 128,
+            "type": "array"
+          },
+          "revision": {
+            "maximum": 9007199254740991.0,
+            "minimum": 1.0,
+            "type": "integer"
+          },
+          "strokes": {
+            "items": {
+              "$ref": "#/components/schemas/CanvasStroke"
+            },
+            "maxItems": 300,
+            "type": "array"
+          },
+          "title": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "edges",
+          "format",
+          "id",
+          "nodes",
+          "revision",
+          "strokes",
+          "title"
+        ],
+        "title": "CanvasScene",
+        "type": "object"
+      },
+      "CanvasSelection": {
+        "additionalProperties": false,
+        "properties": {
+          "bounds": {
+            "$ref": "#/components/schemas/CanvasBounds"
+          },
+          "object_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 128,
+            "minItems": 1,
+            "type": "array"
+          },
+          "revision": {
+            "maximum": 9007199254740991.0,
+            "minimum": 1.0,
+            "type": "integer"
+          },
+          "scene_id": {
+            "maxLength": 36,
+            "minLength": 36,
+            "type": "string"
+          }
+        },
+        "required": [
+          "bounds",
+          "object_ids",
+          "revision",
+          "scene_id"
+        ],
+        "title": "CanvasSelection",
+        "type": "object"
+      },
+      "CanvasStroke": {
+        "additionalProperties": false,
+        "properties": {
+          "archived": {
+            "type": "boolean"
+          },
+          "color": {
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 36,
+            "minLength": 36,
+            "type": "string"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/CanvasPoint"
+            },
+            "maxItems": 2048,
+            "minItems": 1,
+            "type": "array"
+          },
+          "width": {
+            "maximum": 16.0,
+            "minimum": 1.0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "archived",
+          "color",
+          "id",
+          "points",
+          "width"
+        ],
+        "title": "CanvasStroke",
+        "type": "object"
+      },
       "CaseView": {
         "additionalProperties": false,
         "properties": {
@@ -8097,6 +8690,106 @@
           }
         },
         "summary": "Send"
+      }
+    },
+    "/api/v1/canvas/contracts": {
+      "get": {
+        "deprecated": false,
+        "operationId": "getCanvasContracts",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CanvasContracts"
+                }
+              }
+            },
+            "description": "Request fulfilled, document follows",
+            "headers": {}
+          }
+        },
+        "summary": "Contracts"
+      }
+    },
+    "/api/v1/canvas/documents/validate": {
+      "post": {
+        "deprecated": false,
+        "operationId": "validateCanvasDocument",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CanvasDocument"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CanvasDocument"
+                }
+              }
+            },
+            "description": "Request fulfilled, document follows",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          }
+        },
+        "summary": "Document"
+      }
+    },
+    "/api/v1/canvas/review": {
+      "post": {
+        "deprecated": false,
+        "operationId": "reviewCanvasProposal",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CanvasReviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CanvasReviewResult"
+                }
+              }
+            },
+            "description": "Request fulfilled, document follows",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrameworkError"
+                }
+              }
+            },
+            "description": "Additional response"
+          }
+        },
+        "summary": "Review"
       }
     },
     "/api/v1/creation/investigations": {

@@ -1,0 +1,59 @@
+{
+  "format": "lychd.canvas.proposal/1",
+  "id": "38bd86d5-20e0-4c92-a2c6-000000000090",
+  "scene_id": "38bd86d5-20e0-4c92-a2c6-000000000001",
+  "base_revision": 1,
+  "selection_ids": [
+    "38bd86d5-20e0-4c92-a2c6-000000000011",
+    "38bd86d5-20e0-4c92-a2c6-000000000012",
+    "38bd86d5-20e0-4c92-a2c6-000000000013"
+  ],
+  "author": "Codex — manual review of captured PNG and stroke records",
+  "summary": "Turn the selected two-box sketch into editable Vessel and PostgreSQL nodes, preserve the left-to-right database-access connection, and retain the unrelated context note. Original ink is archived for recovery. This is an illustrative diagram, not a claim about running infrastructure.",
+  "nodes": [
+    {
+      "id": "38bd86d5-20e0-4c92-a2c6-000000000031",
+      "x": 96,
+      "y": 112,
+      "width": 224,
+      "height": 128,
+      "label": "Vessel",
+      "kind": "service",
+      "pinned": false,
+      "source_stroke_ids": [
+        "38bd86d5-20e0-4c92-a2c6-000000000011"
+      ],
+      "artwork": null
+    },
+    {
+      "id": "38bd86d5-20e0-4c92-a2c6-000000000032",
+      "x": 432,
+      "y": 112,
+      "width": 224,
+      "height": 128,
+      "label": "PostgreSQL",
+      "kind": "database",
+      "pinned": false,
+      "source_stroke_ids": [
+        "38bd86d5-20e0-4c92-a2c6-000000000012"
+      ],
+      "artwork": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "38bd86d5-20e0-4c92-a2c6-000000000039",
+      "source": "38bd86d5-20e0-4c92-a2c6-000000000031",
+      "target": "38bd86d5-20e0-4c92-a2c6-000000000032",
+      "label": "database access",
+      "source_stroke_ids": [
+        "38bd86d5-20e0-4c92-a2c6-000000000013"
+      ]
+    }
+  ],
+  "archive_stroke_ids": [
+    "38bd86d5-20e0-4c92-a2c6-000000000011",
+    "38bd86d5-20e0-4c92-a2c6-000000000012",
+    "38bd86d5-20e0-4c92-a2c6-000000000013"
+  ]
+}

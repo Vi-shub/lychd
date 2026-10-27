@@ -5,6 +5,8 @@ nav:
       - products-and-suites.md
   - Creative Works:
       - creative-works/index.md
+      - Canvas:
+          - canvas/index.md
       - Atelier:
           - atelier/index.md
           - atelier/brief.md

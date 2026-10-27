@@ -1,0 +1,516 @@
+{
+  "description": "Illustrative geometry only; no live model or architecture claim.",
+  "document": {
+    "format": "lychd.canvas.document/1",
+    "scene": {
+      "format": "lychd.canvas/1",
+      "id": "38bd86d5-20e0-4c92-a2c6-000000000001",
+      "revision": 1,
+      "title": "Illustrative sketch — local sample",
+      "strokes": [
+        {
+          "id": "38bd86d5-20e0-4c92-a2c6-000000000011",
+          "points": [
+            {
+              "x": 90,
+              "y": 110
+            },
+            {
+              "x": 249,
+              "y": 105
+            },
+            {
+              "x": 255,
+              "y": 225
+            },
+            {
+              "x": 86,
+              "y": 230
+            },
+            {
+              "x": 90,
+              "y": 110
+            }
+          ],
+          "color": "#b9cbd8",
+          "width": 3,
+          "archived": false
+        },
+        {
+          "id": "38bd86d5-20e0-4c92-a2c6-000000000012",
+          "points": [
+            {
+              "x": 425,
+              "y": 113
+            },
+            {
+              "x": 585,
+              "y": 108
+            },
+            {
+              "x": 592,
+              "y": 228
+            },
+            {
+              "x": 422,
+              "y": 231
+            },
+            {
+              "x": 425,
+              "y": 113
+            }
+          ],
+          "color": "#b9cbd8",
+          "width": 3,
+          "archived": false
+        },
+        {
+          "id": "38bd86d5-20e0-4c92-a2c6-000000000013",
+          "points": [
+            {
+              "x": 267,
+              "y": 165
+            },
+            {
+              "x": 395,
+              "y": 169
+            },
+            {
+              "x": 379,
+              "y": 154
+            },
+            {
+              "x": 395,
+              "y": 169
+            },
+            {
+              "x": 377,
+              "y": 182
+            }
+          ],
+          "color": "#b9cbd8",
+          "width": 3,
+          "archived": false
+        }
+      ],
+      "nodes": [
+        {
+          "id": "38bd86d5-20e0-4c92-a2c6-000000000021",
+          "x": 300,
+          "y": 330,
+          "width": 220,
+          "height": 96,
+          "label": "Illustrative context",
+          "kind": "note",
+          "pinned": false,
+          "source_stroke_ids": [],
+          "artwork": null
+        }
+      ],
+      "edges": []
+    },
+    "past": [],
+    "future": []
+  },
+  "packet": {
+    "format": "lychd.canvas.selection/1",
+    "scene": {
+      "format": "lychd.canvas/1",
+      "id": "38bd86d5-20e0-4c92-a2c6-000000000001",
+      "revision": 1,
+      "title": "Illustrative sketch — local sample",
+      "strokes": [
+        {
+          "id": "38bd86d5-20e0-4c92-a2c6-000000000011",
+          "points": [
+            {
+              "x": 90,
+              "y": 110
+            },
+            {
+              "x": 249,
+              "y": 105
+            },
+            {
+              "x": 255,
+              "y": 225
+            },
+            {
+              "x": 86,
+              "y": 230
+            },
+            {
+              "x": 90,
+              "y": 110
+            }
+          ],
+          "color": "#b9cbd8",
+          "width": 3,
+          "archived": false
+        },
+        {
+          "id": "38bd86d5-20e0-4c92-a2c6-000000000012",
+          "points": [
+            {
+              "x": 425,
+              "y": 113
+            },
+            {
+              "x": 585,
+              "y": 108
+            },
+            {
+              "x": 592,
+              "y": 228
+            },
+            {
+              "x": 422,
+              "y": 231
+            },
+            {
+              "x": 425,
+              "y": 113
+            }
+          ],
+          "color": "#b9cbd8",
+          "width": 3,
+          "archived": false
+        },
+        {
+          "id": "38bd86d5-20e0-4c92-a2c6-000000000013",
+          "points": [
+            {
+              "x": 267,
+              "y": 165
+            },
+            {
+              "x": 395,
+              "y": 169
+            },
+            {
+              "x": 379,
+              "y": 154
+            },
+            {
+              "x": 395,
+              "y": 169
+            },
+            {
+              "x": 377,
+              "y": 182
+            }
+          ],
+          "color": "#b9cbd8",
+          "width": 3,
+          "archived": false
+        }
+      ],
+      "nodes": [
+        {
+          "id": "38bd86d5-20e0-4c92-a2c6-000000000021",
+          "x": 300,
+          "y": 330,
+          "width": 220,
+          "height": 96,
+          "label": "Illustrative context",
+          "kind": "note",
+          "pinned": false,
+          "source_stroke_ids": [],
+          "artwork": null
+        }
+      ],
+      "edges": []
+    },
+    "selection": {
+      "scene_id": "38bd86d5-20e0-4c92-a2c6-000000000001",
+      "revision": 1,
+      "object_ids": [
+        "38bd86d5-20e0-4c92-a2c6-000000000011",
+        "38bd86d5-20e0-4c92-a2c6-000000000012",
+        "38bd86d5-20e0-4c92-a2c6-000000000013"
+      ],
+      "bounds": {
+        "x": 70,
+        "y": 80,
+        "width": 550,
+        "height": 180
+      }
+    },
+    "instruction": "Regularize the two closed boxes. Retain ambiguous arrow ink.",
+    "crop": null
+  },
+  "proposal": {
+    "format": "lychd.canvas.proposal/1",
+    "id": "38bd86d5-20e0-4c92-a2c6-000000000031",
+    "scene_id": "38bd86d5-20e0-4c92-a2c6-000000000001",
+    "base_revision": 1,
+    "selection_ids": [
+      "38bd86d5-20e0-4c92-a2c6-000000000011",
+      "38bd86d5-20e0-4c92-a2c6-000000000012",
+      "38bd86d5-20e0-4c92-a2c6-000000000013"
+    ],
+    "author": "Deterministic local geometry parity fixture (no model)",
+    "summary": "Geometry only: 2 closed box group(s) converted; selected native positions aligned to a 16-unit grid. Ambiguous ink is retained; no connections inferred.",
+    "nodes": [
+      {
+        "id": "38bd86d5-20e0-4c92-a2c6-000000000041",
+        "x": 80,
+        "y": 112,
+        "width": 176,
+        "height": 128,
+        "label": "Box 1",
+        "kind": "box",
+        "pinned": false,
+        "source_stroke_ids": [
+          "38bd86d5-20e0-4c92-a2c6-000000000011"
+        ],
+        "artwork": null
+      },
+      {
+        "id": "38bd86d5-20e0-4c92-a2c6-000000000042",
+        "x": 416,
+        "y": 112,
+        "width": 176,
+        "height": 128,
+        "label": "Box 2",
+        "kind": "box",
+        "pinned": false,
+        "source_stroke_ids": [
+          "38bd86d5-20e0-4c92-a2c6-000000000012"
+        ],
+        "artwork": null
+      }
+    ],
+    "edges": [],
+    "archive_stroke_ids": [
+      "38bd86d5-20e0-4c92-a2c6-000000000011",
+      "38bd86d5-20e0-4c92-a2c6-000000000012"
+    ]
+  },
+  "expected_scene": {
+    "format": "lychd.canvas/1",
+    "id": "38bd86d5-20e0-4c92-a2c6-000000000001",
+    "revision": 2,
+    "title": "Illustrative sketch — local sample",
+    "strokes": [
+      {
+        "id": "38bd86d5-20e0-4c92-a2c6-000000000011",
+        "points": [
+          {
+            "x": 90,
+            "y": 110
+          },
+          {
+            "x": 249,
+            "y": 105
+          },
+          {
+            "x": 255,
+            "y": 225
+          },
+          {
+            "x": 86,
+            "y": 230
+          },
+          {
+            "x": 90,
+            "y": 110
+          }
+        ],
+        "color": "#b9cbd8",
+        "width": 3,
+        "archived": true
+      },
+      {
+        "id": "38bd86d5-20e0-4c92-a2c6-000000000012",
+        "points": [
+          {
+            "x": 425,
+            "y": 113
+          },
+          {
+            "x": 585,
+            "y": 108
+          },
+          {
+            "x": 592,
+            "y": 228
+          },
+          {
+            "x": 422,
+            "y": 231
+          },
+          {
+            "x": 425,
+            "y": 113
+          }
+        ],
+        "color": "#b9cbd8",
+        "width": 3,
+        "archived": true
+      },
+      {
+        "id": "38bd86d5-20e0-4c92-a2c6-000000000013",
+        "points": [
+          {
+            "x": 267,
+            "y": 165
+          },
+          {
+            "x": 395,
+            "y": 169
+          },
+          {
+            "x": 379,
+            "y": 154
+          },
+          {
+            "x": 395,
+            "y": 169
+          },
+          {
+            "x": 377,
+            "y": 182
+          }
+        ],
+        "color": "#b9cbd8",
+        "width": 3,
+        "archived": false
+      }
+    ],
+    "nodes": [
+      {
+        "id": "38bd86d5-20e0-4c92-a2c6-000000000021",
+        "x": 300,
+        "y": 330,
+        "width": 220,
+        "height": 96,
+        "label": "Illustrative context",
+        "kind": "note",
+        "pinned": false,
+        "source_stroke_ids": [],
+        "artwork": null
+      },
+      {
+        "id": "38bd86d5-20e0-4c92-a2c6-000000000041",
+        "x": 80,
+        "y": 112,
+        "width": 176,
+        "height": 128,
+        "label": "Box 1",
+        "kind": "box",
+        "pinned": false,
+        "source_stroke_ids": [
+          "38bd86d5-20e0-4c92-a2c6-000000000011"
+        ],
+        "artwork": null
+      },
+      {
+        "id": "38bd86d5-20e0-4c92-a2c6-000000000042",
+        "x": 416,
+        "y": 112,
+        "width": 176,
+        "height": 128,
+        "label": "Box 2",
+        "kind": "box",
+        "pinned": false,
+        "source_stroke_ids": [
+          "38bd86d5-20e0-4c92-a2c6-000000000012"
+        ],
+        "artwork": null
+      }
+    ],
+    "edges": []
+  },
+  "expected_bounds": [
+    {
+      "id": "38bd86d5-20e0-4c92-a2c6-000000000011",
+      "bounds": {
+        "x": 84.5,
+        "y": 103.5,
+        "width": 172,
+        "height": 128
+      }
+    },
+    {
+      "id": "38bd86d5-20e0-4c92-a2c6-000000000012",
+      "bounds": {
+        "x": 420.5,
+        "y": 106.5,
+        "width": 173,
+        "height": 126
+      }
+    },
+    {
+      "id": "38bd86d5-20e0-4c92-a2c6-000000000013",
+      "bounds": {
+        "x": 265.5,
+        "y": 152.5,
+        "width": 131,
+        "height": 31
+      }
+    }
+  ],
+  "self_loop_case": {
+    "scene": {
+      "format": "lychd.canvas/1",
+      "id": "38bd86d5-20e0-4c92-a2c6-000000000051",
+      "revision": 1,
+      "title": "Self-loop control bounds parity",
+      "strokes": [],
+      "nodes": [
+        {
+          "id": "38bd86d5-20e0-4c92-a2c6-000000000052",
+          "x": 100000,
+          "y": -100000,
+          "width": 160,
+          "height": 80,
+          "label": "Boundary loop",
+          "kind": "box",
+          "pinned": false,
+          "source_stroke_ids": [],
+          "artwork": null
+        }
+      ],
+      "edges": [
+        {
+          "id": "38bd86d5-20e0-4c92-a2c6-000000000053",
+          "source": "38bd86d5-20e0-4c92-a2c6-000000000052",
+          "target": "38bd86d5-20e0-4c92-a2c6-000000000052",
+          "label": "Explicit self-loop",
+          "source_stroke_ids": []
+        }
+      ]
+    },
+    "edge_id": "38bd86d5-20e0-4c92-a2c6-000000000053",
+    "expected_bounds": {
+      "x": 99965,
+      "y": -100080,
+      "width": 230,
+      "height": 160
+    }
+  },
+  "size_recipes": [
+    {
+      "name": "points30000_art3_reject",
+      "point_count": 30000,
+      "node_count": 3,
+      "png_padding": 410000,
+      "expected_valid": false
+    },
+    {
+      "name": "points20000_art1_accept",
+      "point_count": 20000,
+      "node_count": 1,
+      "png_padding": 410000,
+      "expected_valid": true
+    },
+    {
+      "name": "points30000_bare_accept",
+      "point_count": 30000,
+      "node_count": 0,
+      "png_padding": 0,
+      "expected_valid": true
+    }
+  ]
+}

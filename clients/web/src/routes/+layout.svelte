@@ -1,6 +1,7 @@
 <script lang="ts">
   import "../app.css";
   import { setContext } from "svelte";
+  import { page } from "$app/state";
   import { bridgeWorkspaceKey, createBridgeWorkspace } from "$lib/bridge/workspace.svelte";
   import AltarShell from "$lib/components/AltarShell.svelte";
 
@@ -15,6 +16,10 @@
 
 <svelte:window onbeforeunload={guardUnload} />
 
-<AltarShell>
+{#if import.meta.env.DEV && page.url.pathname === "/canvas"}
   {@render children()}
-</AltarShell>
+{:else}
+  <AltarShell>
+  {@render children()}
+  </AltarShell>
+{/if}

@@ -355,6 +355,30 @@ contracts where larger collections, complete fold membership, event seeking, phy
 mapping, or restart recovery require them. Hidden DOM rows, geometric clustering, a new request
 identity, or persuasive copy cannot supply those contracts.
 
+### Canvas portable board authoring
+
+[Canvas](../compositions/canvas/index.md) is the Composition for visual board authorship and
+reviewed transformations. Its first `/canvas` profile is a browser authoring draft with explicit
+portable document import/export. Native SVG captures actual ink and projects draft objects;
+the existing Loom/Orb renderer and read-only contracts are unchanged. This bounded authoring
+surface does not introduce a second graph engine or make layout a source of workflow meaning.
+
+Canvas owns the file/proposal schemas and pure admission rules under its Composition source.
+The browser holds disposable authoring state; it claims no server retention, publication,
+execution or native media custody. Text remains native editable text, independent of optional
+local PNG artwork. Imported bytes are bounded and validated; remote image URLs, SVG, HTML and
+executable proposal content are unavailable. The real API exports the schemas for generated
+client aliases and provides stateless CPU validation, not a board persistence service.
+
+Selection capture binds exact object identities, world bounds and scene revision to source
+geometry and a same-revision crop. Proposals may change selected objects and create explicit
+connections to supplied context, while leaving other objects untouched. Preview is inert;
+acceptance is atomic and reversible. Any committed edit invalidates an older proposal. Undo/redo
+create fresh revisions. Arrangement is bounded, respects pins and measured dimensions, pauses
+during gestures and records one deliberate edit. Keyboard object controls and reduced motion
+remain equivalent ways to work. Model transport, microphone capture and generated imagery
+are separate capabilities with explicit unavailable states until independently qualified.
+
 ### Atlas and continuity across Invocations
 
 Atlas maps Concerns: what needs attention, how it decomposes, where it is addressed, and what

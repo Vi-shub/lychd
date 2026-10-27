@@ -39,6 +39,7 @@ separate views of explanations and proposals.
 
 ## Follow a shared work
 
+[Canvas](canvas/index.md) keeps visual boards, original ink and reviewed transformations.
 [Atelier](atelier/index.md) produces accepted visuals, [Riffmaw](riffmaw/index.md) music, and
 [Language Edition](language-edition/index.md) aligned dialogue and captions.
 [Broadcast](broadcast/edit.md) admits their exact settled bundles into its timeline and judges

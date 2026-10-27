@@ -11,6 +11,7 @@ use the same file format.
 | Composition | Outcome |
 | --- | --- |
 | [Atelier](../atelier/index.md) | A still image, moving sequence, or visual/VFX package ready for its next use. |
+| [Canvas](../canvas/index.md) | A revisable visual board with original ink, reviewed transformations and a portable document. |
 | [Riffmaw](../riffmaw/index.md) | A composed or performed musical work, a production package, and cues when needed. |
 | [Language Edition](../language-edition/index.md) | Replacement dialogue, narration, translation, or captions aligned to a locked source. |
 | [Foundry](../foundry/index.md) | A playtested local game build that another person can reproduce. |
