@@ -37,7 +37,9 @@ The knowledge you seek is inscribed in the **[Hexanomicon](https://hexanomicon.d
 
 The higher art of **[Assimilation](docs/adr/35-assimilation.md)** studies foreign craft and forges it anew under local law.
 
-If you came to build, follow the **[Map](docs/map.md)** and **[enter the Forge](CONTRIBUTING.md)**.
+If you came to build, LychD is **pre-alpha**. [State of Work](docs/state-of-the-work.md) records what this revision can support. Follow one request through the **[Map](docs/map.md)**, then **[enter the Forge](CONTRIBUTING.md)**.
+
+Claim one open contract in an issue before you change it. The active calls are the [help-wanted issues](https://github.com/hexanomicon/lychd/issues?q=is%3Aissue+is%3Aopen+label%3A%22help%20wanted%22). Reproduce one failure and close it through the owner that already exists. Prove the change with the [quality gates](CONTRIBUTING.md#quality-checks). A documentation patch runs the architecture selection and the clean Zensical build, with the exact commands kept in the Forge.
 
 The **[Metamorphosis roadmap](ROADMAP.md)** follows the founding year through five books,
 beginning with the shared agentic laboratory and its first public encounters.
