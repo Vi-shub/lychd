@@ -157,8 +157,10 @@ def test_companion_qualification_preserves_historical_receipt() -> None:
     assert receipt["source_identity"]["base_revision_declared"] == "0e0dc859699edf279aecc17d0eff0a9ac97945ed"
 
 
-def test_historical_companion_receipt_cannot_qualify_the_changed_dependency_lock() -> None:
-    with pytest.raises(AssertionError, match="Dependency lock is stale"):
+def test_historical_companion_receipt_cannot_qualify_the_changed_dialogue_source() -> None:
+    # The original source check now refuses before reaching its also-stale lock.
+    # The synthetic lock-only negative control below remains independently exercised.
+    with pytest.raises(AssertionError, match=r"Source inventory is stale: scripts/companion_lab\.py"):
         _require_current_qualification(json.loads(RECEIPT.read_text()), root=ROOT, sources=qualified_sources())
 
 
